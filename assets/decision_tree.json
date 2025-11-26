@@ -1,0 +1,278 @@
+{
+  "welcome": {
+    "message": "👋 Hey! I’m Elly, your digital health buddy. How are you feeling today?",
+    "options": [
+      {
+        "text": "I want to track my progress",
+        "next": "track_progress"
+      },
+      {
+        "text": "I need a little health motivation",
+        "next": "motivation"
+      },
+      {
+        "text": "Just exploring Snevva",
+        "next": "explore"
+      }
+    ]
+  },
+  "track_progress": {
+    "message": "That’s the spirit 🚀 Which area do you want to check today?",
+    "options": [
+      {
+        "text": "My water intake",
+        "next": "water_tracking"
+      },
+      {
+        "text": "My sleep",
+        "next": "sleep_tracking"
+      },
+      {
+        "text": "My daily habits",
+        "next": "habit_tracker"
+      },
+      {
+        "text": "My diet & BMI",
+        "next": "diet_bmi"
+      }
+    ]
+  },
+  "water_tracking": {
+    "message": "Let’s keep you hydrated 💧 How many glasses of water have you had today?",
+    "options": [
+      {
+        "text": "1–3",
+        "next": "water_tip"
+      },
+      {
+        "text": "4–6",
+        "next": "water_tip"
+      },
+      {
+        "text": "7–9",
+        "next": "water_tip"
+      },
+      {
+        "text": "10+",
+        "next": "water_tip"
+      }
+    ]
+  },
+  "water_tip": {
+    "message": "Nice work! Remember, 8 glasses a day is the sweet spot..",
+    "options": [
+      {
+        "text": "Back to menu",
+        "next": "welcome"
+      },
+      {
+        "text": "End chat",
+        "next": "end"
+      }
+    ]
+  },
+  "sleep_tracking": {
+    "message": "Sleep is fuel for your body 😴 How many hours did you sleep last night?",
+    "options": [
+      {
+        "text": "Less than 5 hrs",
+        "next": "sleep_tip"
+      },
+      {
+        "text": "5–7 hrs",
+        "next": "sleep_tip"
+      },
+      {
+        "text": "7–9 hrs",
+        "next": "sleep_tip"
+      },
+      {
+        "text": "More than 9 hrs",
+        "next": "sleep_tip"
+      }
+    ]
+  },
+  "sleep_tip": {
+    "message": "Got it. Consistency is key! Want a quick tip to improve your sleep?",
+    "options": [
+      {
+        "text": "Yes, share a tip",
+        "next": "health_tips_sleep"
+      },
+      {
+        "text": "Maybe later",
+        "next": "exit_or_menu"
+      }
+    ]
+  },
+  "habit_tracker": {
+    "message": "Small habits → big changes 💪 Which one are you focusing on today?",
+    "options": [
+      {
+        "text": "Drink more water",
+        "next": "habit_tip"
+      },
+      {
+        "text": "Daily exercise",
+        "next": "habit_tip"
+      },
+      {
+        "text": "Sleep on time",
+        "next": "habit_tip"
+      },
+      {
+        "text": "Eat fruits & veggies",
+        "next": "habit_tip"
+      },
+      {
+        "text": "Practice meditation",
+        "next": "habit_tip"
+      }
+    ]
+  },
+  "habit_tip": {
+    "message": "Love it! I’ll help you stay consistent..",
+    "options": [
+      {
+        "text": "Back to menu",
+        "next": "welcome"
+      },
+      {
+        "text": "End chat",
+        "next": "end"
+      }
+    ]
+  },
+  "diet_bmi": {
+    "message": "Food shapes your energy 🍎 What’s your current goal?",
+    "options": [
+      {
+        "text": "Lose weight",
+        "next": "diet_plan"
+      },
+      {
+        "text": "Gain weight",
+        "next": "diet_plan"
+      },
+      {
+        "text": "Stay fit & balanced",
+        "next": "diet_plan"
+      }
+    ]
+  },
+  "diet_plan": {
+    "message": "Here’s a sample diet plan you can follow today..",
+    "options": [
+      {
+        "text": "Back to menu",
+        "next": "welcome"
+      },
+      {
+        "text": "End chat",
+        "next": "end"
+      }
+    ]
+  },
+  "motivation": {
+    "message": "We all need a push sometimes 💡 Here’s a quick tip: ‘Small changes daily build big results. Even 10 minutes of walking after meals helps digestion.’ Want more motivation on?",
+    "options": [
+      {
+        "text": "Nutrition",
+        "next": "health_tips_nutrition"
+      },
+      {
+        "text": "Fitness",
+        "next": "health_tips_fitness"
+      },
+      {
+        "text": "Stress & mental wellness",
+        "next": "health_tips_stress"
+      },
+      {
+        "text": "Sleep & balance",
+        "next": "health_tips_sleep"
+      }
+    ]
+  },
+  "explore": {
+    "message": "Awesome 🌿 With me, you can track water & sleep, get diet/BMI insights, build habits, and access women’s wellness tips. Want me to guide you through one right now?",
+    "options": [
+      {
+        "text": "Yes, show me",
+        "next": "track_progress"
+      },
+      {
+        "text": "No, I’ll explore later",
+        "next": "exit_or_menu"
+      }
+    ]
+  },
+  "health_tips_nutrition": {
+    "message": "🥗 Tip: Add more fiber to your meals — it keeps you full longer and helps digestion.",
+    "options": [
+      {
+        "text": "Show another tip",
+        "next": "motivation"
+      },
+      {
+        "text": "Back to menu",
+        "next": "welcome"
+      }
+    ]
+  },
+  "health_tips_fitness": {
+    "message": "💪 Tip: Short bursts of activity, like 10 squats every hour, improve circulation and burn calories.",
+    "options": [
+      {
+        "text": "Show another tip",
+        "next": "motivation"
+      },
+      {
+        "text": "Back to menu",
+        "next": "welcome"
+      }
+    ]
+  },
+  "health_tips_stress": {
+    "message": "🧘 Tip: 5 minutes of deep breathing reduces stress hormones instantly.",
+    "options": [
+      {
+        "text": "Show another tip",
+        "next": "motivation"
+      },
+      {
+        "text": "Back to menu",
+        "next": "welcome"
+      }
+    ]
+  },
+  "health_tips_sleep": {
+    "message": "😴 Tip: Keep a regular sleep schedule — your body loves routine.",
+    "options": [
+      {
+        "text": "Show another tip",
+        "next": "motivation"
+      },
+      {
+        "text": "Back to menu",
+        "next": "welcome"
+      }
+    ]
+  },
+  "exit_or_menu": {
+    "message": "Would you like to go back to the main menu or end our chat?",
+    "options": [
+      {
+        "text": "Main menu",
+        "next": "welcome"
+      },
+      {
+        "text": "End chat",
+        "next": "end"
+      }
+    ]
+  },
+  "end": {
+    "message": "💙 Glad I could help today. Remember, your health is a journey — and I’ll always be here to guide you."
+  }
+}

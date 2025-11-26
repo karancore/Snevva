@@ -1,0 +1,157 @@
+name: snevva
+description: "A new Flutter project."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+# In Windows, build-name is used as the major, minor, and patch parts
+# of the product and file versions while build-number is used as the build suffix.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.0
+
+# Dependencies specify other packages that your package needs in order to work.
+# To automatically upgrade your package dependencies to the latest versions
+# consider running `flutter pub upgrade --major-versions`. Alternatively,
+# dependencies can be manually updated by changing the version numbers below to
+# the latest version available on pub.dev. To see which dependencies have newer
+# versions available, run `flutter pub outdated`.
+dependencies:
+  flutter:
+    sdk: flutter
+
+  flutter_localizations:
+    sdk: flutter
+
+  intl: ^0.20.2
+
+  # The following adds the Cupertino Icons font to your application.
+  # Use with the CupertinoIcons class for iOS style icons.
+  cupertino_icons: ^1.0.8
+  get: ^4.7.2
+  flutter_svg: ^2.2.0
+  font_awesome_flutter: ^10.8.0
+  modern_form_line_awesome_icons: ^2.0.1
+  curved_labeled_navigation_bar: ^2.0.6
+  audio_video_progress_bar: ^2.0.3
+  google_fonts: ^6.1.0
+  http: ^1.4.0
+  isar: ^3.0.0
+  encrypt: ^5.0.0
+  flutter_secure_storage: ^9.2.4
+  shared_preferences: ^2.5.3
+  crypto: ^3.0.1
+  google_sign_in: ^7.1.0
+  pinput: ^5.0.1
+  flutter_card_swiper: ^7.0.2
+  linear_progress_bar: ^1.2.0
+  smooth_page_indicator: ^1.2.1
+  carousel_slider: ^5.1.1
+  lottie: ^3.3.1
+  dropdown_flutter: ^1.0.1
+  syncfusion_flutter_gauges: ^31.2.4
+  auto_size_text: ^3.0.0
+  camera: ^0.11.2
+  path: ^1.9.1
+  image_picker: ^1.0.7
+  fl_chart: ^1.0.0
+  flutter_picker: ^2.1.0
+  wheel_picker: ^0.2.2
+  scroll_datetime_picker: ^0.2.2
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.0.11
+  permission_handler: ^12.0.1
+  percent_indicator: ^4.2.3
+  screen_state: ^4.1.1
+  geolocator: ^14.0.2
+  flutter_background_service: ^5.0.6
+  flutter_local_notifications: ^19.5.0
+  timezone: ^0.10.1
+  share_plus: ^12.0.1
+  pedometer: ^4.0.1
+  alarm: ^5.1.5
+
+
+
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # The "flutter_lints" package below contains a set of recommended lints to
+  # encourage good coding practices. The lint set provided by the package is
+  # activated in the `analysis_options.yaml` file located at the root of your
+  # package. See that file for information about deactivating specific lint
+  # rules and activating additional ones.
+  build_runner: ^2.4.6
+  hive_generator: ^2.0.1
+  flutter_lints: ^6.0.0
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/Logo/snevva-logo 1.png"
+
+
+flutter:
+  uses-material-design: true
+  generate: true
+  assets:
+    - assets/
+    - assets/Logo/
+    - assets/Images/
+    - assets/Icons/
+    - assets/Icons/Drawer/
+    - assets/Dashboard/
+    - assets/Images/MentalWellness/
+    - assets/Images/Yoga/
+    - assets/Images/ProfileSetup/
+    - assets/Icons/Questionnaire_Icons/
+    - assets/Icons/Dashboard/
+    - assets/Icons/Profile/
+    - assets/Icons/Hydration/
+    - assets/Images/Height_And_Weight/
+    - assets/Icons/Common_Icons/
+    - assets/Images/Emergency/
+    - assets/Icons/vitals/
+    - assets/Images/BMI/
+    - assets/Icons/Setting/
+    - assets/Icons/ScanReport/
+    - assets/Icons/WomenHealth/
+    - assets/Images/WomenHealth/
+    - assets/Images/Steps/
+    - assets/Images/MoodTracker/
+    - assets/Images/DietPlan/
+    - assets/Icons/Info/
+    - assets/Icons/SleepScreen/
+    - assets/decision_tree.json
+    - assets/sounds/
+
+  fonts:
+    - family: sans_regular
+      fonts:
+        - asset: assets/fonts/sans_regular.ttf
+    
+    - family: sans_semibold
+      fonts:
+        - asset: assets/fonts/sans_semibold.ttf
+
+    - family: sans_bold
+      fonts:
+        - asset: assets/fonts/sans_bold.ttf
+
+flutter_intl:
+  enabled: true

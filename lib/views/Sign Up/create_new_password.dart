@@ -1,0 +1,425 @@
+import 'package:flutter/gestures.dart';
+import '../../Controllers/signupAndSignIn/create_password_controller.dart';
+import '../../consts/consts.dart';
+
+
+
+class CreateNewPassword extends StatefulWidget {
+  final bool otpVerificationStatus;
+  final String otp;
+  final String emailOrPhoneText;
+
+  const CreateNewPassword({
+    super.key,
+    required this.otpVerificationStatus,
+    required this.otp,
+    required this.emailOrPhoneText,
+  });
+
+  @override
+  State<CreateNewPassword> createState() => _CreateNewPasswordState();
+}
+
+class _CreateNewPasswordState extends State<CreateNewPassword> {
+
+  final controller = Get.put(CreatePasswordController());
+
+  @override
+  Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
+
+    void onCreatePasswordButtonClick() {
+      if (controller.password.value.isEmpty ||
+          controller.confirmPassword.value.isEmpty) {
+        Get.snackbar(
+          "Error",
+          "Please fill in both password fields",
+          snackPosition: SnackPosition.BOTTOM,
+          margin: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: 20,
+          ),
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
+      if (!controller.isPasswordValid) {
+        Get.snackbar(
+          "Weak Password",
+          "Your password doesn't meet the criteria",
+          snackPosition: SnackPosition.BOTTOM,
+          margin: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: 20,
+          ),
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
+      if (!controller.isConfirmPasswordValid) {
+        Get.snackbar(
+          "Mismatch",
+          "Passwords do not match",
+          snackPosition: SnackPosition.BOTTOM,
+          margin: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: 20,
+          ),
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
+      if (!controller.isChecked.value) {
+        Get.snackbar(
+          "Agreement Required",
+          "You must agree to the terms",
+          snackPosition: SnackPosition.BOTTOM,
+          margin: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: 20,
+          ),
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+
+        return;
+      }
+      if (widget.emailOrPhoneText.contains('@')) {
+        controller.createNewPasswordWithGmail(
+          widget.emailOrPhoneText.trim(),
+          widget.otp,
+          widget.otpVerificationStatus,
+          controller.confirmPasswordController.text.trim(),
+        );
+      } else if (RegExp(r'^\d{10,}$').hasMatch(widget.emailOrPhoneText)) {
+        controller.createNewPasswordWithPhone(
+          widget.emailOrPhoneText.trim(),
+          widget.otp,
+          widget.otpVerificationStatus,
+          controller.confirmPasswordController.text.trim(),
+        );
+      } else {
+        Get.snackbar('Error', 'Failed To Create New Password.');
+      }
+
+
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16, top: 8),
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: mediumGrey,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.only(left: 6),
+              child: IconButton(
+                icon: Icon(Icons.arrow_back_ios, size: 18, color: Colors.white),
+                onPressed: () => Get.back(),
+              ),
+            ),
+          ),
+        ),
+        centerTitle: true,
+        title: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(
+            AppLocalizations.of(context)!.createPassword,
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            children: [
+              SizedBox(height: 16),
+              Image.asset(mascot2, height: 100),
+              SizedBox(height: 16),
+              Text(
+                AppLocalizations.of(context)!.createAccount,
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                  AppLocalizations.of(context)!.enterPassword,
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+              SizedBox(height: 30),
+
+              Material(
+                elevation: 1,
+                color:
+                    isDarkMode
+                        ? AppColors.primaryColor.withValues(alpha: .02)
+                        : Colors.white.withValues(alpha: 0.95),
+                borderRadius: BorderRadius.circular(4),
+                child: Obx(
+                  () => TextFormField(
+                    controller: controller.passwordController,
+                    obscureText: controller.obscurePassword.value,
+                    onChanged: (val) => controller.password.value = val,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.transparent,
+                      prefixIcon: Icon(Icons.lock_outline),
+                      labelText: AppLocalizations.of(context)!.inputPassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          controller.obscurePassword.value
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
+                        onPressed: () {
+                          controller.obscurePassword.value =
+                              !controller.obscurePassword.value;
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 6),
+              Obx(
+                () => Row(
+                  children: [
+                    Icon(
+                      controller.isPasswordValid
+                          ? Icons.check_circle
+                          : Icons.error_outline,
+                      color:
+                          controller.isPasswordValid
+                              ? Colors.green
+                              : Colors.grey,
+                      size: 18,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      controller.isPasswordValid
+                          ? AppLocalizations.of(context)!.passwordStrengthStrong
+                          : AppLocalizations.of(context)!.passwordStrengthWeak,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color:
+                            controller.isPasswordValid
+                                ? Colors.green
+                                : Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              SizedBox(height: 10),
+
+              // Confirm Password Field
+              Material(
+                elevation: 1,
+                color:
+                    isDarkMode
+                        ? AppColors.primaryColor.withValues(alpha: .02)
+                        : Colors.white.withValues(alpha: 0.95),
+                borderRadius: BorderRadius.circular(4),
+                child: Obx(
+                  () => TextFormField(
+                    controller: controller.confirmPasswordController,
+                    obscureText: controller.obscurePassword2.value,
+                    onChanged: (val) => controller.confirmPassword.value = val,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.transparent,
+                      prefixIcon: Icon(Icons.lock_outline),
+                      labelText: AppLocalizations.of(context)!.confirmPassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          controller.obscurePassword2.value
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
+                        onPressed: () {
+                          controller.obscurePassword2.value =
+                              !controller.obscurePassword2.value;
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 6),
+              Obx(
+                () => Row(
+                  children: [
+                    Icon(
+                      controller.isConfirmPasswordValid
+                          ? Icons.check_circle
+                          : Icons.error_outline,
+                      color:
+                          controller.isConfirmPasswordValid
+                              ? Colors.green
+                              : Colors.orangeAccent,
+                      size: 18,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      controller.isConfirmPasswordValid
+                          ? AppLocalizations.of(context)!.passwordsMatch
+                          : AppLocalizations.of(context)!.passwordsDoNotMatch,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color:
+                            controller.isConfirmPasswordValid
+                                ? Colors.green
+                                : Colors.orangeAccent,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              SizedBox(height: 20),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppLocalizations.of(context)!.passwordMustContain,
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  SizedBox(height: 10),
+                  Obx(
+                    () => Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle,
+                          color:
+                              controller.hasLetter ? AppColors.primaryColor : Colors.grey,
+                        ),
+                        SizedBox(width: 5),
+                        Text(AppLocalizations.of(context)!.passwordLetterRequirement, style: TextStyle(fontSize: 12)),
+                      ],
+                    ),
+                  ),
+
+                  SizedBox(height: 10),
+
+                  Obx(
+                    () => Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle,
+                          color:
+                              controller.hasNumberOrSymbol
+                                  ? AppColors.primaryColor
+                                  : Colors.grey,
+                        ),
+                        SizedBox(width: 5),
+                        Text(
+                          AppLocalizations.of(context)!.passwordSpecialChar,
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  SizedBox(height: 10),
+
+                  Obx(
+                    () => Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle,
+                          color:
+                              controller.hasMinLength
+                                  ? AppColors.primaryColor
+                                  : Colors.grey,
+                        ),
+                        SizedBox(width: 5),
+                        Text(AppLocalizations.of(context)!.passwordMinLength, style: TextStyle(fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              SizedBox(height: 30),
+              Obx(
+                () => Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Checkbox(
+                      visualDensity: VisualDensity(
+                        horizontal: -4,
+                        vertical: -4,
+                      ),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      value: controller.isChecked.value,
+                      onChanged: (value) => controller.isChecked.value = value!,
+                    ),
+                    SizedBox(width: 5),
+                    Expanded(
+                      child: RichText(
+                        text: TextSpan(
+                          style: TextStyle(fontSize: 12),
+                          children: [
+                            TextSpan(
+                              text: AppLocalizations.of(context)!.agreeToTerms,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            TextSpan(
+                              text: AppLocalizations.of(context)!.agreeToConditions,
+                              style: TextStyle(
+                                color: AppColors.primaryColor,
+                                decoration: TextDecoration.underline,
+                              ),
+                              recognizer: TapGestureRecognizer()..onTap = () {},
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              SizedBox(height: 30),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ElevatedButton(
+                  onPressed: onCreatePasswordButtonClick,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: Colors.white,
+                    shadowColor: Colors.transparent,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(AppLocalizations.of(context)!.nextText),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,43 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
+// class AuthHeaderHelper {
+//   static Future<Map<String, String>> getHeaders({bool withAuth = false}) async {
+//     final headers = {
+//       'Content-Type': 'application/json',
+//       'Accept': 'application/json',
+//     };
+
+//     if (withAuth) {
+//       final prefs = await SharedPreferences.getInstance();
+//       final token = prefs.getString('authToken');
+//       if (token != null) {
+//         headers['Authorization'] = 'Bearer $token';
+//       }
+//     }
+
+//     return headers;
+//   }
+// }
+
+class AuthHeaderHelper {
+  static Future<Map<String, String>> getHeaders({bool withAuth = false}) async {
+    final headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+
+    if (withAuth) {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+        // print("👉 Using Bearer Token: $token"); // Debug
+      } else {
+        // print("❌ No token found in SharedPreferences");
+      }
+    }
+
+    return headers;
+  }
+}
