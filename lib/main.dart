@@ -1,5 +1,6 @@
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:get/get.dart';
 import 'package:snevva/Widgets/home_wrapper.dart';
 import 'package:snevva/services/app_initializer.dart';
@@ -9,6 +10,7 @@ import 'package:snevva/views/Sign%20Up/sign_in_screen.dart';
 import 'l10n/app_localizations.dart';
 
 void main() async {
+  FlutterForegroundTask.initCommunicationPort();
   WidgetsFlutterBinding.ensureInitialized();
   await Alarm.init();
   final isRemembered = await initializeApp();

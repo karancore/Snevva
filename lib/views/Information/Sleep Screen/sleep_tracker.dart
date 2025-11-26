@@ -1,5 +1,10 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:isolate';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:flutter_foreground_task/models/notification_permission.dart';
 import 'package:get/get.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -9,6 +14,7 @@ import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
 import '../../../Controllers/SleepScreen/sleep_controller.dart';
 import '../../../Widgets/CommonWidgets/common_stat_graph_widget.dart';
+import '../../../Widgets/CommonWidgets/custom_outlined_button.dart';
 
 class SleepTrackerScreen extends StatefulWidget {
   const SleepTrackerScreen({super.key});
@@ -18,9 +24,13 @@ class SleepTrackerScreen extends StatefulWidget {
 }
 
 class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
-  final SleepController controller = Get.find<SleepController>();
-
   TimeOfDay? selectedTime;
+  TimeOfDay? start = TimeOfDay.now();
+  TimeOfDay? end = TimeOfDay.fromDateTime(
+    DateTime.now().add(Duration(hours: 8)),
+  );
+
+  final SleepController sleepController = Get.put(SleepController());
 
   @override
   Widget build(BuildContext context) {
@@ -40,266 +50,6 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
           padding: const EdgeInsets.all(20.0),
           child: Column(
             children: [
-              // ========== 1. MONITORING STATUS CARD (TOP) ==========
-              Obx(
-                () => AnimatedContainer(
-                  duration: Duration(milliseconds: 300),
-                  child: Material(
-                    color:
-                        controller.isMonitoring.value
-                            ? Colors.green.shade50
-                            : Colors.grey.shade100,
-                    elevation: 3,
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color:
-                              controller.isMonitoring.value
-                                  ? Colors.green.shade300
-                                  : Colors.grey.shade300,
-                          width: 2,
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          // Status Icon and Text
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color:
-                                      controller.isMonitoring.value
-                                          ? Colors.green
-                                          : Colors.grey,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  controller.isMonitoring.value
-                                      ? Icons.visibility
-                                      : Icons.visibility_off,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                              SizedBox(width: 12),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    controller.isMonitoring.value
-                                        ? 'Monitoring Active'
-                                        : 'Monitoring Inactive',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color:
-                                          controller.isMonitoring.value
-                                              ? Colors.green.shade800
-                                              : Colors.grey.shade700,
-                                    ),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    controller.isMonitoring.value
-                                        ? 'Tracking your sleep pattern'
-                                        : 'Start to track your sleep',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 20),
-
-                          // Control Buttons
-                          controller.isMonitoring.value
-                              ? Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: controller.stopMonitoring,
-                                      icon: Icon(Icons.stop, size: 18),
-                                      label: Text('Stop'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.red,
-                                        foregroundColor: Colors.white,
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: 14,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                        ),
-                                        elevation: 2,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: 12),
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed:
-                                          controller.calculateActualSleep,
-                                      icon: Icon(Icons.calculate, size: 18),
-                                      label: Text('Calculate'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.purple,
-                                        foregroundColor: Colors.white,
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: 14,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                        ),
-                                        elevation: 2,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              )
-                              : SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  onPressed: controller.startMonitoring,
-                                  icon: Icon(Icons.play_arrow, size: 20),
-                                  label: Text('Start Monitoring'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green,
-                                    foregroundColor: Colors.white,
-                                    padding: EdgeInsets.symmetric(vertical: 16),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    elevation: 2,
-                                  ),
-                                ),
-                              ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              // ========== 2. ADJUSTED BEDTIME CARD (BLUE) ==========
-              Obx(
-                () =>
-                    controller.adjustedBedtime.value != null
-                        ? Padding(
-                          padding: const EdgeInsets.only(top: 16),
-                          child: Material(
-                            color: Colors.blue.shade50,
-                            elevation: 3,
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.all(20),
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Colors.blue.shade300,
-                                  width: 2,
-                                ),
-                              ),
-                              child: Column(
-                                children: [
-                                  // Icon with animated glow effect
-                                  Container(
-                                    padding: EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue.shade100,
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.blue.shade200,
-                                          blurRadius: 10,
-                                          spreadRadius: 2,
-                                        ),
-                                      ],
-                                    ),
-                                    child: Icon(
-                                      Icons.bedtime_rounded,
-                                      color: Colors.blue.shade700,
-                                      size: 32,
-                                    ),
-                                  ),
-                                  SizedBox(height: 12),
-
-                                  // Title
-                                  Text(
-                                    'Adjusted Bedtime',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.blue.shade700,
-                                    ),
-                                  ),
-                                  SizedBox(height: 8),
-
-                                  // Time Display
-                                  Text(
-                                    TimeOfDay.fromDateTime(
-                                      controller.adjustedBedtime.value!,
-                                    ).format(context),
-                                    style: TextStyle(
-                                      fontSize: 36,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blue.shade900,
-                                      letterSpacing: 1.5,
-                                    ),
-                                  ),
-
-                                  // Additional Info
-                                  Container(
-                                    margin: EdgeInsets.only(top: 12),
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue.shade100,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.info_outline,
-                                          size: 16,
-                                          color: Colors.blue.shade700,
-                                        ),
-                                        SizedBox(width: 6),
-                                        Text(
-                                          'Based on your screen activity',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.blue.shade700,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        )
-                        : SizedBox.shrink(),
-              ),
-
               const SizedBox(height: 20),
 
               //========== ORIGINAL CIRCULAR SLEEP INDICATOR ==========
@@ -323,51 +73,30 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                           ),
                         ),
                       ),
-                    Obx(() {
-                      final duration = controller.sleepDuration;
-                      final totalSleepInMinutes = duration.inMinutes;
-                      const maxSleepMinutes = 12 * 60;
-                      final percent = (totalSleepInMinutes / maxSleepMinutes)
-                          .clamp(0.0, 1.0);
-                      final hours = duration.inHours;
-                      final minutes = duration.inMinutes % 60;
-                      String sleepLabel;
-                      if (hours < 5) {
-                        sleepLabel = "Low Sleep 😴";
-                      } else if (hours < 7) {
-                        sleepLabel = "Below Ideal 😐";
-                      } else if (hours <= 9) {
-                        sleepLabel = "Ideal Sleep";
-                      } else if (hours <= 10.5) {
-                        sleepLabel = "Oversleep 😴";
-                      } else {
-                        sleepLabel = "Heavy Sleep 😵";
-                      }
-                      return CircularPercentIndicator(
-                        radius: 120,
-                        lineWidth: 20,
-                        percent: percent,
-                        progressColor: AppColors.primaryColor,
-                        backgroundColor: mediumGrey.withValues(alpha: 0.3),
-                        circularStrokeCap: CircularStrokeCap.round,
-                        center: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              '${hours}h ${minutes}min',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w600,
-                              ),
+                    CircularPercentIndicator(
+                      radius: 120,
+                      lineWidth: 20,
+                      percent: 0.3,
+                      progressColor: AppColors.primaryColor,
+                      backgroundColor: mediumGrey.withValues(alpha: 0.3),
+                      circularStrokeCap: CircularStrokeCap.round,
+                      center: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '${12}h ${21}min',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w600,
                             ),
-                            Text(
-                              sleepLabel,
-                              style: TextStyle(fontSize: 14, color: mediumGrey),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
+                          ),
+                          Text(
+                            "Sleep",
+                            style: TextStyle(fontSize: 14, color: mediumGrey),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -377,21 +106,13 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
               Stack(
                 alignment: Alignment.center,
                 children: [
-                  Obx(() {
-                    const idealSleepMinutes = 8 * 60;
-                    final duration = controller.sleepDuration;
-                    final totalSleepInMinutes = duration.inMinutes;
-                    final idealPercent = (totalSleepInMinutes /
-                            idealSleepMinutes)
-                        .clamp(0.0, 1.0);
-                    return LinearProgressIndicator(
-                      value: idealPercent,
-                      backgroundColor: mediumGrey.withValues(alpha: 0.3),
-                      color: AppColors.primaryColor,
-                      borderRadius: BorderRadius.circular(20),
-                      minHeight: 35,
-                    );
-                  }),
+                  LinearProgressIndicator(
+                    value: 58.0,
+                    backgroundColor: mediumGrey.withValues(alpha: 0.3),
+                    color: AppColors.primaryColor,
+                    borderRadius: BorderRadius.circular(20),
+                    minHeight: 35,
+                  ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: Row(
@@ -508,27 +229,32 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Obx(
-                                () => Text(
-                                  controller.bedTime.value.format(context),
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w400,
-                                  ),
+                              Text(
+                                "13:00",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
                                 ),
                               ),
                               IconButton(
                                 onPressed: () async {
-                                  final TimeOfDay? picked =
+                                  final TimeOfDay? bedtime =
                                       await showTimePicker(
                                         context: context,
-                                        initialTime: controller.bedTime.value,
+                                        initialTime: TimeOfDay.now(),
                                       );
-
-                                  if (picked != null &&
-                                      picked != controller.bedTime.value) {
-                                    controller.bedTime.value = picked;
-                                  }
+                                  final now = DateTime.now();
+                                  final bed = DateTime(
+                                    now.year,
+                                    now.month,
+                                    now.day,
+                                    bedtime!.hour,
+                                    bedtime!.minute,
+                                  );
+                                  setState(() {
+                                    start = bedtime;
+                                  });
+                                  sleepController.setBedtime(bed);
                                 },
                                 icon: Icon(
                                   FontAwesomeIcons.angleRight,
@@ -565,28 +291,32 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Obx(
-                                () => Text(
-                                  controller.wakeupTime.value.format(context),
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w400,
-                                  ),
+                              Text(
+                                "5:00",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
                                 ),
                               ),
                               IconButton(
                                 onPressed: () async {
-                                  final TimeOfDay? picked =
+                                  final TimeOfDay? wakeupTime =
                                       await showTimePicker(
                                         context: context,
-                                        initialTime:
-                                            controller.wakeupTime.value,
+                                        initialTime: TimeOfDay.now(),
                                       );
-
-                                  if (picked != null &&
-                                      picked != controller.wakeupTime.value) {
-                                    controller.wakeupTime.value = picked;
-                                  }
+                                  final now = DateTime.now();
+                                  final wakeup = DateTime(
+                                    now.year,
+                                    now.month,
+                                    now.day,
+                                    wakeupTime!.hour,
+                                    wakeupTime!.minute,
+                                  );
+                                  setState(() {
+                                    end = wakeupTime;
+                                  });
+                                  sleepController.setWakeTime(wakeup);
                                 },
                                 icon: Icon(
                                   FontAwesomeIcons.angleRight,
@@ -600,178 +330,6 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                     ],
                   ),
                 ),
-              ),
-
-              // Activity Log
-              Obx(
-                () =>
-                    controller.isMonitoring.value &&
-                            controller.activityLog.isNotEmpty
-                        ? Padding(
-                          padding: const EdgeInsets.only(top: 20),
-                          child: Material(
-                            color: Colors.grey.shade50,
-                            elevation: 3,
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Colors.grey.shade300,
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Header
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey.shade200,
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          Icons.list_alt,
-                                          size: 20,
-                                          color: Colors.grey.shade700,
-                                        ),
-                                      ),
-                                      SizedBox(width: 12),
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Activity Log',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.grey.shade800,
-                                            ),
-                                          ),
-                                          Text(
-                                            'Real-time tracking events',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: Colors.grey.shade600,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      Spacer(),
-                                      Container(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.blue.shade100,
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          '${controller.activityLog.length}',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.blue.shade700,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 16),
-
-                                  // Log List
-                                  Container(
-                                    constraints: BoxConstraints(maxHeight: 200),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: Colors.grey.shade200,
-                                      ),
-                                    ),
-                                    child: ListView.separated(
-                                      shrinkWrap: true,
-                                      itemCount: controller.activityLog.length,
-                                      separatorBuilder:
-                                          (context, index) => Divider(
-                                            height: 1,
-                                            color: Colors.grey.shade200,
-                                          ),
-                                      itemBuilder: (context, index) {
-                                        final log =
-                                            controller.activityLog[index];
-                                        return Container(
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 10,
-                                          ),
-                                          child: Row(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              // Timeline Dot
-                                              Container(
-                                                margin: EdgeInsets.only(
-                                                  top: 4,
-                                                  right: 10,
-                                                ),
-                                                width: 8,
-                                                height: 8,
-                                                decoration: BoxDecoration(
-                                                  color:
-                                                      index == 0
-                                                          ? Colors.green
-                                                          : Colors
-                                                              .grey
-                                                              .shade400,
-                                                  shape: BoxShape.circle,
-                                                ),
-                                              ),
-                                              // Log Text
-                                              Expanded(
-                                                child: Text(
-                                                  log,
-                                                  style: TextStyle(
-                                                    fontSize: 13,
-                                                    color:
-                                                        index == 0
-                                                            ? Colors
-                                                                .grey
-                                                                .shade800
-                                                            : Colors
-                                                                .grey
-                                                                .shade600,
-                                                    fontWeight:
-                                                        index == 0
-                                                            ? FontWeight.w500
-                                                            : FontWeight.normal,
-                                                    height: 1.4,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        )
-                        : SizedBox.shrink(),
               ),
 
               const SizedBox(height: 30),
@@ -801,6 +359,15 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
               const SizedBox(height: 30),
             ],
           ),
+        ),
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        child: CustomOutlinedButton(
+          width: width,
+          isDarkMode: isDarkMode,
+          buttonName: "Save",
+          onTap: () {},
         ),
       ),
     );

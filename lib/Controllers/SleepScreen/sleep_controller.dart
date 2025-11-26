@@ -398,288 +398,81 @@
 // }
 //
 
-import 'dart:async';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class SleepController extends GetxController with WidgetsBindingObserver {
-  // --------------------------------------------------
-  // USER SETTINGS
-  // --------------------------------------------------
-  Rx<TimeOfDay> bedTime = TimeOfDay(hour: 22, minute: 0).obs;
-  Rx<TimeOfDay> wakeupTime = TimeOfDay(hour: 6, minute: 30).obs;
+class SleepController extends GetxController {
+  /// User's original bedtime (when they intend to sleep)
+  final Rx<DateTime?> bedtime = Rx<DateTime?>(null);
 
-  // --------------------------------------------------
-  // MONITORING FLAGS
-  // --------------------------------------------------
-  RxBool isMonitoring = false.obs;
+  /// User's wake-up time
+  final Rx<DateTime?> waketime = Rx<DateTime?>(null);
 
-  bool hasWokenUp = false;
-  bool _wakeHandled = false;
-  bool _wakeUpTriggeredToday = false;
+  /// Calculated new bedtime after phone usage logic
+  final Rx<DateTime?> newBedtime = Rx<DateTime?>(null);
 
-  Timer? _wakeUpChecker;
+  /// Resulting deep sleep duration
+  final Rx<Duration?> deepSleepDuration = Rx<Duration?>(null);
 
-  // --------------------------------------------------
-  // STATE TRACKING
-  // --------------------------------------------------
-  Rxn<DateTime> sleepCandidateStart = Rxn<DateTime>();
-  Rxn<DateTime> adjustedBedtime = Rxn<DateTime>();
-  Rxn<Duration> actualSleepDuration = Rxn<Duration>();
-
-  RxList<double> sleepHoursHistory = <double>[].obs;
-  RxList<String> activityLog = <String>[].obs;
-
-  // --------------------------------------------------
-  // LIFECYCLE
-  // --------------------------------------------------
-  @override
-  void onInit() {
-    super.onInit();
-    WidgetsBinding.instance.addObserver(this);
+  /// Sets initial bedtime
+  void setBedtime(DateTime time) {
+    bedtime.value = time;
   }
 
-  @override
-  void onClose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _wakeUpChecker?.cancel();
-    super.onClose();
+  /// Sets wake time
+  void setWakeTime(DateTime time) {
+    waketime.value = time;
   }
 
-  // --------------------------------------------------
-  // APP LIFECYCLE HANDLING
-  // --------------------------------------------------
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (!isMonitoring.value) return;
+  /// Main logic method → call this when the user uses the phone
+  /// phoneUsageStart = timestamp when user started using the phone
+  /// phoneUsageEnd   = timestamp when they stopped using the phone
+  void onPhoneUsed(DateTime phoneUsageStart, DateTime phoneUsageEnd) {
+    if (bedtime.value == null) return;
+    if (waketime.value == null) return;
 
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.hidden ||
-        state == AppLifecycleState.inactive) {
-      _onScreenOff();
-    }
+    final Duration usageDuration = phoneUsageEnd.difference(phoneUsageStart);
 
-    if (state == AppLifecycleState.resumed) {
-      _onScreenOn();
-    }
-  }
-
-  // --------------------------------------------------
-  // SCREEN OFF → Possible Sleep Start
-  // --------------------------------------------------
-  void _onScreenOff() {
-    if (sleepCandidateStart.value != null) return;
-
-    _wakeHandled = false;
-    sleepCandidateStart.value = DateTime.now();
-    _log('📴 Screen OFF – start candidate: ${_ts(sleepCandidateStart.value!)}');
-  }
-
-  // --------------------------------------------------
-  // SCREEN ON → User Woke Up or Returned
-  // --------------------------------------------------
-  void _onScreenOn() {
-    if (_wakeHandled) return;
-    _wakeHandled = true;
-
-    // Already woke up earlier
-    if (hasWokenUp) {
-      _log('⛔ Wake ignored — already marked woke up');
-      sleepCandidateStart.value = null;
-      return;
-    }
-
-    if (sleepCandidateStart.value == null) return;
-
-    final now = DateTime.now();
-    final awayDuration = now.difference(sleepCandidateStart.value!);
-
-    // Ignore short returns (<30s)
-    if (awayDuration.inSeconds < 30) {
-      _log('⏭️ Returned <30 sec — ignored');
-      sleepCandidateStart.value = null;
-      return;
-    }
-
-    // Adjust bedtime
-    final bedtimeToday = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      bedTime.value.hour,
-      bedTime.value.minute,
+    final DateTime computedBedtime = calculateNewBedtime(
+      bedtime: bedtime.value!,
+      phoneUsageStart: phoneUsageStart,
+      phoneUsageDuration: usageDuration,
     );
 
-    adjustedBedtime.value = bedtimeToday
-        .add(awayDuration)
-        .add(const Duration(minutes: 1));
+    newBedtime.value = computedBedtime;
 
-    _log('✅ Bedtime adjusted → ${_ts(adjustedBedtime.value!)}');
-    _log('➕ Added ${awayDuration.inMinutes + 1} minutes');
-
-    sleepCandidateStart.value = null;
+    // calculate deep sleep
+    deepSleepDuration.value =
+        calculateDeepSleep(computedBedtime, waketime.value!);
   }
 
-  // --------------------------------------------------
-  // MONITORING CONTROL
-  // --------------------------------------------------
-  void startMonitoring() {
-    isMonitoring.value = true;
+  // ------------------------
+  // LOGIC FUNCTIONS BELOW
+  // ------------------------
 
-    sleepCandidateStart.value = null;
-    adjustedBedtime.value = null;
-    actualSleepDuration.value = null;
+  DateTime calculateNewBedtime({
+    required DateTime bedtime,
+    required DateTime phoneUsageStart,
+    required Duration phoneUsageDuration,
+  }) {
+    final DateTime safeLimit = bedtime.add(const Duration(minutes: 15));
 
-    sleepHoursHistory.clear();
-    activityLog.clear();
-
-    hasWokenUp = false;
-    _wakeUpTriggeredToday = false;
-
-    _startWakeChecker();
-
-    _log('🚀 Monitoring started');
-    _log('🌙 Target bedtime: ${bedTime.value.format(Get.context!)}');
-  }
-
-  void stopMonitoring() {
-    isMonitoring.value = false;
-    _wakeUpChecker?.cancel();
-    _log('🛑 Monitoring stopped');
-  }
-
-  // --------------------------------------------------
-  // WAKE-UP CHECKER
-  // --------------------------------------------------
-  void _startWakeChecker() {
-    _wakeUpChecker?.cancel();
-
-    _wakeUpChecker = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (!isMonitoring.value) return;
-
-      final now = DateTime.now();
-
-      final targetWake = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        wakeupTime.value.hour,
-        wakeupTime.value.minute,
-      );
-
-      if (_wakeUpTriggeredToday) return;
-
-      if (now.isAfter(targetWake) || now.isAtSameMomentAs(targetWake)) {
-        hasWokenUp = true;
-
-        _log('⏰ Auto wake triggered');
-        calculateActualSleep();
-
-        _wakeUpTriggeredToday = true;
-      }
-    });
-
-    _log('⏱️ Wake watcher started');
-  }
-
-  Future<void> updateBedTimeFromTimestamp(
-      DateTime sleepStart,
-      DateTime wakeUp,
-      ) async {
-    bedTime.value = TimeOfDay(
-      hour: sleepStart.hour,
-      minute: sleepStart.minute,
-    );
-
-    wakeupTime.value = TimeOfDay(
-      hour: wakeUp.hour,
-      minute: wakeUp.minute,
-    );
-  }
-
-  // --------------------------------------------------
-  // SLEEP CALCULATION
-  // --------------------------------------------------
-  void calculateActualSleep() {
-    if (adjustedBedtime.value == null) {
-      _log('⚠️ No adjusted bedtime set');
-      return;
+    // CONDITION 1: Phone used within first 15 minutes
+    if (phoneUsageStart.isBefore(safeLimit)) {
+      return bedtime;
     }
 
-    final now = DateTime.now();
-    actualSleepDuration.value = now.difference(adjustedBedtime.value!);
+    // CONDITION 2: Phone used after safe window
+    final DateTime sleepAfterUsage =
+    phoneUsageStart.add(phoneUsageDuration);
 
-    final hours = actualSleepDuration.value!.inMinutes / 60.0;
-    sleepHoursHistory.add(hours);
+    final DateTime adjustedBedtime =
+    sleepAfterUsage.subtract(const Duration(minutes: 15));
 
-    hasWokenUp = true;
-
-    _log('⏰ Woke at ${_ts(now)}');
-    _log('😴 Slept: ${_fmt(actualSleepDuration.value!)}');
+    return adjustedBedtime;
   }
 
-  // --------------------------------------------------
-  // HELPERS
-  // --------------------------------------------------
-  void _log(String m) {
-    activityLog.insert(0, '${_ts(DateTime.now())} - $m');
-    if (activityLog.length > 30) activityLog.removeLast();
+  Duration calculateDeepSleep(DateTime newBedtime, DateTime wakeTime) {
+    return wakeTime.difference(newBedtime);
   }
-
-  Duration get sleepDuration {
-    if (actualSleepDuration.value != null) {
-      return actualSleepDuration.value!;
-    }
-
-    if (adjustedBedtime.value != null && hasWokenUp) {
-      final wakeTime = DateTime.now();
-      return wakeTime.difference(adjustedBedtime.value!);
-    }
-
-    // Default fallback using static bedtime/wake
-    final now = DateTime.now();
-
-    final bed = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      bedTime.value.hour,
-      bedTime.value.minute,
-    );
-
-    var wake = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      wakeupTime.value.hour,
-      wakeupTime.value.minute,
-    );
-
-    if (wake.isBefore(bed)) {
-      wake = wake.add(const Duration(days: 1));
-    }
-
-    return wake.difference(bed);
-  }
-
-  Future<void> updateSleepTimes(
-      TimeOfDay newBedTime,
-      TimeOfDay newWakeTime,
-      ) async {
-    bedTime.value = newBedTime;
-    wakeupTime.value = newWakeTime;
-
-    print("Updated bedtime: ${bedTime.value.format(Get.context!)}");
-    print("Updated wake time: ${wakeupTime.value.format(Get.context!)}");
-
-    print(
-      "Sleep duration: ${sleepDuration.inHours}h ${sleepDuration.inMinutes % 60}m",
-    );
-  }
-
-  String _ts(DateTime t) =>
-      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:${t.second.toString().padLeft(2, '0')}';
-
-  String _fmt(Duration d) =>
-      '${d.inHours}h ${d.inMinutes % 60}m';
 }
+
