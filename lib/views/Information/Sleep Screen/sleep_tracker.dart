@@ -32,6 +32,39 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
   final SleepController sleepController = Get.put(SleepController());
 
+  Future<void> _pickTime(BuildContext context, bool isBedtime) async {
+    final initial = TimeOfDay.now();
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initial,
+      initialEntryMode: TimePickerEntryMode.dialOnly,
+    );
+
+    if (picked == null) return;
+
+    final now = DateTime.now();
+
+    final dt = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      picked.hour,
+      picked.minute,
+    );
+
+    if (isBedtime) {
+      sleepController.setBedtime(dt);
+    } else {
+      sleepController.setWakeTime(dt);
+    }
+  }
+
+  String _fmt(DateTime dt) =>
+      "${dt.hour.toString().padLeft(2, "0")}:${dt.minute.toString().padLeft(2, "0")}";
+
+  String _fmtDuration(Duration d) =>
+      "${d.inHours}h ${(d.inMinutes % 60).toString().padLeft(2, "0")}m";
+
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
@@ -84,7 +117,11 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            '${12}h ${21}min',
+                            sleepController.deepSleepDuration.value == null
+                                ? "--"
+                                : _fmtDuration(
+                                  sleepController.deepSleepDuration.value!,
+                                ),
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.w600,
@@ -226,46 +263,33 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                               ),
                             ],
                           ),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                "13:00",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w400,
+                          Obx(
+                            () => Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  sleepController.bedtime.value == null
+                                      ? "Select"
+                                      : _fmt(sleepController.bedtime.value!),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w400,
+                                  ),
                                 ),
-                              ),
-                              IconButton(
-                                onPressed: () async {
-                                  final TimeOfDay? bedtime =
-                                      await showTimePicker(
-                                        context: context,
-                                        initialTime: TimeOfDay.now(),
-                                      );
-                                  final now = DateTime.now();
-                                  final bed = DateTime(
-                                    now.year,
-                                    now.month,
-                                    now.day,
-                                    bedtime!.hour,
-                                    bedtime!.minute,
-                                  );
-                                  setState(() {
-                                    start = bedtime;
-                                  });
-                                  sleepController.setBedtime(bed);
-                                },
-                                icon: Icon(
-                                  FontAwesomeIcons.angleRight,
-                                  size: 20,
+                                IconButton(
+                                  onPressed: () => _pickTime(context, true),
+                                  icon: Icon(
+                                    FontAwesomeIcons.angleRight,
+                                    size: 20,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 6),
+
                       const Divider(thickness: border04px, color: mediumGrey),
                       const SizedBox(height: 6),
                       Row(
@@ -288,42 +312,28 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                               ),
                             ],
                           ),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                "5:00",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w400,
+                          Obx(
+                            () => Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  sleepController.waketime.value == null
+                                      ? "Select"
+                                      : _fmt(sleepController.waketime.value!),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w400,
+                                  ),
                                 ),
-                              ),
-                              IconButton(
-                                onPressed: () async {
-                                  final TimeOfDay? wakeupTime =
-                                      await showTimePicker(
-                                        context: context,
-                                        initialTime: TimeOfDay.now(),
-                                      );
-                                  final now = DateTime.now();
-                                  final wakeup = DateTime(
-                                    now.year,
-                                    now.month,
-                                    now.day,
-                                    wakeupTime!.hour,
-                                    wakeupTime!.minute,
-                                  );
-                                  setState(() {
-                                    end = wakeupTime;
-                                  });
-                                  sleepController.setWakeTime(wakeup);
-                                },
-                                icon: Icon(
-                                  FontAwesomeIcons.angleRight,
-                                  size: 20,
+                                IconButton(
+                                  onPressed: () => _pickTime(context, false),
+                                  icon: Icon(
+                                    FontAwesomeIcons.angleRight,
+                                    size: 20,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -332,7 +342,28 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                 ),
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 10),
+              Obx(
+                () => Text(
+                  "Adjusted Bedtime: ${sleepController.newBedtime.value == null ? "--" : _fmt(sleepController.newBedtime.value!)}",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              // const SizedBox(height: 10),
+              //
+              // // -------------------------
+              // // Deep sleep duration
+              // // -------------------------
+              // Obx(
+              //   () => Text(
+              //     "Deep Sleep: ${sleepController.deepSleepDuration.value == null ? "--" : _fmtDuration(sleepController.deepSleepDuration.value!)}",
+              //     style: const TextStyle(fontSize: 18, color: Colors.blue),
+              //   ),
+              // ),
+              const SizedBox(height: 10),
 
               // ========== SLEEP STATISTICS GRAPH ==========
               SizedBox(
@@ -367,8 +398,37 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
           width: width,
           isDarkMode: isDarkMode,
           buttonName: "Save",
-          onTap: () {},
-        ),
+          onTap: () {
+            // Check if bedtime and wake time are selected
+            if (sleepController.bedtime.value != null &&
+                sleepController.waketime.value != null) {
+
+              sleepController.startScreenListener();  // START SERVICE
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    "Sleep Tracking Started : Your sleep monitoring is now active.",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  backgroundColor: AppColors.primaryColor,
+                ),
+              );
+
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    "Missing Data : Please select bedtime & wake time.",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  backgroundColor: AppColors.primaryColor,
+                ),
+              );
+            }
+          },
+        )
+
       ),
     );
   }

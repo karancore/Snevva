@@ -398,7 +398,10 @@
 // }
 //
 
+import 'dart:async';
+
 import 'package:get/get.dart';
+import 'package:screen_state/screen_state.dart';
 
 class SleepController extends GetxController {
   /// User's original bedtime (when they intend to sleep)
@@ -413,6 +416,53 @@ class SleepController extends GetxController {
   /// Resulting deep sleep duration
   final Rx<Duration?> deepSleepDuration = Rx<Duration?>(null);
 
+  StreamSubscription<ScreenStateEvent>? _subscription;
+  late Screen _screen;
+
+  DateTime? usageStartTime;
+  bool isUserUsingPhone = false;
+
+
+  void startScreenListener() {
+    _screen = Screen();
+    try {
+      _subscription = _screen.screenStateStream!.listen((event) {
+        if (event == ScreenStateEvent.SCREEN_ON) {
+          _onScreenTurnedOn();
+        } else if (event == ScreenStateEvent.SCREEN_OFF) {
+          _onScreenTurnedOff();
+        }
+      });
+    } catch (e) {
+      print("Screen state error: $e");
+    }
+  }
+
+  void _onScreenTurnedOn() {
+    // User starts interacting
+    usageStartTime = DateTime.now();
+    isUserUsingPhone = true;
+  }
+
+  void _onScreenTurnedOff() {
+    // User stops interacting
+    if (isUserUsingPhone && usageStartTime != null) {
+      DateTime usageEndTime = DateTime.now();
+
+      // Pass to your existing logic
+      onPhoneUsed(usageStartTime!, usageEndTime);
+    }
+
+    isUserUsingPhone = false;
+    usageStartTime = null;
+  }
+
+  @override
+  void onClose() {
+    _subscription?.cancel();
+    super.onClose();
+  }
+
   /// Sets initial bedtime
   void setBedtime(DateTime time) {
     bedtime.value = time;
@@ -426,11 +476,11 @@ class SleepController extends GetxController {
   /// Main logic method → call this when the user uses the phone
   /// phoneUsageStart = timestamp when user started using the phone
   /// phoneUsageEnd   = timestamp when they stopped using the phone
-  void onPhoneUsed(DateTime phoneUsageStart, DateTime phoneUsageEnd) {
+  void onPhoneUsed(DateTime? phoneUsageStart, DateTime? phoneUsageEnd) {
     if (bedtime.value == null) return;
     if (waketime.value == null) return;
 
-    final Duration usageDuration = phoneUsageEnd.difference(phoneUsageStart);
+    final Duration usageDuration = phoneUsageEnd!.difference(phoneUsageStart!);
 
     final DateTime computedBedtime = calculateNewBedtime(
       bedtime: bedtime.value!,
