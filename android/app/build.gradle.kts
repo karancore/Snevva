@@ -29,15 +29,6 @@ android {
         jvmTarget = "17"
     }
 
-    signingConfigs {
-        getByName("debug") {
-            keyAlias = "androiddebugkey"
-            keyPassword = "snevva"
-            storeFile = file("mykey.jks")
-            storePassword = "snevva"
-        }
-    }
-
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
@@ -46,7 +37,6 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
         }
     }
 }

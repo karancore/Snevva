@@ -403,7 +403,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
             if (sleepController.bedtime.value != null &&
                 sleepController.waketime.value != null) {
 
-              sleepController.startScreenListener();  // START SERVICE
+              sleepController.startMonitoring();  // START SERVICE
 
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

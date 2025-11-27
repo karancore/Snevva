@@ -401,7 +401,7 @@
 import 'dart:async';
 
 import 'package:get/get.dart';
-import 'package:screen_state/screen_state.dart';
+import 'package:snevva/services/sleep_noticing_service.dart';
 
 class SleepController extends GetxController {
   /// User's original bedtime (when they intend to sleep)
@@ -416,51 +416,26 @@ class SleepController extends GetxController {
   /// Resulting deep sleep duration
   final Rx<Duration?> deepSleepDuration = Rx<Duration?>(null);
 
-  StreamSubscription<ScreenStateEvent>? _subscription;
-  late Screen _screen;
+  final SleepNoticingService _sleepService = SleepNoticingService();
 
-  DateTime? usageStartTime;
-  bool isUserUsingPhone = false;
-
-
-  void startScreenListener() {
-    _screen = Screen();
-    try {
-      _subscription = _screen.screenStateStream!.listen((event) {
-        if (event == ScreenStateEvent.SCREEN_ON) {
-          _onScreenTurnedOn();
-        } else if (event == ScreenStateEvent.SCREEN_OFF) {
-          _onScreenTurnedOff();
-        }
-      });
-    } catch (e) {
-      print("Screen state error: $e");
-    }
-  }
-
-  void _onScreenTurnedOn() {
-    // User starts interacting
-    usageStartTime = DateTime.now();
-    isUserUsingPhone = true;
-  }
-
-  void _onScreenTurnedOff() {
-    // User stops interacting
-    if (isUserUsingPhone && usageStartTime != null) {
-      DateTime usageEndTime = DateTime.now();
-
-      // Pass to your existing logic
-      onPhoneUsed(usageStartTime!, usageEndTime);
-    }
-
-    isUserUsingPhone = false;
-    usageStartTime = null;
+  @override
+  void onInit() {
+    super.onInit();
+    _sleepService.onPhoneUsageDetected = onPhoneUsed;
   }
 
   @override
   void onClose() {
-    _subscription?.cancel();
+    _sleepService.stopMonitoring();
     super.onClose();
+  }
+
+  void startMonitoring() {
+    _sleepService.startMonitoring();
+  }
+
+  void stopMonitoring() {
+    _sleepService.stopMonitoring();
   }
 
   /// Sets initial bedtime
@@ -476,13 +451,13 @@ class SleepController extends GetxController {
   /// Main logic method → call this when the user uses the phone
   /// phoneUsageStart = timestamp when user started using the phone
   /// phoneUsageEnd   = timestamp when they stopped using the phone
-  void onPhoneUsed(DateTime? phoneUsageStart, DateTime? phoneUsageEnd) {
+  void onPhoneUsed(DateTime phoneUsageStart, DateTime phoneUsageEnd) {
     if (bedtime.value == null) return;
     if (waketime.value == null) return;
 
-    final Duration usageDuration = phoneUsageEnd!.difference(phoneUsageStart!);
+    final Duration usageDuration = phoneUsageEnd.difference(phoneUsageStart);
 
-    final DateTime computedBedtime = calculateNewBedtime(
+    final DateTime computedBedtime = _sleepService.calculateNewBedtime(
       bedtime: bedtime.value!,
       phoneUsageStart: phoneUsageStart,
       phoneUsageDuration: usageDuration,
@@ -492,37 +467,7 @@ class SleepController extends GetxController {
 
     // calculate deep sleep
     deepSleepDuration.value =
-        calculateDeepSleep(computedBedtime, waketime.value!);
-  }
-
-  // ------------------------
-  // LOGIC FUNCTIONS BELOW
-  // ------------------------
-
-  DateTime calculateNewBedtime({
-    required DateTime bedtime,
-    required DateTime phoneUsageStart,
-    required Duration phoneUsageDuration,
-  }) {
-    final DateTime safeLimit = bedtime.add(const Duration(minutes: 15));
-
-    // CONDITION 1: Phone used within first 15 minutes
-    if (phoneUsageStart.isBefore(safeLimit)) {
-      return bedtime;
-    }
-
-    // CONDITION 2: Phone used after safe window
-    final DateTime sleepAfterUsage =
-    phoneUsageStart.add(phoneUsageDuration);
-
-    final DateTime adjustedBedtime =
-    sleepAfterUsage.subtract(const Duration(minutes: 15));
-
-    return adjustedBedtime;
-  }
-
-  Duration calculateDeepSleep(DateTime newBedtime, DateTime wakeTime) {
-    return wakeTime.difference(newBedtime);
+        _sleepService.calculateDeepSleep(computedBedtime, waketime.value!);
   }
 }
 
