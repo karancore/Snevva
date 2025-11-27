@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math';
 
 import 'package:alarm/alarm.dart';
 import 'package:alarm/model/alarm_settings.dart';
@@ -53,6 +52,8 @@ class _AddReminderState extends State<AddReminder> {
 
   List<Map<String, AlarmSettings>> medicineList = [];
   List<Map<String, AlarmSettings>> eventList = [];
+  List<Map<String, AlarmSettings>> waterList = [];
+
   List<Map<String, AlarmSettings>> mealsList = [];
 
   List<String> categories = ['Medicine', 'Water', 'Meal', 'Event'];
@@ -187,6 +188,8 @@ class _AddReminderState extends State<AddReminder> {
       await navigateToRingScreen(alarmSettings);
     });
   }
+
+
 
   //TESTING
   // void initAlarmListener() {
@@ -506,7 +509,7 @@ class _AddReminderState extends State<AddReminder> {
                 )
                 : NotificationSettings(
                   title: '',
-                  body: '',
+                  body: 'Take your medicine',
                   stopButton: 'Stop',
                   icon: 'alarm',
                   iconColor: AppColors.primaryColor,
@@ -760,7 +763,7 @@ class _AddReminderState extends State<AddReminder> {
                 )
                 : NotificationSettings(
                   title: '',
-                  body: '',
+                  body: 'Drink Water!',
                   stopButton: 'Stop',
                   icon: 'alarm',
                 ),
@@ -875,6 +878,14 @@ class _AddReminderState extends State<AddReminder> {
     );
 
     await Alarm.set(alarmSettings: newAlarm);
+  }
+
+  Future<void> stopAlarm(int index, AlarmSettings alarm , List<Map<String, AlarmSettings>> reminderList) async {
+    await Alarm.stop(alarm.id);
+
+    setState(() {
+      reminderList.removeAt(index);
+    });
   }
 
   @override
@@ -1038,6 +1049,35 @@ class _AddReminderState extends State<AddReminder> {
                   Text(" times a day"),
                 ],
               ),
+              SizedBox(height: 8),
+              // Display added reminder times
+              if (waterList.isEmpty)
+                SizedBox.shrink()
+              else
+                SizedBox(
+                  height: listHeight,
+                  width: double.infinity,
+                  child: ListView.builder(
+                    itemCount: waterList.length,
+                    itemBuilder: (context, index) {
+                      final reminderMap = waterList[index];
+                      final title = reminderMap.keys.first;
+
+                      final alarm = reminderMap.values.first;
+                      return ListTile(
+                        title: Text(
+                          '${alarm.dateTime.hour} : ${alarm.dateTime.minute}',
+                        ),
+                        subtitle: Text(title),
+
+                        trailing: IconButton(
+                          icon: Icon(Icons.delete),
+                          onPressed: () => stopAlarm(index, alarm , waterList),
+                        ),
+                      );
+                    },
+                  ),
+                ),
             ],
             if (selectedCategory == 'Meal') ...[
               SizedBox(height: 20),
@@ -1108,11 +1148,7 @@ class _AddReminderState extends State<AddReminder> {
 
                         trailing: IconButton(
                           icon: Icon(Icons.delete),
-                          onPressed: () {
-                            setState(() {
-                              mealsList.removeAt(index);
-                            });
-                          },
+                          onPressed: () => stopAlarm(index, alarm , mealsList),
                         ),
                       );
                     },
@@ -1261,11 +1297,7 @@ class _AddReminderState extends State<AddReminder> {
 
                         trailing: IconButton(
                           icon: Icon(Icons.delete),
-                          onPressed: () {
-                            setState(() {
-                              medicineList.removeAt(index);
-                            });
-                          },
+                          onPressed: () => stopAlarm(index, alarm , medicineList),
                         ),
                       );
                     },
@@ -1397,11 +1429,7 @@ class _AddReminderState extends State<AddReminder> {
 
                         trailing: IconButton(
                           icon: Icon(Icons.delete),
-                          onPressed: () {
-                            setState(() {
-                              eventList.removeAt(index);
-                            });
-                          },
+                          onPressed: () => stopAlarm(index, alarm , eventList),
                         ),
                       );
                     },

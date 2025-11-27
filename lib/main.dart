@@ -13,6 +13,7 @@ void main() async {
   FlutterForegroundTask.initCommunicationPort();
   WidgetsFlutterBinding.ensureInitialized();
   await Alarm.init();
+
   final isRemembered = await initializeApp();
   runApp(MyApp(isRemembered: isRemembered));
 }
