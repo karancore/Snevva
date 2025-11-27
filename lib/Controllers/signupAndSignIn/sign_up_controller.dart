@@ -89,6 +89,14 @@ class SignUpController extends GetxController {
         );
 
         return otp;
+      }else if(response.statusCode == 400) {
+        Get.snackbar(
+          'Error',
+          'Email already registered',
+          snackPosition: SnackPosition.BOTTOM,
+          margin: EdgeInsets.all(20),
+        );
+        return false;
       } else {
         Get.snackbar(
           'Error',
@@ -404,6 +412,8 @@ Future<dynamic> updatePhone(String phoneNumber) async {
         body: encryptedBody,
       );
 
+      print(response.statusCode);
+
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         final encryptedBody = responseBody['data'];
@@ -413,11 +423,14 @@ Future<dynamic> updatePhone(String phoneNumber) async {
           responseHash!,
         );
 
+        print("Decrypted OTP response: $decrypted");
+
         if (decrypted == null) {
           return;
         }
 
         final Map<String, dynamic> responseData = jsonDecode(decrypted);
+        print(responseData);
 
         final data = responseData['data'];
         final otp = data['Otp'];
@@ -429,10 +442,18 @@ Future<dynamic> updatePhone(String phoneNumber) async {
           margin: EdgeInsets.all(20),
         );
         return otp;
-      } else {
+      } else if (response.statusCode == 400) {
         Get.snackbar(
           'Error',
-          'Signup failed: Something Went Wrong!',
+          'Phone number already registered',
+          snackPosition: SnackPosition.BOTTOM,
+          margin: EdgeInsets.all(20),
+        );
+        return false;
+      }else {
+        Get.snackbar(
+          'Error',
+          'Signup failed: ${response.body}',
           snackPosition: SnackPosition.BOTTOM,
           margin: EdgeInsets.all(20),
         );

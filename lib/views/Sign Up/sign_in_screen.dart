@@ -32,7 +32,6 @@ class _SignInScreenState extends State<SignInScreen> {
   bool visible = true;
   bool isLoading = false;
 
-
   void showPassword() {
     setState(() {
       visible = !visible;
@@ -47,7 +46,6 @@ class _SignInScreenState extends State<SignInScreen> {
     userPasswordField = TextEditingController();
   }
 
-
   @override
   void dispose() {
     userEmailOrPhoneField.dispose();
@@ -55,17 +53,72 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-   // final height = mediaQuery.size.height;
-    // final width = mediaQuery.size.width;
-    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
+  Future<void> _handleSuccessfulSignIn(
+      String emailOrPhone,
+      SharedPreferences prefs,
+    ) async {
+      if (rememberMe) {
+        prefs.setBool('remember_me', true);
+        prefs.setString('user_credential', emailOrPhone);
+      }
 
+      final userInfo = signInController.userProfData;
+      final userData = userInfo['data'];
+      print("User Data: $userData");
+      await prefs.setString('userdata', jsonEncode(userData));
+      localStorageManager.userMap.value = userData ?? {};
 
+      final nameValid = userData['Name']?.toString().trim().isNotEmpty ?? false;
+      final genderValid =
+          userData['Gender']?.toString().trim().isNotEmpty ?? false;
+      final occupationValid = userData['OccupationData'] != null;
 
+      if (nameValid && genderValid && occupationValid) {
+        final userActiveDataResponse = signInController.userGoalData;
+        final userActiveData = userActiveDataResponse['data'];
+        localStorageManager.userGoalDataMap.value = userActiveData ?? {};
+        prefs.setString('userGoalDataMap', jsonEncode(userActiveData));
 
-    Future<void> onSignInButtonClick() async {
+        if (userActiveData != null && userActiveData is Map) {
+          final userbasicInfoJson = jsonEncode(userActiveData);
+          await prefs.setString('useractivedata', userbasicInfoJson);
+
+          if (userActiveData['ActivityLevel'] != null &&
+              userActiveData['HealthGoal'] != null) {
+            Get.offAll(() => HomeWrapper());
+            return;
+          }
+          if (userActiveData['HeightData'] != null &&
+              userActiveData['WeightData'] != null) {
+            Get.offAll(() => QuestionnaireScreen());
+            return;
+          } else {
+            final gender = userData['Gender']?.toString() ?? 'Unknown';
+            Get.offAll(() => HeightAndWeight(gender: gender));
+            return;
+          }
+        } else {
+          print("User active data is null or invalid.");
+        }
+
+        Get.offAll(() => HomeWrapper());
+      } else {
+        print("Required profile fields missing.");
+        Get.offAll(() => ProfileSetupInitial());
+      }
+    }
+
+    // Handle sign-in error and show snackbar
+    void _handleSignInError() {
+      Get.snackbar(
+        'Error',
+        'Incorrect Credential.',
+        snackPosition: SnackPosition.BOTTOM,
+        margin: EdgeInsets.all(20),
+      );
+    }
+
+   Future<void> onSignInButtonClick() async {
       if (isLoading) return; // Prevent multiple taps
       setState(() {
         isLoading = true;
@@ -77,124 +130,53 @@ class _SignInScreenState extends State<SignInScreen> {
       final password = userPasswordField.text.trim();
 
       try {
+        // Checking if it's an email or phone number
         if (emailOrPhone.contains('@')) {
-          signInController.signInUsingEmail(emailOrPhone, password).then((success) async {
+          // Sign in using email
+          await signInController.signInUsingEmail(emailOrPhone, password).then((
+            success,
+          ) async {
             if (success) {
-              if (rememberMe) {
-                prefs.setBool('remember_me', true);
-                prefs.setString('user_credential', emailOrPhone);
-              }
-            
-              // Use API response directly
-              final userInfo = signInController.userProfData;
-              // print(userInfo);
-              final userData = userInfo['data'];
-              await prefs.setString('userdata', jsonEncode(userData)); // ✅ Save here
-              localStorageManager.userMap.value = userData ?? {};
-
-              //
-              // print("User data: $userData");
-              // print("Name: ${userData['Name']}");
-              // print("Gender: ${userData['Gender']}");
-              // print("OccupationData: ${userData['OccupationData']}");
-
-              final nameValid = userData['Name']?.toString().trim().isNotEmpty ?? false;
-              final genderValid = userData['Gender']?.toString().trim().isNotEmpty ?? false;
-              final occupationValid = userData['OccupationData'] != null;
-
-
-              if (nameValid && genderValid && occupationValid) {
-
-                final userActiveDataResponse = signInController.userGoalData;
-                final userActiveData = userActiveDataResponse['data'];
-                localStorageManager.userGoalDataMap.value = userActiveData ?? {};
-                prefs.setString('userGoalDataMap', jsonEncode(userActiveData)); // ✅ Save here
-
-                print("bInfo: $userActiveDataResponse");
-                print("basicInfo: $userActiveData");
-
-                if (userActiveData != null && userActiveData is Map) {
-                  // Save only if needed
-                  final userbasicInfoJson = jsonEncode(userActiveData);
-                  await prefs.setString('useractivedata', userbasicInfoJson);
-                  // print("User active data saved to SharedPreferences.");
-
-                  if (userActiveData['ActivityLevel'] != null &&
-                      userActiveData['HealthGoal'] != null
-                  ) {
-                    // print("Navigating to QuestionnaireScreen");
-                    Get.offAll(() => HomeWrapper());
-                    // Get.offAll(() => QuestionnaireScreen());
-                    return;
-                  }
-                  if (userActiveData['HeightData'] != null &&
-                      userActiveData['WeightData'] != null
-                  ) {
-                    // print("Navigating to QuestionnaireScreen");
-                    // Get.offAll(() => HomeWrapper());
-                    Get.offAll(() => QuestionnaireScreen());
-                    return;
-                  }
-                  else {
-                    final gender = userData['Gender']?.toString() ?? 'Unknown';
-                    Get.offAll(() => HeightAndWeight(gender: gender));
-                    return;
-                  }
-                } else {
-                  print("User active data is null or invalid.");
-                  // Handle fallback
-                }
-
-                Get.offAll(() => HomeWrapper());
-              } else {
-                print("Required profile fields missing.");
-                Get.offAll(() => ProfileSetupInitial());
-              }
+              print("Sign-in successful with email.");
+              await _handleSuccessfulSignIn(emailOrPhone, prefs);
+            } else {
+              print("Sign-in failed with email.");
+              _handleSignInError();
             }
           });
-
         } else if (RegExp(r'^\d{10,}$').hasMatch(emailOrPhone)) {
-          signInController.signInUsingPhone(emailOrPhone, password).then((
-              success) async {
+          // Sign in using phone number
+          await signInController.signInUsingPhone(emailOrPhone, password).then((
+            success,
+          ) async {
             if (success) {
-              if (rememberMe) {
-                prefs.setBool('remember_me', true);
-                prefs.setString('user_credential', emailOrPhone);
-              }
-              final userJson = await prefs.getString('userdata');
-              if (userJson != null) {
-                final Map<String, dynamic> userMap = jsonDecode(userJson);
-                if(userMap['Name'] != null){
-                  Get.offAll(() => HomeWrapper());
-
-                }
-                else{
-                  Get.offAll(() => ProfileSetupInitial());
-                }
-              }
+              print("Sign-in successful with phone.");
+              await _handleSuccessfulSignIn(emailOrPhone, prefs);
+            } else {
+              print("Sign-in failed with phone.");
+              _handleSignInError();
             }
           });
         } else {
-          Get.snackbar(
-            'Error',
-            'Incorrect Credential.',
-            snackPosition: SnackPosition.BOTTOM,
-            margin: EdgeInsets.all(20),
-          );
+          // Invalid email or phone format
+          _handleSignInError();
         }
-      }catch(e){
-        Get.snackbar(
-          'Error',
-          'Incorrect Credential.',
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.all(20),
-        );
-      }finally{
+      } catch (e) {
+        _handleSignInError();
+      } finally {
         setState(() {
           isLoading = false;
         });
       }
     }
+
+
+  @override
+  Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    // final height = mediaQuery.size.height;
+    // final width = mediaQuery.size.width;
+    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;   
 
 
     return Scaffold(
@@ -236,9 +218,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                         ? AppColors.primaryColor.withValues(
                                           alpha: .02,
                                         )
-                                        : Colors.white.withValues(
-                                          alpha: 0.95,
-                                        ),
+                                        : Colors.white.withValues(alpha: 0.95),
                                 elevation: 1,
                                 borderRadius: BorderRadius.circular(4),
                                 child: TextFormField(
@@ -264,9 +244,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                         ? AppColors.primaryColor.withValues(
                                           alpha: .02,
                                         )
-                                        : Colors.white.withValues(
-                                          alpha: 0.95,
-                                        ),
+                                        : Colors.white.withValues(alpha: 0.95),
                                 borderRadius: BorderRadius.circular(4),
                                 child: TextFormField(
                                   obscureText: visible,
@@ -321,7 +299,6 @@ class _SignInScreenState extends State<SignInScreen> {
                             //     ),
                             //   ],
                             // ),
-
                             TextButton(
                               onPressed: () {
                                 Navigator.push(
@@ -344,9 +321,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         // Sign in Button
                         SignInFooterWidget(
                           buttonText:
-                              AppLocalizations.of(
-                                context,
-                              )!.signInButtonText,
+                              AppLocalizations.of(context)!.signInButtonText,
                           bottomText:
                               AppLocalizations.of(context)!.notMemberText,
                           bottomText2:
@@ -354,9 +329,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                 context,
                               )!.createNewAccountText,
                           googleText:
-                              AppLocalizations.of(
-                                context,
-                              )!.googleTextSignIn,
+                              AppLocalizations.of(context)!.googleTextSignIn,
                           onElevatedButtonPress: onSignInButtonClick,
                           isLoading: isLoading, // Pass here
                           onBottomTextPressed: () {

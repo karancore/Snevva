@@ -195,6 +195,8 @@ class ProfileSetupController extends GetxController {
       localStorageManager.userMap['MonthOfBirth'] = dob.monthOfBirth;
       localStorageManager.userMap['YearOfBirth'] = dob.yearOfBirth;
       localStorageManager.userMap['Occupation'] = occupation.name;
+
+      // print("🔄 Updating local storage with profile data: ${localStorageManager.userMap}");
       
       bool allSuccessful = true;
       for (final item in fields) {

@@ -68,11 +68,13 @@ class HeightANDWeightController extends GetxController {
     ];
 
     try {
-      localStorageManager.userMap['Height'] = double.parse(height.value!.toStringAsFixed(2));
+      localStorageManager.userMap['Height']['Value'] = double.parse(height.value!.toStringAsFixed(2));
       heightInCm.value = double.parse(height.value!.toStringAsFixed(2));
 
-      localStorageManager.userMap['Weight'] = double.parse(weight.value!.toStringAsFixed(2));
+      localStorageManager.userMap['Weight']['Value'] = double.parse(weight.value!.toStringAsFixed(2));
       weightInKg.value = double.parse(weight.value!.toStringAsFixed(2));
+
+      print("🔄 Updating local storage with height and weight data: ${localStorageManager.userMap}");
 
 
       bool allSuccessful = true;

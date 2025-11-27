@@ -237,20 +237,73 @@ class SignInController extends GetxController {
           responseHash!,
         );
 
-        if (decrypted == null) {
+         if (decrypted == null) {
+          Get.snackbar(
+            'Error',
+            'Failed to decrypt response',
+            snackPosition: SnackPosition.BOTTOM,
+            margin: EdgeInsets.all(20),
+          );
           return false;
         }
 
         final Map<String, dynamic> responseData = jsonDecode(decrypted);
-
         final token = responseData['data'];
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
 
+        final userdata = await userInfo();
+        final userProfileData = userdata['data'];
+        final gender = userdata['data']['Gender'];
+        await prefs.setString('user_gender', gender);
+        print("$userProfileData");
+        localstorage.userMap.value = userProfileData;
+
+        if (userProfileData != null && userProfileData is Map) {
+          // Convert the Map to a JSON string
+          final userJson = jsonEncode(userProfileData);
+          // Store it in SharedPreferences
+          await prefs.setString('userdata', userJson);
+          print("User data saved to SharedPreferences.");
+        }
+        //  else {
+        //   print("User profile data is null or invalid.");
+        // }
+
+        final goaldata = await useeractivedataInfo();
+        final data = goaldata['data'];
+        // print("Data");
+
+        if (data != null && data is Map) {
+          // Convert the Map to a JSON string
+          final userGoalJson = jsonEncode(data);
+          // Store it in SharedPreferences
+          await prefs.setString('userGoaldata', userGoalJson);
+          print("User data saved to SharedPreferences.");
+        }
+        // else {
+        //   print("User profile data is null or invalid.");
+        // }
+
+        // final useractivebasicdata = await useeractivedataInfo();
+        // final basicinfo = useractivebasicdata['data'];
+        // print("bsicinfo $basicinfo");
+        //
+        // if (basicinfo != null && basicinfo is Map) {
+        //
+        //   // Convert the Map to a JSON string
+        //   final userJson = jsonEncode(basicinfo);
+        //
+        //   // Store it in SharedPreferences
+        //   await prefs.setString('useractivedata', userJson);
+        //   print("User active data saved to SharedPreferences.");
+        // } else {
+        //   print("User active data is null or invalid.");
+        // }
+
         userEmailOrPhoneField.clear();
         userPasswordField.clear();
-        Get.to(Dashboard());
 
         // Get.snackbar(
         //   'Success',
@@ -258,6 +311,7 @@ class SignInController extends GetxController {
         //   snackPosition: SnackPosition.BOTTOM,
         //   margin: EdgeInsets.all(20),
         // );
+
         return true;
       } else {
         Get.snackbar(
