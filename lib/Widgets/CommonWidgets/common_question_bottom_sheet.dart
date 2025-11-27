@@ -166,11 +166,12 @@ class _CommonQuestionBottomSheetState extends State<CommonQuestionBottomSheet> {
                                           controller: widget.wheel,
                                           onIndexChanged: (index, _) {
                                             setState(() {
-                                              widget.setDay!(
-                                                (index + 1).toString(),
-                                              );
+                                              if (widget.setDay != null) {
+                                                widget.setDay!((index + 1).toString());
+                                              }
                                             });
                                           },
+
                                           looping: false,
                                           selectedIndexColor:
                                               widget.isDarkMode

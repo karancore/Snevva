@@ -89,34 +89,62 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
             DashboardServiceWidgetItems(
               widgetText: 'Steps Count',
               widgetImg: stepsTrackingIcon,
-              onTap: () async {
-                final prefs = await SharedPreferences.getInstance();
-                final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
+                onTap: () async {
+                  print("🔵 Step 1: Widget tapped");
+                  final prefs = await SharedPreferences.getInstance();
+                  final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
+                  print("🔵 Step 2: isGoalSet = $isGoalSet");
 
-                if (!isGoalSet) {
-                  final goal = await showStepCounterBottomSheet(
-                    context,
-                    isDarkMode,
-                  );
+                  final stepController = Get.find<StepCounterController>();
 
-                  if (goal != null) {
-                    // Save flag and optionally the goal value
-                    await prefs.setBool('isStepGoalSet', true);
-                    await prefs.setInt('stepGoalValue', goal);
-                    final stepController = Get.find<StepCounterController>();
-                    await stepController.updateStepGoal(goal);
+                  if (!isGoalSet) {
+                    print("🔵 Step 3: Showing bottom sheet");
 
-                    // Go to StepCounter screen with selected goal
-                    Get.offAll(() => StepCounter(customGoal: goal));
+                    final goal = await showStepCounterBottomSheet(
+                      context,
+                      isDarkMode,
+                    );
+
+                    print("🔵 Step 4: Bottom sheet returned goal = $goal");
+
+                    if (goal != null) {
+                      await prefs.setBool('isStepGoalSet', true);
+                      await prefs.setInt('stepGoalValue', goal);
+
+                      print("🔵 Step 5: Navigate FIRST");
+
+                      if (!context.mounted) return;
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => StepCounter(customGoal: goal),
+                        ),
+                      );
+
+                      print("🔵 Step 6: Now update goal in BACKGROUND (safe)");
+
+                      Future.microtask(() async {
+                        await stepController.updateStepGoal(goal);
+                      });
+                    }
+                  } else {
+                    final goal = prefs.getInt('stepGoalValue') ?? 10000;
+
+                    print("🔵 Context mounted: ${context.mounted}");
+
+                    if (!context.mounted) return;
+
+                    print("🔵 Navigating immediately");
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => StepCounter(customGoal: goal),
+                      ),
+                    );
                   }
-                } else {
-                  // You can fetch saved goal if needed:
-                  final goal = prefs.getInt('stepGoalValue') ?? 10000;
-
-                  // Go directly to StepCounter
-                  Get.to(() => StepCounter(customGoal: goal));
                 }
-              },
+
             ),
 
             // DashboardServiceWidgetItems(

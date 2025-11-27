@@ -11,7 +11,9 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
+import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
+import 'package:snevva/services/sleep_noticing_service.dart';
 import '../../../Controllers/SleepScreen/sleep_controller.dart';
 import '../../../Widgets/CommonWidgets/common_stat_graph_widget.dart';
 import '../../../Widgets/CommonWidgets/custom_outlined_button.dart';
@@ -24,6 +26,7 @@ class SleepTrackerScreen extends StatefulWidget {
 }
 
 class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
+  final sleepService = SleepNoticingService();
   TimeOfDay? selectedTime;
   TimeOfDay? start = TimeOfDay.now();
   TimeOfDay? end = TimeOfDay.fromDateTime(
@@ -31,6 +34,11 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
   );
 
   final SleepController sleepController = Get.put(SleepController());
+
+  @override
+  void initState() {
+    super.initState(); // Always call super.initState() first!
+  }
 
   Future<void> _pickTime(BuildContext context, bool isBedtime) async {
     final initial = TimeOfDay.now();
@@ -74,6 +82,8 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     final double size = 210;
     final double center = size / 2;
     final double radius = center - 20;
+    const double idealSleepMinutes = 8 * 60; // 480 minutes
+
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
@@ -106,32 +116,38 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                           ),
                         ),
                       ),
-                    CircularPercentIndicator(
-                      radius: 120,
-                      lineWidth: 20,
-                      percent: 0.3,
-                      progressColor: AppColors.primaryColor,
-                      backgroundColor: mediumGrey.withValues(alpha: 0.3),
-                      circularStrokeCap: CircularStrokeCap.round,
-                      center: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            sleepController.deepSleepDuration.value == null
-                                ? "--"
-                                : _fmtDuration(
-                                  sleepController.deepSleepDuration.value!,
-                                ),
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w600,
+                    Obx(
+                      () => CircularPercentIndicator(
+                        radius: 120,
+                        lineWidth: 20,
+                        percent: (
+                            (sleepController.deepSleepDuration.value?.inMinutes ?? 0).toDouble() /
+                                idealSleepMinutes
+                        ).clamp(0.0, 1.0),
+
+                        progressColor: AppColors.primaryColor,
+                        backgroundColor: mediumGrey.withValues(alpha: 0.3),
+                        circularStrokeCap: CircularStrokeCap.round,
+                        center: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              sleepController.deepSleepDuration.value == null
+                                  ? "--"
+                                  : _fmtDuration(
+                                    sleepController.deepSleepDuration.value!,
+                                  ),
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                          Text(
-                            "Sleep",
-                            style: TextStyle(fontSize: 14, color: mediumGrey),
-                          ),
-                        ],
+                            Text(
+                              "Sleep",
+                              style: TextStyle(fontSize: 14, color: mediumGrey),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -402,8 +418,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
             // Check if bedtime and wake time are selected
             if (sleepController.bedtime.value != null &&
                 sleepController.waketime.value != null) {
-
-              sleepController.startMonitoring();  // START SERVICE
+              sleepController.startMonitoring(); // START SERVICE
 
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -414,7 +429,6 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                   backgroundColor: AppColors.primaryColor,
                 ),
               );
-
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -427,8 +441,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
               );
             }
           },
-        )
-
+        ),
       ),
     );
   }

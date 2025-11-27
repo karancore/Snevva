@@ -37,7 +37,7 @@ class SleepNoticingService {
   void _onScreenTurnedOn() {
     _usageStartTime = DateTime.now();
     _isUserUsingPhone = true;
-    print('🟢 [SleepService] Screen turned ON at ${_usageStartTime}');
+    print('🟢 [SleepService] Screen turned ON at $_usageStartTime');
   }
 
   void _onScreenTurnedOff() {
@@ -47,7 +47,10 @@ class SleepNoticingService {
       print('🔴 [SleepService] Screen turned OFF. Usage duration: ${duration.inSeconds}s');
       onPhoneUsageDetected?.call(_usageStartTime!, usageEndTime);
     } else {
-      print('🔴 [SleepService] Screen turned OFF (no active usage)');
+      DateTime usageEndTime = DateTime.now();
+      print('🔴 [SleepService] Screen turned OFF . Used end time : ${usageEndTime.minute}');
+
+      onPhoneUsageDetected?.call(_usageStartTime!, usageEndTime);
     }
     _isUserUsingPhone = false;
     _usageStartTime = null;
@@ -90,6 +93,8 @@ class SleepNoticingService {
   /// [newBedtime]: The adjusted bedtime.
   /// [wakeTime]: The scheduled wake up time.
   Duration calculateDeepSleep(DateTime newBedtime, DateTime wakeTime) {
-    return wakeTime.difference(newBedtime);
+    Duration deepSleep = wakeTime.difference(newBedtime);
+    print("DeepSleep : $deepSleep");
+    return deepSleep;
   }
 }

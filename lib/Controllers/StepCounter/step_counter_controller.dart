@@ -83,13 +83,13 @@ class StepCounterController extends GetxController {
       );
 
       if (response is http.Response) {
-        Get.snackbar('Error', '❌ Failed to save step goal: ${response.statusCode}');
+        print('Error ❌ Failed to save step goal: ${response.statusCode}');
         return;
       }
 
       print("✅ Step goal saved successfully: $response");
     } catch (e) {
-      Get.snackbar('Error', '❌ Exception while saving step goal');
+      print('Error❌ Exception while saving step goal');
     }
   }
 
@@ -116,12 +116,12 @@ class StepCounterController extends GetxController {
       );
 
       if (response is http.Response && response.statusCode >= 400) {
-        Get.snackbar('Error', '❌ Failed to save step record: ${response.statusCode}');
+        print('Error ❌ Failed to save step record: ${response.statusCode}');
       } else {
         print('✅ Step record saved successfully');
       }
     } catch (e) {
-      Get.snackbar('Error', '❌ Exception while saving step record');
+      print('Error ❌ Exception while saving step record');
     }
   }
 }

@@ -106,6 +106,14 @@
             android:foregroundServiceType="location|connectedDevice|dataSync|mediaPlayback"
             tools:replace="android:exported,android:foregroundServiceType"/>
 
+        <service
+            android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
+            android:foregroundServiceType="dataSync"
+            android:stopWithTask="false" />
+
+        <!-- Your custom receiver -->
+        <receiver android:name=".ScreenReceiver" />
+
 
 
 

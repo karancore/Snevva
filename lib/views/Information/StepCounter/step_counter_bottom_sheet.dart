@@ -18,6 +18,7 @@ class StepCounterBottomSheet extends StatelessWidget {
     this.multiplier = 1000,
     this.initialIndex = 8,
     this.onConfirm,
+    this.parentContext,
   });
 
   final String unit;
@@ -27,6 +28,7 @@ class StepCounterBottomSheet extends StatelessWidget {
   final int multiplier;
   final int initialIndex;
   final Function(int value)? onConfirm;
+  final BuildContext? parentContext;
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +60,9 @@ class StepCounterBottomSheet extends StatelessWidget {
         }
 
         Future.delayed(Duration(milliseconds: 100), () {
-          Navigator.pop(context, value);
+          if (context.mounted) {
+            Navigator.of(context).pop(value);
+          }
         });
       },
     );
@@ -73,7 +77,7 @@ Future<int?> showStepCounterBottomSheet(BuildContext context, bool isDarkMode) {
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (_) => StepCounterBottomSheet(),
+    builder: (_) => StepCounterBottomSheet(parentContext: context,),
   );
 }
 

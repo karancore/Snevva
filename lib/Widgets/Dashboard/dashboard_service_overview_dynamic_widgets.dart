@@ -7,6 +7,7 @@ import '../../common/statement_of_use_bottom_sheet.dart';
 import '../../consts/consts.dart';
 import '../../views/Information/HydrationScreens/hydration_screen.dart';
 import '../../views/Information/Sleep Screen/sleep_bottom_sheet.dart';
+import '../../views/Information/Sleep Screen/sleep_tracker.dart';
 import '../../views/Information/StepCounter/step_counter.dart';
 import '../../views/Information/StepCounter/step_counter_bottom_sheet.dart';
 import '../../views/Information/vitals.dart';
@@ -233,9 +234,25 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
             ),
             SizedBox(width: defaultSize - 10),
             DashboardContainerWidget(
-              onTap: () {
-                showSleepBottomSheetModal(context, isDarkMode, height);
+              onTap: () async {
+                final prefs = await SharedPreferences.getInstance();
+                final isFirstSleep = prefs.getBool('is_first_time_sleep') ?? false;
+
+                if (isFirstSleep) {
+                  final agreed = await showSleepBottomSheetModal(context, isDarkMode, height);
+
+
+                  if (agreed == true) {
+                    await prefs.setBool('is_first_time_sleep', false); // mark as seen
+                    Get.to(() => SleepTrackerScreen());
+                  }
+                } else {
+                  // Not first time, go directly
+                  Get.to(() => SleepTrackerScreen());
+                }
+
               },
+
               isDarkMode: isDarkMode,
               widgetName: 'Sleep',
               widgetIcon: sleepTrackerIcon,

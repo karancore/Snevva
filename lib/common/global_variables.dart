@@ -1,8 +1,10 @@
 import 'package:flutter/services.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_instance/src/extension_instance.dart';
+import 'package:intl/intl.dart';
 
 import '../Controllers/signupAndSignIn/sign_in_controller.dart';
+import '../consts/consts.dart';
 class MaxValueTextInputFormatter extends TextInputFormatter {
   final int max;
 
@@ -31,4 +33,10 @@ String getGender() {
       : localGender ??
       'Not Specified';
   return gender['Gender'] as String;
+}
+
+TimeOfDay parseTimeOfDay(String timeString) {
+  final format = DateFormat("hh:mm a"); // for 12-hour format with AM/PM
+  final dateTime = format.parse(timeString);
+  return TimeOfDay.fromDateTime(dateTime);
 }
