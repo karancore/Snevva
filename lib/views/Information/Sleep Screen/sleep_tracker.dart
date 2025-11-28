@@ -426,6 +426,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                   backgroundColor: AppColors.primaryColor,
                 ),
               );
+
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
