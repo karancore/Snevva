@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:pedometer/pedometer.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
@@ -13,6 +12,7 @@ import 'package:snevva/models/steps_model.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class StepCounter extends StatefulWidget {
   final int? customGoal;
@@ -28,17 +28,13 @@ class _StepCounterState extends State<StepCounter> {
   final Box<StepEntry> _box = Hive.box<StepEntry>('step_history');
 
   List<FlSpot> _points = [];
-  int? _lastRaw;
-  DateTime _currentDay = DateTime.now();
   DateTime _selectedMonth = DateTime.now();
-
   bool _isMonthlyView = false;
 
   Position? _currentPosition;
-  Stream<Position>? _positionStream;
-  StreamSubscription<StepCount>? _stepSub;
   StreamSubscription<Position>? _locationSub;
-  Timer? _stepSyncTimer;
+
+  Timer? _uiRefreshTimer;
 
   double _graphMaxY = 10;
 
@@ -49,18 +45,33 @@ class _StepCounterState extends State<StepCounter> {
   @override
   void initState() {
     super.initState();
-    stepController.loadStepGoal();
+
+    stepController.loadGoal();
     _loadTodaySteps();
-    _stepSub = Pedometer.stepCountStream.listen(onStepCount);
     _loadWeeklyData();
-    _initLocationTracking();
+    // _initLocationTracking();
+
+    /// 🔥 UI auto-refresh every 5 seconds (background service updates prefs)
+    _uiRefreshTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+      final prefs = await SharedPreferences.getInstance();
+      final todaySteps = prefs.getInt("todaySteps") ?? 0;
+      if (mounted) {
+        setState(() {
+          stepController.todaySteps.value = todaySteps;
+        });
+      }
+      if (_isMonthlyView) {
+        _loadMonthlyData(_selectedMonth);
+      } else {
+        _loadWeeklyData();
+      }
+    });
   }
 
   @override
   void dispose() {
-    _stepSub?.cancel();
     _locationSub?.cancel();
-    _stepSyncTimer?.cancel();
+    _uiRefreshTimer?.cancel();
     super.dispose();
   }
 
@@ -99,20 +110,23 @@ class _StepCounterState extends State<StepCounter> {
 
   Future<void> _loadMonthlyData(DateTime month) async {
     final start = DateTime(month.year, month.month, 1);
-    final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
+    final days = DateTime(month.year, month.month + 1, 0).day;
 
     final pts = <FlSpot>[];
     int maxSteps = 0;
 
-    for (int i = 0; i < daysInMonth; i++) {
+    for (int i = 0; i < days; i++) {
       final day = start.add(Duration(days: i));
       final key = _dayKey(day);
       final steps = _box.get(key)?.steps ?? 0;
+
       if (steps > maxSteps) maxSteps = steps;
+
       pts.add(FlSpot(i.toDouble(), steps / 1000.0));
     }
 
     if (!mounted) return;
+
     setState(() {
       _points = pts;
       _graphMaxY = ((maxSteps / 1000).ceil() + 2).toDouble();
@@ -121,71 +135,23 @@ class _StepCounterState extends State<StepCounter> {
 
   Future<void> _initLocationTracking() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) await Geolocator.openLocationSettings();
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) return;
+    if (!serviceEnabled) {
+      await Geolocator.openLocationSettings();
     }
-    if (permission == LocationPermission.deniedForever) return;
 
-    _positionStream = Geolocator.getPositionStream(
+    LocationPermission permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) return;
+
+    _locationSub = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: 10,
       ),
-    );
-
-    _locationSub = _positionStream!.listen((pos) {
+    ).listen((pos) {
       if (!mounted) return;
       setState(() => _currentPosition = pos);
     });
-  }
-
-  // ===== STEP EVENT =====
-
-  void onStepCount(StepCount event) async {
-    final now = DateTime.now();
-    final today = _startOfDay(now);
-    final todayKey = _dayKey(today);
-
-    if (_startOfDay(_currentDay) != today) {
-      _currentDay = today;
-      stepController.todaySteps.value = 0;
-      _lastRaw = event.steps;
-      await _box.put(todayKey, StepEntry(date: today, steps: 0));
-      await _loadWeeklyData();
-      return;
-    }
-
-    if (_lastRaw == null) {
-      _lastRaw = event.steps;
-      return;
-    }
-
-    int inc = event.steps - _lastRaw!;
-    if (inc < 0) inc = 0;
-
-    stepController.todaySteps.value += inc;
-    _lastRaw = event.steps;
-
-    await _box.put(
-      todayKey,
-      StepEntry(date: today, steps: stepController.todaySteps.value),
-    );
-    stepController.savetodayStepsLocally();
-
-    _stepSyncTimer?.cancel();
-    _stepSyncTimer = Timer(const Duration(hours: 4), () {
-      stepController.saveStepRecord(stepController.todaySteps.value);
-    });
-
-    if (_isMonthlyView) {
-      await _loadMonthlyData(_selectedMonth);
-    } else {
-      await _loadWeeklyData();
-    }
   }
 
   // ===== LABELS =====
@@ -201,7 +167,7 @@ class _StepCounterState extends State<StepCounter> {
 
   List<String> _monthLabels(DateTime month) {
     final days = DateTime(month.year, month.month + 1, 0).day;
-    return List.generate(days, (i) => (i + 1).toString());
+    return List.generate(days, (i) => "${i + 1}");
   }
 
   // ===== SWITCH VIEWS =====
@@ -230,33 +196,17 @@ class _StepCounterState extends State<StepCounter> {
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    final bool isDarkMode = media.platformBrightness == Brightness.dark;
+    final isDarkMode = media.platformBrightness == Brightness.dark;
     final height = media.size.height;
     final width = media.size.width;
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
-      appBar: CustomAppBar(
-        appbarText: "Step Counter",
-        onClose: () {
-          // Use Navigator.pop with context check
-          print("🟢 Close button tapped");
-          print("🟢 Can pop: ${Navigator.canPop(context)}");
-          print("🟢 Context mounted: ${context.mounted}");
-
-          try {
-            Navigator.of(context).pop();
-            print("🟢 Pop successful");
-          } catch (e) {
-            print("🔴 Pop error: $e");
-          }
-        },
-      ),
+      appBar: CustomAppBar(appbarText: "Step Counter"),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // const SizedBox(height: 20),
             // ===== STEP PROGRESS =====
             Stack(
               alignment: Alignment.center,
@@ -271,7 +221,7 @@ class _StepCounterState extends State<StepCounter> {
                   tween: Tween(
                     begin: 0,
                     end: (stepController.todaySteps.value /
-                            stepController.stepsgoals.value)
+                            stepController.stepGoal.value)
                         .clamp(0.0, 1.0),
                   ),
                   duration: const Duration(milliseconds: 800),
@@ -306,26 +256,18 @@ class _StepCounterState extends State<StepCounter> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Obx(
-                          () =>
-                              Text('Goal: ${stepController.stepsgoals.value}'),
-                        ),
+                        Obx(() => Text('Goal: ${stepController.stepGoal.value}')),
                         const SizedBox(width: 8),
                         GestureDetector(
                           onTap: () async {
                             final updated = await showStepCounterBottomSheet(
-                              context,
-                              isDarkMode,
-                            );
+                              context, isDarkMode);
                             if (updated != null) {
-                              stepController.updateStepGoal(updated);
+                              stepController.saveGoal(updated);
                             }
                           },
-                          child: SvgPicture.asset(
-                            editIcon,
-                            width: 15,
-                            height: 15,
-                          ),
+                          child: SvgPicture.asset(editIcon,
+                              width: 15, height: 15),
                         ),
                       ],
                     ),
@@ -333,6 +275,7 @@ class _StepCounterState extends State<StepCounter> {
                 ),
               ],
             ),
+
             const SizedBox(height: 30),
 
             // ===== STATS =====
@@ -340,17 +283,14 @@ class _StepCounterState extends State<StepCounter> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _infoItem(
-                  dis,
-                  '${(stepController.todaySteps.value * 0.0008).toStringAsFixed(2)} km',
-                ),
+                    dis,
+                    '${(stepController.todaySteps.value * 0.0008).toStringAsFixed(2)} km'),
                 _infoItem(
-                  cal,
-                  '${(stepController.todaySteps.value * 0.04).toStringAsFixed(0)} cal',
-                ),
+                    cal,
+                    '${(stepController.todaySteps.value * 0.04).toStringAsFixed(0)} cal'),
                 _infoItem(
-                  time,
-                  '${(stepController.todaySteps.value / 100).toStringAsFixed(0)} min',
-                ),
+                    time,
+                    '${(stepController.todaySteps.value / 100).toStringAsFixed(0)} min'),
               ],
             ),
 
@@ -358,7 +298,6 @@ class _StepCounterState extends State<StepCounter> {
 
             // ===== GRAPH HEADER =====
             Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   _isMonthlyView ? "Monthly Step Stats" : "Weekly Step Stats",
@@ -424,6 +363,11 @@ class _StepCounterState extends State<StepCounter> {
     );
   }
 
-  Widget _infoItem(String icon, String text) =>
-      Column(children: [Image.asset(icon, width: 30, height: 30), Text(text)]);
+  // Info Row UI
+  Widget _infoItem(String icon, String text) => Column(
+        children: [
+          Image.asset(icon, width: 30, height: 30),
+          Text(text),
+        ],
+      );
 }

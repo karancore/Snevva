@@ -107,7 +107,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
         ),
         subtitle: Obx(
           () => Text(
-            '/ ${stepController.stepsgoals.value} steps',
+            '/ ${stepController.stepGoal.value} steps',
             style: const TextStyle(fontSize: 14, color: Colors.grey),
           ),
         ),

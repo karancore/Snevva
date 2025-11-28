@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
-import 'package:snevva/env/env.dart';
 import 'package:snevva/models/queryParamViewModels/step_goal_vm.dart';
 import 'package:snevva/services/api_service.dart';
-import '../../consts/consts.dart';
+import 'package:snevva/env/env.dart';
+import 'package:snevva/consts/consts.dart';
 
 class StepCounterController extends GetxController {
-  RxInt stepsgoals = 0.obs;
+  RxInt stepGoal = 8000.obs;
   RxInt todaySteps = 0.obs;
 
   SharedPreferences? _prefs;
@@ -20,40 +20,54 @@ class StepCounterController extends GetxController {
     _initPrefs();
   }
 
-  /// Initialize SharedPreferences and load saved steps & goal
+  // ================================================================
+  // INIT
+  // ================================================================
+
   Future<void> _initPrefs() async {
     _prefs = await SharedPreferences.getInstance();
-    loadTodaySteps();
-    loadStepGoal();
+    await loadGoal();
+    await loadTodaySteps();
   }
 
-  /// Save today's step count locally
-  Future<void> savetodayStepsLocally() async {
+  // ================================================================
+  // TODAY STEPS (from background isolate)
+  // ================================================================
+
+  Future<void> loadTodaySteps() async {
     if (_prefs == null) return;
-    await _prefs!.setInt('todaySteps', todaySteps.value);
-    print('👣 Today steps saved locally: ${todaySteps.value}');
+    todaySteps.value = _prefs!.getInt("todaySteps") ?? 0;
   }
 
-  /// Load today's step count from local storage
-  void loadTodaySteps() {
-    todaySteps.value = _prefs?.getInt('todaySteps') ?? 0;
+  Future<void> saveTodaySteps(int value) async {
+    if (_prefs == null) return;
+    todaySteps.value = value;
+    await _prefs!.setInt("todaySteps", value);
   }
 
-  /// Load step goal from local storage (default 8500)
-  void loadStepGoal() {
-    stepsgoals.value = _prefs?.getInt('step_goal') ?? 8500;
+  // ================================================================
+  // STEP GOAL
+  // ================================================================
+
+  Future<void> saveGoal(int goal) async {
+    if (_prefs == null) return;
+    stepGoal.value = goal;
+    await _prefs!.setInt("step_goal", goal);
   }
 
-  /// Update step goal both locally and remotely
+  Future<void> loadGoal() async {
+    if (_prefs == null) return;
+    stepGoal.value = _prefs!.getInt("step_goal") ?? 8000;
+  }
+
+  // ================================================================
+  // UPDATE GOAL (local + server)
+  // ================================================================
+
   Future<void> updateStepGoal(int goal) async {
-    stepsgoals.value = goal;
-    stepsgoals.refresh();
+    await saveGoal(goal);
 
-    // Save locally
-    await _prefs?.setInt('step_goal', goal);
-
-    // Save remotely
-    final stepGoalVM = StepGoalVM(
+    final model = StepGoalVM(
       day: DateTime.now().day,
       month: DateTime.now().month,
       year: DateTime.now().year,
@@ -61,22 +75,21 @@ class StepCounterController extends GetxController {
       count: goal,
     );
 
-    await _saveStepGoal(stepGoalVM);
+    await _saveStepGoalRemote(model);
   }
 
-  /// API call to save step goal remotely
-  Future<void> _saveStepGoal(StepGoalVM stepModel) async {
+  Future<void> _saveStepGoalRemote(StepGoalVM model) async {
     try {
       final payload = {
-        'Day': stepModel.day,
-        'Month': stepModel.month,
-        'Year': stepModel.year,
-        'Time': stepModel.time,
-        'Count': stepModel.count,
+        "Day": model.day,
+        "Month": model.month,
+        "Year": model.year,
+        "Time": model.time,
+        "Count": model.count,
       };
 
       final response = await ApiService.post(
-        stepGoal,
+        savestepGoal,
         payload,
         withAuth: true,
         encryptionRequired: true,
@@ -93,10 +106,14 @@ class StepCounterController extends GetxController {
     }
   }
 
-  /// Save step record both locally and remotely
+  // ================================================================
+  // SAVE DAILY STEP RECORD (server)
+  // ================================================================
+
   Future<void> saveStepRecord(int count) async {
     try {
       final now = DateTime.now();
+
       final payload = {
         "Day": now.day,
         "Month": now.month,
@@ -104,9 +121,6 @@ class StepCounterController extends GetxController {
         "Time": TimeOfDay.now().format(Get.context!),
         "Count": count,
       };
-
-      todaySteps.value = count;
-      await savetodayStepsLocally();
 
       final response = await ApiService.post(
         stepRecord,
@@ -118,7 +132,7 @@ class StepCounterController extends GetxController {
       if (response is http.Response && response.statusCode >= 400) {
         print('Error ❌ Failed to save step record: ${response.statusCode}');
       } else {
-        print('✅ Step record saved successfully');
+        print("✅ Step record saved successfully!");
       }
     } catch (e) {
       print('Error ❌ Exception while saving step record');

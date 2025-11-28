@@ -35,7 +35,7 @@ class StepCounterBottomSheet extends StatelessWidget {
     final controller = Get.find<StepCounterController>();
     final wheel = WheelPickerController(
       itemCount: 20,
-      initialIndex: (controller.stepsgoals.value ~/ multiplier) - 1,
+      initialIndex: (controller.stepGoal.value ~/ multiplier) - 1,
     );
 
     final mediaQuery = MediaQuery.of(context);

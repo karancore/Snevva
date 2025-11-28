@@ -55,7 +55,7 @@ const String appactivityGoal = '/api/upsert/activitylevel';
 const String apphealthGoal = '/api/upsert/healthgoal';
 const String appOccupation = '/api/upsert/usingAppData';
 
-const String stepGoal = "/api/upsert/stepgoal";
+const String savestepGoal = "/api/upsert/stepgoal";
 const String stepRecord = "/api/upsert/addsteprecord";
 const String waterGoalfinal = "/api/upsert/watergoal";
 const String waterRecord = "/api/upsert/addwaterintakerecord";
