@@ -193,7 +193,7 @@ class _ReminderState extends State<Reminder> {
       buttonColor: AppColors.primaryColor,
       onConfirm: () async {
         await controller.deleteReminder(reminder);
-        Get.back();
+        Navigator.pop(context);
       },
     );
   }

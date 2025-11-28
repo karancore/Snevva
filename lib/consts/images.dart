@@ -255,7 +255,9 @@ const level1 = "assets/Icons/WomenHealth/1.png";
 const level2 = "assets/Icons/WomenHealth/2.png";
 const level3 = "assets/Icons/WomenHealth/3.png";
 
+//Chat Screem
 
+const chatWallpaper = "assets/chat/chat_wallpaper.png";
 
 
 //Step Counter

@@ -410,7 +410,13 @@ class SleepController extends GetxController {
   final Rx<DateTime?> bedtime = Rx<DateTime?>(null);
 
   /// User's wake-up time
-  final Rx<DateTime?> waketime = Rx<DateTime?>(null);
+  final  Rx<DateTime?> waketime = Rx<DateTime?>(null);
+
+  final  Rx<DateTime?> idealBedTime = Rx<DateTime?>(null);
+
+
+
+
 
   /// Calculated new bedtime after phone usage logic
   final Rx<DateTime?> newBedtime = Rx<DateTime?>(null);
@@ -471,6 +477,16 @@ class SleepController extends GetxController {
   void setWakeTime(DateTime time) {
     waketime.value = time;
   }
+
+  Duration? get idealWakeupDuration {
+    final wake = waketime.value;
+    final bed = bedtime.value;
+
+    if (wake == null || bed == null) return null;
+
+    return wake.difference(bed);
+  }
+
 
   /// Main logic method → call this when the user uses the phone
   /// phoneUsageStart = timestamp when user started using the phone

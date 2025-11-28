@@ -144,6 +144,7 @@ flutter:
     - assets/decision_tree.json
     - assets/sounds/
     - assets/Icons/reminder/
+    - assets/chat/
 
   fonts:
     - family: sans_regular

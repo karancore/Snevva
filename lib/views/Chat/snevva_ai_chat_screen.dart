@@ -5,6 +5,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart'; // ✅ Needed for directory path
+import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/consts/colors.dart';
 import 'package:snevva/consts/images.dart';
 import 'package:snevva/env/env.dart';
@@ -91,7 +92,7 @@ Future<Map<String, DecisionNode>> loadDecisionTree() async {
 Future<File> _decisionFile() async {
   final dir =
       await getApplicationDocumentsDirectory(); // ✔ real Flutter function
-      print (dir.path);
+  print(dir.path);
   return File('${dir.path}/decision.json');
 }
 
@@ -100,7 +101,6 @@ Future<void> _saveDecisionJsonLocally(Map<String, dynamic> json) async {
   await file.writeAsString(jsonEncode(json));
   print("Decision tree updated locally.");
 }
-
 
 Future<Map<String, DecisionNode>> _loadDecisionJsonFromCache() async {
   try {
@@ -113,7 +113,7 @@ Future<Map<String, DecisionNode>> _loadDecisionJsonFromCache() async {
     if (await file.exists()) {
       text = await file.readAsString();
       print("Loaded decision tree from cached file.");
-    } 
+    }
     // 2. Otherwise → load from assets
     else {
       text = await rootBundle.loadString('assets/decision_tree.json');
@@ -136,7 +136,6 @@ Future<Map<String, DecisionNode>> _loadDecisionJsonFromCache() async {
     return {};
   }
 }
-
 
 /// ---------- CHAT MESSAGE MODEL ----------
 
@@ -234,129 +233,129 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
 
     final node = decisionTree[currentNodeKey];
 
-    return SafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: Image.asset(bacskarrowBlack),
-            onPressed: () => Navigator.pop(context),
+    return Scaffold(
+      appBar: CustomAppBar(appbarText: "Ask Elly" , showDrawerIcon: false,),
+
+      body: Stack(
+        children: [
+          Align(
+            alignment: Alignment.center,
+            child: Image.asset(chatWallpaper),
           ),
-          title: const Text("Ask Elly"),
-          centerTitle: true,
-        ),
+          Column(
+            children: [
+              /// ------------ CHAT LIST ------------
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: messages.length,
+                  itemBuilder: (context, i) {
+                    final msg = messages[i];
+                    final formattedTime = TimeOfDay.fromDateTime(
+                      msg.time,
+                    ).format(context);
+                    final sender = msg.isUser ? "You" : "Elly";
 
-        body: Column(
-          children: [
-            /// ------------ CHAT LIST ------------
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(16),
-                itemCount: messages.length,
-                itemBuilder: (context, i) {
-                  final msg = messages[i];
-                  final formattedTime = TimeOfDay.fromDateTime(
-                    msg.time,
-                  ).format(context);
-                  final sender = msg.isUser ? "You" : "Elly";
-
-                  return Align(
-                    alignment:
-                        msg.isUser
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                    child: Column(
-                      crossAxisAlignment:
+                    return Align(
+                      alignment:
                           msg.isUser
-                              ? CrossAxisAlignment.end
-                              : CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.symmetric(vertical: 6),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color:
-                                msg.isUser
-                                    ? AppColors.primaryColor.withOpacity(0.9)
-                                    : (isDark
-                                        ? Colors.grey[800]
-                                        : Colors.grey[200]),
-                            borderRadius: BorderRadius.only(
-                              topLeft: const Radius.circular(16),
-                              topRight: const Radius.circular(16),
-                              bottomLeft:
-                                  msg.isUser
-                                      ? const Radius.circular(16)
-                                      : Radius.zero,
-                              bottomRight:
-                                  msg.isUser
-                                      ? Radius.zero
-                                      : const Radius.circular(16),
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                      child: Column(
+                        crossAxisAlignment:
+                            msg.isUser
+                                ? CrossAxisAlignment.end
+                                : CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.symmetric(vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
                             ),
-                          ),
-                          child: AutoSizeText(
-                            msg.text,
-                            style: TextStyle(
+                            decoration: BoxDecoration(
+
                               color:
                                   msg.isUser
-                                      ? Colors.white
+                                      ? AppColors.primaryColor.withOpacity(0.9)
                                       : (isDark
-                                          ? Colors.white
-                                          : Colors.black87),
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: Text(
-                            "$sender • $formattedTime",
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            /// ------------ OPTION BUTTONS ------------
-            if (waitingForUser && node != null && node.options.isNotEmpty)
-              Container(
-                padding: const EdgeInsets.all(12),
-                color: isDark ? scaffoldColorDark : scaffoldColorLight,
-                child: Column(
-                  children:
-                      node.options
-                          .map(
-                            (opt) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryColor,
-                                  minimumSize: const Size(double.infinity, 48),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                onPressed: () => _handleOptionSelected(opt),
-                                child: Text(opt.text),
+                                          ? Colors.grey[800]
+                                          : Colors.white),
+                              borderRadius: BorderRadius.only(
+                                topLeft: const Radius.circular(16),
+                                topRight: const Radius.circular(16),
+                                bottomLeft:
+                                    msg.isUser
+                                        ? const Radius.circular(16)
+                                        : Radius.zero,
+                                bottomRight:
+                                    msg.isUser
+                                        ? Radius.zero
+                                        : const Radius.circular(16),
                               ),
                             ),
-                          )
-                          .toList(),
+                            child: AutoSizeText(
+                              msg.text,
+                              style: TextStyle(
+                                color:
+                                    msg.isUser
+                                        ? Colors.white
+                                        : (isDark
+                                            ? Colors.white
+                                            : Colors.black87),
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              "$sender • $formattedTime",
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
-          ],
-        ),
+
+              /// ------------ OPTION BUTTONS ------------
+              if (waitingForUser && node != null && node.options.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  color: isDark ? scaffoldColorDark : scaffoldColorLight,
+                  child: Column(
+                    children:
+                        node.options
+                            .map(
+                              (opt) => Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primaryColor,
+                                    minimumSize: const Size(double.infinity, 48),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  onPressed: () => _handleOptionSelected(opt),
+                                  child: Text(opt.text , style: TextStyle(color: white),),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }

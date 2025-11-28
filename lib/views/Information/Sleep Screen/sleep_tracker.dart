@@ -32,6 +32,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
   TimeOfDay? end = TimeOfDay.fromDateTime(
     DateTime.now().add(Duration(hours: 8)),
   );
+  double idealSleepMinutes = 8 * 60; // 480 minutes
 
   final SleepController sleepController = Get.put(SleepController());
 
@@ -82,7 +83,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     final double size = 210;
     final double center = size / 2;
     final double radius = center - 20;
-    const double idealSleepMinutes = 8 * 60; // 480 minutes
+
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
@@ -116,42 +117,42 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                         ),
                       ),
                     Obx(
-                      () => CircularPercentIndicator(
-                        radius: 120,
-                        lineWidth: 20,
-                        percent: ((sleepController
-                                            .deepSleepDuration
-                                            .value
-                                            ?.inMinutes ??
-                                        0)
-                                    .toDouble() /
-                                idealSleepMinutes)
-                            .clamp(0.0, 1.0),
+                      (){
+                        final deepSleep = (sleepController.deepSleepDuration.value?.inMinutes ?? 0).toDouble();
+                        final ideal = (sleepController.idealWakeupDuration?.inMinutes ?? 1).toDouble();
 
-                        progressColor: AppColors.primaryColor,
-                        backgroundColor: mediumGrey.withValues(alpha: 0.3),
-                        circularStrokeCap: CircularStrokeCap.round,
-                        center: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              sleepController.deepSleepDuration.value == null
-                                  ? "--"
-                                  : _fmtDuration(
-                                    sleepController.deepSleepDuration.value!,
-                                  ),
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w600,
+                        final percent = (deepSleep / ideal).clamp(0.0, 1.0);
+
+                        return CircularPercentIndicator(
+                          radius: 120,
+                          lineWidth: 20,
+                          percent: percent,
+
+                          progressColor: AppColors.primaryColor,
+                          backgroundColor: mediumGrey.withValues(alpha: 0.3),
+                          circularStrokeCap: CircularStrokeCap.round,
+                          center: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                sleepController.deepSleepDuration.value == null
+                                    ? "--"
+                                    : _fmtDuration(
+                                  sleepController.deepSleepDuration.value!,
+                                ),
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                            Text(
-                              "Sleep",
-                              style: TextStyle(fontSize: 14, color: mediumGrey),
-                            ),
-                          ],
-                        ),
-                      ),
+                              Text(
+                                "Sleep",
+                                style: TextStyle(fontSize: 14, color: mediumGrey),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
