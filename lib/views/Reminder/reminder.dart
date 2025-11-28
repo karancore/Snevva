@@ -183,6 +183,21 @@ class _ReminderState extends State<Reminder> {
     );
   }
 
+  void _showDeleteConfirmation(Map<String, dynamic> reminder) {
+    Get.defaultDialog(
+      title: "Delete Reminder",
+      middleText: "Are you sure you want to delete this reminder?",
+      textConfirm: "Delete",
+      textCancel: "Cancel",
+      confirmTextColor: Colors.white,
+      buttonColor: AppColors.primaryColor,
+      onConfirm: () async {
+        await controller.deleteReminder(reminder);
+        Get.back();
+      },
+    );
+  }
+
   Widget _buildCategoryContent(Map<String, dynamic> reminder, String category) {
     switch (category) {
       case 'Medicine':
@@ -226,7 +241,7 @@ class _ReminderState extends State<Reminder> {
                 ),
                 const SizedBox(width: 16),
                 GestureDetector(
-                  onTap: () {},
+                  onTap: () => _showDeleteConfirmation(reminder),
                   child: Icon(Icons.delete, size: 18, color: Color(0xff878787)),
                 ),
               ],
@@ -250,6 +265,15 @@ class _ReminderState extends State<Reminder> {
                 "Times per day: ${reminder['RemindFrequencyCount']}",
                 style: TextStyle(fontSize: 12, color: Color(0xff878787)),
               ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                GestureDetector(
+                  onTap: () => _showDeleteConfirmation(reminder),
+                  child: Icon(Icons.delete, size: 18, color: Color(0xff878787)),
+                ),
+              ],
+            ),
           ],
         );
 
@@ -282,7 +306,7 @@ class _ReminderState extends State<Reminder> {
             ),
             const SizedBox(width: 16),
             GestureDetector(
-              onTap: () {},
+              onTap: () => _showDeleteConfirmation(reminder),
               child: Icon(Icons.delete, size: 18, color: Color(0xff878787)),
             ),
 
@@ -321,7 +345,7 @@ class _ReminderState extends State<Reminder> {
                 ),
                 const SizedBox(width: 16),
                 GestureDetector(
-                  onTap: () {},
+                  onTap: () => _showDeleteConfirmation(reminder),
                   child: Icon(Icons.delete, size: 18, color: Color(0xff878787)),
                 ),
               ],

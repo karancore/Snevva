@@ -544,6 +544,48 @@ class ReminderController extends GetxController {
     reminderList.removeAt(index);
   }
 
+  Future<void> deleteReminder(Map<String, dynamic> reminder) async {
+    final id = reminder['id'];
+    final category = reminder['Category'];
+
+    if (id == null) {
+      return;
+    }
+
+    switch (category) {
+      case 'Medicine':
+        await _deleteFromListById(medicineList, id, "medicine_list");
+        break;
+      case 'Meal':
+        await _deleteFromListById(mealsList, id, "meals_list");
+        break;
+      case 'Event':
+        await _deleteFromListById(eventList, id, "event_list");
+        break;
+      case 'Water':
+        await _deleteFromListById(waterList, id, "water_list");
+        break;
+    }
+    await loadAllReminderLists();
+  }
+
+  Future<void> _deleteFromListById(
+      RxList<Map<String, AlarmSettings>> list, int id, String keyName) async {
+    int index = -1;
+    for (int i = 0; i < list.length; i++) {
+      if (list[i].values.first.id == id) {
+        index = i;
+        break;
+      }
+    }
+
+    if (index != -1) {
+      await Alarm.stop(id);
+      list.removeAt(index);
+      await saveReminderList(list, keyName);
+    }
+  }
+
   // ==================== Medicine Management ====================
 
   void addMedicine() {
@@ -624,6 +666,7 @@ class ReminderController extends GetxController {
             "MedicineName": alarm.notificationSettings.body?.split(",") ?? [],
             "RemindTime": [alarm.dateTime.toString()],
             "Description": alarm.notificationSettings.body ?? "",
+            "id": alarm.id,
           });
         });
       }
@@ -634,6 +677,7 @@ class ReminderController extends GetxController {
             "Category": "Meal",
             "Title": title,
             "RemindTime": [alarm.dateTime.toString()],
+            "id": alarm.id,
           });
         });
       }
@@ -648,6 +692,7 @@ class ReminderController extends GetxController {
             "StartYear": alarm.dateTime.year,
             "RemindTime": [alarm.dateTime.toString()],
             "Description": alarm.notificationSettings.body ?? "",
+            "id": alarm.id,
           });
         });
       }
@@ -659,6 +704,7 @@ class ReminderController extends GetxController {
             "Title": title,
             "RemindFrequencyHour": alarm.dateTime.hour,
             "RemindFrequencyCount": alarm.dateTime.minute,
+            "id": alarm.id,
           });
         });
       }
