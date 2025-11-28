@@ -400,7 +400,9 @@
 
 import 'dart:async';
 
+import 'package:fl_chart/fl_chart.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/services/sleep_noticing_service.dart';
 
 class SleepController extends GetxController {
@@ -415,14 +417,36 @@ class SleepController extends GetxController {
 
   /// Resulting deep sleep duration
   final Rx<Duration?> deepSleepDuration = Rx<Duration?>(null);
+  final RxList<Duration?> deepSleepHistory = <Duration?>[].obs;
 
   final SleepNoticingService _sleepService = SleepNoticingService();
+
+  RxList<FlSpot> deepSleepSpots = <FlSpot>[].obs;
+
+  void _updateDeepSleepSpots() {
+    deepSleepSpots.value = deepSleepHistory.asMap().entries.map((e) {
+      final index = e.key;
+      final duration = e.value;
+      final hours = duration?.inMinutes == null ? 0.0 : duration!.inMinutes / 60.0;
+      return FlSpot(index.toDouble(), hours);
+    }).toList();
+  }
+
 
   @override
   void onInit() {
     super.onInit();
     _sleepService.onPhoneUsageDetected = onPhoneUsed;
   }
+  Future<void> saveDeepSleepList(List<Duration?> list) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Convert Duration? → int? → String
+    List<String> stringList = list.map((d) => d?.inHours.toString() ?? "null").toList();
+
+    prefs.setStringList("deepSleepHistory", stringList);
+  }
+
 
   @override
   void onClose() {
@@ -451,7 +475,7 @@ class SleepController extends GetxController {
   /// Main logic method → call this when the user uses the phone
   /// phoneUsageStart = timestamp when user started using the phone
   /// phoneUsageEnd   = timestamp when they stopped using the phone
-  void onPhoneUsed(DateTime phoneUsageStart, DateTime phoneUsageEnd) {
+  void onPhoneUsed(DateTime phoneUsageStart, DateTime phoneUsageEnd) async {
     if (bedtime.value == null) return;
     if (waketime.value == null) return;
 
@@ -466,8 +490,23 @@ class SleepController extends GetxController {
     newBedtime.value = computedBedtime;
 
     // calculate deep sleep
-    deepSleepDuration.value =
-        _sleepService.calculateDeepSleep(computedBedtime, waketime.value!);
+    deepSleepDuration.value = _sleepService.calculateDeepSleep(
+      computedBedtime,
+      waketime.value!,
+    );
+    if (deepSleepDuration.value != null) {
+      deepSleepHistory.add(deepSleepDuration.value!);
+
+
+      if (deepSleepHistory.length > 7) {
+        deepSleepHistory.removeAt(0);
+      }
+
+      _updateDeepSleepSpots();
+
+      await saveDeepSleepList(deepSleepHistory.toList());
+
+    }
+
   }
 }
-

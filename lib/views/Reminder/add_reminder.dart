@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
@@ -304,6 +305,16 @@ class _AddReminderState extends State<AddReminder> {
     });
     return alarms;
   }
+
+  Future<void> saveDeepSleepList(List<Duration?> list) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Convert Duration? → int? → String
+    List<String> stringList = list.map((d) => d?.inMilliseconds.toString() ?? "null").toList();
+
+    prefs.setStringList("deepSleepHistory", stringList);
+  }
+
 
   Future<void> checkAndroidNotificationPermission() async {
     final status = await Permission.notification.status;

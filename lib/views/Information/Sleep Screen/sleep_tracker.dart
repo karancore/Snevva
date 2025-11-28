@@ -84,7 +84,6 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     final double radius = center - 20;
     const double idealSleepMinutes = 8 * 60; // 480 minutes
 
-
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: CustomAppBar(appbarText: 'Sleep Tracker'),
@@ -120,10 +119,14 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                       () => CircularPercentIndicator(
                         radius: 120,
                         lineWidth: 20,
-                        percent: (
-                            (sleepController.deepSleepDuration.value?.inMinutes ?? 0).toDouble() /
-                                idealSleepMinutes
-                        ).clamp(0.0, 1.0),
+                        percent: ((sleepController
+                                            .deepSleepDuration
+                                            .value
+                                            ?.inMinutes ??
+                                        0)
+                                    .toDouble() /
+                                idealSleepMinutes)
+                            .clamp(0.0, 1.0),
 
                         progressColor: AppColors.primaryColor,
                         backgroundColor: mediumGrey.withValues(alpha: 0.3),
@@ -384,24 +387,18 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
               // ========== SLEEP STATISTICS GRAPH ==========
               SizedBox(
                 height: 200,
-                child: CommonStatGraphWidget(
-                  isDarkMode: isDarkMode,
-                  yAxisInterval: 2,
-                  yAxisMaxValue: 11,
-                  height: height,
-                  graphTitle: 'Sleep Statistics',
-                  points: [
-                    FlSpot(0, 3),
-                    FlSpot(1, 2.3),
-                    FlSpot(2, 9),
-                    FlSpot(3, 7),
-                    FlSpot(4, 8),
-                    FlSpot(5, 3),
-                    FlSpot(6, 8),
-                  ],
-                  gridLineInterval: 2,
-                  measureUnit: 'h',
-                ),
+                child: Obx(() {
+                  return CommonStatGraphWidget(
+                    isDarkMode: isDarkMode,
+                    yAxisInterval: 2,
+                    yAxisMaxValue: 11,
+                    height: height,
+                    graphTitle: 'Sleep Statistics',
+                    points: sleepController.deepSleepSpots.toList(),
+                    gridLineInterval: 2,
+                    measureUnit: 'h',
+                  );
+                }),
               ),
               const SizedBox(height: 30),
             ],
