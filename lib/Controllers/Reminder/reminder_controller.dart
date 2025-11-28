@@ -6,6 +6,7 @@ import 'package:alarm/alarm.dart';
 import 'package:alarm/model/alarm_settings.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/consts/consts.dart';
@@ -832,18 +833,18 @@ class ReminderController extends GetxController {
 
   // ==================== Helper Methods ====================
 
-  IconData getCategoryIcon(String category) {
+  String getCategoryIcon(String category) {
     switch (category) {
       case 'Medicine':
-        return Icons.medical_services;
+        return medicineIcon;
       case 'Water':
-        return Icons.local_drink;
+        return waterReminderIcon;
       case 'Meal':
-        return Icons.restaurant;
+        return mealIcon;
       case 'Event':
-        return Icons.event;
+        return eventIcon;
       default:
-        return Icons.help_outline;
+        return "";
     }
   }
 
@@ -898,7 +899,31 @@ class ReminderController extends GetxController {
 
   String formatReminderTime(List remindTimes) {
     if (remindTimes.isEmpty) return 'N/A';
-    return remindTimes.join(', ');
+
+    // Parse and format each time
+    List<String> formattedTimes = [];
+    for (var time in remindTimes) {
+      try {
+        // Check if it's already a formatted string or a DateTime string
+        if (time is String) {
+          // Try to parse as DateTime first
+          try {
+            DateTime dateTime = DateTime.parse(time);
+            formattedTimes.add(DateFormat('hh:mm a').format(dateTime));
+          } catch (e) {
+            // If it fails, it might already be formatted, just use it
+            formattedTimes.add(time);
+          }
+        } else if (time is DateTime) {
+          formattedTimes.add(DateFormat('hh:mm a').format(time));
+        }
+      } catch (e) {
+        print('Error formatting time: $e');
+        formattedTimes.add(time.toString());
+      }
+    }
+
+    return formattedTimes.join(', ');
   }
 
   String formatDate(int? day, int? month, int? year) {
@@ -908,5 +933,16 @@ class ReminderController extends GetxController {
 
   double getListHeight(int itemCount) {
     return (itemCount * itemHeight).clamp(0, maxHeight);
+  }
+
+  /// Format time from hour and minute values
+  String formatTimeFromHourMinute(int hour, int minute) {
+    try {
+      final now = DateTime.now();
+      final dateTime = DateTime(now.year, now.month, now.day, hour, minute);
+      return DateFormat('hh:mm a').format(dateTime);
+    } catch (e) {
+      return '$hour:$minute';
+    }
   }
 }

@@ -117,10 +117,9 @@ class _AddReminderState extends State<AddReminder> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
+                            Image.asset(
                               controller.getCategoryIcon(category),
-                              color: isSelected ? Colors.white : Colors.grey,
-                              size: 28,
+                              //color: isSelected ? Colors.white : Colors.grey,
                             ),
                             SizedBox(height: 4),
                             Text(

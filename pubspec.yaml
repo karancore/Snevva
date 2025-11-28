@@ -143,6 +143,7 @@ flutter:
     - assets/Icons/SleepScreen/
     - assets/decision_tree.json
     - assets/sounds/
+    - assets/Icons/reminder/
 
   fonts:
     - family: sans_regular

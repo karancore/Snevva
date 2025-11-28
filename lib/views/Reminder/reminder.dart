@@ -1,3 +1,4 @@
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
@@ -45,9 +46,7 @@ class _ReminderState extends State<Reminder> {
         // Show loading indicator
         if (controller.isLoading.value) {
           return Center(
-            child: CircularProgressIndicator(
-              color: AppColors.primaryColor,
-            ),
+            child: CircularProgressIndicator(color: AppColors.primaryColor),
           );
         }
 
@@ -57,26 +56,16 @@ class _ReminderState extends State<Reminder> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.alarm_off,
-                  size: 64,
-                  color: Colors.grey,
-                ),
+                Icon(Icons.alarm_off, size: 64, color: Colors.grey),
                 SizedBox(height: 16),
                 Text(
                   'No reminders yet',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
                 ),
                 SizedBox(height: 8),
                 Text(
                   'Tap "+ Add Reminder" to create one',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
               ],
             ),
@@ -102,29 +91,42 @@ class _ReminderState extends State<Reminder> {
                 elevation: 4,
                 margin: const EdgeInsets.only(bottom: 12),
                 child: Padding(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Header Row
                       Row(
                         children: [
-                          Icon(
+                          Image.asset(
                             controller.getCategoryIcon(category),
-                            color: controller.getCategoryColor(category),
+                            width: 24,
+                            height: 24,
+                            //color: controller.getCategoryColor(category),
                           ),
-                          SizedBox(width: 8),
+                          SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               reminder['Title'] ?? 'No title',
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 18,
+                              ),
                             ),
                           ),
+
                           IconButton(
-                            icon: Icon(Icons.edit, size: 20, color: mediumGrey),
+                            icon: Icon(
+                              Icons.keyboard_arrow_down_outlined,
+                              size: 24,
+                              color: mediumGrey,
+                            ),
                             onPressed: () async {
                               final result = await Get.to(
-                                    () => AddReminder(reminder: reminder),
+                                () => AddReminder(reminder: reminder),
                               );
                               // Reload data when returning from edit
                               if (result == true) {
@@ -137,7 +139,10 @@ class _ReminderState extends State<Reminder> {
                       SizedBox(height: 8),
 
                       // Category-specific content
-                      _buildCategoryContent(reminder, category),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: _buildCategoryContent(reminder, category),
+                      ),
                     ],
                   ),
                 ),
@@ -178,10 +183,7 @@ class _ReminderState extends State<Reminder> {
     );
   }
 
-  Widget _buildCategoryContent(
-      Map<String, dynamic> reminder,
-      String category,
-      ) {
+  Widget _buildCategoryContent(Map<String, dynamic> reminder, String category) {
     switch (category) {
       case 'Medicine':
         return Column(
@@ -189,12 +191,46 @@ class _ReminderState extends State<Reminder> {
           children: [
             if (reminder['MedicineName'] != null)
               Text(
-                "Medicines: ${(reminder['MedicineName'] as List).join(', ')}",
+                (reminder['MedicineName'] as List).join(', '),
+                style: TextStyle(fontSize: 12, color: Color(0xff878787)),
               ),
+
             Text(
-              "Reminder Times: ${controller.formatReminderTime(reminder['RemindTime'] ?? [])}",
+              "Notes: ${reminder['Description'] ?? 'N/A'}",
+              style: TextStyle(fontSize: 12, color: Color(0xff878787)),
             ),
-            Text("Notes: ${reminder['Description'] ?? 'N/A'}"),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Image.asset(
+                  clockRemIcon,
+                  color: Color(0xff878787),
+                  width: 12,
+                  height: 12,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  controller.formatReminderTime(reminder['RemindTime'] ?? []),
+                  style: TextStyle(fontSize: 12, color: Color(0xff878787)),
+                ),
+                Spacer(),
+                GestureDetector(
+                  onTap: () {},
+                  child: SvgPicture.asset(
+                    pen,
+                    width: 18,
+                    height: 18,
+                    color: Color(0xff878787),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                GestureDetector(
+                  onTap: () {},
+                  child: Icon(Icons.delete, size: 18, color: Color(0xff878787)),
+                ),
+              ],
+            ),
           ],
         );
 
@@ -202,35 +238,98 @@ class _ReminderState extends State<Reminder> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "Frequency (Every X hours): ${reminder['RemindFrequencyHour'] ?? 0}",
-            ),
-            Text(
-              "Times per day: ${reminder['RemindFrequencyCount'] ?? 0}",
-            ),
+            if (reminder['RemindFrequencyHour'] != null &&
+                reminder['RemindFrequencyHour'] > 0)
+              Text(
+                "Frequency: Every ${reminder['RemindFrequencyHour']} hours",
+                style: TextStyle(fontSize: 12, color: Color(0xff878787)),
+              ),
+            if (reminder['RemindFrequencyCount'] != null &&
+                reminder['RemindFrequencyCount'] > 0)
+              Text(
+                "Times per day: ${reminder['RemindFrequencyCount']}",
+                style: TextStyle(fontSize: 12, color: Color(0xff878787)),
+              ),
           ],
         );
 
       case 'Meal':
-        return Text(
-          "Meal Time: ${controller.formatReminderTime(reminder['RemindTime'] ?? [])}",
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Image.asset(
+              clockRemIcon,
+              color: Color(0xff878787),
+              width: 12,
+              height: 12,
+            ),
+            const SizedBox(width: 4),
+
+            Text(
+              controller.formatReminderTime(reminder['RemindTime'] ?? []),
+              style: TextStyle(fontSize: 12, color: Color(0xff878787)),
+            ),
+            Spacer(),
+            GestureDetector(
+              onTap: () {},
+              child: SvgPicture.asset(
+                pen,
+                width: 18,
+                height: 18,
+                color: Color(0xff878787),
+              ),
+            ),
+            const SizedBox(width: 16),
+            GestureDetector(
+              onTap: () {},
+              child: Icon(Icons.delete, size: 18, color: Color(0xff878787)),
+            ),
+
+            const SizedBox(width: 4),
+          ],
         );
 
       case 'Event':
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "Event Date: ${controller.formatDate(
-                reminder['StartDay'],
-                reminder['StartMonth'],
-                reminder['StartYear'],
-              )}",
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Image.asset(
+                  clockRemIcon,
+                  color: Color(0xff878787),
+                  width: 12,
+                  height: 12,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  controller.formatReminderTime(reminder['RemindTime'] ?? []),
+                  style: TextStyle(fontSize: 12, color: Color(0xff878787)),
+                ),
+                Spacer(),
+                GestureDetector(
+                  onTap: () {},
+                  child: SvgPicture.asset(
+                    pen,
+                    width: 18,
+                    height: 18,
+                    color: Color(0xff878787),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                GestureDetector(
+                  onTap: () {},
+                  child: Icon(Icons.delete, size: 18, color: Color(0xff878787)),
+                ),
+              ],
             ),
             Text(
-              "Time: ${controller.formatReminderTime(reminder['RemindTime'] ?? [])}",
+              "Notes: ${reminder['Description'] ?? 'N/A'}",
+              style: TextStyle(fontSize: 12, color: Color(0xff878787)),
             ),
-            Text("Notes: ${reminder['Description'] ?? 'N/A'}"),
           ],
         );
 

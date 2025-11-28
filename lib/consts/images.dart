@@ -95,6 +95,16 @@ const logoutIcon = "assets/Icons/Drawer/exit.svg";
 const invitefriend = "assets/Icons/Drawer/invitefriend11.svg";
 // const invitefriend = "assets/Icons/Drawer/invitefriend.svg";
 
+//Reminder Scree
+const medicineIcon = "assets/Icons/reminder/medicine.png";
+const mealIcon = "assets/Icons/reminder/meal.png";
+const waterReminderIcon = "assets/Icons/reminder/water.png";
+const eventIcon = "assets/Icons/reminder/event.png";
+const clockRemIcon = "assets/Icons/reminder/clock.png";
+
+
+
+
 
 //Vitals Screen
 const heartVitalIcon = "assets/Icons/vitals/heart.png";
@@ -290,4 +300,4 @@ const clockIcon = "assets/Icons/SleepScreen/Rectangle-2.png";
 const noNotif = "assets/Images/notificon.png";
 const fatty = "assets/Images/BMI/fatty.png";
 const skinny = "assets/Images/BMI/skiiny.png";
-
+const pen = "assets/Icons/reminder/pencil.svg";
