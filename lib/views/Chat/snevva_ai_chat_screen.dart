@@ -234,12 +234,16 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
     final node = decisionTree[currentNodeKey];
 
     return Scaffold(
-      extendBodyBehindAppBar: true, // Allow background to go behind app bar if needed, but standard is fine
+      extendBodyBehindAppBar: true, 
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Image.asset(bacskarrowBlack),
+          icon: SizedBox(
+            width: 24, 
+            height: 24,
+            child: Image.asset(bacskarrowBlack),
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -275,7 +279,13 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
               Expanded(
                 child: ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  // Add top padding to account for AppBar and StatusBar
+                  padding: EdgeInsets.only(
+                    top: kToolbarHeight + mediaQuery.padding.top + 10, 
+                    left: 16, 
+                    right: 16, 
+                    bottom: 10
+                  ),
                   // Add 1 to count if we have options to show them at the end of the list
                   itemCount: messages.length + (waitingForUser && node != null && node.options.isNotEmpty ? 1 : 0),
                   itemBuilder: (context, i) {
@@ -311,8 +321,6 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
                     }
 
                     final msg = messages[i];
-                    // Design doesn't show time/sender name clearly in the bubbles, 
-                    // but we can keep the structure clean.
                     
                     return Align(
                       alignment:
