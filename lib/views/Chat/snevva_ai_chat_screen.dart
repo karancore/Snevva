@@ -5,7 +5,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart'; // ✅ Needed for directory path
-import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
+
 import 'package:snevva/consts/colors.dart';
 import 'package:snevva/consts/images.dart';
 import 'package:snevva/env/env.dart';
@@ -234,125 +234,138 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
     final node = decisionTree[currentNodeKey];
 
     return Scaffold(
-      appBar: CustomAppBar(appbarText: "Ask Elly" , showDrawerIcon: false,),
+      extendBodyBehindAppBar: true, // Allow background to go behind app bar if needed, but standard is fine
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Image.asset(bacskarrowBlack),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          "Chat with Elly",
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.more_vert, color: Colors.black),
+            onPressed: () {},
+          ),
+        ],
+      ),
 
       body: Stack(
         children: [
-          Align(
-            alignment: Alignment.center,
-            child: Image.asset(chatWallpaper),
+          // Background Image
+          Positioned.fill(
+            child: Image.asset(
+              chatWallpaper,
+              fit: BoxFit.cover,
+            ),
           ),
+          
           Column(
             children: [
               /// ------------ CHAT LIST ------------
               Expanded(
                 child: ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.all(16),
-                  itemCount: messages.length,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  // Add 1 to count if we have options to show them at the end of the list
+                  itemCount: messages.length + (waitingForUser && node != null && node.options.isNotEmpty ? 1 : 0),
                   itemBuilder: (context, i) {
-                    final msg = messages[i];
-                    final formattedTime = TimeOfDay.fromDateTime(
-                      msg.time,
-                    ).format(context);
-                    final sender = msg.isUser ? "You" : "Elly";
+                    
+                    // If we are at the end and have options, render them
+                    if (waitingForUser && node != null && node.options.isNotEmpty && i == messages.length) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: node.options.map((opt) => Padding(
+                          padding: const EdgeInsets.only(top: 8.0, left: 60), // Indent to align right
+                          child: GestureDetector(
+                            onTap: () => _handleOptionSelected(opt),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD09CFA), // Purple for options (User bubble color)
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                opt.text,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        )).toList(),
+                      );
+                    }
 
+                    final msg = messages[i];
+                    // Design doesn't show time/sender name clearly in the bubbles, 
+                    // but we can keep the structure clean.
+                    
                     return Align(
                       alignment:
                           msg.isUser
                               ? Alignment.centerRight
                               : Alignment.centerLeft,
-                      child: Column(
-                        crossAxisAlignment:
-                            msg.isUser
-                                ? CrossAxisAlignment.end
-                                : CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            margin: const EdgeInsets.symmetric(vertical: 6),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-
-                              color:
-                                  msg.isUser
-                                      ? AppColors.primaryColor.withOpacity(0.9)
-                                      : (isDark
-                                          ? Colors.grey[800]
-                                          : Colors.white),
-                              borderRadius: BorderRadius.only(
-                                topLeft: const Radius.circular(16),
-                                topRight: const Radius.circular(16),
-                                bottomLeft:
-                                    msg.isUser
-                                        ? const Radius.circular(16)
-                                        : Radius.zero,
-                                bottomRight:
-                                    msg.isUser
-                                        ? Radius.zero
-                                        : const Radius.circular(16),
-                              ),
-                            ),
-                            child: AutoSizeText(
-                              msg.text,
-                              style: TextStyle(
-                                color:
-                                    msg.isUser
-                                        ? Colors.white
-                                        : (isDark
-                                            ? Colors.white
-                                            : Colors.black87),
-                                fontSize: 16,
-                              ),
-                            ),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        constraints: BoxConstraints(maxWidth: mediaQuery.size.width * 0.75),
+                        decoration: BoxDecoration(
+                          color:
+                              msg.isUser
+                                  ? const Color(0xFFD09CFA) // Purple for user
+                                  : Colors.white, // White for bot
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(20),
+                            topRight: const Radius.circular(20),
+                            bottomLeft:
+                                msg.isUser
+                                    ? const Radius.circular(20)
+                                    : Radius.zero,
+                            bottomRight:
+                                msg.isUser
+                                    ? Radius.zero
+                                    : const Radius.circular(20),
                           ),
-
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: Text(
-                              "$sender • $formattedTime",
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 12,
-                              ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 5,
+                              offset: const Offset(0, 2),
                             ),
+                          ],
+                        ),
+                        child: Text(
+                          msg.text,
+                          style: TextStyle(
+                            color:
+                                msg.isUser
+                                    ? Colors.white
+                                    : Colors.black87,
+                            fontSize: 16,
                           ),
-                        ],
+                        ),
                       ),
                     );
                   },
                 ),
               ),
-
-              /// ------------ OPTION BUTTONS ------------
-              if (waitingForUser && node != null && node.options.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  color: isDark ? scaffoldColorDark : scaffoldColorLight,
-                  child: Column(
-                    children:
-                        node.options
-                            .map(
-                              (opt) => Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 4),
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primaryColor,
-                                    minimumSize: const Size(double.infinity, 48),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  onPressed: () => _handleOptionSelected(opt),
-                                  child: Text(opt.text , style: TextStyle(color: white),),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                  ),
-                ),
             ],
           ),
         ],
