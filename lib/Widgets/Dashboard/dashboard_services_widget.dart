@@ -10,6 +10,7 @@ import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
 import '../../consts/consts.dart';
 import '../../views/Information/HydrationScreens/hydration_screen.dart';
 import '../../views/Information/Sleep Screen/sleep_bottom_sheet.dart';
+import '../../views/Information/Sleep Screen/sleep_tracker.dart';
 import '../../views/Information/StepCounter/step_counter.dart';
 import '../../views/WomenHealth/women_bottom_sheets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -89,62 +90,61 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
             DashboardServiceWidgetItems(
               widgetText: 'Steps Count',
               widgetImg: stepsTrackingIcon,
-                onTap: () async {
-                  print("🔵 Step 1: Widget tapped");
-                  final prefs = await SharedPreferences.getInstance();
-                  final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
-                  print("🔵 Step 2: isGoalSet = $isGoalSet");
+              onTap: () async {
+                print("🔵 Step 1: Widget tapped");
+                final prefs = await SharedPreferences.getInstance();
+                final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
+                print("🔵 Step 2: isGoalSet = $isGoalSet");
 
-                  final stepController = Get.find<StepCounterController>();
+                final stepController = Get.find<StepCounterController>();
 
-                  if (!isGoalSet) {
-                    print("🔵 Step 3: Showing bottom sheet");
+                if (!isGoalSet) {
+                  print("🔵 Step 3: Showing bottom sheet");
 
-                    final goal = await showStepCounterBottomSheet(
-                      context,
-                      isDarkMode,
-                    );
+                  final goal = await showStepCounterBottomSheet(
+                    context,
+                    isDarkMode,
+                  );
 
-                    print("🔵 Step 4: Bottom sheet returned goal = $goal");
+                  print("🔵 Step 4: Bottom sheet returned goal = $goal");
 
-                    if (goal != null) {
-                      await prefs.setBool('isStepGoalSet', true);
-                      await prefs.setInt('stepGoalValue', goal);
+                  if (goal != null) {
+                    await prefs.setBool('isStepGoalSet', true);
+                    await prefs.setInt('stepGoalValue', goal);
 
-                      print("🔵 Step 5: Navigate FIRST");
-
-                      if (!context.mounted) return;
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => StepCounter(customGoal: goal),
-                        ),
-                      );
-
-                      print("🔵 Step 6: Now update goal in BACKGROUND (safe)");
-
-                      Future.microtask(() async {
-                        await stepController.updateStepGoal(goal);
-                      });
-                    }
-                  } else {
-                    final goal = prefs.getInt('stepGoalValue') ?? 10000;
-
-                    print("🔵 Context mounted: ${context.mounted}");
+                    print("🔵 Step 5: Navigate FIRST");
 
                     if (!context.mounted) return;
-
-                    print("🔵 Navigating immediately");
-
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => StepCounter(customGoal: goal),
                       ),
                     );
-                  }
-                }
 
+                    print("🔵 Step 6: Now update goal in BACKGROUND (safe)");
+
+                    Future.microtask(() async {
+                      await stepController.updateStepGoal(goal);
+                    });
+                  }
+                } else {
+                  final goal = prefs.getInt('stepGoalValue') ?? 10000;
+
+                  print("🔵 Context mounted: ${context.mounted}");
+
+                  if (!context.mounted) return;
+
+                  print("🔵 Navigating immediately");
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => StepCounter(customGoal: goal),
+                    ),
+                  );
+                }
+              },
             ),
 
             // DashboardServiceWidgetItems(
@@ -211,8 +211,29 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
             DashboardServiceWidgetItems(
               widgetText: 'Sleep Tracker',
               widgetImg: sleepTrackerIcon,
-              onTap: () {
-                showSleepBottomSheetModal(context, isDarkMode, height);
+              onTap: () async {
+                final prefs = await SharedPreferences.getInstance();
+                final isFirstSleep =
+                    prefs.getBool('is_first_time_sleep') ?? false;
+
+                if (isFirstSleep) {
+                  final agreed = await showSleepBottomSheetModal(
+                    context,
+                    isDarkMode,
+                    height,
+                  );
+
+                  if (agreed == true) {
+                    await prefs.setBool(
+                      'is_first_time_sleep',
+                      false,
+                    ); // mark as seen
+                    Get.to(() => SleepTrackerScreen());
+                  }
+                } else {
+                  // Not first time, go directly
+                  Get.to(() => SleepTrackerScreen());
+                }
               },
             ),
             DashboardServiceWidgetItems(

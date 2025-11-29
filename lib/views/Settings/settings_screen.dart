@@ -17,17 +17,11 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(
         centerTitle: true,
         title: AutoSizeText('Settings'),
-        leading: IconButton(
-          onPressed: () {
-            Get.back();
-          },
-          icon: Icon(
-            FontAwesomeIcons.arrowLeft,
-            color:
-                isDarkMode
-                    ? white.withValues(alpha: 0.7)
-                    : black.withValues(alpha: 0.8),
-          ),
+        iconTheme: IconThemeData(
+          color:
+              isDarkMode
+                  ? white.withValues(alpha: 0.7)
+                  : black.withValues(alpha: 0.8),
         ),
       ),
       body: SingleChildScrollView(
@@ -52,7 +46,7 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: defaultSize + 20),
-        
+
               SettingItemWidget(
                 icon: themeIcon,
                 heading: 'Theme',

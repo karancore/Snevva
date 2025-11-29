@@ -141,7 +141,8 @@ class _StepCounterState extends State<StepCounter> {
 
     LocationPermission permission = await Geolocator.requestPermission();
     if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) return;
+        permission == LocationPermission.deniedForever)
+      return;
 
     _locationSub = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
@@ -237,37 +238,46 @@ class _StepCounterState extends State<StepCounter> {
                 Column(
                   children: [
                     const SizedBox(height: 90),
-                    TweenAnimationBuilder<int>(
-                      tween: IntTween(
-                        begin: 0,
-                        end: stepController.todaySteps.value,
-                      ),
-                      duration: const Duration(milliseconds: 600),
-                      builder:
-                          (_, val, __) => Text(
-                            "$val",
-                            style: const TextStyle(
-                              fontSize: 38,
-                              fontWeight: FontWeight.bold,
+                    Obx(() {
+                      return TweenAnimationBuilder<int>(
+                        tween: IntTween(
+                          begin: 0,
+                          end: stepController.todaySteps.value,
+                        ),
+                        duration: const Duration(milliseconds: 600),
+                        builder:
+                            (_, val, __) => Text(
+                              "$val",
+                              style: const TextStyle(
+                                fontSize: 38,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                    ),
+                      );
+                    }),
                     const Text('Steps', style: TextStyle(fontSize: 16)),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Obx(() => Text('Goal: ${stepController.stepGoal.value}')),
+                        Obx(
+                          () => Text('Goal: ${stepController.stepGoal.value}'),
+                        ),
                         const SizedBox(width: 8),
                         GestureDetector(
                           onTap: () async {
                             final updated = await showStepCounterBottomSheet(
-                              context, isDarkMode);
+                              context,
+                              isDarkMode,
+                            );
                             if (updated != null) {
                               stepController.saveGoal(updated);
                             }
                           },
-                          child: SvgPicture.asset(editIcon,
-                              width: 15, height: 15),
+                          child: SvgPicture.asset(
+                            editIcon,
+                            width: 15,
+                            height: 15,
+                          ),
                         ),
                       ],
                     ),
@@ -283,14 +293,17 @@ class _StepCounterState extends State<StepCounter> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _infoItem(
-                    dis,
-                    '${(stepController.todaySteps.value * 0.0008).toStringAsFixed(2)} km'),
+                  dis,
+                  '${(stepController.todaySteps.value * 0.0008).toStringAsFixed(2)} km',
+                ),
                 _infoItem(
-                    cal,
-                    '${(stepController.todaySteps.value * 0.04).toStringAsFixed(0)} cal'),
+                  cal,
+                  '${(stepController.todaySteps.value * 0.04).toStringAsFixed(0)} cal',
+                ),
                 _infoItem(
-                    time,
-                    '${(stepController.todaySteps.value / 100).toStringAsFixed(0)} min'),
+                  time,
+                  '${(stepController.todaySteps.value / 100).toStringAsFixed(0)} min',
+                ),
               ],
             ),
 
@@ -364,10 +377,6 @@ class _StepCounterState extends State<StepCounter> {
   }
 
   // Info Row UI
-  Widget _infoItem(String icon, String text) => Column(
-        children: [
-          Image.asset(icon, width: 30, height: 30),
-          Text(text),
-        ],
-      );
+  Widget _infoItem(String icon, String text) =>
+      Column(children: [Image.asset(icon, width: 30, height: 30), Text(text)]);
 }

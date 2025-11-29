@@ -163,28 +163,20 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
           children: [
             DashboardContainerWidget(
               onTap: () async {
-                print("🔵 Step 1: Widget tapped");
                 final prefs = await SharedPreferences.getInstance();
                 final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
-                print("🔵 Step 2: isGoalSet = $isGoalSet");
 
                 final stepController = Get.find<StepCounterController>();
 
                 if (!isGoalSet) {
-                  print("🔵 Step 3: Showing bottom sheet");
-
                   final goal = await showStepCounterBottomSheet(
                     context,
                     isDarkMode,
                   );
 
-                  print("🔵 Step 4: Bottom sheet returned goal = $goal");
-
                   if (goal != null) {
                     await prefs.setBool('isStepGoalSet', true);
                     await prefs.setInt('stepGoalValue', goal);
-
-                    print("🔵 Step 5: Navigate FIRST");
 
                     if (!context.mounted) return;
                     Navigator.push(
@@ -194,8 +186,6 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                       ),
                     );
 
-                    print("🔵 Step 6: Now update goal in BACKGROUND (safe)");
-
                     Future.microtask(() async {
                       await stepController.updateStepGoal(goal);
                     });
@@ -203,11 +193,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                 } else {
                   final goal = prefs.getInt('stepGoalValue') ?? 10000;
 
-                  print("🔵 Context mounted: ${context.mounted}");
-
                   if (!context.mounted) return;
-
-                  print("🔵 Navigating immediately");
 
                   Navigator.push(
                     context,

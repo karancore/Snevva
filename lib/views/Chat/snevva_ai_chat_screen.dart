@@ -237,6 +237,9 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: white,
+        iconTheme: IconThemeData(
+          color: isDark? black : white
+        ),
         elevation: 0,
         title: const Text(
           "Chat with Elly",
@@ -337,7 +340,13 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
                                 ? CrossAxisAlignment.end
                                 : CrossAxisAlignment.start,
                         children: [
-                          Text(DateFormat('hh:mm a').format(msg.time)),
+                          msg.isUser
+                              ? SizedBox.shrink()
+                              : Text(
+                                "SNEVVAI  ${DateFormat('hh:mm a').format(msg.time)}",
+                                style: TextStyle(fontSize: 10),
+                              ),
+
                           Container(
                             margin: const EdgeInsets.symmetric(vertical: 6),
                             padding: const EdgeInsets.symmetric(
@@ -382,6 +391,12 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
                               ),
                             ),
                           ),
+                          msg.isUser
+                              ? Text(
+                                "YOU  ${DateFormat('hh:mm a').format(msg.time)}",
+                                style: TextStyle(fontSize: 10),
+                              )
+                              : SizedBox.shrink(),
                         ],
                       ),
                     );
