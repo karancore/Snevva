@@ -61,10 +61,10 @@ Future<void> saveAnswer(int questionIndex) async {
         payload = { 'Value': answers[0] };
         break;
 
-      case 2: // Occupation
-        endpoint = appOccupation;
-        payload = { 'Occupation': answers };
-        break;
+      // case 2: // Occupation
+      //   endpoint = appOccupation;
+      //   payload = { 'Occupation': answers };
+      //   break;
 
       default:
         Get.snackbar('Error', 'Unknown question index: $questionIndex');

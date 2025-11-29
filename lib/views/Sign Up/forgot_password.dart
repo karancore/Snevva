@@ -72,7 +72,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
         elevation: 0,
         automaticallyImplyLeading: false,
         leading: IconButton(
-          icon: Image.asset(bacskarrowBlack),
+          icon: Icon(Icons.arrow_back_ios),
           onPressed: () {
            Get.back();
           },

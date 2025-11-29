@@ -56,60 +56,67 @@ class _SignInScreenState extends State<SignInScreen> {
   Future<void> _handleSuccessfulSignIn(
       String emailOrPhone,
       SharedPreferences prefs,
-    ) async {
-      if (rememberMe) {
-        prefs.setBool('remember_me', true);
-        prefs.setString('user_credential', emailOrPhone);
-      }
+      ) async {
 
-      final userInfo = signInController.userProfData;
-      final userData = userInfo['data'];
-      print("User Data: $userData");
-      await prefs.setString('userdata', jsonEncode(userData));
-      localStorageManager.userMap.value = userData ?? {};
-
-      final nameValid = userData['Name']?.toString().trim().isNotEmpty ?? false;
-      final genderValid =
-          userData['Gender']?.toString().trim().isNotEmpty ?? false;
-      final occupationValid = userData['OccupationData'] != null;
-
-      if (nameValid && genderValid && occupationValid) {
-        final userActiveDataResponse = signInController.userGoalData;
-        final userActiveData = userActiveDataResponse['data'];
-        print("DEBUG: userActiveData = $userActiveData");
-        localStorageManager.userGoalDataMap.value = userActiveData ?? {};
-        prefs.setString('userGoalDataMap', jsonEncode(userActiveData));
-
-        if (userActiveData != null && userActiveData is Map) {
-          final userbasicInfoJson = jsonEncode(userActiveData);
-          await prefs.setString('useractivedata', userbasicInfoJson);
-
-          if (userActiveData['ActivityLevel'] != null &&
-              userActiveData['HealthGoal'] != null) {
-            Get.offAll(() => HomeWrapper());
-            return;
-          }
-          if (userActiveData['HeightData'] != null &&
-              userActiveData['WeightData'] != null) {
-            Get.offAll(() => QuestionnaireScreen());
-            return;
-          } else {
-            final gender = userData['Gender']?.toString() ?? 'Unknown';
-            Get.offAll(() => HeightAndWeight(gender: gender));
-            return;
-          }
-        } else {
-          print("User active data is null or invalid.");
-        }
-
-        Get.offAll(() => HomeWrapper());
-      } else {
-        print("Required profile fields missing.");
-        Get.offAll(() => ProfileSetupInitial());
-      }
+    if (rememberMe) {
+      prefs.setBool('remember_me', true);
+      prefs.setString('user_credential', emailOrPhone);
     }
 
-    // Handle sign-in error and show snackbar
+    final userInfo = signInController.userProfData;
+    final userData = userInfo['data'];
+    print(userData);
+    await prefs.setString('userdata', jsonEncode(userData));
+    localStorageManager.userMap.value = userData ?? {};
+
+    final nameValid = userData['Name']?.toString().trim().isNotEmpty ?? false;
+    final genderValid = userData['Gender']?.toString().trim().isNotEmpty ?? false;
+    final occupationValid = userData['OccupationData'] != null;
+
+    if (nameValid && genderValid && occupationValid) {
+      final userActiveDataResponse = signInController.userGoalData;
+      final userActiveData = userActiveDataResponse['data'];
+      print(userActiveData);
+
+      localStorageManager.userGoalDataMap.value = userActiveData ?? {};
+      prefs.setString('userGoalDataMap', jsonEncode(userActiveData));
+
+      if (userActiveData != null && userActiveData is Map) {
+        await prefs.setString(
+            'useractivedata', jsonEncode(userActiveData));
+
+        // 🚀 Final check 1 → All goals set → go home
+        if (userActiveData['ActivityLevel'] != null &&
+            userActiveData['HealthGoal'] != null) {
+          Get.offAll(() => HomeWrapper());
+          return;    // <<< CRITICAL
+        }
+
+        // 🚀 Final check 2 → Ask only remaining questions
+        if (userActiveData['HeightData'] != null &&
+            userActiveData['WeightData'] != null) {
+          Get.offAll(() => QuestionnaireScreen());
+          return;   // <<< CRITICAL
+        }
+
+        // 🚀 Missing height/weight
+        final gender = userData['Gender']?.toString() ?? 'Unknown';
+        Get.offAll(() => HeightAndWeight(gender: gender));
+        return;   // <<< CRITICAL
+      }
+
+      // If userActiveData invalid
+      Get.offAll(() => HomeWrapper());
+      return;
+    }
+
+    // Missing basic profile info
+    Get.offAll(() => ProfileSetupInitial());
+    return;
+  }
+
+
+  // Handle sign-in error and show snackbar
     void _handleSignInError() {
       Get.snackbar(
         'Error',
