@@ -54,3 +54,12 @@ class SleepNoticingService : Service() {
         super.onDestroy()
     }
 }
+
+class ScreenReceiver(private val callback: (String) -> Unit) : android.content.BroadcastReceiver() {
+    override fun onReceive(context: Context?, intent: Intent?) {
+        when (intent?.action) {
+            Intent.ACTION_SCREEN_OFF -> callback("screen_off")
+            Intent.ACTION_SCREEN_ON -> callback("screen_on")
+        }
+    }
+}
