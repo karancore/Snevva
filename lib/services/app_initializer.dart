@@ -95,7 +95,7 @@ Future<bool> initializeApp() async {
   await setupHive();
 
   // Start only pedometer background service
-  //await initBackgroundService();
+  await initBackgroundService();
 
   // Optional: runtime permissions
   await requestAllPermissions();

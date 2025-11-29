@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart'; // ✅ Needed for directory path
 
 import 'package:snevva/consts/colors.dart';
@@ -234,23 +234,15 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
     final node = decisionTree[currentNodeKey];
 
     return Scaffold(
-      extendBodyBehindAppBar: true, 
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: white,
         elevation: 0,
-        leading: IconButton(
-          icon: SizedBox(
-            width: 24, 
-            height: 24,
-            child: Image.asset(bacskarrowBlack),
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: const Text(
           "Chat with Elly",
           style: TextStyle(
             color: Colors.black,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w500,
             fontSize: 20,
           ),
         ),
@@ -266,13 +258,8 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
       body: Stack(
         children: [
           // Background Image
-          Positioned.fill(
-            child: Image.asset(
-              chatWallpaper,
-              fit: BoxFit.cover,
-            ),
-          ),
-          
+          Positioned.fill(child: Image.asset(chatWallpaper, fit: BoxFit.cover)),
+
           Column(
             children: [
               /// ------------ CHAT LIST ------------
@@ -281,94 +268,121 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
                   controller: _scrollController,
                   // Add top padding to account for AppBar and StatusBar
                   padding: EdgeInsets.only(
-                    top: kToolbarHeight + mediaQuery.padding.top + 10, 
-                    left: 16, 
-                    right: 16, 
-                    bottom: 10
+                    top: kToolbarHeight + mediaQuery.padding.top + 10,
+                    left: 16,
+                    right: 16,
+                    bottom: 10,
                   ),
                   // Add 1 to count if we have options to show them at the end of the list
-                  itemCount: messages.length + (waitingForUser && node != null && node.options.isNotEmpty ? 1 : 0),
+                  itemCount:
+                      messages.length +
+                      (waitingForUser && node != null && node.options.isNotEmpty
+                          ? 1
+                          : 0),
                   itemBuilder: (context, i) {
-                    
                     // If we are at the end and have options, render them
-                    if (waitingForUser && node != null && node.options.isNotEmpty && i == messages.length) {
+                    if (waitingForUser &&
+                        node != null &&
+                        node.options.isNotEmpty &&
+                        i == messages.length) {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
-                        children: node.options.map((opt) => Padding(
-                          padding: const EdgeInsets.only(top: 8.0, left: 60), // Indent to align right
-                          child: GestureDetector(
-                            onTap: () => _handleOptionSelected(opt),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFD09CFA), // Purple for options (User bubble color)
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                opt.text,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                          ),
-                        )).toList(),
+                        children:
+                            node.options
+                                .map(
+                                  (opt) => Padding(
+                                    padding: const EdgeInsets.only(
+                                      top: 8.0,
+                                      left: 60,
+                                    ), // Indent to align right
+                                    child: GestureDetector(
+                                      onTap: () => _handleOptionSelected(opt),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          gradient: AppColors.primaryGradient,
+                                          // Purple for options (User bubble color)
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          opt.text,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
                       );
                     }
 
                     final msg = messages[i];
-                    
+
                     return Align(
                       alignment:
                           msg.isUser
                               ? Alignment.centerRight
                               : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 6),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        constraints: BoxConstraints(maxWidth: mediaQuery.size.width * 0.75),
-                        decoration: BoxDecoration(
-                          color:
-                              msg.isUser
-                                  ? const Color(0xFFD09CFA) // Purple for user
-                                  : Colors.white, // White for bot
-                          borderRadius: BorderRadius.only(
-                            topLeft: const Radius.circular(20),
-                            topRight: const Radius.circular(20),
-                            bottomLeft:
-                                msg.isUser
-                                    ? const Radius.circular(20)
-                                    : Radius.zero,
-                            bottomRight:
-                                msg.isUser
-                                    ? Radius.zero
-                                    : const Radius.circular(20),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 5,
-                              offset: const Offset(0, 2),
+                      child: Column(
+                        crossAxisAlignment:
+                            msg.isUser
+                                ? CrossAxisAlignment.end
+                                : CrossAxisAlignment.start,
+                        children: [
+                          Text(DateFormat('hh:mm a').format(msg.time)),
+                          Container(
+                            margin: const EdgeInsets.symmetric(vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
                             ),
-                          ],
-                        ),
-                        child: Text(
-                          msg.text,
-                          style: TextStyle(
-                            color:
-                                msg.isUser
-                                    ? Colors.white
-                                    : Colors.black87,
-                            fontSize: 16,
+                            constraints: BoxConstraints(
+                              maxWidth: mediaQuery.size.width * 0.75,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient:
+                                  msg.isUser
+                                      ? AppColors.primaryGradient
+                                      : AppColors.whiteGradient,
+                              // White for bot
+                              borderRadius: BorderRadius.only(
+                                topLeft: const Radius.circular(20),
+                                topRight: const Radius.circular(20),
+                                bottomLeft:
+                                    msg.isUser
+                                        ? const Radius.circular(20)
+                                        : Radius.zero,
+                                bottomRight:
+                                    msg.isUser
+                                        ? Radius.zero
+                                        : const Radius.circular(20),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 5,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              msg.text,
+                              style: TextStyle(
+                                color:
+                                    msg.isUser ? Colors.white : Colors.black87,
+                                fontSize: 16,
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     );
                   },
