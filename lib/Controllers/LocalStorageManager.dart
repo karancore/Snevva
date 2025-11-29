@@ -10,7 +10,7 @@ class LocalStorageManager extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // checksession();
+    checksession();
   }
 
   Future<void> checksession() async {

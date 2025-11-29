@@ -1,7 +1,7 @@
 
 // baseUrl
-const String baseUrl = "https://localhost:7238";
-// const String baseUrl = "https://abdmstg.coretegra.com";
+//const String baseUrl = "https://localhost:7238";
+ const String baseUrl = "https://abdmstg.coretegra.com";
 
 
 // send otp api
