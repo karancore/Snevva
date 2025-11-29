@@ -112,7 +112,7 @@
             android:stopWithTask="false" />
 
         <!-- Your custom receiver -->
-        <receiver android:name=".ScreenReceiver" />
+
 
 
 
