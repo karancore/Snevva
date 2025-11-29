@@ -17,11 +17,11 @@ class LocalStorageManager extends GetxController {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
 
-      Future.delayed(Duration.zero, () {
-        if (token == null) {
-          Get.offAll(() => SignInScreen());
-        }
-      });
+      // Future.delayed(Duration.zero, () {
+      //   if (token == null) {
+      //     Get.offAll(() => SignInScreen());
+      //   }
+      // });
     await reloadUserMap();
   }
 

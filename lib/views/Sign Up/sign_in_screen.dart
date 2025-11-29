@@ -76,6 +76,7 @@ class _SignInScreenState extends State<SignInScreen> {
       if (nameValid && genderValid && occupationValid) {
         final userActiveDataResponse = signInController.userGoalData;
         final userActiveData = userActiveDataResponse['data'];
+        print("DEBUG: userActiveData = $userActiveData");
         localStorageManager.userGoalDataMap.value = userActiveData ?? {};
         prefs.setString('userGoalDataMap', jsonEncode(userActiveData));
 
