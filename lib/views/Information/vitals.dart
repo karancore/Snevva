@@ -141,7 +141,10 @@ class _VitalsScreenState extends State<VitalsScreen> {
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
-      appBar: CustomAppBar(appbarText: "Vitals" , onClose: Get.back,),
+      appBar: CustomAppBar(
+        appbarText: "Vitals",
+        onClose:  () => Get.back(),
+      ),
       backgroundColor: isDarkMode ? Colors.black : Colors.white,
       body: SafeArea(
         child: Padding(
@@ -233,7 +236,7 @@ class _VitalsScreenState extends State<VitalsScreen> {
                       // Blood Pressure Input
                       Row(
                         children: [
-                          Image.asset(heartVitalIcon , width: 24 , height: 24,),
+                          Image.asset(heartVitalIcon, width: 24, height: 24),
                           SizedBox(width: 8),
                           Text(
                             'Blood Pressure:',
@@ -283,7 +286,7 @@ class _VitalsScreenState extends State<VitalsScreen> {
                       // Blood Glucose Input
                       Row(
                         children: [
-                          Image.asset(bloodDropsIcon , width: 24 , height: 24,),
+                          Image.asset(bloodDropsIcon, width: 24, height: 24),
                           SizedBox(width: 8),
                           Text(
                             'Blood Glucose:',
