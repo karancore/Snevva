@@ -143,7 +143,13 @@ class _VitalsScreenState extends State<VitalsScreen> {
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: CustomAppBar(
         appbarText: "Vitals",
-        onClose:  () => Get.back(),
+        onClose: () {
+          if (Get.isSnackbarOpen) {
+            Get.closeCurrentSnackbar();
+          }
+          Get.back();
+        },
+
       ),
       backgroundColor: isDarkMode ? Colors.black : Colors.white,
       body: SafeArea(

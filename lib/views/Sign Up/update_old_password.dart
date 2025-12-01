@@ -225,6 +225,7 @@ class _UpdateOldPaswordState extends State<UpdateOldPasword> {
                             updatePasswordController.isChecked.value =
                                 val ?? false;
                           },
+                          activeColor: AppColors.primaryColor,
                           visualDensity: const VisualDensity(
                             horizontal: -4,
                             vertical: -4,

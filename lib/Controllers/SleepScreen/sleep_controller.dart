@@ -407,19 +407,16 @@ import 'package:snevva/services/sleep_noticing_service.dart';
 
 class SleepController extends GetxController {
   /// User's original bedtime (when they intend to sleep)
-  final Rx<DateTime?> bedtime = Rx<DateTime?>(null);
+  final Rx<DateTime?> bedtime = Rx<DateTime?>(DateTime.now());
 
   /// User's wake-up time
-  final  Rx<DateTime?> waketime = Rx<DateTime?>(null);
+  final  Rx<DateTime?> waketime = Rx<DateTime?>(DateTime.now().add(Duration(hours: 8)));
 
   final  Rx<DateTime?> idealBedTime = Rx<DateTime?>(null);
 
-
-
-
-
   /// Calculated new bedtime after phone usage logic
   final Rx<DateTime?> newBedtime = Rx<DateTime?>(null);
+
 
   /// Resulting deep sleep duration
   final Rx<Duration?> deepSleepDuration = Rx<Duration?>(null);

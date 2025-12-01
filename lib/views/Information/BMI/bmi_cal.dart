@@ -1,3 +1,4 @@
+import 'package:flutter_svg/svg.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
@@ -30,7 +31,46 @@ class _BmiCalState extends State<BmiCal> {
         child: DrawerMenuWidget(height: heightDevice, width: width),
       ),
       extendBodyBehindAppBar: true,
-      appBar: CustomAppBar(appbarText: 'BMI Calculator'),
+      appBar: AppBar(
+        backgroundColor: transparent,
+        centerTitle: true,
+        title: Text(
+          "BMI Calculator",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: white,
+          ),
+        ),
+
+        // Conditionally show leading drawer icon
+        leading: Builder(
+          builder:
+              (context) => IconButton(
+                icon: SvgPicture.asset(drawerIcon ,color: white,),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              ),
+        ),
+
+        // Conditionally show close (cross) icon
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 20),
+            child: InkWell(
+              onTap: () => Navigator.pop(context),
+              child: SizedBox(
+                height: 24,
+                width: 24,
+                child: Icon(
+                  Icons.clear,
+                  size: 21,
+                  color: white , // Adapt to theme
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: Stack(
         children: [
           SizedBox(
@@ -58,7 +98,7 @@ class _BmiCalState extends State<BmiCal> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           elevation: 4,
-                          color: isDarkMode? darkGray : white,
+                          color: isDarkMode ? darkGray : white,
                           child: Padding(
                             padding: const EdgeInsets.all(16),
                             child: Column(
@@ -67,7 +107,7 @@ class _BmiCalState extends State<BmiCal> {
                                 Divider(color: Colors.grey, thickness: 1),
                                 Row(
                                   mainAxisAlignment:
-                                  MainAxisAlignment.spaceEvenly,
+                                      MainAxisAlignment.spaceEvenly,
                                   children: [
                                     Column(
                                       children: [
@@ -75,14 +115,13 @@ class _BmiCalState extends State<BmiCal> {
                                           icon: Icon(
                                             Icons.female,
                                             color:
-                                            !isMale
-                                                ? AppColors.primaryColor
-                                                : mediumGrey,
+                                                !isMale
+                                                    ? AppColors.primaryColor
+                                                    : mediumGrey,
                                           ),
                                           onPressed:
-                                              () =>
-                                              setState(
-                                                    () => isMale = false,
+                                              () => setState(
+                                                () => isMale = false,
                                               ),
                                         ),
                                         const Text("Female"),
@@ -94,13 +133,13 @@ class _BmiCalState extends State<BmiCal> {
                                           icon: Icon(
                                             Icons.male,
                                             color:
-                                            isMale
-                                                ? AppColors.primaryColor
-                                                : mediumGrey,
+                                                isMale
+                                                    ? AppColors.primaryColor
+                                                    : mediumGrey,
                                           ),
                                           onPressed:
                                               () =>
-                                              setState(() => isMale = true),
+                                                  setState(() => isMale = true),
                                         ),
                                         const Text("Male"),
                                       ],
@@ -119,7 +158,7 @@ class _BmiCalState extends State<BmiCal> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           elevation: 4,
-                          color: isDarkMode? darkGray : white,
+                          color: isDarkMode ? darkGray : white,
                           child: Padding(
                             padding: const EdgeInsets.all(10),
                             child: Column(
@@ -127,17 +166,16 @@ class _BmiCalState extends State<BmiCal> {
                                 const Text("Age"),
                                 Divider(color: mediumGrey, thickness: 1),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     IconButton(
                                       icon: const Icon(
                                         Icons.remove_circle_outline,
                                       ),
                                       onPressed:
-                                          () =>
-                                          setState(
-                                                () =>
-                                            age = age > 0 ? age - 1 : 0,
+                                          () => setState(
+                                            () => age = age > 0 ? age - 1 : 0,
                                           ),
                                     ),
                                     AutoSizeText(
@@ -175,7 +213,7 @@ class _BmiCalState extends State<BmiCal> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     elevation: 4,
-                    color: isDarkMode? darkGray : white,
+                    color: isDarkMode ? darkGray : white,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         vertical: 20,
@@ -192,10 +230,9 @@ class _BmiCalState extends State<BmiCal> {
                               IconButton(
                                 icon: const Icon(Icons.remove_circle_outline),
                                 onPressed:
-                                    () =>
-                                    setState(
-                                          () =>
-                                      weight = weight > 1 ? weight - 1 : 1,
+                                    () => setState(
+                                      () =>
+                                          weight = weight > 1 ? weight - 1 : 1,
                                     ),
                               ),
 
@@ -211,9 +248,9 @@ class _BmiCalState extends State<BmiCal> {
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
                                         color:
-                                        i == weight
-                                            ? AppColors.primaryColor
-                                            : mediumGrey,
+                                            i == weight
+                                                ? AppColors.primaryColor
+                                                : mediumGrey,
                                       ),
                                     ),
                                   ),
@@ -236,7 +273,7 @@ class _BmiCalState extends State<BmiCal> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     elevation: 4,
-                    color: isDarkMode? darkGray : white,
+                    color: isDarkMode ? darkGray : white,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         vertical: 20,
@@ -270,13 +307,15 @@ class _BmiCalState extends State<BmiCal> {
                   const SizedBox(height: 30),
 
                   // Calculate BMI Button
-                  CustomOutlinedButton(width: width,
-                      isDarkMode: isDarkMode,
-                      buttonName: "Calculate BMI",
-                      onTap: () {
-                        double bmi = weight / ((height / 100) * (height / 100));
-                        Get.to(BmiResultPage(bmi: bmi, age : age ));
-                        }),
+                  CustomOutlinedButton(
+                    width: width,
+                    isDarkMode: isDarkMode,
+                    buttonName: "Calculate BMI",
+                    onTap: () {
+                      double bmi = weight / ((height / 100) * (height / 100));
+                      Get.to(BmiResultPage(bmi: bmi, age: age));
+                    },
+                  ),
                 ],
               ),
             ),

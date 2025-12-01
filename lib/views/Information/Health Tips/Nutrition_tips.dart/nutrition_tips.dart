@@ -1,4 +1,5 @@
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
@@ -19,9 +20,49 @@ class NutritionTipsPage extends StatelessWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
-      appBar: CustomAppBar(
-        appbarText: tipData['Heading']?? "Sleep Well",
-        isWhiteRequired: true,
+      // appBar: CustomAppBar(
+      //   appbarText: tipData['Heading']?? "Sleep Well",
+      //   isWhiteRequired: true,
+      // ),
+      appBar: AppBar(
+        backgroundColor: transparent,
+        centerTitle: true,
+        title: Text(
+          tipData['Heading']?? "Sleep Well",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: white,
+          ),
+        ),
+
+        // Conditionally show leading drawer icon
+        leading: Builder(
+          builder:
+              (context) => IconButton(
+            icon: SvgPicture.asset(drawerIcon ,color: white,),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
+
+        // Conditionally show close (cross) icon
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 20),
+            child: InkWell(
+              onTap: () => Navigator.pop(context),
+              child: SizedBox(
+                height: 24,
+                width: 24,
+                child: Icon(
+                  Icons.clear,
+                  size: 21,
+                  color: white , // Adapt to theme
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
 
       body: Stack(

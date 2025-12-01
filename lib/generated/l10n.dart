@@ -277,7 +277,7 @@ class S {
   /// `Please Enter Your E-mail / Phone Address To\nRecieve A Verification Code`
   String get forgetPasswordScreenText {
     return Intl.message(
-      'Please Enter Your E-mail / Phone Address To\\nRecieve A Verification Code',
+      'Please Enter Your E-mail / Phone Number To Recieve A Verification Code',
       name: 'forgetPasswordScreenText',
       desc: '',
       args: [],

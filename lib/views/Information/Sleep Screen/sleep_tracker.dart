@@ -68,8 +68,17 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     }
   }
 
-  String _fmt(DateTime dt) =>
-      "${dt.hour.toString().padLeft(2, "0")}:${dt.minute.toString().padLeft(2, "0")}";
+  String _fmt(DateTime dt) {
+    int hour = dt.hour;
+    String ampm = hour >= 12 ? "PM" : "AM";
+
+    hour = hour % 12; // Convert 13–23 → 1–11
+    if (hour == 0) hour = 12; // Convert 0 → 12
+
+    String minute = dt.minute.toString().padLeft(2, '0');
+
+    return "$hour:$minute $ampm";
+  }
 
   String _fmtDuration(Duration d) =>
       "${d.inHours}h ${(d.inMinutes % 60).toString().padLeft(2, "0")}m";
@@ -83,7 +92,6 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     final double size = 210;
     final double center = size / 2;
     final double radius = center - 20;
-
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
@@ -116,44 +124,47 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                           ),
                         ),
                       ),
-                    Obx(
-                      (){
-                        final deepSleep = (sleepController.deepSleepDuration.value?.inMinutes ?? 0).toDouble();
-                        final ideal = (sleepController.idealWakeupDuration?.inMinutes ?? 1).toDouble();
+                    Obx(() {
+                      final deepSleep =
+                          (sleepController.deepSleepDuration.value?.inMinutes ??
+                                  0)
+                              .toDouble();
+                      final ideal =
+                          (sleepController.idealWakeupDuration?.inMinutes ?? 1)
+                              .toDouble();
 
-                        final percent = (deepSleep / ideal).clamp(0.0, 1.0);
+                      final percent = (deepSleep / ideal).clamp(0.0, 1.0);
 
-                        return CircularPercentIndicator(
-                          radius: 120,
-                          lineWidth: 20,
-                          percent: percent,
+                      return CircularPercentIndicator(
+                        radius: 120,
+                        lineWidth: 20,
+                        percent: percent,
 
-                          progressColor: AppColors.primaryColor,
-                          backgroundColor: mediumGrey.withValues(alpha: 0.3),
-                          circularStrokeCap: CircularStrokeCap.round,
-                          center: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                sleepController.deepSleepDuration.value == null
-                                    ? "--"
-                                    : _fmtDuration(
-                                  sleepController.deepSleepDuration.value!,
-                                ),
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                        progressColor: AppColors.primaryColor,
+                        backgroundColor: mediumGrey.withValues(alpha: 0.3),
+                        circularStrokeCap: CircularStrokeCap.round,
+                        center: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              sleepController.deepSleepDuration.value == null
+                                  ? "--"
+                                  : _fmtDuration(
+                                    sleepController.deepSleepDuration.value!,
+                                  ),
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w600,
                               ),
-                              Text(
-                                "Sleep",
-                                style: TextStyle(fontSize: 14, color: mediumGrey),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+                            ),
+                            Text(
+                              "Sleep",
+                              style: TextStyle(fontSize: 14, color: mediumGrey),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
                   ],
                 ),
               ),
@@ -249,7 +260,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
               // ========== BEDTIME AND WAKE UP SETTINGS ==========
               Material(
-                color: white,
+                color: isDarkMode ? black : white,
                 elevation: 3,
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
@@ -288,9 +299,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Text(
-                                  sleepController.bedtime.value == null
-                                      ? "Select"
-                                      : _fmt(sleepController.bedtime.value!),
+                                  _fmt(sleepController.bedtime.value!) ,
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w400,
@@ -337,9 +346,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Text(
-                                  sleepController.waketime.value == null
-                                      ? "Select"
-                                      : _fmt(sleepController.waketime.value!),
+                                  _fmt(sleepController.waketime.value!) , 
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w400,
@@ -427,7 +434,6 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                   backgroundColor: AppColors.primaryColor,
                 ),
               );
-
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

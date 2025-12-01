@@ -288,10 +288,7 @@ class _AddReminderState extends State<AddReminder> {
           controller: controller.timeController,
           readOnly: true,
           onTap: () => _selectTime(),
-          decoration: InputDecoration(
-            hintText: '09:30 AM',
-            border: OutlineInputBorder(),
-          ),
+          decoration: InputDecoration(border: OutlineInputBorder()),
         ),
         SizedBox(height: 8),
         Obx(
@@ -454,13 +451,16 @@ class _AddReminderState extends State<AddReminder> {
         SizedBox(height: 20),
         Text("Reminder Date", style: TextStyle(fontWeight: FontWeight.bold)),
         SizedBox(height: 6),
-        Obx(
-          () => OutlinedButton(
-            onPressed: () => _selectDate(),
-            child: Text(
-              controller.startDate.value == null
-                  ? 'Start Date'
-                  : controller.startDate.value.toString().split(' ')[0],
+        SizedBox(
+          width: double.infinity,
+          child: Obx(
+            () => OutlinedButton(
+              onPressed: () => _selectDate(),
+              child: Text(
+                controller.startDate.value == null
+                    ? 'Start Date'
+                    : controller.startDate.value.toString().split(' ')[0],
+              ),
             ),
           ),
         ),
@@ -477,6 +477,97 @@ class _AddReminderState extends State<AddReminder> {
           ),
         ),
         SizedBox(height: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: 20),
+            Text(
+              "Set Reminder Time",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            Obx(
+                  () => Wrap(
+                spacing: 8,           // horizontal spacing
+                runSpacing: 8,        // vertical wrap spacing
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Radio(
+                    value: 0,
+                    groupValue: controller.eventReminderOption.value,
+                    onChanged: (value) {
+                      controller.eventReminderOption.value = value as int;
+                    },
+                  ),
+
+                  Text("Remind me"),
+
+                  // Times per day input
+                  SizedBox(
+                    width: 40,
+                    height: 30,
+                    child: TextField(
+                      controller: controller.timesPerDayController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(fontSize: 13),
+                      enabled: controller.waterReminderOption.value == 1,
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      ),
+                      onChanged: (_) {
+                        controller.savedTimes.value =
+                            int.tryParse(controller.timesPerDayController.text) ?? 0;
+                      },
+                    ),
+                  ),
+
+                  // Small dropdown
+                  SizedBox(
+                    width: 68,
+                    child: DropdownButton<String>(
+                      value: controller.selectedValue.value,
+                      isExpanded: true,
+                      underline: const SizedBox(), // remove line
+                      iconSize: 18,
+                      items: ['minutes', 'hours']
+                          .map((value) => DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(
+                          value,
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      ))
+                          .toList(),
+                      onChanged: (newValue) {
+                        controller.selectedValue.value = newValue!;
+                      },
+                    ),
+                  ),
+
+                  Text("before"),
+
+                  // Time input
+                  SizedBox(
+                    width: 90,
+                    child: TextField(
+                      controller: controller.timeController,
+                      readOnly: true,
+                      style: const TextStyle(fontSize: 13),
+                      onTap: _selectTime,
+                      enabled: controller.waterReminderOption.value == 1,
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+
+          ],
+        ),
         Obx(
           () =>
               controller.eventList.isEmpty
@@ -525,6 +616,7 @@ class _AddReminderState extends State<AddReminder> {
             value: controller.enableNotifications.value,
             onChanged: (value) => controller.enableNotifications.value = value!,
             title: Text('Enable notifications'),
+            activeColor: AppColors.primaryColor,
             controlAffinity: ListTileControlAffinity.leading,
           ),
         ),
@@ -534,6 +626,7 @@ class _AddReminderState extends State<AddReminder> {
             onChanged:
                 (value) => controller.soundVibrationToggle.value = value!,
             title: Text('Sound/Vibration toggle'),
+            activeColor: AppColors.primaryColor,
             controlAffinity: ListTileControlAffinity.leading,
           ),
         ),
@@ -575,10 +668,12 @@ class _AddReminderState extends State<AddReminder> {
   }
 
   Future<void> _selectDate() async {
+    DateTime now = DateTime.now();
+
     DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
+      initialDate: now,
+      firstDate: DateTime(now.year, now.month, now.day),
       lastDate: DateTime(2100),
     );
 
@@ -586,4 +681,5 @@ class _AddReminderState extends State<AddReminder> {
       controller.startDate.value = picked;
     }
   }
+
 }

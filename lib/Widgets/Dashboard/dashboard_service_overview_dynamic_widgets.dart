@@ -165,6 +165,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
               onTap: () async {
                 final prefs = await SharedPreferences.getInstance();
                 final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
+                
 
                 final stepController = Get.find<StepCounterController>();
 
@@ -250,7 +251,8 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
               onTap: () async {
                 final prefs = await SharedPreferences.getInstance();
                 final isFirstSleep =
-                    prefs.getBool('is_first_time_sleep') ?? false;
+                    prefs.getBool('is_first_time_sleep') ?? true;
+                
 
                 if (isFirstSleep) {
                   final agreed = await showSleepBottomSheetModal(

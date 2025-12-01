@@ -39,6 +39,7 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   void showCheckbox() {}
+
   @override
   void initState() {
     super.initState();
@@ -54,10 +55,9 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   Future<void> _handleSuccessfulSignIn(
-      String emailOrPhone,
-      SharedPreferences prefs,
-      ) async {
-
+    String emailOrPhone,
+    SharedPreferences prefs,
+  ) async {
     if (rememberMe) {
       prefs.setBool('remember_me', true);
       prefs.setString('user_credential', emailOrPhone);
@@ -70,7 +70,8 @@ class _SignInScreenState extends State<SignInScreen> {
     localStorageManager.userMap.value = userData ?? {};
 
     final nameValid = userData['Name']?.toString().trim().isNotEmpty ?? false;
-    final genderValid = userData['Gender']?.toString().trim().isNotEmpty ?? false;
+    final genderValid =
+        userData['Gender']?.toString().trim().isNotEmpty ?? false;
     final occupationValid = userData['OccupationData'] != null;
 
     if (nameValid && genderValid && occupationValid) {
@@ -82,27 +83,26 @@ class _SignInScreenState extends State<SignInScreen> {
       prefs.setString('userGoalDataMap', jsonEncode(userActiveData));
 
       if (userActiveData != null && userActiveData is Map) {
-        await prefs.setString(
-            'useractivedata', jsonEncode(userActiveData));
+        await prefs.setString('useractivedata', jsonEncode(userActiveData));
 
         // 🚀 Final check 1 → All goals set → go home
         if (userActiveData['ActivityLevel'] != null &&
             userActiveData['HealthGoal'] != null) {
           Get.offAll(() => HomeWrapper());
-          return;    // <<< CRITICAL
+          return; // <<< CRITICAL
         }
 
         // 🚀 Final check 2 → Ask only remaining questions
         if (userActiveData['HeightData'] != null &&
             userActiveData['WeightData'] != null) {
           Get.offAll(() => QuestionnaireScreen());
-          return;   // <<< CRITICAL
+          return; // <<< CRITICAL
         }
 
         // 🚀 Missing height/weight
         final gender = userData['Gender']?.toString() ?? 'Unknown';
         Get.offAll(() => HeightAndWeight(gender: gender));
-        return;   // <<< CRITICAL
+        return; // <<< CRITICAL
       }
 
       // If userActiveData invalid
@@ -115,77 +115,78 @@ class _SignInScreenState extends State<SignInScreen> {
     return;
   }
 
-
   // Handle sign-in error and show snackbar
-    void _handleSignInError() {
-      Get.snackbar(
-        'Error',
-        'Incorrect Credential.',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
-      );
-    }
+  void _handleSignInError() {
+    Get.snackbar(
+      'Error',
+      'Incorrect Credential.',
+      snackPosition: SnackPosition.BOTTOM,
+      margin: EdgeInsets.all(20),
+    );
+  }
 
-   Future<void> onSignInButtonClick() async {
-      if (isLoading) return; // Prevent multiple taps
-      setState(() {
-        isLoading = true;
-      });
+  Future<void> onSignInButtonClick() async {
+    if (isLoading) return; // Prevent multiple taps
+    setState(() {
+      isLoading = true;
+    });
 
-      final prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
 
-      final emailOrPhone = userEmailOrPhoneField.text.trim();
-      final password = userPasswordField.text.trim();
+    final emailOrPhone = userEmailOrPhoneField.text.trim();
+    final password = userPasswordField.text.trim();
+    final emailRegExp = RegExp(r'^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$');
+    bool isValid = emailRegExp.hasMatch(emailOrPhone);
 
-      try {
-        // Checking if it's an email or phone number
-        if (emailOrPhone.contains('@')) {
-          // Sign in using email
-          await signInController.signInUsingEmail(emailOrPhone, password).then((
-            success,
-          ) async {
-            if (success) {
-              print("Sign-in successful with email.");
-              await _handleSuccessfulSignIn(emailOrPhone, prefs);
-            } else {
-              print("Sign-in failed with email.");
-              _handleSignInError();
-            }
-          });
-        } else if (RegExp(r'^\d{10,}$').hasMatch(emailOrPhone)) {
-          // Sign in using phone number
-          await signInController.signInUsingPhone(emailOrPhone, password).then((
-            success,
-          ) async {
-            if (success) {
-              print("Sign-in successful with phone.");
-              await _handleSuccessfulSignIn(emailOrPhone, prefs);
-            } else {
-              print("Sign-in failed with phone.");
-              _handleSignInError();
-            }
-          });
-        } else {
-          // Invalid email or phone format
-          _handleSignInError();
-        }
-      } catch (e) {
-        _handleSignInError();
-      } finally {
-        setState(() {
-          isLoading = false;
+
+
+    try {
+      // Checking if it's an email or phone number
+      if (isValid) {
+        // Sign in using email
+        await signInController.signInUsingEmail(emailOrPhone, password).then((
+          success,
+        ) async {
+          if (success) {
+            print("Sign-in successful with email.");
+            await _handleSuccessfulSignIn(emailOrPhone, prefs);
+          } else {
+            print("Sign-in failed with email.");
+            _handleSignInError();
+          }
         });
+      } else if (RegExp(r'^\d{10,}$').hasMatch(emailOrPhone)) {
+        // Sign in using phone number
+        await signInController.signInUsingPhone(emailOrPhone, password).then((
+          success,
+        ) async {
+          if (success) {
+            print("Sign-in successful with phone.");
+            await _handleSuccessfulSignIn(emailOrPhone, prefs);
+          } else {
+            print("Sign-in failed with phone.");
+            _handleSignInError();
+          }
+        });
+      } else {
+        // Invalid email or phone format
+        _handleSignInError();
       }
+    } catch (e) {
+      _handleSignInError();
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
-
+  }
 
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     // final height = mediaQuery.size.height;
     // final width = mediaQuery.size.width;
-    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;   
-
+    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
 
     return Scaffold(
       body: Column(
@@ -339,7 +340,8 @@ class _SignInScreenState extends State<SignInScreen> {
                           googleText:
                               AppLocalizations.of(context)!.googleTextSignIn,
                           onElevatedButtonPress: onSignInButtonClick,
-                          isLoading: isLoading, // Pass here
+                          isLoading: isLoading,
+                          // Pass here
                           onBottomTextPressed: () {
                             Get.to(CreateNewProfile());
                           },

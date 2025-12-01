@@ -199,6 +199,7 @@ class _ReminderState extends State<Reminder> {
   }
 
   Widget _buildCategoryContent(Map<String, dynamic> reminder, String category) {
+    print(reminder);
     switch (category) {
       case 'Medicine':
         return Column(
@@ -231,7 +232,10 @@ class _ReminderState extends State<Reminder> {
                 ),
                 Spacer(),
                 GestureDetector(
-                  onTap: () {},
+                  onTap: () {
+                    print("$reminder tapped");
+                    Get.to(AddReminder(reminder: reminder,));
+                  },
                   child: SvgPicture.asset(
                     pen,
                     width: 18,
@@ -296,7 +300,10 @@ class _ReminderState extends State<Reminder> {
             ),
             Spacer(),
             GestureDetector(
-              onTap: () {},
+              onTap: () {
+                print("$reminder tapped");
+                Get.to(AddReminder(reminder: reminder,));
+              },
               child: SvgPicture.asset(
                 pen,
                 width: 18,
@@ -335,7 +342,10 @@ class _ReminderState extends State<Reminder> {
                 ),
                 Spacer(),
                 GestureDetector(
-                  onTap: () {},
+                  onTap: () {
+                    print("$reminder tapped");
+                    Get.to(AddReminder(reminder: reminder,));
+                  },
                   child: SvgPicture.asset(
                     pen,
                     width: 18,
@@ -349,6 +359,10 @@ class _ReminderState extends State<Reminder> {
                   child: Icon(Icons.delete, size: 18, color: Color(0xff878787)),
                 ),
               ],
+            ),
+            Text(
+              "Title: ${reminder['Title'] ?? 'N/A'}",
+              style: TextStyle(fontSize: 12, color: Color(0xff878787)),
             ),
             Text(
               "Notes: ${reminder['Description'] ?? 'N/A'}",

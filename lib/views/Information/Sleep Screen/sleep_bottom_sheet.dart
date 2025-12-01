@@ -20,7 +20,7 @@ class SleepBottomSheet extends StatefulWidget {
 }
 
 class _SleepBottomSheetState extends State<SleepBottomSheet> {
-   final SleepController controller = Get.find<SleepController>();
+  final SleepController controller = Get.find<SleepController>();
 
   final WheelPickerController hourController = WheelPickerController(
     itemCount: 12,
@@ -268,6 +268,15 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
                 hour: sleepHour,
                 minute: sleepMinute,
               );
+              final now = DateTime.now();
+              DateTime st = DateTime(
+                now.year,
+                now.month,
+                now.day,
+                sleepTime.hour,
+                sleepTime.minute,
+              );
+              controller.setBedtime(st);
 
               // --- WAKE-UP TIME ---
               int wakeHour = wakeUpHourController.selected + 1;
@@ -285,6 +294,15 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
                 minute: wakeMinute,
               );
 
+              DateTime wt = DateTime(
+                now.year,
+                now.month,
+                now.day,
+                wakeTime.hour,
+                wakeTime.minute,
+              );
+              controller.setWakeTime(wt);
+
               // controller.bedTime.value = sleepTime;
               // controller.wakeupTime.value = wakeTime;
 
@@ -293,7 +311,11 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
               final prefs = await SharedPreferences.getInstance();
               await prefs.setBool('is_first_time_sleep', false);
 
-              Get.to(() => SleepTrackerScreen());
+              Get.to(
+                () => SleepTrackerScreen(
+
+                ),
+              );
             },
           ),
         ],

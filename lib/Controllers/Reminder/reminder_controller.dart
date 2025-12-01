@@ -26,6 +26,7 @@ class ReminderController extends GetxController {
   var reminders = <Map<String, dynamic>>[].obs;
   var alarms = <AlarmSettings>[].obs;
   var isLoading = false.obs;
+  final selectedValue = 'minutes'.obs;
 
   var medicineList = <Map<String, AlarmSettings>>[].obs;
   var eventList = <Map<String, AlarmSettings>>[].obs;
@@ -40,6 +41,8 @@ class ReminderController extends GetxController {
   var enableNotifications = false.obs;
   var soundVibrationToggle = true.obs;
   var waterReminderOption = 1.obs;
+  var eventReminderOption = 0.obs;
+
   var savedInterval = 0.obs;
   var savedTimes = 0.obs;
 
@@ -145,8 +148,6 @@ class ReminderController extends GetxController {
           assetAudioPath: alarmSound,
           loopAudio: true,
           vibrate: soundVibrationToggle.value,
-          warningNotificationOnKill: Platform.isAndroid,
-          androidFullScreenIntent: true,
           volumeSettings: VolumeSettings.fade(
             volume: 0.8,
             fadeDuration: Duration(seconds: 5),
@@ -181,6 +182,71 @@ class ReminderController extends GetxController {
   int _alarmId() {
     return DateTime.now().millisecondsSinceEpoch % 2147483647;
   }
+  Future<void> setBeforeReminderAlarm(DateTime mainTime) async {
+    int amount = int.tryParse(timesPerDayController.text) ?? 0;
+    String unit = selectedValue.value; // "minutes" or "hours"
+
+    Duration offset = unit == "minutes"
+        ? Duration(minutes: amount)
+        : Duration(hours: amount);
+
+    DateTime beforeTime = mainTime.subtract(offset);
+
+    if (beforeTime.isBefore(DateTime.now())) {
+      beforeTime = beforeTime.add(Duration(days: 1));
+    }
+
+    final alarmSettings = AlarmSettings(
+      id: _alarmId(),
+      dateTime: beforeTime,
+      assetAudioPath: alarmSound,
+      loopAudio: true,
+      vibrate: soundVibrationToggle.value,
+      androidFullScreenIntent: true,
+      notificationSettings: NotificationSettings(
+        title: "Reminder before your event",
+        body: "Your event is coming in $amount $unit",
+        stopButton: "Stop",
+        icon: "alarm",
+      ), volumeSettings: VolumeSettings.fade(fadeDuration: Duration(seconds: 2)),
+    );
+
+    await Alarm.set(alarmSettings: alarmSettings);
+  }
+
+
+
+
+  DateTime calculateBeforeReminder() {
+    final now = DateTime.now();
+
+    // Parse input time (hh:mm a)
+    final selectedTime = _parseTime(timeController.text);
+
+    DateTime eventTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      selectedTime.hour,
+      selectedTime.minute,
+    );
+
+    int value = int.tryParse(timesPerDayController.text) ?? 0;
+
+    Duration diff = selectedValue.value == "minutes"
+        ? Duration(minutes: value)
+        : Duration(hours: value);
+
+    DateTime reminderTime = eventTime.subtract(diff);
+
+    // If reminder is in the past → move to tomorrow
+    if (reminderTime.isBefore(now)) {
+      reminderTime = reminderTime.add(Duration(days: 1));
+    }
+
+    return reminderTime;
+  }
+
 
   Future<void> addAlarm({
     required TimeOfDay timeOfDay,
@@ -212,6 +278,10 @@ class ReminderController extends GetxController {
         await _addEventAlarm(scheduledTime);
         break;
     }
+    if (eventReminderOption.value == 0) {
+      setBeforeReminderAlarm(scheduledTime);
+    }
+
   }
 
   Future<void> _addMedicineAlarm(DateTime scheduledTime) async {
@@ -221,8 +291,6 @@ class ReminderController extends GetxController {
       assetAudioPath: alarmSound,
       loopAudio: true,
       vibrate: true,
-      warningNotificationOnKill: Platform.isAndroid,
-      androidFullScreenIntent: true,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
         fadeDuration: Duration(seconds: 5),
@@ -281,8 +349,6 @@ class ReminderController extends GetxController {
       assetAudioPath: alarmSound,
       loopAudio: true,
       vibrate: soundVibrationToggle.value,
-      warningNotificationOnKill: Platform.isAndroid,
-      androidFullScreenIntent: true,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
         fadeDuration: Duration(seconds: 5),
@@ -330,8 +396,6 @@ class ReminderController extends GetxController {
       assetAudioPath: alarmSound,
       loopAudio: true,
       vibrate: soundVibrationToggle.value,
-      warningNotificationOnKill: Platform.isAndroid,
-      androidFullScreenIntent: true,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
         fadeDuration: Duration(seconds: 5),
@@ -340,12 +404,14 @@ class ReminderController extends GetxController {
       notificationSettings: enableNotifications.value
           ? NotificationSettings(
         title: titleController.text,
+
         body: notesController.text.isNotEmpty
             ? notesController.text
             : 'Event reminder',
         stopButton: 'Stop',
         icon: 'alarm',
         iconColor: AppColors.primaryColor,
+
       )
           : NotificationSettings(
         title: '',
@@ -357,7 +423,7 @@ class ReminderController extends GetxController {
 
     final success = await Alarm.set(alarmSettings: alarmSettings);
     if (success) {
-      eventList.add({medicineController.text.trim(): alarmSettings});
+      eventList.add({titleController.text.trim(): alarmSettings});
       await saveReminderList(eventList, "event_list");
 
       // Reload the combined list
@@ -398,8 +464,6 @@ class ReminderController extends GetxController {
         assetAudioPath: alarmSound,
         loopAudio: true,
         vibrate: soundVibrationToggle.value,
-        warningNotificationOnKill: Platform.isAndroid,
-        androidFullScreenIntent: true,
         volumeSettings: VolumeSettings.fade(
           volume: 0.8,
           fadeDuration: Duration(seconds: 5),
@@ -438,8 +502,6 @@ class ReminderController extends GetxController {
         assetAudioPath: alarmSound,
         loopAudio: true,
         vibrate: soundVibrationToggle.value,
-        warningNotificationOnKill: Platform.isAndroid,
-        androidFullScreenIntent: true,
         volumeSettings: VolumeSettings.fade(
           volume: 0.8,
           fadeDuration: Duration(seconds: 5),
@@ -508,8 +570,6 @@ class ReminderController extends GetxController {
       assetAudioPath: alarmSound,
       loopAudio: true,
       vibrate: soundVibrationToggle.value,
-      warningNotificationOnKill: Platform.isAndroid,
-      androidFullScreenIntent: true,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
         fadeDuration: Duration(seconds: 5),
@@ -990,5 +1050,10 @@ class ReminderController extends GetxController {
     } catch (e) {
       return '$hour:$minute';
     }
+  }
+
+  TimeOfDay _parseTime(String timeString) {
+    final format = DateFormat("hh:mm a");
+    return TimeOfDay.fromDateTime(format.parse(timeString));
   }
 }

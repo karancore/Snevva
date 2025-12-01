@@ -235,16 +235,17 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+
       appBar: AppBar(
+        elevation: 0,
         backgroundColor: white,
         iconTheme: IconThemeData(
-          color: isDark? black : white
+          color: black
         ),
-        elevation: 0,
         title: const Text(
           "Chat with Elly",
           style: TextStyle(
-            color: Colors.black,
+            color: black,
             fontWeight: FontWeight.w500,
             fontSize: 20,
           ),
@@ -252,7 +253,7 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.black),
+            icon: const Icon(Icons.more_vert, color: black),
             onPressed: () {},
           ),
         ],
