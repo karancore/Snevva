@@ -59,11 +59,21 @@ class _MyAppState extends State<MyApp> {
   }
 
   void _initForegroundListener() async {
-    _receivePort = await FlutterForegroundTask.receivePort;
+    if (_receivePort != null) {
+      // Already initialized
+      return;
+    }
+    
+    try {
+      _receivePort = await FlutterForegroundTask.receivePort;
 
-    _receivePort?.listen((data) {
-      // Handle sleep/wake globally
-    });
+      _receivePort?.listen((data) {
+        // Handle sleep/wake globally
+      });
+    } catch (e) {
+      // Stream already listened to, ignore
+      print("⚠️ Foreground listener already initialized: $e");
+    }
   }
 
   @override
