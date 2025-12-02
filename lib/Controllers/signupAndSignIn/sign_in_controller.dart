@@ -18,14 +18,36 @@ class SignInController extends GetxController {
 
   final localstorage = Get.put(LocalStorageManager());
 
+  void _showSnackbar(String title, String message) {
+    try {
+      // Use WidgetsBinding to schedule the snackbar after frame is built
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (Get.overlayContext != null) {
+          Get.snackbar(
+            title,
+            message,
+            snackPosition: SnackPosition.BOTTOM,
+            margin: EdgeInsets.all(20),
+          );
+        } else {
+          // Fallback: print to console if overlay not available
+          print('$title: $message');
+        }
+      });
+    } catch (e) {
+      print('$title: $message');
+    }
+  }
+
   Future<bool> signInUsingEmail(String email, String password) async {
     if (email.isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Email cannot be empty',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
-      );
+      // Get.snackbar(
+      //   'Error',
+      //   'Email cannot be empty',
+      //   snackPosition: SnackPosition.BOTTOM,
+      //   margin: EdgeInsets.all(20),
+      // );
+      _showSnackbar("Error", "Email cannot be empty");
       return false;
     }
 
@@ -47,8 +69,9 @@ class SignInController extends GetxController {
         headers: headers,
         body: encryptedBody,
       );
+      print(response.statusCode);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 ) {
         final responseBody = jsonDecode(response.body);
         // print("response Body: $responseBody");
 
@@ -63,7 +86,8 @@ class SignInController extends GetxController {
           responseHash!,
         );
 
-        // print("Decrypted token response: $decrypted");
+        print("Decrypted token response: $decrypted");
+        print('');
 
         if (decrypted == null) {
           Get.snackbar(
@@ -141,7 +165,17 @@ class SignInController extends GetxController {
         // );
 
         return true;
-      } else {
+      }
+      else if(response.statusCode == 400){
+        Get.snackbar(
+          'Error',
+          'Wrong Credentials',
+          snackPosition: SnackPosition.BOTTOM,
+          margin: EdgeInsets.all(20),
+        );
+        return false;
+      }
+      else {
         Get.snackbar(
           'Error',
           'Sign In failed.',

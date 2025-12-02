@@ -32,6 +32,10 @@ class ReminderController extends GetxController {
   var eventList = <Map<String, AlarmSettings>>[].obs;
   var waterList = <Map<String, AlarmSettings>>[].obs;
   var mealsList = <Map<String, AlarmSettings>>[].obs;
+  var selectedDateIndex = 0.obs;
+
+
+
 
   var medicineNames = <String>[].obs;
   var remindTimes = <String>[].obs;
@@ -120,14 +124,16 @@ class ReminderController extends GetxController {
     listenerAttached = true;
 
     subscription ??= Alarm.ringStream.stream.listen((
-        AlarmSettings alarmSettings,
-        ) async {
+      AlarmSettings alarmSettings,
+    ) async {
       print("🔔 ALARM RANG → ID: ${alarmSettings.id}");
 
       await Alarm.stop(alarmSettings.id);
 
       if (savedInterval.value > 0) {
-        print("🔄 Rescheduling water alarm (every ${savedInterval.value} hours)");
+        print(
+          "🔄 Rescheduling water alarm (every ${savedInterval.value} hours)",
+        );
         await scheduleAlarmEveryXHours(savedInterval.value);
       } else if (savedTimes.value > 0) {
         int totalMinutes = (24 * 60) ~/ savedTimes.value;
@@ -154,12 +160,14 @@ class ReminderController extends GetxController {
             volumeEnforced: true,
           ),
           notificationSettings: NotificationSettings(
-            title: titleController.text.isNotEmpty
-                ? titleController.text
-                : 'Water Reminder',
-            body: notesController.text.isNotEmpty
-                ? notesController.text
-                : 'Time to drink water!',
+            title:
+                titleController.text.isNotEmpty
+                    ? titleController.text
+                    : 'Water Reminder',
+            body:
+                notesController.text.isNotEmpty
+                    ? notesController.text
+                    : 'Time to drink water!',
             stopButton: 'Stop',
             icon: 'alarm',
             iconColor: AppColors.primaryColor,
@@ -182,13 +190,13 @@ class ReminderController extends GetxController {
   int _alarmId() {
     return DateTime.now().millisecondsSinceEpoch % 2147483647;
   }
+
   Future<void> setBeforeReminderAlarm(DateTime mainTime) async {
     int amount = int.tryParse(timesPerDayController.text) ?? 0;
     String unit = selectedValue.value; // "minutes" or "hours"
 
-    Duration offset = unit == "minutes"
-        ? Duration(minutes: amount)
-        : Duration(hours: amount);
+    Duration offset =
+        unit == "minutes" ? Duration(minutes: amount) : Duration(hours: amount);
 
     DateTime beforeTime = mainTime.subtract(offset);
 
@@ -208,14 +216,12 @@ class ReminderController extends GetxController {
         body: "Your event is coming in $amount $unit",
         stopButton: "Stop",
         icon: "alarm",
-      ), volumeSettings: VolumeSettings.fade(fadeDuration: Duration(seconds: 2)),
+      ),
+      volumeSettings: VolumeSettings.fade(fadeDuration: Duration(seconds: 2)),
     );
 
     await Alarm.set(alarmSettings: alarmSettings);
   }
-
-
-
 
   DateTime calculateBeforeReminder() {
     final now = DateTime.now();
@@ -233,9 +239,10 @@ class ReminderController extends GetxController {
 
     int value = int.tryParse(timesPerDayController.text) ?? 0;
 
-    Duration diff = selectedValue.value == "minutes"
-        ? Duration(minutes: value)
-        : Duration(hours: value);
+    Duration diff =
+        selectedValue.value == "minutes"
+            ? Duration(minutes: value)
+            : Duration(hours: value);
 
     DateTime reminderTime = eventTime.subtract(diff);
 
@@ -246,7 +253,6 @@ class ReminderController extends GetxController {
 
     return reminderTime;
   }
-
 
   Future<void> addAlarm({
     required TimeOfDay timeOfDay,
@@ -281,7 +287,6 @@ class ReminderController extends GetxController {
     if (eventReminderOption.value == 0) {
       setBeforeReminderAlarm(scheduledTime);
     }
-
   }
 
   Future<void> _addMedicineAlarm(DateTime scheduledTime) async {
@@ -296,22 +301,23 @@ class ReminderController extends GetxController {
         fadeDuration: Duration(seconds: 5),
         volumeEnforced: true,
       ),
-      notificationSettings: enableNotifications.value
-          ? NotificationSettings(
-        title: titleController.text,
-        body:
-        'Take ${medicineNames.isNotEmpty ? medicineNames.join(", ") : "your medicine"}. ${notesController.text}',
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      )
-          : NotificationSettings(
-        title: '',
-        body: 'Take your medicine',
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      ),
+      notificationSettings:
+          enableNotifications.value
+              ? NotificationSettings(
+                title: titleController.text,
+                body:
+                    'Take ${medicineNames.isNotEmpty ? medicineNames.join(", ") : "your medicine"}. ${notesController.text}',
+                stopButton: 'Stop',
+                icon: 'alarm',
+                iconColor: AppColors.primaryColor,
+              )
+              : NotificationSettings(
+                title: '',
+                body: 'Take your medicine',
+                stopButton: 'Stop',
+                icon: 'alarm',
+                iconColor: AppColors.primaryColor,
+              ),
     );
 
     print('🔔 Setting alarm:');
@@ -324,6 +330,9 @@ class ReminderController extends GetxController {
 
     if (success) {
       medicineList.add({medicineController.text.trim(): alarmSettings});
+      titleController.clear();
+      notesController.clear();
+      medicineController.clear();
       await saveReminderList(medicineList, "medicine_list");
 
       // Reload the combined list
@@ -337,6 +346,7 @@ class ReminderController extends GetxController {
         colorText: Colors.white,
       );
       Get.back(result: true);
+
       final allAlarms = await Alarm.getAlarms();
       print('   Total alarms active: ${allAlarms.length}');
     }
@@ -354,25 +364,28 @@ class ReminderController extends GetxController {
         fadeDuration: Duration(seconds: 5),
         volumeEnforced: true,
       ),
-      notificationSettings: enableNotifications.value
-          ? NotificationSettings(
-        title: titleController.text,
-        body: notesController.text,
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      )
-          : NotificationSettings(
-        title: 'REMINDER',
-        body: 'Take your medicine',
-        stopButton: 'Stop',
-        icon: 'alarm',
-      ),
+      notificationSettings:
+          enableNotifications.value
+              ? NotificationSettings(
+                title: titleController.text,
+                body: notesController.text,
+                stopButton: 'Stop',
+                icon: 'alarm',
+                iconColor: AppColors.primaryColor,
+              )
+              : NotificationSettings(
+                title: 'REMINDER',
+                body: 'Take your medicine',
+                stopButton: 'Stop',
+                icon: 'alarm',
+              ),
     );
 
     final success = await Alarm.set(alarmSettings: alarmSettings);
     if (success) {
       mealsList.add({titleController.text.trim(): alarmSettings});
+      titleController.clear();
+      notesController.clear();
       await saveReminderList(mealsList, "meals_list");
 
       // Reload the combined list
@@ -401,29 +414,32 @@ class ReminderController extends GetxController {
         fadeDuration: Duration(seconds: 5),
         volumeEnforced: true,
       ),
-      notificationSettings: enableNotifications.value
-          ? NotificationSettings(
-        title: titleController.text,
+      notificationSettings:
+          enableNotifications.value
+              ? NotificationSettings(
+                title: titleController.text,
 
-        body: notesController.text.isNotEmpty
-            ? notesController.text
-            : 'Event reminder',
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-
-      )
-          : NotificationSettings(
-        title: '',
-        body: 'Event reminder',
-        stopButton: 'Stop',
-        icon: 'alarm',
-      ),
+                body:
+                    notesController.text.isNotEmpty
+                        ? notesController.text
+                        : 'Event reminder',
+                stopButton: 'Stop',
+                icon: 'alarm',
+                iconColor: AppColors.primaryColor,
+              )
+              : NotificationSettings(
+                title: '',
+                body: 'Event reminder',
+                stopButton: 'Stop',
+                icon: 'alarm',
+              ),
     );
 
     final success = await Alarm.set(alarmSettings: alarmSettings);
     if (success) {
       eventList.add({titleController.text.trim(): alarmSettings});
+      titleController.clear();
+      notesController.clear();
       await saveReminderList(eventList, "event_list");
 
       // Reload the combined list
@@ -469,20 +485,21 @@ class ReminderController extends GetxController {
           fadeDuration: Duration(seconds: 5),
           volumeEnforced: true,
         ),
-        notificationSettings: enableNotifications.value
-            ? NotificationSettings(
-          title: titleController.text,
-          body: notesController.text,
-          stopButton: 'Stop',
-          icon: 'alarm',
-          iconColor: AppColors.primaryColor,
-        )
-            : NotificationSettings(
-          title: '',
-          body: 'Drink Water!',
-          stopButton: 'Stop',
-          icon: 'alarm',
-        ),
+        notificationSettings:
+            enableNotifications.value
+                ? NotificationSettings(
+                  title: titleController.text,
+                  body: notesController.text,
+                  stopButton: 'Stop',
+                  icon: 'alarm',
+                  iconColor: AppColors.primaryColor,
+                )
+                : NotificationSettings(
+                  title: '',
+                  body: 'Drink Water!',
+                  stopButton: 'Stop',
+                  icon: 'alarm',
+                ),
       );
 
       final success = await Alarm.set(alarmSettings: alarmSettings);
@@ -507,25 +524,28 @@ class ReminderController extends GetxController {
           fadeDuration: Duration(seconds: 5),
           volumeEnforced: true,
         ),
-        notificationSettings: enableNotifications.value
-            ? NotificationSettings(
-          title: titleController.text,
-          body: notesController.text,
-          stopButton: 'Stop',
-          icon: 'alarm',
-          iconColor: AppColors.primaryColor,
-        )
-            : NotificationSettings(
-          title: 'REMINDER',
-          body: 'GET HYDRATED',
-          stopButton: 'Stop',
-          icon: 'alarm',
-        ),
+        notificationSettings:
+            enableNotifications.value
+                ? NotificationSettings(
+                  title: titleController.text,
+                  body: notesController.text,
+                  stopButton: 'Stop',
+                  icon: 'alarm',
+                  iconColor: AppColors.primaryColor,
+                )
+                : NotificationSettings(
+                  title: 'REMINDER',
+                  body: 'GET HYDRATED',
+                  stopButton: 'Stop',
+                  icon: 'alarm',
+                ),
       );
 
       final success = await Alarm.set(alarmSettings: alarmSettings);
       if (success) {
         waterList.add({titleController.text.toString(): alarmSettings});
+        titleController.clear();
+        notesController.clear();
         saveReminderList(waterList, "water_list");
       }
       print('   Set result: ${success ? "✅" : "❌"}');
@@ -575,31 +595,32 @@ class ReminderController extends GetxController {
         fadeDuration: Duration(seconds: 5),
         volumeEnforced: true,
       ),
-      notificationSettings: enableNotifications.value
-          ? NotificationSettings(
-        title: titleController.text,
-        body: notesController.text,
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      )
-          : NotificationSettings(
-        title: '',
-        body: '',
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      ),
+      notificationSettings:
+          enableNotifications.value
+              ? NotificationSettings(
+                title: titleController.text,
+                body: notesController.text,
+                stopButton: 'Stop',
+                icon: 'alarm',
+                iconColor: AppColors.primaryColor,
+              )
+              : NotificationSettings(
+                title: '',
+                body: '',
+                stopButton: 'Stop',
+                icon: 'alarm',
+                iconColor: AppColors.primaryColor,
+              ),
     );
 
     await Alarm.set(alarmSettings: newAlarm);
   }
 
   Future<void> stopAlarm(
-      int index,
-      AlarmSettings alarm,
-      RxList<Map<String, AlarmSettings>> reminderList,
-      ) async {
+    int index,
+    AlarmSettings alarm,
+    RxList<Map<String, AlarmSettings>> reminderList,
+  ) async {
     await Alarm.stop(alarm.id);
     reminderList.removeAt(index);
   }
@@ -630,7 +651,10 @@ class ReminderController extends GetxController {
   }
 
   Future<void> _deleteFromListById(
-      RxList<Map<String, AlarmSettings>> list, int id, String keyName) async {
+    RxList<Map<String, AlarmSettings>> list,
+    int id,
+    String keyName,
+  ) async {
     int index = -1;
     for (int i = 0; i < list.length; i++) {
       if (list[i].values.first.id == id) {
@@ -675,8 +699,8 @@ class ReminderController extends GetxController {
   // ==================== SharedPreferences Methods ====================
 
   Future<List<Map<String, AlarmSettings>>> loadReminderList(
-      String keyName,
-      ) async {
+    String keyName,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final storedList = prefs.getStringList(keyName);
 
@@ -692,17 +716,18 @@ class ReminderController extends GetxController {
   }
 
   Future<void> saveReminderList(
-      RxList<Map<String, AlarmSettings>> list,
-      String keyName,
-      ) async {
+    RxList<Map<String, AlarmSettings>> list,
+    String keyName,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
 
-    List<String> stringList = list.map((mapItem) {
-      final jsonMap = mapItem.map((key, value) {
-        return MapEntry(key, value.toJson());
-      });
-      return jsonEncode(jsonMap);
-    }).toList();
+    List<String> stringList =
+        list.map((mapItem) {
+          final jsonMap = mapItem.map((key, value) {
+            return MapEntry(key, value.toJson());
+          });
+          return jsonEncode(jsonMap);
+        }).toList();
 
     prefs.setStringList(keyName, stringList);
   }
@@ -931,10 +956,7 @@ class ReminderController extends GetxController {
 
   /// Refresh all reminder data from both local storage and API
   Future<void> refreshAllData() async {
-    await Future.wait([
-      loadAllReminderLists(),
-      getReminders(),
-    ]);
+    await Future.wait([loadAllReminderLists(), getReminders()]);
   }
 
   // ==================== Helper Methods ====================
@@ -998,8 +1020,10 @@ class ReminderController extends GetxController {
       );
     }
 
-    everyHourController.text = reminder['RemindFrequencyHour']?.toString() ?? '';
-    timesPerDayController.text = reminder['RemindFrequencyCount']?.toString() ?? '';
+    everyHourController.text =
+        reminder['RemindFrequencyHour']?.toString() ?? '';
+    timesPerDayController.text =
+        reminder['RemindFrequencyCount']?.toString() ?? '';
     enableNotifications.value = reminder['EnablePushNotification'] ?? false;
   }
 

@@ -134,9 +134,13 @@ class _SignInScreenState extends State<SignInScreen> {
     final prefs = await SharedPreferences.getInstance();
 
     final emailOrPhone = userEmailOrPhoneField.text.trim();
+    print(emailOrPhone);
     final password = userPasswordField.text.trim();
+    print(password);
     final emailRegExp = RegExp(r'^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$');
     bool isValid = emailRegExp.hasMatch(emailOrPhone);
+    print(isValid);
+
 
 
 
@@ -152,6 +156,8 @@ class _SignInScreenState extends State<SignInScreen> {
             await _handleSuccessfulSignIn(emailOrPhone, prefs);
           } else {
             print("Sign-in failed with email.");
+            // Get.snackbar('error', 'Wrong Credentails');
+
             _handleSignInError();
           }
         });
