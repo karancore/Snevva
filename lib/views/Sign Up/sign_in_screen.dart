@@ -117,12 +117,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
   // Handle sign-in error and show snackbar
   void _handleSignInError() {
-    Get.snackbar(
-      'Error',
-      'Incorrect Credential.',
-      snackPosition: SnackPosition.BOTTOM,
-      margin: EdgeInsets.all(20),
-    );
+    signInController.showSnackbar('Error', 'Incorrect Credential.');
   }
 
   Future<void> onSignInButtonClick() async {

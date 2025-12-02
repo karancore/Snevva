@@ -18,7 +18,7 @@ class SignInController extends GetxController {
 
   final localstorage = Get.put(LocalStorageManager());
 
-  void _showSnackbar(String title, String message) {
+  void showSnackbar(String title, String message) {
     try {
       // Use WidgetsBinding to schedule the snackbar after frame is built
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -47,7 +47,7 @@ class SignInController extends GetxController {
       //   snackPosition: SnackPosition.BOTTOM,
       //   margin: EdgeInsets.all(20),
       // );
-      _showSnackbar("Error", "Email cannot be empty");
+      showSnackbar("Error", "Email cannot be empty");
       return false;
     }
 
@@ -90,12 +90,7 @@ class SignInController extends GetxController {
         print('');
 
         if (decrypted == null) {
-          Get.snackbar(
-            'Error',
-            'Failed to decrypt response',
-            snackPosition: SnackPosition.BOTTOM,
-            margin: EdgeInsets.all(20),
-          );
+          showSnackbar('Error', 'Failed to decrypt response');
           return false;
         }
 
@@ -167,30 +162,15 @@ class SignInController extends GetxController {
         return true;
       }
       else if(response.statusCode == 400){
-        Get.snackbar(
-          'Error',
-          'Wrong Credentials',
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.all(20),
-        );
+        showSnackbar('Error', 'Wrong Credentials');
         return false;
       }
       else {
-        Get.snackbar(
-          'Error',
-          'Sign In failed.',
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.all(20),
-        );
+        showSnackbar('Error', 'Sign In failed.');
         return false;
       }
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Sign In failed.',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
-      );
+      showSnackbar('Error', 'Sign In failed.');
       return false;
     }
   }
@@ -232,12 +212,7 @@ class SignInController extends GetxController {
 
   Future<bool> signInUsingPhone(String phone, String password) async {
     if (phone.isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Phone cannot be empty',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
-      );
+      showSnackbar('Error', 'Phone cannot be empty');
       return false;
     }
     final plainPhone = jsonEncode({
@@ -272,12 +247,7 @@ class SignInController extends GetxController {
         );
 
          if (decrypted == null) {
-          Get.snackbar(
-            'Error',
-            'Failed to decrypt response',
-            snackPosition: SnackPosition.BOTTOM,
-            margin: EdgeInsets.all(20),
-          );
+          showSnackbar('Error', 'Failed to decrypt response');
           return false;
         }
 
@@ -348,21 +318,11 @@ class SignInController extends GetxController {
 
         return true;
       } else {
-        Get.snackbar(
-          'Error',
-          'Sign In failed.',
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.all(20),
-        );
+        showSnackbar('Error', 'Sign In failed.');
         return false;
       }
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Sign In failed.',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
-      );
+      showSnackbar('Error', 'Sign In failed.');
       return false;
     }
   }
