@@ -6,11 +6,13 @@ import 'package:snevva/models/queryParamViewModels/bloodpressure.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:http/http.dart' as http;
 
+import '../../common/custom_snackbar.dart';
+
 class VitalsController extends GetxController {
   var bpm = 0.obs;
-  var sys = 0.obs;  // Observable for SYS
-  var dia = 0.obs;  // Observable for DIA
-  var bloodGlucose = 0.obs;  // Observable for BloodGlucose
+  var sys = 0.obs; // Observable for SYS
+  var dia = 0.obs; // Observable for DIA
+  var bloodGlucose = 0.obs; // Observable for BloodGlucose
 
   @override
   void onInit() {
@@ -21,29 +23,38 @@ class VitalsController extends GetxController {
   // Load vitals (BPM, SYS, DIA, BloodGlucose) from local storage when the app starts
   Future<void> loadVitalsFromLocalStorage() async {
     final prefs = await SharedPreferences.getInstance();
-    
+
     bpm.value = prefs.getInt('bpm') ?? 0; // Load BPM, default to 0 if not found
     sys.value = prefs.getInt('sys') ?? 0; // Load SYS, default to 0 if not found
     dia.value = prefs.getInt('dia') ?? 0; // Load DIA, default to 0 if not found
-    bloodGlucose.value = prefs.getInt('bloodGlucose') ?? 0; // Load BloodGlucose, default to 0 if not found
-    
-    print('Loaded BPM: ${bpm.value}, SYS: ${sys.value}, DIA: ${dia.value}, BloodGlucose: ${bloodGlucose.value}');
+    bloodGlucose.value =
+        prefs.getInt('bloodGlucose') ??
+        0; // Load BloodGlucose, default to 0 if not found
+
+    print(
+      'Loaded BPM: ${bpm.value}, SYS: ${sys.value}, DIA: ${dia.value}, BloodGlucose: ${bloodGlucose.value}',
+    );
   }
 
   // Save vitals (BPM, SYS, DIA, BloodGlucose) to local storage
   Future<void> saveVitalsToLocalStorage() async {
     final prefs = await SharedPreferences.getInstance();
-    
+
     await prefs.setInt('bpm', bpm.value); // Save BPM
     await prefs.setInt('sys', sys.value); // Save SYS
     await prefs.setInt('dia', dia.value); // Save DIA
     await prefs.setInt('bloodGlucose', bloodGlucose.value); // Save BloodGlucose
-    
-    print('Vitals saved: BPM: ${bpm.value}, SYS: ${sys.value}, DIA: ${dia.value}, BloodGlucose: ${bloodGlucose.value}');
+
+    print(
+      'Vitals saved: BPM: ${bpm.value}, SYS: ${sys.value}, DIA: ${dia.value}, BloodGlucose: ${bloodGlucose.value}',
+    );
   }
 
   // Function to update vitals and save to local storage
-  Future<bool> submitVitals(BloodPressureData bloodPressureData) async {
+  Future<bool> submitVitals(
+    BloodPressureData bloodPressureData,
+    BuildContext context,
+  ) async {
     try {
       // Update the values from the incoming data
       bpm.value = bloodPressureData.heartRate?.toInt() ?? 0;
@@ -51,8 +62,10 @@ class VitalsController extends GetxController {
       dia.value = bloodPressureData.dia?.toInt() ?? 0;
       bloodGlucose.value = bloodPressureData.bloodGlucose?.toInt() ?? 0;
 
-      print('Updated BPM: ${bpm.value}, SYS: ${sys.value}, DIA: ${dia.value}, BloodGlucose: ${bloodGlucose.value}');
-      
+      print(
+        'Updated BPM: ${bpm.value}, SYS: ${sys.value}, DIA: ${dia.value}, BloodGlucose: ${bloodGlucose.value}',
+      );
+
       // Save the updated vitals to local storage
       saveVitalsToLocalStorage();
 
@@ -78,19 +91,28 @@ class VitalsController extends GetxController {
 
       // Handle response
       if (response is http.Response) {
-        Get.snackbar(
-          'Error',
-          'Failed to save Vitals record: ${response.statusCode}',
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Failed to save Vitals record: ${response.statusCode}',
         );
         return false;
       }
 
       // On success, show success message
-      Get.snackbar('Success', 'Vitals record saved successfully!');
+      CustomSnackbar.showSuccess(
+        context: context,
+        title: 'Success',
+        message: 'Vitals record saved successfully!',
+      );
       return true;
     } catch (e) {
       // Handle error and show error message
-      Get.snackbar('Error', 'Failed saving Vitals record');
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Failed saving Vitals record',
+      );
       return false;
     }
   }

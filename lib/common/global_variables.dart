@@ -40,3 +40,15 @@ TimeOfDay parseTimeOfDay(String timeString) {
   final dateTime = format.parse(timeString);
   return TimeOfDay.fromDateTime(dateTime);
 }
+String fmtDuration(Duration d) =>
+    "${d.inHours}h ${(d.inMinutes % 60).toString().padLeft(2, "0")}m";
+
+Duration parseDuration(String d) {
+  final hourPart = d.split("h")[0].trim();
+  final minutePart = d.split("h")[1].replaceAll("m", "").trim();
+
+  final hours = int.parse(hourPart);
+  final minutes = int.parse(minutePart);
+
+  return Duration(hours: hours, minutes: minutes);
+}

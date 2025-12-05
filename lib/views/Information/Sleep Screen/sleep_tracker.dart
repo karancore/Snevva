@@ -1,22 +1,17 @@
 import 'dart:async';
-import 'dart:io';
-import 'dart:isolate';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter_foreground_task/flutter_foreground_task.dart';
-import 'package:flutter_foreground_task/models/notification_permission.dart';
 import 'package:get/get.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
-import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/services/sleep_noticing_service.dart';
 import '../../../Controllers/SleepScreen/sleep_controller.dart';
 import '../../../Widgets/CommonWidgets/common_stat_graph_widget.dart';
 import '../../../Widgets/CommonWidgets/custom_outlined_button.dart';
+import '../../../common/global_variables.dart';
 
 class SleepTrackerScreen extends StatefulWidget {
   const SleepTrackerScreen({super.key});
@@ -39,6 +34,9 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
   @override
   void initState() {
     super.initState(); // Always call super.initState() first!
+    print("Init Sleep Tracker");
+    sleepController.loadCurrentDayDeepSleepData();
+    sleepController.loadDeepSleepData();
   }
 
   Future<void> _pickTime(BuildContext context, bool isBedtime) async {
@@ -80,8 +78,17 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     return "$hour:$minute $ampm";
   }
 
-  String _fmtDuration(Duration d) =>
-      "${d.inHours}h ${(d.inMinutes % 60).toString().padLeft(2, "0")}m";
+  double getDeepSleepPercent(Duration? duration) {
+    if (duration == null) return 0.0;
+
+    const maxDeepSleepMinutes = 120; // change this to your target
+    double minutes = duration.inMinutes.toDouble();
+
+    return (minutes / maxDeepSleepMinutes).clamp(0.0, 1.0);
+  }
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -149,7 +156,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                             Text(
                               sleepController.deepSleepDuration.value == null
                                   ? "--"
-                                  : _fmtDuration(
+                                  : fmtDuration(
                                     sleepController.deepSleepDuration.value!,
                                   ),
                               style: TextStyle(
@@ -174,13 +181,15 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
               Stack(
                 alignment: Alignment.center,
                 children: [
-                  LinearProgressIndicator(
-                    value: 58.0,
-                    backgroundColor: mediumGrey.withValues(alpha: 0.3),
-                    color: AppColors.primaryColor,
-                    borderRadius: BorderRadius.circular(20),
-                    minHeight: 35,
-                  ),
+                  Obx((){
+                    return LinearProgressIndicator(
+                      value: getDeepSleepPercent(sleepController.deepSleepDuration.value),
+                      backgroundColor: mediumGrey.withValues(alpha: 0.3),
+                      color: AppColors.primaryColor,
+                      borderRadius: BorderRadius.circular(20),
+                      minHeight: 35,
+                    );
+                  }),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: Row(
@@ -415,9 +424,11 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+
         child: CustomOutlinedButton(
           width: width,
           isDarkMode: isDarkMode,
+          backgroundColor: AppColors.primaryColor,
           buttonName: "Save",
           onTap: () {
             // Check if bedtime and wake time are selected

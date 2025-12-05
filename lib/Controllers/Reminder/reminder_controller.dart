@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
@@ -33,9 +34,6 @@ class ReminderController extends GetxController {
   var waterList = <Map<String, AlarmSettings>>[].obs;
   var mealsList = <Map<String, AlarmSettings>>[].obs;
   var selectedDateIndex = 0.obs;
-
-
-
 
   var medicineNames = <String>[].obs;
   var remindTimes = <String>[].obs;
@@ -254,7 +252,8 @@ class ReminderController extends GetxController {
     return reminderTime;
   }
 
-  Future<void> addAlarm({
+  Future<void> addAlarm(
+    BuildContext context, {
     required TimeOfDay timeOfDay,
     required String category,
   }) async {
@@ -275,13 +274,13 @@ class ReminderController extends GetxController {
 
     switch (category) {
       case "Medicine":
-        await _addMedicineAlarm(scheduledTime);
+        await _addMedicineAlarm(scheduledTime, context);
         break;
       case "Meal":
-        await _addMealAlarm(scheduledTime);
+        await _addMealAlarm(scheduledTime, context);
         break;
       case "Event":
-        await _addEventAlarm(scheduledTime);
+        await _addEventAlarm(scheduledTime, context);
         break;
     }
     if (eventReminderOption.value == 0) {
@@ -289,7 +288,10 @@ class ReminderController extends GetxController {
     }
   }
 
-  Future<void> _addMedicineAlarm(DateTime scheduledTime) async {
+  Future<void> _addMedicineAlarm(
+    DateTime scheduledTime,
+    BuildContext context,
+  ) async {
     final alarmSettings = AlarmSettings(
       id: _alarmId(),
       dateTime: scheduledTime,
@@ -338,12 +340,10 @@ class ReminderController extends GetxController {
       // Reload the combined list
       await loadAllReminderLists();
 
-      Get.snackbar(
-        'Success',
-        'Medicine reminder set successfully!',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppColors.primaryColor,
-        colorText: Colors.white,
+      CustomSnackbar.showSuccess(
+        context: context,
+        message: 'Success',
+        title: 'Medicine reminder set successfully!',
       );
       Get.back(result: true);
 
@@ -352,7 +352,10 @@ class ReminderController extends GetxController {
     }
   }
 
-  Future<void> _addMealAlarm(DateTime scheduledTime) async {
+  Future<void> _addMealAlarm(
+    DateTime scheduledTime,
+    BuildContext context,
+  ) async {
     final alarmSettings = AlarmSettings(
       id: _alarmId(),
       dateTime: scheduledTime,
@@ -391,18 +394,19 @@ class ReminderController extends GetxController {
       // Reload the combined list
       await loadAllReminderLists();
 
-      Get.snackbar(
-        'Success',
-        'Meal reminder set successfully!',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppColors.primaryColor,
-        colorText: Colors.white,
+      CustomSnackbar.showSuccess(
+        context: context,
+        title: 'Success',
+        message: 'Meal reminder set successfully!',
       );
       Get.back(result: true);
     }
   }
 
-  Future<void> _addEventAlarm(DateTime scheduledTime) async {
+  Future<void> _addEventAlarm(
+    DateTime scheduledTime,
+    BuildContext context,
+  ) async {
     final alarmSettings = AlarmSettings(
       id: _alarmId(),
       dateTime: scheduledTime,
@@ -445,12 +449,10 @@ class ReminderController extends GetxController {
       // Reload the combined list
       await loadAllReminderLists();
 
-      Get.snackbar(
-        'Success',
-        'Event reminder set successfully!',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppColors.primaryColor,
-        colorText: Colors.white,
+      CustomSnackbar.showSuccess(
+        context: context,
+        title: 'Success',
+        message: 'Event reminder set successfully!',
       );
       Get.back(result: true);
     }
@@ -459,6 +461,7 @@ class ReminderController extends GetxController {
   Future<void> setWaterAlarm({
     required int? interval,
     required int? times,
+    required BuildContext context,
   }) async {
     bool alarmSet = false;
 
@@ -553,10 +556,10 @@ class ReminderController extends GetxController {
     }
 
     if ((times == null || times <= 0) && (interval == null || interval <= 0)) {
-      Get.snackbar(
-        'Error',
-        'Please enter a valid reminder interval',
-        snackPosition: SnackPosition.BOTTOM,
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Please enter a valid reminder interval',
       );
       return;
     }
@@ -570,12 +573,10 @@ class ReminderController extends GetxController {
       // Reload the combined list before showing success message
       await loadAllReminderLists();
 
-      Get.snackbar(
-        'Success',
-        'Water reminder set successfully!',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppColors.primaryColor,
-        colorText: Colors.white,
+      CustomSnackbar.showSuccess(
+        context: context,
+        title: 'Success',
+        message: 'Water reminder set successfully!',
       );
       Get.back(result: true);
     }
@@ -796,7 +797,7 @@ class ReminderController extends GetxController {
 
       reminders.value = combined;
     } catch (e) {
-      Get.snackbar('Error', '❌ Failed to load reminder lists');
+      //CustomSnackbar.showError(context: context , title: 'Error', message:  '❌ Failed to load reminder lists');
       print('Error loading reminder lists: $e');
     } finally {
       isLoading(false);
@@ -805,10 +806,10 @@ class ReminderController extends GetxController {
 
   // ==================== API Methods ====================
 
-  Future<void> getReminders() async {
+  Future<void> getReminders(BuildContext context) async {
     try {
       isLoading(true);
-      var result = await getReminderFromAPI();
+      var result = await getReminderFromAPI(context);
       var reminders = result as List<Map<String, dynamic>>;
       this.reminders.assignAll(reminders);
       print(reminders);
@@ -819,7 +820,7 @@ class ReminderController extends GetxController {
     }
   }
 
-  Future<dynamic> getReminderFromAPI() async {
+  Future<dynamic> getReminderFromAPI(BuildContext context) async {
     try {
       final response = await ApiService.post(
         getreminderApi,
@@ -829,9 +830,10 @@ class ReminderController extends GetxController {
       );
 
       if (response is http.Response && response.statusCode >= 400) {
-        Get.snackbar(
-          'Error',
-          '❌ Failed to fetch reminders: ${response.statusCode}',
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: '❌ Failed to fetch reminders: ${response.statusCode}',
         );
         return [];
       }
@@ -841,12 +843,19 @@ class ReminderController extends GetxController {
       final List remindersList = decbody['data']['Reminders'] as List;
       return remindersList.map((e) => e as Map<String, dynamic>).toList();
     } catch (e) {
-      Get.snackbar('Error', '❌ Exception while fetching reminders');
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: '❌ Exception while fetching reminders',
+      );
       return [];
     }
   }
 
-  Future<void> addReminder(Map<String, dynamic> reminderData) async {
+  Future<void> addReminder(
+    Map<String, dynamic> reminderData,
+    BuildContext context,
+  ) async {
     try {
       final response = await ApiService.post(
         addreminderApi,
@@ -856,19 +865,24 @@ class ReminderController extends GetxController {
       );
 
       if (response is http.Response && response.statusCode >= 400) {
-        Get.snackbar(
-          'Error',
-          '❌ Failed to save Reminder record: ${response.statusCode}',
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: '❌ Failed to save Reminder record: ${response.statusCode}',
         );
       } else {
-        getReminders();
+        getReminders(context);
       }
     } catch (e) {
-      Get.snackbar('Error', '❌ Exception while saving Reminder record');
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: '❌ Exception while saving Reminder record',
+      );
     }
   }
 
-  Future<void> updateReminder(Map<String, dynamic> reminderData) async {
+  Future<void> updateReminder(Map<String, dynamic> reminderData , BuildContext context) async {
     try {
       final response = await ApiService.post(
         editreminderApi,
@@ -878,75 +892,76 @@ class ReminderController extends GetxController {
       );
 
       if (response is http.Response && response.statusCode >= 400) {
-        Get.snackbar(
-          'Error',
-          '❌ Failed to update Reminder record: ${response.statusCode}',
+        CustomSnackbar.showError(context : context , title:
+        'Error',
+          message: '❌ Failed to update Reminder record: ${response.statusCode}',
         );
       } else {
-        getReminders();
+        getReminders(context);
       }
     } catch (e) {
-      Get.snackbar('Error', '❌ Exception while updating Reminder record');
+      CustomSnackbar.showError(context : context , title: 'Error', message: '❌ Exception while updating Reminder record');
     }
   }
 
   // ==================== Validation & Save Methods ====================
 
-  bool validateAndSave() {
+  bool validateAndSave(BuildContext context) {
     if (selectedCategory.value == "Medicine") {
       if (pickedTime.value == null) {
-        Get.snackbar(
-          'Error',
-          'Please select a reminder time',
-          snackPosition: SnackPosition.BOTTOM,
+        CustomSnackbar.showError(context : context , title:
+        'Error',
+          message:  'Please select a reminder time',
+         
         );
         return false;
       }
-      addAlarm(timeOfDay: pickedTime.value!, category: "Medicine");
+      addAlarm(context, timeOfDay: pickedTime.value!, category: "Medicine");
       return true;
     } else if (selectedCategory.value == "Water") {
       if (waterReminderOption.value == 0 && savedInterval.value <= 0) {
-        Get.snackbar(
-          'Error',
-          'Please enter hours interval',
-          snackPosition: SnackPosition.BOTTOM,
+        CustomSnackbar.showError(context : context , title:
+        'Error',
+          message: 'Please enter hours interval',
+          
         );
         return false;
       }
       if (waterReminderOption.value == 1 && savedTimes.value <= 0) {
-        Get.snackbar(
+        CustomSnackbar.showError(context : context , title:
           'Error',
-          'Please enter times per day',
-          snackPosition: SnackPosition.BOTTOM,
+          message: 'Please enter times per day',
+          
         );
         return false;
       }
       setWaterAlarm(
+        context: context,
         interval: waterReminderOption.value == 0 ? savedInterval.value : null,
         times: waterReminderOption.value == 1 ? savedTimes.value : null,
       );
       return true;
     } else if (selectedCategory.value == "Meal") {
       if (pickedTime.value == null) {
-        Get.snackbar(
+        CustomSnackbar.showError(context : context , title:
           'Error',
-          'Please select a meal time',
-          snackPosition: SnackPosition.BOTTOM,
+          message:  'Please select a meal time',
+          
         );
         return false;
       }
-      addAlarm(timeOfDay: pickedTime.value!, category: "Meal");
+      addAlarm(context, timeOfDay: pickedTime.value!, category: "Meal");
       return true;
     } else if (selectedCategory.value == "Event") {
       if (pickedTime.value == null) {
-        Get.snackbar(
+        CustomSnackbar.showError(context : context , title:
           'Error',
-          'Please select an event time',
-          snackPosition: SnackPosition.BOTTOM,
+          message:  'Please select an event time',
+          
         );
         return false;
       }
-      addAlarm(timeOfDay: pickedTime.value!, category: "Event");
+      addAlarm(context, timeOfDay: pickedTime.value!, category: "Event");
       return true;
     }
     return false;
@@ -955,8 +970,8 @@ class ReminderController extends GetxController {
   // ==================== Refresh Methods ====================
 
   /// Refresh all reminder data from both local storage and API
-  Future<void> refreshAllData() async {
-    await Future.wait([loadAllReminderLists(), getReminders()]);
+  Future<void> refreshAllData(BuildContext context) async {
+    await Future.wait([loadAllReminderLists(), getReminders(context)]);
   }
 
   // ==================== Helper Methods ====================

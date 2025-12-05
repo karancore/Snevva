@@ -13,6 +13,14 @@ class MentalWellnessScreen extends StatefulWidget {
 }
 
 class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
+
+  final controller = Get.find<MentalWellnesscontroller>();
+
+  @override
+  void initState() {
+    super.initState();
+    controller.fetchMusic(context);
+  }
   @override
   Widget build(BuildContext context) {
 
@@ -20,7 +28,6 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
 
-    final controller = Get.put(Mentalwellnesscontroller());
     //final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
 
     return Scaffold(

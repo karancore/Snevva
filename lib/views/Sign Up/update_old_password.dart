@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:snevva/Controllers/signupAndSignIn/update_old_password_controller.dart';
+import 'package:snevva/common/custom_snackbar.dart';
 import '../../consts/consts.dart';
 
 class UpdateOldPasword extends StatefulWidget {
@@ -38,7 +39,7 @@ class _UpdateOldPaswordState extends State<UpdateOldPasword> {
   }
 
   void onUpdateButtonPress() {
-    if (updatePasswordController.validateAndShowError()) {
+    if (updatePasswordController.validateAndShowError(context)) {
       final input = widget.emailOrPhoneText.trim();
       final controller = updatePasswordController;
 
@@ -48,6 +49,7 @@ class _UpdateOldPaswordState extends State<UpdateOldPasword> {
           widget.otp,
           widget.otpVerificationStatus,
           controller.confirmPasswordController.text.trim(),
+          context
         );
       } else if (RegExp(r'^\d{10,}$').hasMatch(input)) {
         controller.updateOldPasswordWithPhone(
@@ -55,9 +57,14 @@ class _UpdateOldPaswordState extends State<UpdateOldPasword> {
           widget.otp,
           widget.otpVerificationStatus,
           controller.confirmPasswordController.text.trim(),
+          context
         );
       } else {
-        Get.snackbar('Error', 'Failed To Update old Password.');
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Failed To Update old Password.',
+        );
       }
     }
   }
@@ -93,146 +100,167 @@ class _UpdateOldPaswordState extends State<UpdateOldPasword> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    Obx(() => Material(
-                      color: isDarkMode
-                          ? AppColors.primaryColor.withOpacity(0.02)
-                          : Colors.white.withOpacity(0.95),
-                      borderRadius: BorderRadius.circular(4),
-                      elevation: 1,
-                      child: TextFormField(
-                        obscureText:
-                        updatePasswordController.obscurePassword.value,
-                        controller:
-                        updatePasswordController.passwordController,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: Colors.transparent,
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          suffixIcon: IconButton(
-                            onPressed: () {
-                              updatePasswordController
-                                  .obscurePassword.value =
-                              !updatePasswordController
-                                  .obscurePassword.value;
-                            },
-                            icon: Icon(
-                              updatePasswordController.obscurePassword.value
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
+                    Obx(
+                      () => Material(
+                        color:
+                            isDarkMode
+                                ? AppColors.primaryColor.withOpacity(0.02)
+                                : Colors.white.withOpacity(0.95),
+                        borderRadius: BorderRadius.circular(4),
+                        elevation: 1,
+                        child: TextFormField(
+                          obscureText:
+                              updatePasswordController.obscurePassword.value,
+                          controller:
+                              updatePasswordController.passwordController,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.transparent,
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                updatePasswordController.obscurePassword.value =
+                                    !updatePasswordController
+                                        .obscurePassword
+                                        .value;
+                              },
+                              icon: Icon(
+                                updatePasswordController.obscurePassword.value
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
                             ),
+                            labelText:
+                                AppLocalizations.of(context)!.newPassword,
                           ),
-                          labelText: AppLocalizations.of(context)!.newPassword,
                         ),
                       ),
-                    )),
+                    ),
                     const SizedBox(height: 6),
-                    Obx(() => Row(
-                      children: [
-                        Icon(
-                          updatePasswordController.isPasswordValid
-                              ? Icons.check_circle
-                              : Icons.error_outline,
-                          color:
-                          updatePasswordController.isPasswordValid
-                              ? Colors.green
-                              : Colors.grey,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          updatePasswordController.isPasswordValid
-                              ? AppLocalizations.of(context)!.passwordStrengthStrong
-                              : AppLocalizations.of(context)!.passwordStrengthWeak,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color:
+                    Obx(
+                      () => Row(
+                        children: [
+                          Icon(
                             updatePasswordController.isPasswordValid
-                                ? Colors.green
-                                : Colors.grey,
+                                ? Icons.check_circle
+                                : Icons.error_outline,
+                            color:
+                                updatePasswordController.isPasswordValid
+                                    ? Colors.green
+                                    : Colors.grey,
+                            size: 18,
                           ),
-                        ),
-                      ],
-                    )),
-                    const SizedBox(height: 12),
-                    Obx(() => Material(
-                      color: isDarkMode
-                          ? AppColors.primaryColor.withOpacity(0.02)
-                          : Colors.white.withOpacity(0.95),
-                      borderRadius: BorderRadius.circular(4),
-                      elevation: 1,
-                      child: TextFormField(
-                        controller: updatePasswordController
-                            .confirmPasswordController,
-                        obscureText: updatePasswordController
-                            .obscurePassword2.value,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: Colors.transparent,
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          suffixIcon: IconButton(
-                            onPressed: () {
-                              updatePasswordController
-                                  .obscurePassword2.value =
-                              !updatePasswordController
-                                  .obscurePassword2.value;
-                            },
-                            icon: Icon(
-                              updatePasswordController
-                                  .obscurePassword2.value
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
+                          const SizedBox(width: 6),
+                          Text(
+                            updatePasswordController.isPasswordValid
+                                ? AppLocalizations.of(
+                                  context,
+                                )!.passwordStrengthStrong
+                                : AppLocalizations.of(
+                                  context,
+                                )!.passwordStrengthWeak,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color:
+                                  updatePasswordController.isPasswordValid
+                                      ? Colors.green
+                                      : Colors.grey,
                             ),
                           ),
-                          labelText: AppLocalizations.of(context)!.confirmPassword
-                        ),
+                        ],
                       ),
-                    )),
-                    const SizedBox(height: 6),
-                    Obx(() => Row(
-                      children: [
-                        Icon(
-                          updatePasswordController.isConfirmPasswordValid
-                              ? Icons.check_circle
-                              : Icons.error_outline,
-                          color:
-                          updatePasswordController.isConfirmPasswordValid
-                              ? Colors.green
-                              : Colors.orangeAccent,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          updatePasswordController.isConfirmPasswordValid
-                              ? AppLocalizations.of(context)!.passwordsMatch
-                              : AppLocalizations.of(context)!.passwordsDoNotMatch,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: updatePasswordController
-                                .isConfirmPasswordValid
-                                ? Colors.green
-                                : Colors.orangeAccent,
+                    ),
+                    const SizedBox(height: 12),
+                    Obx(
+                      () => Material(
+                        color:
+                            isDarkMode
+                                ? AppColors.primaryColor.withOpacity(0.02)
+                                : Colors.white.withOpacity(0.95),
+                        borderRadius: BorderRadius.circular(4),
+                        elevation: 1,
+                        child: TextFormField(
+                          controller:
+                              updatePasswordController
+                                  .confirmPasswordController,
+                          obscureText:
+                              updatePasswordController.obscurePassword2.value,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.transparent,
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                updatePasswordController
+                                    .obscurePassword2
+                                    .value = !updatePasswordController
+                                        .obscurePassword2
+                                        .value;
+                              },
+                              icon: Icon(
+                                updatePasswordController.obscurePassword2.value
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                            ),
+                            labelText:
+                                AppLocalizations.of(context)!.confirmPassword,
                           ),
                         ),
-                      ],
-                    )),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Obx(
+                      () => Row(
+                        children: [
+                          Icon(
+                            updatePasswordController.isConfirmPasswordValid
+                                ? Icons.check_circle
+                                : Icons.error_outline,
+                            color:
+                                updatePasswordController.isConfirmPasswordValid
+                                    ? Colors.green
+                                    : Colors.orangeAccent,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            updatePasswordController.isConfirmPasswordValid
+                                ? AppLocalizations.of(context)!.passwordsMatch
+                                : AppLocalizations.of(
+                                  context,
+                                )!.passwordsDoNotMatch,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color:
+                                  updatePasswordController
+                                          .isConfirmPasswordValid
+                                      ? Colors.green
+                                      : Colors.orangeAccent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 20),
                     Row(
                       children: [
-                        Obx(() => Checkbox(
-                          value:
-                          updatePasswordController.isChecked.value,
-                          onChanged: (val) {
-                            updatePasswordController.isChecked.value =
-                                val ?? false;
-                          },
-                          activeColor: AppColors.primaryColor,
-                          visualDensity: const VisualDensity(
-                            horizontal: -4,
-                            vertical: -4,
+                        Obx(
+                          () => Checkbox(
+                            value: updatePasswordController.isChecked.value,
+                            onChanged: (val) {
+                              updatePasswordController.isChecked.value =
+                                  val ?? false;
+                            },
+                            activeColor: AppColors.primaryColor,
+                            visualDensity: const VisualDensity(
+                              horizontal: -4,
+                              vertical: -4,
+                            ),
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
                           ),
-                          materialTapTargetSize:
-                          MaterialTapTargetSize.shrinkWrap,
-                        )),
+                        ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: RichText(
@@ -240,16 +268,23 @@ class _UpdateOldPaswordState extends State<UpdateOldPasword> {
                               style: TextStyle(fontSize: 12),
                               children: [
                                 TextSpan(
-                                  text: AppLocalizations.of(context)!.agreeToTerms,
+                                  text:
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.agreeToTerms,
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
                                 TextSpan(
-                                  text: AppLocalizations.of(context)!.agreeToConditions,
+                                  text:
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.agreeToConditions,
                                   style: TextStyle(
                                     color: AppColors.primaryColor,
                                     decoration: TextDecoration.underline,
                                   ),
-                                  recognizer: TapGestureRecognizer()..onTap = () {},
+                                  recognizer:
+                                      TapGestureRecognizer()..onTap = () {},
                                 ),
                               ],
                             ),

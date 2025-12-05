@@ -4,6 +4,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:snevva/services/api_service.dart';
+import 'package:snevva/services/notification_service.dart';
+import '../../common/custom_snackbar.dart';
 import '../../env/env.dart';
 import '../../services/auth_header_helper.dart';
 import '../../services/encryption_service.dart';
@@ -11,13 +13,14 @@ import '../../services/encryption_service.dart';
 class SignUpController extends GetxController {
   var isLoading = false.obs;
 
-  Future<dynamic> signUpUsingGmail(String email) async {
+  final notify = Get.put(NotificationService());
+
+  Future<dynamic> signUpUsingGmail(String email, BuildContext context) async {
     if (email.isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Email cannot be empty',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Email cannot be empty',
       );
       return;
     }
@@ -46,10 +49,10 @@ class SignUpController extends GetxController {
 
         final encryptedBody = responseBody['data'];
         // print("👉 Encrypted OTP response: $encryptedBody");
-        
+
         final responseHash = response.headers['x-data-hash'];
         // print("👉 Response hash: $responseHash");
-        
+
         final decrypted = EncryptionService.decryptData(
           encryptedBody,
           responseHash!,
@@ -57,11 +60,10 @@ class SignUpController extends GetxController {
         // print("Decrypted OTP response: $decrypted");
 
         if (decrypted == null) {
-          Get.snackbar(
-            'Error',
-            'Failed to decrypt response',
-            snackPosition: SnackPosition.BOTTOM,
-            margin: EdgeInsets.all(20),
+          CustomSnackbar.showError(
+            context: context,
+            title: 'Error',
+            message: 'Failed to decrypt response',
           );
           return false;
         }
@@ -70,60 +72,56 @@ class SignUpController extends GetxController {
 
         final data = gettedData['data'];
         if (data == null || data['Otp'] == null) {
-          Get.snackbar(
-            'Error',
-            'OTP not found in response',
-            snackPosition: SnackPosition.BOTTOM,
-            margin: EdgeInsets.all(20),
+          CustomSnackbar.showError(
+            context: context,
+            title: 'Error',
+            message: 'OTP not found in response',
           );
           return false;
         }
 
         final otp = data['Otp'];
 
-        Get.snackbar(
-          'Success',
-          'OTP Sent. $otp',
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.all(20),
+        await notify.showOtpNotification(otp);
+
+        CustomSnackbar.showSuccess(
+          context: context,
+          title: 'Success',
+          message: 'OTP Sent. $otp',
         );
 
         return otp;
-      }else if(response.statusCode == 400) {
-        Get.snackbar(
-          'Error',
-          'Email already registered',
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.all(20),
+      } else if (response.statusCode == 400) {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Email already registered',
         );
         return false;
       } else {
-        Get.snackbar(
-          'Error',
-          'Signup failed: ${response.body}',
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.all(20),
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Signup failed: ${response.body}',
         );
       }
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Signup failed',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Signup failed',
       );
     } finally {
       isLoading.value = false;
     }
   }
 
-Future<dynamic> gmailotp(String email) async {
+  Future<dynamic> gmailotp(String email, BuildContext context) async {
     if (email.isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Email cannot be empty',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Email cannot be empty',
       );
       return;
     }
@@ -163,11 +161,10 @@ Future<dynamic> gmailotp(String email) async {
         // print("Decrypted OTP response: $decrypted");
 
         if (decrypted == null) {
-          Get.snackbar(
-            'Error',
-            'Failed to decrypt response',
-            snackPosition: SnackPosition.BOTTOM,
-            margin: EdgeInsets.all(20),
+          CustomSnackbar.showError(
+            context: context,
+            title: 'Error',
+            message: 'Failed to decrypt response',
           );
           return false;
         }
@@ -176,86 +173,80 @@ Future<dynamic> gmailotp(String email) async {
 
         final data = gettedData['data'];
         if (data == null || data['Otp'] == null) {
-          Get.snackbar(
-            'Error',
-            'OTP not found in response',
-            snackPosition: SnackPosition.BOTTOM,
-            margin: EdgeInsets.all(20),
+          CustomSnackbar.showError(
+            context: context,
+            title: 'Error',
+            message: 'OTP not found in response',
           );
           return false;
         }
 
         final otp = data['Otp'];
+        await notify.showOtpNotification(otp);
 
-        Get.snackbar(
-          'Success',
-          'OTP Sent. $otp',
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.all(20),
+        CustomSnackbar.showSuccess(
+          context: context,
+          title: 'Success',
+          message: 'OTP Sent. $otp',
         );
 
         return otp;
       } else {
-        Get.snackbar(
-          'Error',
-          'Signup failed: ${response.body}',
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.all(20),
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Signup failed: ${response.body}',
         );
       }
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Signup failed',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Signup failed',
       );
     } finally {
       isLoading.value = false;
     }
   }
 
-Future<dynamic> updateGmail(String email) async {
+  Future<dynamic> updateGmail(String email, BuildContext context) async {
     if (email.isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Email cannot be empty',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Email cannot be empty',
       );
       return;
     }
     final plainEmail = {'Gmail': email};
 
-    try{
-       final response = await ApiService.post(
-          updatePasswordUpdateUsingEmailEndpoint,
-          plainEmail,
-          withAuth: true,
-          encryptionRequired: true,
-        );
+    try {
+      final response = await ApiService.post(
+        updatePasswordUpdateUsingEmailEndpoint,
+        plainEmail,
+        withAuth: true,
+        encryptionRequired: true,
+      );
 
-        if (response is http.Response) {
-          Get.snackbar(
-            'Error',
-            'Failed to save',
-            snackPosition: SnackPosition.BOTTOM,
-            margin: EdgeInsets.all(20),
-          );
-          return;
-        }
+      if (response is http.Response) {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Failed to save',
+        );
+        return;
+      }
     } finally {
       isLoading.value = false;
     }
   }
 
-Future<dynamic> phoneotp(String phone) async {
+  Future<dynamic> phoneotp(String phone, BuildContext context) async {
     if (phone.isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Number cannot be empty',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Number cannot be empty',
       );
       return;
     }
@@ -295,11 +286,10 @@ Future<dynamic> phoneotp(String phone) async {
         // print("Decrypted OTP response: $decrypted");
 
         if (decrypted == null) {
-          Get.snackbar(
-            'Error',
-            'Failed to decrypt response',
-            snackPosition: SnackPosition.BOTTOM,
-            margin: EdgeInsets.all(20),
+          CustomSnackbar.showError(
+            context: context,
+            title: 'Error',
+            message: 'Failed to decrypt response',
           );
           return false;
         }
@@ -308,86 +298,80 @@ Future<dynamic> phoneotp(String phone) async {
 
         final data = gettedData['data'];
         if (data == null || data['Otp'] == null) {
-          Get.snackbar(
-            'Error',
-            'OTP not found in response',
-            snackPosition: SnackPosition.BOTTOM,
-            margin: EdgeInsets.all(20),
+          CustomSnackbar.showError(
+            context: context,
+            title: 'Error',
+            message: 'OTP not found in response',
           );
           return false;
         }
 
         final otp = data['Otp'];
+        await notify.showOtpNotification(otp);
 
-        Get.snackbar(
-          'Success',
-          'OTP Sent. $otp',
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.all(20),
+        CustomSnackbar.showSuccess(
+          context: context,
+          title: 'Success',
+          message: 'OTP Sent. $otp',
         );
 
         return otp;
       } else {
-        Get.snackbar(
-          'Error',
-          'Signup failed: ${response.body}',
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.all(20),
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Signup failed: ${response.body}',
         );
       }
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Signup failed',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Signup failed',
       );
     } finally {
       isLoading.value = false;
     }
   }
 
-Future<dynamic> updatePhone(String phoneNumber) async {
+  Future<dynamic> updatePhone(String phoneNumber, BuildContext context) async {
     if (phoneNumber.isEmpty) {
-      Get.snackbar(
-        'Error',
-        'phoneNumber cannot be empty',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'phoneNumber cannot be empty',
       );
       return;
     }
     final plainphoneNumber = {'PhoneNumber': phoneNumber};
 
-    try{
-       final response = await ApiService.post(
-          updatePasswordUpdateUsingPhoneEndpoint,
-          plainphoneNumber,
-          withAuth: true,
-          encryptionRequired: true,
-        );
+    try {
+      final response = await ApiService.post(
+        updatePasswordUpdateUsingPhoneEndpoint,
+        plainphoneNumber,
+        withAuth: true,
+        encryptionRequired: true,
+      );
 
-        if (response is http.Response) {
-          Get.snackbar(
-            'Error',
-            'Failed to save',
-            snackPosition: SnackPosition.BOTTOM,
-            margin: EdgeInsets.all(20),
-          );
-          return;
-        }
+      if (response is http.Response) {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Failed to save',
+        );
+        return;
+      }
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<dynamic> signUpUsingPhone(String phone) async {
+  Future<dynamic> signUpUsingPhone(String phone, BuildContext context) async {
     if (phone.isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Phone cannot be empty',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Phone cannot be empty',
       );
       return false;
     }
@@ -434,37 +418,34 @@ Future<dynamic> updatePhone(String phoneNumber) async {
 
         final data = responseData['data'];
         final otp = data['Otp'];
+        await notify.showOtpNotification(otp);
 
-        Get.snackbar(
-          'Success',
-          'OTP Sent. $otp',
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.all(20),
+        CustomSnackbar.showSuccess(
+          context: context,
+          title: 'Success',
+          message: 'OTP Sent. $otp',
         );
         return otp;
       } else if (response.statusCode == 400) {
-        Get.snackbar(
-          'Error',
-          'Phone number already registered',
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.all(20),
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Phone number already registered',
         );
         return false;
-      }else {
-        Get.snackbar(
-          'Error',
-          'Signup failed: ${response.body}',
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.all(20),
+      } else {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Signup failed: ${response.body}',
         );
         return false;
       }
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Signup failed',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Signup failed',
       );
       return false;
     } finally {

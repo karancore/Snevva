@@ -11,9 +11,10 @@ import 'package:snevva/services/api_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:snevva/services/notification_service.dart';
 import '../../views/ProfileAndQuestionnaire/profile_setup_initial.dart';
-import '../localStorageManager.dart';
+import '../local_storage_manager.dart';
 import '../signupAndSignIn/otp_verification_controller.dart';
 import '../signupAndSignIn/sign_up_controller.dart';
+import 'package:snevva/common/custom_snackbar.dart';
 
 class EditprofileController extends GetxController {
   final localStorageManager = Get.put(LocalStorageManager());
@@ -113,7 +114,6 @@ class EditprofileController extends GetxController {
     _resendCountdownTimer?.cancel();
     isResendEnabled.value = true;
   }
-  
 
   void showEditFieldDialog(
     BuildContext context, {
@@ -152,14 +152,20 @@ class EditprofileController extends GetxController {
                 TextField(
                   controller: controller,
                   maxLines: fieldKey == 'Address' ? 4 : 1,
-                  keyboardType: fieldKey == 'Address'
-                      ? TextInputType.multiline
-                      : (fieldKey == 'Height' || fieldKey == 'Weight')
-                      ? const TextInputType.numberWithOptions(decimal: true)
-                      : TextInputType.text,
-                  inputFormatters: fieldKey == 'Height' || fieldKey == 'Weight'
-                      ? [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))]
-                      : [],
+                  keyboardType:
+                      fieldKey == 'Address'
+                          ? TextInputType.multiline
+                          : (fieldKey == 'Height' || fieldKey == 'Weight')
+                          ? const TextInputType.numberWithOptions(decimal: true)
+                          : TextInputType.text,
+                  inputFormatters:
+                      fieldKey == 'Height' || fieldKey == 'Weight'
+                          ? [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d*\.?\d{0,2}'),
+                            ),
+                          ]
+                          : [],
                   decoration: InputDecoration(
                     hintText: () {
                       switch (fieldKey) {
@@ -209,17 +215,21 @@ class EditprofileController extends GetxController {
                                 if (fieldKey == 'Name') {
                                   final nameRegex = RegExp(r"^[a-zA-Z\s]+$");
                                   if (value.isEmpty) {
-                                    Get.snackbar(
-                                      'Error',
-                                      'Name cannot be empty',
+                                    CustomSnackbar.showError(
+                                      context: context,
+                                      title: 'Error',
+                                      message: 'Name cannot be empty',
                                     );
+
                                     isLoading.value = false;
                                     return;
                                   }
                                   if (!nameRegex.hasMatch(value)) {
-                                    Get.snackbar(
-                                      'Error',
-                                      'Name should not contain numbers or special characters',
+                                    CustomSnackbar.showError(
+                                      context: context,
+                                      title: 'Error',
+                                      message:
+                                          'Name should not contain numbers or special characters',
                                     );
                                     isLoading.value = false;
                                     return;
@@ -228,9 +238,10 @@ class EditprofileController extends GetxController {
 
                                 if (fieldKey == 'Height') {
                                   if (height == null || height <= 0) {
-                                    Get.snackbar(
-                                      'Error',
-                                      'Please enter a valid height',
+                                    CustomSnackbar.showError(
+                                      context: context,
+                                      title: 'Error',
+                                      message: 'Please enter a valid height',
                                     );
                                     isLoading.value = false;
                                     return;
@@ -239,9 +250,10 @@ class EditprofileController extends GetxController {
 
                                 if (fieldKey == 'Weight') {
                                   if (weight == null || weight <= 0) {
-                                    Get.snackbar(
-                                      'Error',
-                                      'Please enter a valid weight',
+                                    CustomSnackbar.showError(
+                                      context: context,
+                                      title: 'Error',
+                                      message: 'Please enter a valid weight',
                                     );
                                     isLoading.value = false;
                                     return;
@@ -251,9 +263,11 @@ class EditprofileController extends GetxController {
                                 if (fieldKey == 'PhoneNumber') {
                                   final phoneRegex = RegExp(r"^[0-9]{10}$");
                                   if (!phoneRegex.hasMatch(value)) {
-                                    Get.snackbar(
-                                      'Error',
-                                      'Please enter a valid phone number',
+                                    CustomSnackbar.showError(
+                                      context: context,
+                                      title: 'Error',
+                                      message:
+                                          'Please enter a valid phone number',
                                     );
                                     isLoading.value = false;
                                     return;
@@ -262,7 +276,7 @@ class EditprofileController extends GetxController {
                                   try {
                                     // ✅ Step 1: Call API to send OTP
                                     final result = await signupController
-                                        .phoneotp(value);
+                                        .phoneotp(value, context);
                                     await notify.showOtpNotification(result);
 
                                     if (result != false && result != null) {
@@ -287,16 +301,20 @@ class EditprofileController extends GetxController {
                                         },
                                       );
                                     } else {
-                                      Get.snackbar(
-                                        'Error',
-                                        'Failed to send OTP. Please try again.',
+                                      CustomSnackbar.showError(
+                                        context: context,
+                                        title: 'Error',
+                                        message:
+                                            'Failed to send OTP. Please try again.',
                                       );
                                       isLoading.value = false;
                                     }
                                   } catch (e) {
-                                    Get.snackbar(
-                                      'Error',
-                                      'Something went wrong while sending OTP.',
+                                    CustomSnackbar.showError(
+                                      context: context,
+                                      title: 'Error',
+                                      message:
+                                          'Something went wrong while sending OTP.',
                                     );
                                     isLoading.value = false;
                                   } finally {
@@ -313,17 +331,20 @@ class EditprofileController extends GetxController {
                                   );
 
                                   if (value.isEmpty) {
-                                    Get.snackbar(
-                                      'Error',
-                                      'Email cannot be empty',
+                                    CustomSnackbar.showError(
+                                      context: context,
+                                      title: 'Error',
+                                      message: 'Email cannot be empty',
                                     );
                                     isLoading.value = false;
                                     return;
                                   }
                                   if (!emailRegex.hasMatch(value)) {
-                                    Get.snackbar(
-                                      'Error',
-                                      'Please enter a valid email address',
+                                    CustomSnackbar.showError(
+                                      context: context,
+                                      title: 'Error',
+                                      message:
+                                          'Please enter a valid email address',
                                     );
                                     isLoading.value = false;
                                     return;
@@ -332,7 +353,8 @@ class EditprofileController extends GetxController {
                                   try {
                                     // ✅ Step 1: Call API to send OTP
                                     final result = await signupController
-                                        .gmailotp(value);
+                                        .gmailotp(value, context);
+                                    await notify.showOtpNotification(result);
 
                                     if (result != false && result != null) {
                                       otpVerificationController.responseOtp =
@@ -356,16 +378,20 @@ class EditprofileController extends GetxController {
                                         },
                                       );
                                     } else {
-                                      Get.snackbar(
-                                        'Error',
-                                        'Failed to send OTP. Please try again.',
+                                      CustomSnackbar.showError(
+                                        context: context,
+                                        title: 'Error',
+                                        message:
+                                            'Failed to send OTP. Please try again.',
                                       );
                                       isLoading.value = false;
                                     }
                                   } catch (e) {
-                                    Get.snackbar(
-                                      'Error',
-                                      'Something went wrong while sending OTP.',
+                                    CustomSnackbar.showError(
+                                      context: context,
+                                      title: 'Error',
+                                      message:
+                                          'Something went wrong while sending OTP.',
                                     );
                                     isLoading.value = false;
                                   } finally {
@@ -380,11 +406,12 @@ class EditprofileController extends GetxController {
                                 updateField(fieldKey, value);
                                 switch (fieldKey) {
                                   case 'Name':
-                                    await saveName(value);
+                                    await saveName(value, context);
                                     isLoading.value = false;
                                     break;
                                   case 'Height':
                                     await saveHeight(
+                                      context,
                                       height!,
                                       day: DateTime.now().day,
                                       month: DateTime.now().month,
@@ -395,6 +422,7 @@ class EditprofileController extends GetxController {
                                     break;
                                   case 'Weight':
                                     await saveWeight(
+                                      context,
                                       weight!,
                                       day: DateTime.now().day,
                                       month: DateTime.now().month,
@@ -404,7 +432,7 @@ class EditprofileController extends GetxController {
                                     isLoading.value = false;
                                     break;
                                   case 'Address':
-                                    await saveAddress(value);
+                                    await saveAddress(value, context);
                                     isLoading.value = false;
                                     break;
                                 }
@@ -536,7 +564,7 @@ class EditprofileController extends GetxController {
                     if (otpVerificationStatus) {
                       localStorageManager.userMap['Email'] = initialValue;
                       email = initialValue;
-                      await signupController.updateGmail(email);
+                      await signupController.updateGmail(email , ctx);
                       if (onUpdated != null) onUpdated();
                     }
                   },
@@ -544,33 +572,41 @@ class EditprofileController extends GetxController {
 
                 const SizedBox(height: 15),
                 Obx(
-                      () => GestureDetector(
+                  () => GestureDetector(
                     onTap:
-                    isResendEnabled.value
-                        ? () async {
-                      isResendEnabled.value = false;
-                      startResendTimer(
-                        seconds: 30,
-                      ); // Start 30-sec timer
+                        isResendEnabled.value
+                            ? () async {
+                              isResendEnabled.value = false;
+                              startResendTimer(
+                                seconds: 30,
+                              ); // Start 30-sec timer
 
-                      final result = await signupController.gmailotp(value);
+                              final result = await signupController.gmailotp(
+                                value,
+                                ctx
+                              );
 
-                      if (result != false && result != null) {
-                        otpVerificationController.responseOtp = result;
-                        Get.snackbar(
-                          'Success',
-                          'OTP resent successfully.',
-                        );
-                      } else {
-                        Get.snackbar('Error', 'Failed to resend OTP.');
-                      }
-                    }
-                        : null,
+                              if (result != false && result != null) {
+                                otpVerificationController.responseOtp = result;
+                                CustomSnackbar.showSuccess(
+                                  context: context,
+                                  title: 'Success',
+                                  message: 'OTP resent successfully.',
+                                );
+                              } else {
+                                CustomSnackbar.showError(
+                                  context: context,
+                                  title: 'Error',
+                                  message: 'Failed to resend OTP.',
+                                );
+                              }
+                            }
+                            : null,
                     child: ShaderMask(
                       shaderCallback:
                           (bounds) => AppColors.primaryGradient.createShader(
-                        Rect.fromLTWH(0, 0, bounds.width, bounds.height),
-                      ),
+                            Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+                          ),
                       child: Text(
                         isResendEnabled.value
                             ? "Resend code"
@@ -585,7 +621,6 @@ class EditprofileController extends GetxController {
                     ),
                   ),
                 ),
-
               ],
             ),
           ),
@@ -649,7 +684,7 @@ class EditprofileController extends GetxController {
                     if (otpVerificationStatus) {
                       localStorageManager.userMap['PhoneNumber'] = initialValue;
                       phoneNumber = initialValue;
-                      await signupController.updatePhone(phoneNumber);
+                      await signupController.updatePhone(phoneNumber, ctx);
                       if (onUpdated != null) onUpdated();
                     }
                   },
@@ -666,16 +701,24 @@ class EditprofileController extends GetxController {
                                 seconds: 30,
                               ); // Start 30-sec timer
 
-                              final result = await signupController.phoneotp(value);
+                              final result = await signupController.phoneotp(
+                                value,
+                                ctx
+                              );
 
                               if (result != false && result != null) {
                                 otpVerificationController.responseOtp = result;
-                                Get.snackbar(
-                                  'Success',
-                                  'OTP resent successfully.',
+                                CustomSnackbar.showSuccess(
+                                  context: context,
+                                  title: 'Success',
+                                  message: 'OTP resent successfully.',
                                 );
                               } else {
-                                Get.snackbar('Error', 'Failed to resend OTP.');
+                                CustomSnackbar.showError(
+                                  context: context,
+                                  title: 'Error',
+                                  message: 'Failed to resend OTP.',
+                                );
                               }
                             }
                             : null,
@@ -715,7 +758,7 @@ class EditprofileController extends GetxController {
     void selectGender(String Usergender) async {
       localStorageManager.userMap['Gender'] = Usergender;
       gender = Usergender;
-      await saveGender(Usergender);
+      await saveGender(Usergender, context);
       Navigator.pop(context);
       if (onUpdated != null) onUpdated!();
     }
@@ -854,6 +897,7 @@ class EditprofileController extends GetxController {
                             selectedOccupation;
                         occupation = selectedOccupation!;
                         await saveOccupation(
+                          context,
                           selectedOccupation!,
                           day: DateTime.now().day,
                           month: DateTime.now().month,
@@ -984,7 +1028,7 @@ class EditprofileController extends GetxController {
                             updateField('DayOfBirth', selectedDate!.day);
                             updateField('MonthOfBirth', selectedDate!.month);
                             updateField('YearOfBirth', selectedDate!.year);
-                            await saveDOB(selectedDate!);
+                            await saveDOB(selectedDate!, context);
                           }
                           setState(() {});
                           Navigator.pop(dialogContext);
@@ -1011,12 +1055,12 @@ class EditprofileController extends GetxController {
     );
   }
 
-  Future<bool> saveName(String name) async {
-    return _saveField('Value', name, userNameApi);
+  Future<bool> saveName(String name, BuildContext context) async {
+    return _saveField(context, 'Value', name, userNameApi);
   }
 
-  Future<bool> saveAddress(String name) async {
-    return _saveField('Address', name, userAddressApi);
+  Future<bool> saveAddress(String name, BuildContext context) async {
+    return _saveField(context, 'Address', name, userAddressApi);
   }
 
   // Future<bool> SaveEmail(String email) async {
@@ -1028,6 +1072,7 @@ class EditprofileController extends GetxController {
   // }
 
   Future<bool> saveHeight(
+    BuildContext context,
     double height, {
     required int day,
     required int month,
@@ -1035,7 +1080,10 @@ class EditprofileController extends GetxController {
     required String time,
   }) async {
     return _saveField(
+      context,
+
       'Value',
+
       height,
       userHeightApi,
       payloadExtras: {'Day': day, 'Month': month, 'Year': year, 'Time': time},
@@ -1043,6 +1091,7 @@ class EditprofileController extends GetxController {
   }
 
   Future<bool> saveWeight(
+    BuildContext context,
     double weight, {
     required int day,
     required int month,
@@ -1050,18 +1099,21 @@ class EditprofileController extends GetxController {
     required String time,
   }) async {
     return _saveField(
+      context,
       'Value',
+
       weight,
       userWeightApi,
       payloadExtras: {'Day': day, 'Month': month, 'Year': year, 'Time': time},
     );
   }
 
-  Future<bool> saveGender(String gender) async {
-    return _saveField('Value', gender, userGenderApi);
+  Future<bool> saveGender(String gender, BuildContext context) async {
+    return _saveField(context, 'Value', gender, userGenderApi);
   }
 
   Future<bool> saveOccupation(
+    BuildContext context,
     String occupation, {
     required int day,
     required int month,
@@ -1069,7 +1121,9 @@ class EditprofileController extends GetxController {
     required String time,
   }) async {
     return _saveField(
+      context,
       'Name',
+
       occupation,
       userOccupationApi,
       payloadExtras: {'Day': day, 'Month': month, 'Year': year, 'Time': time},
@@ -1077,7 +1131,7 @@ class EditprofileController extends GetxController {
   }
 
   /// Optional: if DOB requires special payload, you can create a custom function for DOB below.
-  Future<bool> saveDOB(DateTime date) async {
+  Future<bool> saveDOB(DateTime date, BuildContext context) async {
     Map<String, dynamic> payload = {
       'DayOfBirth': date.day,
       'MonthOfBirth': date.month,
@@ -1093,19 +1147,33 @@ class EditprofileController extends GetxController {
       );
 
       if (response is http.Response) {
-        Get.snackbar('Error', 'Failed to save DOB: ${response.statusCode}');
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Failed to save DOB: ${response.statusCode}',
+        );
         return false;
       }
-      // Get.snackbar('Success', 'Success');
+      CustomSnackbar.showSuccess(
+        context: context,
+        title: 'Success',
+        message: '',
+      );
       return true;
     } catch (e) {
-      Get.snackbar('Error', 'Failed saving DOB');
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Failed saving DOB',
+      );
       return false;
     }
   }
 
   Future<bool> _saveField(
+    BuildContext context,
     String key,
+
     dynamic value,
     dynamic endpoint, {
     Map<String, Object>? payloadExtras,
@@ -1124,13 +1192,21 @@ class EditprofileController extends GetxController {
       );
 
       if (response is http.Response) {
-        Get.snackbar('Error', 'Failed to save $key: ${response.statusCode}');
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Failed to save $key: ${response.statusCode}',
+        );
         return false;
       }
 
       return true;
     } catch (e) {
-      Get.snackbar('Error', 'Failed saving $key');
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Failed saving $key',
+      );
       return false;
     }
   }

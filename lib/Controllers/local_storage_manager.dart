@@ -10,18 +10,18 @@ class LocalStorageManager extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    checksession();
+    checkSession();
   }
 
-  Future<void> checksession() async {
+  Future<void> checkSession() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
 
-      // Future.delayed(Duration.zero, () {
-      //   if (token == null) {
-      //     Get.offAll(() => SignInScreen());
-      //   }
-      // });
+      Future.delayed(Duration.zero, () {
+        if (token == null) {
+          Get.offAll(() => SignInScreen());
+        }
+      });
     await reloadUserMap();
   }
 
@@ -32,6 +32,8 @@ class LocalStorageManager extends GetxController {
 
     userMap.value = _safeDecode(userdataString);
     userGoalDataMap.value = _safeDecode(userGoaldataString);
+    userMap['Height'] ??= {'Value': null};
+    userMap['Weight'] ??= {'Value': null};
 
     print("✅ userMap loaded: ${userMap.value}");
     print("✅ userGoalDataMap loaded: ${userGoalDataMap.value}");

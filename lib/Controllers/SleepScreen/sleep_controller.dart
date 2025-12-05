@@ -398,11 +398,268 @@
 // }
 //
 
-import 'dart:async';
+// import 'dart:async';
+//
+// import 'package:fl_chart/fl_chart.dart';
+// import 'package:get/get.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:snevva/services/sleep_noticing_service.dart';
+//
+// class SleepController extends GetxController {
+//   /// User's original bedtime (when they intend to sleep)
+//   final Rx<DateTime?> bedtime = Rx<DateTime?>(DateTime.now());
+//
+//   /// User's wake-up time
+//   final  Rx<DateTime?> waketime = Rx<DateTime?>(DateTime.now().add(Duration(hours: 8)));
+//
+//   final  Rx<DateTime?> idealBedTime = Rx<DateTime?>(null);
+//
+//   /// Calculated new bedtime after phone usage logic
+//   final Rx<DateTime?> newBedtime = Rx<DateTime?>(null);
+//
+//   bool _didPhoneUsageOccur = false;
+//   Timer? _morningCheckTimer;
+//
+//
+//
+//   /// Resulting deep sleep duration
+//   final Rx<Duration?> deepSleepDuration = Rx<Duration?>(null);
+//   final RxList<Duration?> deepSleepHistory = <Duration?>[].obs;
+//
+//   final SleepNoticingService _sleepService = SleepNoticingService();
+//
+//   RxList<FlSpot> deepSleepSpots = <FlSpot>[].obs;
+//
+//   // For hours
+//   void _updateDeepSleepSpots() {
+//     final int todayIndex = DateTime.now().weekday - 1; // 0 = Monday, 6 = Sunday
+//
+//     // Build fixed 7-day list
+//     List<double> weeklyHours = List.generate(7, (i) {
+//       if (i < deepSleepHistory.length) {
+//         // History exists
+//         final duration = deepSleepHistory[i];
+//         return duration == null ? 0.0 : duration.inMinutes / 60.0;
+//       }
+//
+//       // Missing history
+//       if (i < todayIndex) {
+//         // Past day but user did not use tracker → show 0 hours
+//         return 0.0;
+//       }
+//
+//       // For today or future days → keep default
+//       return 0.0;
+//     });
+//     List<double> weeklyMinutes = List.generate(7, (i) {
+//       if (i < deepSleepHistory.length) {
+//         final duration = deepSleepHistory[i];
+//         return duration?.inMinutes.toDouble() ?? 0.0;   // <-- minutes
+//       }
+//
+//       // Missing history
+//       if (i < todayIndex) {
+//         return 0.0; // past day no tracking
+//       }
+//
+//       // Today or future days
+//       return 0.0;
+//     });
+//
+//
+//     // Convert to FL spots
+//     deepSleepSpots.value = List.generate(
+//       7,
+//           (i) => FlSpot(i.toDouble(), weeklyHours[i]),
+//     );
+//
+//     // Debug print
+//     for (var s in deepSleepSpots) {
+//       print("x=${s.x}, y=${s.y}");
+//     }
+//   }
+//
+//
+//
+//
+//   // // For Minutes
+//   // void _updateDeepSleepSpots() {
+//   //   deepSleepSpots.value = deepSleepHistory.asMap().entries.map((e) {
+//   //     final index = e.key;
+//   //     final minutes = e.value?.inMinutes ?? 0;
+//   //
+//   //     return FlSpot(index.toDouble(), minutes.toDouble());
+//   //   }).toList();
+//   // }
+//
+//
+//   @override
+//   void onInit() {
+//     super.onInit();
+//     _sleepService.onPhoneUsageDetected = onPhoneUsed;
+//     loadDeepSleepList();
+//   }
+//   Future<void> saveDeepSleepList(List<Duration?> list) async {
+//     final prefs = await SharedPreferences.getInstance();
+//
+//     // Convert Duration? → int? → String
+//     List<String> stringList = list.map((d) => d?.inHours.toString() ?? "null").toList();
+//
+//     prefs.setStringList("deepSleepHistory", stringList);
+//   }
+//   Future<void> loadDeepSleepList() async {
+//     final prefs = await SharedPreferences.getInstance();
+//     final stored = prefs.getStringList("deepSleepHistory");
+//
+//     if (stored == null) return;
+//
+//     deepSleepHistory.clear();
+//
+//     for (var s in stored) {
+//       if (s == "null") {
+//         deepSleepHistory.add(null);
+//       } else {
+//         deepSleepHistory.add(Duration(minutes: int.parse(s)));
+//       }
+//     }
+//
+//     _updateDeepSleepSpots();
+//   }
+//
+//
+//
+//   @override
+//   void onClose() {
+//     _sleepService.stopMonitoring();
+//     super.onClose();
+//   }
+//
+//   void startMonitoring() {
+//     _didPhoneUsageOccur = false; // reset
+//
+//     _startMorningAutoCheck();  // 🌟 NEW
+//
+//     _sleepService.startMonitoring();
+//   }
+//   void _startMorningAutoCheck() {
+//     _morningCheckTimer?.cancel();
+//
+//     // Check every 1 minute
+//     _morningCheckTimer = Timer.periodic(Duration(minutes: 1), (timer) {
+//       final now = DateTime.now();
+//
+//       // Condition: it's morning AND no phone usage happened
+//       if (!_didPhoneUsageOccur &&
+//           waketime.value != null &&
+//           now.isAfter(waketime.value!)) {
+//
+//         _handleSleepWithoutPhoneUsage();
+//
+//         timer.cancel();
+//       }
+//     });
+//   }
+//
+//   void _handleSleepWithoutPhoneUsage() {
+//     DateTime bt = bedtime.value!;
+//     DateTime wt = waketime.value!;
+//     if (wt.isBefore(bt)) {
+//       wt = wt.add(Duration(days: 1));
+//     }
+//
+//
+//     // Deep sleep = wake - bedtime
+//     final deep = wt.difference(bt);
+//
+//
+//     deepSleepDuration.value = deep;
+//     newBedtime.value = bt;
+//
+//     // Add to history
+//     deepSleepHistory.add(deep);
+//     if (deepSleepHistory.length > 7) {
+//       deepSleepHistory.removeAt(0);
+//     }
+//
+//     _updateDeepSleepSpots();
+//     saveDeepSleepList(deepSleepHistory.toList());
+//
+//     print("🌙 AUTO SLEEP GENERATED — No phone usage detected");
+//   }
+//
+//
+//
+//
+//   void stopMonitoring() {
+//     _morningCheckTimer?.cancel();
+//     _sleepService.stopMonitoring();
+//   }
+//
+//   /// Sets initial bedtime
+//   void setBedtime(DateTime time) {
+//     bedtime.value = time;
+//   }
+//
+//   /// Sets wake time
+//   void setWakeTime(DateTime time) {
+//     waketime.value = time;
+//   }
+//
+//   Duration? get idealWakeupDuration {
+//     final wake = waketime.value;
+//     final bed = bedtime.value;
+//
+//     if (wake == null || bed == null) return null;
+//
+//     return wake.difference(bed);
+//   }
+//
+//
+//   /// Main logic method → call this when the user uses the phone
+//   /// phoneUsageStart = timestamp when user started using the phone
+//   /// phoneUsageEnd   = timestamp when they stopped using the phone
+//   void onPhoneUsed(DateTime phoneUsageStart, DateTime phoneUsageEnd) async {
+//     _didPhoneUsageOccur = true;
+//     if (bedtime.value == null) return;
+//     if (waketime.value == null) return;
+//
+//     final Duration usageDuration = phoneUsageEnd.difference(phoneUsageStart);
+//
+//     final DateTime computedBedtime = _sleepService.calculateNewBedtime(
+//       bedtime: bedtime.value!,
+//       phoneUsageStart: phoneUsageStart,
+//       phoneUsageDuration: usageDuration,
+//     );
+//
+//     newBedtime.value = computedBedtime;
+//
+//     // calculate deep sleep
+//     deepSleepDuration.value = _sleepService.calculateDeepSleep(
+//       computedBedtime,
+//       waketime.value!,
+//     );
+//     if (deepSleepDuration.value != null) {
+//       deepSleepHistory.add(deepSleepDuration.value!);
+//
+//
+//       if (deepSleepHistory.length > 7) {
+//         deepSleepHistory.removeAt(0);
+//       }
+//
+//       _updateDeepSleepSpots();
+//
+//       await saveDeepSleepList(deepSleepHistory.toList());
+//
+//     }
+//
+//   }
+// }
 
+import 'dart:async';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/services/sleep_noticing_service.dart';
 
 class SleepController extends GetxController {
@@ -410,69 +667,206 @@ class SleepController extends GetxController {
   final Rx<DateTime?> bedtime = Rx<DateTime?>(DateTime.now());
 
   /// User's wake-up time
-  final  Rx<DateTime?> waketime = Rx<DateTime?>(DateTime.now().add(Duration(hours: 8)));
+  final Rx<DateTime?> waketime = Rx<DateTime?>(
+    DateTime.now().add(Duration(hours: 8)),
+  );
 
-  final  Rx<DateTime?> idealBedTime = Rx<DateTime?>(null);
+  final Rx<DateTime?> idealBedTime = Rx<DateTime?>(null);
 
   /// Calculated new bedtime after phone usage logic
   final Rx<DateTime?> newBedtime = Rx<DateTime?>(null);
 
+  bool _didPhoneUsageOccur = false;
+  Timer? _morningCheckTimer;
 
   /// Resulting deep sleep duration
   final Rx<Duration?> deepSleepDuration = Rx<Duration?>(null);
-  final RxList<Duration?> deepSleepHistory = <Duration?>[].obs;
+  final RxList<Duration?> deepSleepDurationList = RxList<Duration?>();
+
+  /// Store sleep data with day index as key (0=Mon, 1=Tue, ..., 6=Sun)
+  final RxMap<int, Duration> deepSleepHistory = <int, Duration>{}.obs;
 
   final SleepNoticingService _sleepService = SleepNoticingService();
 
   RxList<FlSpot> deepSleepSpots = <FlSpot>[].obs;
 
+  /// Clean method to update graph spots
   void _updateDeepSleepSpots() {
-    deepSleepSpots.value = deepSleepHistory.asMap().entries.map((e) {
-      final index = e.key;
-      final duration = e.value;
-      final hours = duration?.inMinutes == null ? 0.0 : duration!.inMinutes / 60.0;
-      return FlSpot(index.toDouble(), hours);
-    }).toList();
-  }
+    final int todayIndex = DateTime.now().weekday - 1; // 0=Mon, 6=Sun
 
+    List<FlSpot> spots = [];
+
+    // Only add spots for days that have actual data AND are not in the future
+    for (int dayIndex = 0; dayIndex <= todayIndex; dayIndex++) {
+      if (deepSleepHistory.containsKey(dayIndex)) {
+        final hours = deepSleepHistory[dayIndex]!.inMinutes / 60.0;
+        spots.add(FlSpot(dayIndex.toDouble(), hours));
+      }
+    }
+
+    deepSleepSpots.value = spots;
+
+    // Debug output
+    print("📊 Graph data updated:");
+    for (var spot in spots) {
+      final day =
+          ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][spot.x.toInt()];
+      print("   $day: ${spot.y.toStringAsFixed(1)}h");
+    }
+  }
 
   @override
   void onInit() {
     super.onInit();
     _sleepService.onPhoneUsageDetected = onPhoneUsed;
+    loadDeepSleepData();
   }
-  Future<void> saveDeepSleepList(List<Duration?> list) async {
+
+  /// Save sleep data to SharedPreferences
+  Future<void> saveDeepSleepData() async {
+    print("savedDeepSleepData getting called");
     final prefs = await SharedPreferences.getInstance();
 
-    // Convert Duration? → int? → String
-    List<String> stringList = list.map((d) => d?.inHours.toString() ?? "null").toList();
+    // Save as JSON-like string: "dayIndex:minutes,dayIndex:minutes,..."
+    final dataString = deepSleepHistory.entries
+        .map((e) => "${e.key}:${e.value.inMinutes}")
+        .join(",");
+    print("saveDeepSleepData $dataString");
 
-    prefs.setStringList("deepSleepHistory", stringList);
+    await prefs.setString("deepSleepData", dataString);
+    print("💾 Saved sleep data: $dataString");
   }
 
+  /// Load sleep data from SharedPreferences
+  Future<void> loadDeepSleepData() async {
+    print("Sleep Controller LoadSleepData");
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getString("deepSleepData");
+    print('Sleep Controller stored : $stored');
+
+    if (stored == null || stored.isEmpty) {
+      print("📭 No previous sleep data found");
+      return;
+    }
+
+    deepSleepHistory.clear();
+
+    // Parse: "dayIndex:minutes,dayIndex:minutes,..."
+    final entries = stored.split(",");
+    for (var entry in entries) {
+      final parts = entry.split(":");
+      if (parts.length == 2) {
+        final dayIndex = int.tryParse(parts[0]);
+        final minutes = int.tryParse(parts[1]);
+
+        if (dayIndex != null &&
+            minutes != null &&
+            dayIndex >= 0 &&
+            dayIndex < 7) {
+          deepSleepHistory[dayIndex] = Duration(minutes: minutes);
+        }
+      }
+    }
+
+    _updateDeepSleepSpots();
+    print("📂 Loaded sleep data for ${deepSleepHistory.length} days");
+  }
+
+  /// Clear data for new week (call this on Monday if needed)
+  Future<void> clearWeekData() async {
+    deepSleepHistory.clear();
+    deepSleepSpots.clear();
+    await saveDeepSleepData();
+    print("🗑️ Cleared week data");
+  }
 
   @override
   void onClose() {
+    _morningCheckTimer?.cancel();
     _sleepService.stopMonitoring();
     super.onClose();
   }
 
   void startMonitoring() {
+    _didPhoneUsageOccur = false;
+    _startMorningAutoCheck();
     _sleepService.startMonitoring();
+    print("🚀 Sleep monitoring started");
+  }
+
+  void _startMorningAutoCheck() {
+    _morningCheckTimer?.cancel();
+
+    _morningCheckTimer = Timer.periodic(Duration(minutes: 1), (timer) {
+      final now = DateTime.now();
+
+      if (!_didPhoneUsageOccur &&
+          waketime.value != null &&
+          now.isAfter(waketime.value!)) {
+        _handleSleepWithoutPhoneUsage();
+        timer.cancel();
+      }
+    });
+  }
+
+  void _handleSleepWithoutPhoneUsage() {
+    DateTime bt = bedtime.value!;
+    DateTime wt = waketime.value!;
+
+    // Handle overnight sleep (wake time is next day)
+    if (wt.isBefore(bt)) {
+      wt = wt.add(Duration(days: 1));
+    }
+
+    final deep = wt.difference(bt);
+    deepSleepDuration.value = deep;
+    newBedtime.value = bt;
+
+    final todayIndex = DateTime.now().weekday - 1;
+
+    // Store today's sleep data
+    deepSleepHistory[todayIndex] = deep;
+
+    _updateDeepSleepSpots();
+    saveDeepSleepData();
+
+    final dayName =
+        ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][todayIndex];
+    print("🌙 AUTO SLEEP - $dayName: ${deep.inHours}h ${deep.inMinutes % 60}m");
   }
 
   void stopMonitoring() {
+    _morningCheckTimer?.cancel();
     _sleepService.stopMonitoring();
+    print("🛑 Sleep monitoring stopped");
   }
 
-  /// Sets initial bedtime
   void setBedtime(DateTime time) {
     bedtime.value = time;
   }
 
-  /// Sets wake time
   void setWakeTime(DateTime time) {
     waketime.value = time;
+  }
+
+  Future<void> saveCurrentDayDeepSleepData(Duration sleep) async {
+    print("saveCurrentDayDeepSleepData");
+    final prefs = await SharedPreferences.getInstance();
+    final deepSleepString = fmtDuration(sleep);
+    print("saveCurrentDayDeepSleepData $deepSleepString");
+    prefs.setString("currentDaySleep", deepSleepString);
+  }
+
+  Future<void> loadCurrentDayDeepSleepData() async {
+    print("loadCurrentDayDeepSleepData");
+    final prefs = await SharedPreferences.getInstance();
+    final deepSleepString = prefs.getString("currentDaySleep");
+
+    if (deepSleepString != null) {
+      deepSleepDuration.value = parseDuration(deepSleepString);
+    } else {
+      deepSleepDuration.value = Duration.zero;
+    }
   }
 
   Duration? get idealWakeupDuration {
@@ -484,13 +878,11 @@ class SleepController extends GetxController {
     return wake.difference(bed);
   }
 
-
-  /// Main logic method → call this when the user uses the phone
-  /// phoneUsageStart = timestamp when user started using the phone
-  /// phoneUsageEnd   = timestamp when they stopped using the phone
+  /// Called when phone usage is detected
   void onPhoneUsed(DateTime phoneUsageStart, DateTime phoneUsageEnd) async {
-    if (bedtime.value == null) return;
-    if (waketime.value == null) return;
+    _didPhoneUsageOccur = true;
+
+    if (bedtime.value == null || waketime.value == null) return;
 
     final Duration usageDuration = phoneUsageEnd.difference(phoneUsageStart);
 
@@ -502,24 +894,34 @@ class SleepController extends GetxController {
 
     newBedtime.value = computedBedtime;
 
-    // calculate deep sleep
+    // --- FIX NEGATIVE DEEP SLEEP ---
+    DateTime correctedWake = waketime.value!;
+
+    if (correctedWake.isBefore(computedBedtime)) {
+      correctedWake = correctedWake.add(Duration(days: 1));
+    }
+    // -------------------------------
+
     deepSleepDuration.value = _sleepService.calculateDeepSleep(
       computedBedtime,
-      waketime.value!,
+      correctedWake,
     );
+    saveCurrentDayDeepSleepData(
+      _sleepService.calculateDeepSleep(computedBedtime, correctedWake),
+    );
+
+    deepSleepDurationList.add(deepSleepDuration.value);
+
     if (deepSleepDuration.value != null) {
-      deepSleepHistory.add(deepSleepDuration.value!);
+      final todayIndex = DateTime.now().weekday - 1;
 
-
-      if (deepSleepHistory.length > 7) {
-        deepSleepHistory.removeAt(0);
-      }
-
+      deepSleepHistory[todayIndex] = deepSleepDuration.value!;
       _updateDeepSleepSpots();
+      await saveDeepSleepData();
 
-      await saveDeepSleepList(deepSleepHistory.toList());
-
+      final day = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][todayIndex];
+      final d = deepSleepDuration.value!;
+      print("✅ SLEEP DATA - $day: ${d.inHours}h ${d.inMinutes % 60}m");
     }
-
   }
 }

@@ -23,7 +23,7 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
   @override
   void initState() {
     super.initState();
-    controller.fetchWaterRecords();
+    controller.fetchWaterRecords(context);
     // optionally load monthly data now if needed
   }
 

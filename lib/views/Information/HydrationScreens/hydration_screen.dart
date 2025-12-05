@@ -1,4 +1,5 @@
 import 'package:snevva/views/Information/HydrationScreens/hydration_bottom_sheet.dart';
+import 'package:snevva/views/Information/HydrationScreens/water_bottom_sheet.dart';
 import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.dart';
 import 'package:snevva/views/Reminder/reminder.dart';
 import 'package:wheel_picker/wheel_picker.dart';
@@ -19,7 +20,8 @@ class HydrationScreen extends StatefulWidget {
 class _HydrationScreenState extends State<HydrationScreen>
     with SingleTickerProviderStateMixin {
   final WheelPickerController wheel = WheelPickerController(itemCount: 90);
-  final HydrationStatController controller = Get.find<HydrationStatController>();
+  final HydrationStatController controller =
+      Get.find<HydrationStatController>();
 
   late final AnimationController animationController;
   late Animation<double> numberAnimation;
@@ -41,8 +43,10 @@ class _HydrationScreenState extends State<HydrationScreen>
     );
 
     lastValue = controller.waterIntake.value.toDouble();
-    numberAnimation = Tween<double>(begin: 0.0, end: lastValue)
-        .animate(animationController);
+    numberAnimation = Tween<double>(
+      begin: 0.0,
+      end: lastValue,
+    ).animate(animationController);
     animationController.forward();
 
     intakeWorker = ever<double>(controller.waterIntake, (newValue) {
@@ -81,7 +85,7 @@ class _HydrationScreenState extends State<HydrationScreen>
     }
 
     controller.waterIntake.value += controller.addWaterValue.value;
-    controller.saveWaterRecord(controller.addWaterValue.value);
+    controller.saveWaterRecord(controller.addWaterValue.value, context);
     controller.saveWaterIntakeLocally();
 
     lastPressTime = currentTime;
@@ -90,18 +94,19 @@ class _HydrationScreenState extends State<HydrationScreen>
   void _showCooldownWarning() {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Slow Down!"),
-        content: const Text(
-          "You're adding water too quickly. Please take a short break to stay safe.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text("Okay"),
+      builder:
+          (_) => AlertDialog(
+            title: const Text("Slow Down!"),
+            content: const Text(
+              "You're adding water too quickly. Please take a short break to stay safe.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text("Okay"),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -119,16 +124,26 @@ class _HydrationScreenState extends State<HydrationScreen>
       /// ✅ Floating Button Bar
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: Obx(
-              () => FloatingButtonBar(
+        child: Obx(() {
+          print(controller.addWaterValue.value);
+          return FloatingButtonBar(
             onStatBtnTap: () => Get.to(() => const HydrationStatistics()),
             onReminderBtnTap: () => Get.to(() => const Reminder()),
             onAddBtnTap: _onAddButtonPressed,
-            onAddBtnLongTap: () =>
-                showHydrationBottomSheetModal(context, isDarkMode, height),
+            onAddBtnLongTap: () async {
+              final result = await showHydrationBottomSheetModal(context, isDarkMode, height);
+
+              if (result != null) {
+                controller.addWaterValue.value = result;
+
+                // 🔥 animate the add button value immediately
+                _animateTo(controller.waterIntake.value.toDouble());
+              }
+            },
+
             addWaterValue: controller.addWaterValue.value,
-          ),
-        ),
+          );
+        }),
       ),
 
       /// ✅ Main Body
@@ -144,13 +159,14 @@ class _HydrationScreenState extends State<HydrationScreen>
                 children: [
                   AnimatedBuilder(
                     animation: numberAnimation,
-                    builder: (context, child) => Text(
-                      "${numberAnimation.value.toInt()}",
-                      style: const TextStyle(
-                        fontSize: 64,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    builder:
+                        (context, child) => Text(
+                          "${numberAnimation.value.toInt()}",
+                          style: const TextStyle(
+                            fontSize: 64,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                   ),
                   const Padding(
                     padding: EdgeInsets.only(bottom: 10),
@@ -167,13 +183,18 @@ class _HydrationScreenState extends State<HydrationScreen>
 
               Text(
                 'Wow, keep going!',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500 , color: grey ),
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w500,
+                  color: grey,
+                ),
               ),
               const SizedBox(height: 10),
 
               /// 🎯 Water Goal Display & Update Button
-              Obx(
-                    () => Column(
+              Obx(() {
+                print(controller.waterGoal.value);
+                return Column(
                   children: [
                     Text(
                       "Daily Goal: ${controller.waterGoal.value} ml",
@@ -184,7 +205,7 @@ class _HydrationScreenState extends State<HydrationScreen>
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
-                      icon: const Icon(Icons.edit, size: 18 , color: white,),
+                      icon: const Icon(Icons.edit, size: 18, color: white),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryColor,
                         padding: const EdgeInsets.symmetric(
@@ -192,35 +213,29 @@ class _HydrationScreenState extends State<HydrationScreen>
                           vertical: 10,
                         ),
                       ),
-                      label: const Text("Update Water Goal" , style: TextStyle(color: white),),
+                      label: const Text(
+                        "Update Water Goal",
+                        style: TextStyle(color: white),
+                      ),
                       onPressed: () async {
-                        await showModalBottomSheet<int>(
+                        print("BEFORE opening sheet: ${controller.waterGoal.value}");
+
+                        await showWaterBottomSheet(
                           context: context,
-                          isScrollControlled: true,
-                          backgroundColor: Colors.transparent,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(20),
-                            ),
-                          ),
-                          builder: (_) => StepCounterBottomSheet(
-                            unit: "ml",
-                            image: "assets/Images/Water/water-glass.svg",
-                            heading: "Set your daily water goal",
-                            subHeading: "Keep your body hydrated!",
-                            multiplier: 250,
-                            initialIndex:
-                            (controller.waterGoal.value ~/ 250) - 1,
-                            onConfirm: (value) async {
-                              await controller.updateWaterGoal(value);
-                            },
-                          ),
+                          isDarkMode: isDarkMode,
+                          onConfirm: (value) async {
+                            print("OnConfirm called with value: $value");
+                            await controller.updateWaterGoal(value , context);
+                            print("After updateWaterGoal: ${controller.waterGoal.value}");
+                          },
                         );
+
+                        print("AFTER closing sheet: ${controller.waterGoal.value}");
                       },
                     ),
                   ],
-                ),
-              ),
+                );
+              }),
 
               const SizedBox(height: 25),
 
@@ -239,24 +254,26 @@ class _HydrationScreenState extends State<HydrationScreen>
 }
 
 /// ✅ Optional helper: Show a reusable bottom sheet for water goal
-Future<int?> showWaterGoalBottomSheet(BuildContext context) {
-  return showModalBottomSheet<int>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (_) => StepCounterBottomSheet(
-      unit: "ml",
-      image: "assets/Images/Water/water.svg",
-      heading: "Set your daily water goal",
-      subHeading: "Keep your body hydrated!",
-      multiplier: 250,
-      initialIndex: 7, // Default = 2000ml
-      onConfirm: (value) {
-        print("Water goal set to $value ml");
-      },
-    ),
-  );
-}
+// Future<int?> showWaterGoalBottomSheet(BuildContext context) {
+//   return showModalBottomSheet<int>(
+//     context: context,
+//     isScrollControlled: true,
+//     backgroundColor: Colors.transparent,
+//     shape: const RoundedRectangleBorder(
+//       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+//     ),
+//     builder:
+//         (_) => StepCounterBottomSheet(
+//           unit: "ml",
+//           image: "assets/Images/Water/water.svg",
+//           heading: "Set your daily water goal",
+//           subHeading: "Keep your body hydrated!",
+//           multiplier: 250,
+//           initialIndex: 7,
+//           // Default = 2000ml
+//           onConfirm: (value) {
+//             print("Water goal set to $value ml");
+//           },
+//         ),
+//   );
+// }

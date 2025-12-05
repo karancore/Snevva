@@ -3,7 +3,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import '../../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
-import '../../Controllers/localStorageManager.dart';
+import '../../Controllers/local_storage_manager.dart';
 import '../../Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
 import '../../Widgets/CommonWidgets/custom_appbar.dart';
 import '../../Widgets/CommonWidgets/custom_outlined_button.dart';

@@ -54,7 +54,7 @@ class BmiResultPage extends StatelessWidget {
     controller.age.value = age;
     controller.bmi_text.value = getStatus(bmi);
 
-    controller.loadAllHealthTips();
+    controller.loadAllHealthTips(context);
 
     final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
     final status = getStatus(bmi);

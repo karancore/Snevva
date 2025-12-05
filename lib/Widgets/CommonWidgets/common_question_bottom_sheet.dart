@@ -198,6 +198,7 @@ class _CommonQuestionBottomSheetState extends State<CommonQuestionBottomSheet> {
                         isDarkMode: widget.isDarkMode,
                         buttonName: "Next",
                         onTap: widget.onNext,
+                        backgroundColor: AppColors.primaryColor,
                       ),
 
                     ],

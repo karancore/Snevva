@@ -4,7 +4,7 @@ import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 
-import '../../Controllers/localStorageManager.dart';
+import '../../Controllers/local_storage_manager.dart';
 import '../../Widgets/CommonWidgets/custom_outlined_button.dart';
 import '../../consts/consts.dart';
 

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:snevva/views/Sign%20Up/sign_in_screen.dart';
+import '../../common/custom_snackbar.dart';
 import '../../env/env.dart';
 import '../../services/auth_header_helper.dart';
 import '../../services/encryption_service.dart';
@@ -19,7 +20,9 @@ class UpdateOldPasswordController extends GetxController {
   var isChecked = false.obs;
 
   bool get hasLetter => RegExp(r'[A-Za-z]').hasMatch(password.value);
+
   bool get hasNumberOrSymbol => RegExp(r'[\d!@#$&*~]').hasMatch(password.value);
+
   bool get hasMinLength => password.value.length >= 10;
 
   bool get isPasswordValid => hasLetter && hasNumberOrSymbol && hasMinLength;
@@ -31,40 +34,44 @@ class UpdateOldPasswordController extends GetxController {
     return password.value == confirmPassword.value;
   }
 
-
-  bool validateAndShowError() {
+  bool validateAndShowError(BuildContext context) {
     if (password.value.isEmpty || confirmPassword.value.isEmpty) {
-      _showSnackbar("Error", "Please fill in both password fields", Colors.red);
+      CustomSnackbar.showError(
+        context: context,
+        title: "Error",
+        message: "Please fill in both password fields",
+      );
       return false;
     }
 
     if (!isPasswordValid) {
-      _showSnackbar("Weak Password", "Your password doesn't meet the required strength", Colors.orange);
+      CustomSnackbar.showError(
+        context: context,
+        title: "Weak Password",
+        message: "Your password doesn't meet the required strength",
+      );
       return false;
     }
 
     if (!isConfirmPasswordValid) {
-      _showSnackbar("Mismatch", "Passwords do not match", Colors.orange);
+      CustomSnackbar.showError(
+        context: context,
+        title: "Mismatch",
+        message: "Passwords do not match",
+      );
       return false;
     }
 
     if (!isChecked.value) {
-      _showSnackbar("Agreement Required", "You must agree to the terms to proceed", Colors.red);
+      CustomSnackbar.showError(
+        context: context,
+        title: "Agreement Required",
+        message: "You must agree to the terms to proceed",
+      );
       return false;
     }
 
     return true;
-  }
-
-  void _showSnackbar(String title, String message, Color backgroundColor) {
-    Get.snackbar(
-      title,
-      message,
-      snackPosition: SnackPosition.BOTTOM,
-      margin: const EdgeInsets.all(20),
-      backgroundColor: backgroundColor,
-      colorText: Colors.white,
-    );
   }
 
   void resetState() {
@@ -76,11 +83,12 @@ class UpdateOldPasswordController extends GetxController {
   }
 
   Future<void> updateOldPasswordWithGmail(
-      String email,
-      String otp,
-      bool verificationStatus,
-      String password,
-      ) async {
+    String email,
+    String otp,
+    bool verificationStatus,
+    String password,
+      BuildContext context
+  ) async {
     final newPlanePassword = jsonEncode({
       'Gmail': email,
       'Otp': otp,
@@ -106,32 +114,37 @@ class UpdateOldPasswordController extends GetxController {
       );
 
       if (response.statusCode == 200) {
-        // Get.snackbar(
-        //   'Success',
-        //   'Password Updated Successfully with gmail',
-        //   snackPosition: SnackPosition.BOTTOM,
-        //   margin: EdgeInsets.all(20),
-        // );
+        CustomSnackbar.showSuccess(
+          context: context,
+          title:
+          'Success',
+          message:  'Password Updated Successfully with gmail',
+          
+          
+        );
 
         resetState();
         Get.to(SignInScreen());
       }
     } catch (e) {
-      Get.snackbar(
+      CustomSnackbar.showError(
+        context: context,
+        title:
         'Failed',
-        'Password Updation Failed.',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
+        message:  'Password Updation Failed.',
+        
+        
       );
     }
   }
 
   Future<void> updateOldPasswordWithPhone(
-      String phone,
-      String otp,
-      bool verificationStatus,
-      String password,
-      ) async {
+    String phone,
+    String otp,
+    bool verificationStatus,
+    String password,
+      BuildContext context
+  ) async {
     final newPlanePassword = jsonEncode({
       'PhoneNumber': phone,
       'Otp': otp,
@@ -157,24 +170,27 @@ class UpdateOldPasswordController extends GetxController {
       );
 
       if (response.statusCode == 200) {
-        // Get.snackbar(
-        //   'Success',
-        //   'Password Updated Successfully with phone',
-        //   snackPosition: SnackPosition.BOTTOM,
-        //   margin: EdgeInsets.all(20),
-        // );
+        CustomSnackbar.showSuccess(
+          context: context,
+          title:
+          'Success',
+          message:  'Password Updated Successfully with phone',
+
+
+        );
 
         resetState();
         Get.to(SignInScreen());
       }
     } catch (e) {
-      Get.snackbar(
+      CustomSnackbar.showError(
+        context: context,
+        title:
         'Failed',
-        'Password Updation Failed.',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
+        message:  'Password Updation Failed.',
+        
+        
       );
     }
   }
-
 }

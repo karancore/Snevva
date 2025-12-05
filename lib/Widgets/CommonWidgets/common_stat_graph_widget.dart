@@ -25,14 +25,27 @@ class CommonStatGraphWidget extends StatelessWidget {
   final double yAxisMaxValue;
   final String measureUnit;
   final List<FlSpot> points; // Data points for the graph
-  final List<String>? weekLabels; // Can be days (Mon-Sun) or month days (1,5,10...)
+  final List<String>?
+  weekLabels; // Can be days (Mon-Sun) or month days (1,5,10...)
 
   @override
   Widget build(BuildContext context) {
-    final String formattedDate = DateFormat('d MMM, yyyy').format(DateTime.now());
+    final String formattedDate = DateFormat(
+      'd MMM, yyyy',
+    ).format(DateTime.now());
+
+    final List<String> fixedWeekLabels = const [
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat",
+      "Sun",
+    ];
 
     // Use provided labels, or default weekly labels
-    final labels = weekLabels ?? const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final labels = weekLabels ?? fixedWeekLabels;
 
     // If labels > 7, treat it as monthly data
     final bool isMonthly = labels.length > 7;
@@ -44,17 +57,22 @@ class CommonStatGraphWidget extends StatelessWidget {
     }
 
     // Clamp Y values to graph max
-    final clampedPoints = points.map((p) {
-      double y = p.y;
-      if (y > yAxisMaxValue) y = yAxisMaxValue;
-      if (y < 0) y = 0;
-      return FlSpot(p.x, y);
-    }).toList();
+    final clampedPoints =
+        points.map((p) {
+          double y = p.y;
+          if (y > yAxisMaxValue) y = yAxisMaxValue;
+          // if (y < 0) y = 0;
+          return FlSpot(
+            double.parse(p.x.toStringAsFixed(2)),
+            double.parse(y.toStringAsFixed(2)),
+          );
+        }).toList();
 
     // Compute X-axis limits dynamically
-    final double maxX = clampedPoints.isNotEmpty
-        ? clampedPoints.map((e) => e.x).reduce((a, b) => a > b ? a : b)
-        : 6;
+    final double maxX =
+        clampedPoints.isNotEmpty
+            ? clampedPoints.map((e) => e.x).reduce((a, b) => a > b ? a : b)
+            : 6;
 
     return Material(
       elevation: 3,
@@ -85,7 +103,10 @@ class CommonStatGraphWidget extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     border: Border.all(color: mediumGrey, width: border04px),
                     borderRadius: BorderRadius.circular(4),
@@ -105,7 +126,9 @@ class CommonStatGraphWidget extends StatelessWidget {
               child: LineChart(
                 LineChartData(
                   minX: 0,
-                  maxX: maxX,
+
+                  maxX: 6,
+
                   minY: 0,
                   maxY: yAxisMaxValue,
                   titlesData: FlTitlesData(
@@ -116,9 +139,15 @@ class CommonStatGraphWidget extends StatelessWidget {
                         interval: isMonthly ? 5 : 1, // space labels for month
                         getTitlesWidget: (value, _) {
                           final int index = value.toInt();
-                          if (index >= 0 && index < labels.length) {
-                            final label = labels[index];
-                            final bool isToday = !isMonthly && index == todayIndex;
+
+                          // Use fixed weekly labels only when not monthly
+                          final List<String> activeLabels =
+                              isMonthly ? labels : fixedWeekLabels;
+
+                          if (index >= 0 && index < activeLabels.length) {
+                            final label = activeLabels[index];
+                            final bool isToday =
+                                !isMonthly && index == todayIndex;
 
                             return Padding(
                               padding: const EdgeInsets.only(top: 6),
@@ -126,14 +155,19 @@ class CommonStatGraphWidget extends StatelessWidget {
                                 label,
                                 style: TextStyle(
                                   fontSize: 9,
-                                  fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                                  color: isToday
-                                      ? AppColors.primaryColor
-                                      : Colors.grey.shade600,
+                                  fontWeight:
+                                      isToday
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                  color:
+                                      isToday
+                                          ? AppColors.primaryColor
+                                          : Colors.grey.shade600,
                                 ),
                               ),
                             );
                           }
+
                           return const SizedBox.shrink();
                         },
                       ),
@@ -151,16 +185,19 @@ class CommonStatGraphWidget extends StatelessWidget {
                       ),
                     ),
                     rightTitles: AxisTitles(
-                        sideTitles: SideTitles(showTitles: false)),
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
                     topTitles: AxisTitles(
-                        sideTitles: SideTitles(showTitles: false)),
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
                   ),
                   gridData: FlGridData(
                     show: true,
                     horizontalInterval: gridLineInterval,
                     drawVerticalLine: false,
-                    getDrawingHorizontalLine: (_) =>
-                    const FlLine(color: mediumGrey, strokeWidth: 0.8),
+                    getDrawingHorizontalLine:
+                        (_) =>
+                            const FlLine(color: mediumGrey, strokeWidth: 0.8),
                   ),
                   borderData: FlBorderData(
                     show: true,
@@ -183,7 +220,7 @@ class CommonStatGraphWidget extends StatelessWidget {
                         gradient: LinearGradient(
                           colors: [
                             AppColors.primaryColor.withOpacity(0.3),
-                            Colors.transparent
+                            Colors.transparent,
                           ],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,

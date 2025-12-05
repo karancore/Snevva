@@ -2,7 +2,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
-import 'package:snevva/Controllers/localStorageManager.dart';
+import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Widgets/home_wrapper.dart';
 import 'package:snevva/views/EmergencyContact/emergency_contact.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
@@ -172,10 +172,13 @@ class DrawerMenuWidget extends StatelessWidget {
 
                         await prefs.clear();
 
-                        final localStorageManager =
-                            Get.find<LocalStorageManager>();
-                        localStorageManager.userMap.clear();
+                        localStorageManager.userMap.value = {};
+                        localStorageManager.userMap.refresh();
 
+                        localStorageManager.userGoalDataMap.value = {};
+                        localStorageManager.userGoalDataMap.refresh();
+
+                        Get.reset();
                         // Clear all navigation history and go to SignInScreen
                         Get.offAll(() => SignInScreen());
                       },

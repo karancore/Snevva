@@ -77,6 +77,7 @@ class _VitalsScreenState extends State<VitalsScreen> {
             year: DateTime.now().year,
             time: TimeOfDay.now().format(context),
           ),
+          context,
         );
 
         if (await res) {
@@ -149,7 +150,6 @@ class _VitalsScreenState extends State<VitalsScreen> {
           }
           Get.back();
         },
-
       ),
       backgroundColor: isDarkMode ? Colors.black : Colors.white,
       body: SafeArea(

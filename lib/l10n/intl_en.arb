@@ -30,7 +30,7 @@
 
   "two" : "Forgot Password And Otp Screen",
 
-  "forgetPasswordScreenText": "Please Enter Your E-mail / Phone Address To\\nRecieve A Verification Code",
+  "forgetPasswordScreenText": "Enter your email or mobile number to receive a verification code",
   "sendCode": "Send Code",
   "verify": "Verify",
   "resendCode": "Resend Code",

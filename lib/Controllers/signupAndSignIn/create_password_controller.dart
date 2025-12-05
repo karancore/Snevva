@@ -1,7 +1,7 @@
-
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/services/auth_header_helper.dart';
 import 'package:snevva/services/encryption_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
@@ -58,6 +58,7 @@ class CreatePasswordController extends GetxController {
     String otp,
     bool verificationStatus,
     String password,
+    BuildContext context,
   ) async {
     final newPlanePassword = jsonEncode({
       'Gmail': email,
@@ -84,16 +85,14 @@ class CreatePasswordController extends GetxController {
       );
 
       if (response.statusCode == 200) {
-        
         final responseBody = jsonDecode(response.body);
         print("response Body: $responseBody");
-        
+
         final encryptedBody = responseBody['data'];
         print("👉 Encrypted token response: $encryptedBody");
 
         final responseHash = response.headers['x-data-hash'];
         print("👉 Response hash: $responseHash");
-
 
         final decrypted = EncryptionService.decryptData(
           encryptedBody,
@@ -101,13 +100,11 @@ class CreatePasswordController extends GetxController {
         );
         print("Decrypted token response: $decrypted");
 
-
-         if (decrypted == null) {
-          Get.snackbar(
-            'Error',
-            'Failed to decrypt response',
-            snackPosition: SnackPosition.BOTTOM,
-            margin: EdgeInsets.all(20),
+        if (decrypted == null) {
+          CustomSnackbar.showError(
+            context: context,
+            title: 'Error',
+            message: 'Failed to decrypt response',
           );
           return false;
         }
@@ -120,25 +117,22 @@ class CreatePasswordController extends GetxController {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
 
-
         confirmPasswordController.clear();
         passwordController.clear();
         isChecked.value = false;
+        CustomSnackbar.showSuccess(
+          context: context,
+          title: 'Success',
+          message: 'Password Created Successfully with gmail',
+        );
 
         Get.offAll(() => ProfileSetupInitial()); // 👈 clears previous stack
-        // Get.snackbar(
-        //   'Success',
-        //   'Password Created Successfully with gmail',
-        //   snackPosition: SnackPosition.BOTTOM,
-        //   margin: EdgeInsets.all(20),
-        // );
       }
     } catch (e) {
-      Get.snackbar(
-        'Failed',
-        'Password Creation Failed',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Failed',
+        message: 'Password Creation Failed',
       );
     }
   }
@@ -148,6 +142,7 @@ class CreatePasswordController extends GetxController {
     String otp,
     bool verificationStatus,
     String password,
+    BuildContext context,
   ) async {
     final newPlanePassword = jsonEncode({
       'PhoneNumber': phone,
@@ -174,23 +169,21 @@ class CreatePasswordController extends GetxController {
       );
 
       if (response.statusCode == 200) {
-        // Get.snackbar(
-        //   'Success',
-        //   'Password Created Successfully with phone',
-        //   snackPosition: SnackPosition.BOTTOM,
-        //   margin: EdgeInsets.all(20),
-        // );
+        CustomSnackbar.showSuccess(
+          context: context,
+          title: 'Success',
+          message: 'Password Created Successfully with phone',
+        );
         confirmPasswordController.clear();
         passwordController.clear();
         isChecked.value = false;
         Get.to(ProfileSetupInitial());
       }
     } catch (e) {
-      Get.snackbar(
-        'Failed',
-        'Password Creation Failed',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Failed',
+        message: 'Password Creation Failed',
       );
     }
   }

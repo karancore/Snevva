@@ -64,7 +64,7 @@ class _AddReminderState extends State<AddReminder> {
           width: width,
           isDarkMode: isDarkMode,
           buttonName: widget.reminder == null ? "Save" : "Update",
-          onTap: () => controller.validateAndSave(),
+          onTap: () => controller.validateAndSave(context),
         ),
       ),
     );

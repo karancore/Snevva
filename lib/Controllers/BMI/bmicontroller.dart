@@ -5,9 +5,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import '../../common/custom_snackbar.dart';
 import '../../env/env.dart';
 import '../../services/api_service.dart';
-import '../localStorageManager.dart';
+import '../local_storage_manager.dart';
 
 class Bmicontroller extends GetxController {
   RxInt age = 0.obs;
@@ -21,7 +22,6 @@ class Bmicontroller extends GetxController {
 
   var isLoading = true.obs;
   var hasError = false.obs;
-
 
   Future<void> loadUserBMI() async {
     // // final prefs = await SharedPreferences.getInstance();
@@ -138,14 +138,16 @@ class Bmicontroller extends GetxController {
     }
   }
 
-  Future<void> loadAllHealthTips() async {
+  Future<void> loadAllHealthTips(BuildContext context) async {
     isLoading.value = true;
     hasError.value = false;
     try {
       await GetCustomHealthTips();
     } catch (e) {
       hasError.value = true;
-      Get.snackbar('Error', 'Failed to load health tips');
+      CustomSnackbar.showError(
+          context: context,
+          title:'Error', message:  'Failed to load health tips');
     } finally {
       isLoading.value = false;
     }

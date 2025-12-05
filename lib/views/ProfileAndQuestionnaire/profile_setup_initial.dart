@@ -6,8 +6,8 @@ import 'package:snevva/Widgets/CommonWidgets/common_date_widget.dart';
 import 'package:snevva/models/queryParamViewModels/date_of_birth.dart';
 import 'package:snevva/models/queryParamViewModels/occupation_vm.dart';
 import 'package:snevva/models/queryParamViewModels/string_value_vm.dart';
-import 'package:snevva/views/ProfileAndQuestionnaire/height_and_weight.dart';
-import '../../Controllers/localStorageManager.dart';
+import 'package:snevva/views/ProfileAndQuestionnaire/height_and_weight_screen.dart';
+import '../../Controllers/local_storage_manager.dart';
 import '../../Widgets/ProfileSetupAndQuestionnaire/gender_radio_button.dart';
 import '../../consts/consts.dart';
 
@@ -18,11 +18,10 @@ class ProfileSetupInitial extends StatefulWidget {
   State<ProfileSetupInitial> createState() => _ProfileSetupInitialState();
 }
 
-final ProfileSetupController initialProfileController =Get.find<ProfileSetupController>();
+final ProfileSetupController initialProfileController =
+    Get.find<ProfileSetupController>();
 
 class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
-
-
   @override
   void initState() {
     super.initState();
@@ -42,7 +41,9 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
     final storedGender = localStorageManager.userMap['Gender'];
     print("Loaded gender from local storage: $storedGender");
 
-    if (storedGender != null && storedGender is String && storedGender.isNotEmpty) {
+    if (storedGender != null &&
+        storedGender is String &&
+        storedGender.isNotEmpty) {
       initialProfileController.userGenderValue.value = storedGender;
     }
 
@@ -52,10 +53,11 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
 
     print("Occupation from local storage: $storedOccupation");
 
-    if (storedOccupation != null && storedOccupation is String && storedOccupation.isNotEmpty) {
+    if (storedOccupation != null &&
+        storedOccupation is String &&
+        storedOccupation.isNotEmpty) {
       initialProfileController.selectedOccupation.value = storedOccupation;
     }
-
 
     // Load or default DOB
     final day = localStorageManager.userMap['DayOfBirth'];
@@ -72,9 +74,8 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
     }
 
     initialProfileController.userDob.value =
-    "${dob!.day.toString().padLeft(2, '0')}/${dob!.month.toString().padLeft(2, '0')}/${dob!.year}";
+        "${dob!.day.toString().padLeft(2, '0')}/${dob!.month.toString().padLeft(2, '0')}/${dob!.year}";
   }
-
 
   DateTime? dob;
 
@@ -84,7 +85,9 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
     // final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
     final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
-    final LocalStorageManager localStorageManager = Get.put(LocalStorageManager());
+    final LocalStorageManager localStorageManager = Get.put(
+      LocalStorageManager(),
+    );
 
     final day = localStorageManager.userMap['DayOfBirth'];
     final month = localStorageManager.userMap['MonthOfBirth'];
@@ -100,29 +103,23 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
       localStorageManager.userMap['YearOfBirth'] = dob!.year;
     }
 
-// Also update observable DOB string for later use
+    // Also update observable DOB string for later use
     initialProfileController.userDob.value =
-    "${dob!.day.toString().padLeft(2, '0')}/${dob!.month.toString().padLeft(2, '0')}/${dob!.year}";
-
-
+        "${dob!.day.toString().padLeft(2, '0')}/${dob!.month.toString().padLeft(2, '0')}/${dob!.year}";
 
     return Scaffold(
-      body: SafeArea(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: Text(
+          AppLocalizations.of(context)!.setupProfile,
+          style: TextStyle(fontSize: 26, fontWeight: FontWeight.w600),
+        ),
+      ),
+      body: Align(
+        alignment: Alignment.bottomCenter,
         child: Column(
           children: [
-            Align(
-              alignment: Alignment.topLeft,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-
-                ),
-                child: Text(
-                  AppLocalizations.of(context)!.setupProfile,
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
+            // Align(
             Expanded(
               flex: 2,
               child: Column(
@@ -132,7 +129,7 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                     () => Stack(
                       children: [
                         CircleAvatar(
-                          radius: 50,
+                          radius: 60,
                           backgroundImage:
                               initialProfileController.pickedImage.value != null
                                   ? FileImage(
@@ -149,13 +146,17 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                   .pickImageFromGallery();
                             },
                             icon: SizedBox(
-                              height: 32 ,
+                              height: 32,
                               width: 32,
                               child: CircleAvatar(
                                 backgroundColor: AppColors.primaryColor,
-                                child: Icon(Icons.camera_alt , color: white, size: 22,),
+                                child: Icon(
+                                  Icons.camera_alt,
+                                  color: white,
+                                  size: 22,
+                                ),
                               ),
-                            )
+                            ),
                           ),
                         ),
                       ],
@@ -164,13 +165,13 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                 ],
               ),
             ),
-        
+
             Expanded(
               flex: 8,
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryColor,
+                  gradient: AppColors.primaryGradient,
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(20),
                     topRight: Radius.circular(20),
@@ -195,44 +196,52 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                           ),
                           const SizedBox(height: 8),
                           Material(
-
-                            color: AppColors.primaryColor, // background matches parent
+                            color: Colors.transparent,
+                            // background matches parent
                             borderRadius: BorderRadius.circular(4),
                             child: TextFormField(
-                              controller: initialProfileController.userNameController,
+                              controller:
+                                  initialProfileController.userNameController,
                               style: const TextStyle(color: white),
                               decoration: InputDecoration(
                                 filled: true,
-                                fillColor: Colors.transparent, // use Material's color
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                hintText: AppLocalizations.of(context)!.pleaseEnterYourName,
-                                hintStyle: const TextStyle(color: Colors.grey),
+                                fillColor: Colors.transparent,
+                                // use Material's color
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 12,
+                                ),
+                                hintText:
+                                    AppLocalizations.of(
+                                      context,
+                                    )!.pleaseEnterYourName,
+                                hintStyle: const TextStyle(color: white),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(4),
                                   borderSide: const BorderSide(
-                                    width: 1,          // <-- increased width
+                                    width: 1, // <-- increased width
                                     color: white,
                                   ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(4),
                                   borderSide: const BorderSide(
-                                    width: 1,          // <-- increased width
-                                    color: Colors.white70, // lighter when not focused
+                                    width: 1, // <-- increased width
+                                    color:
+                                        Colors
+                                            .white70, // lighter when not focused
                                   ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(4),
                                   borderSide: const BorderSide(
-                                    width: 1,          // <-- thicker on focus
+                                    width: 1, // <-- thicker on focus
                                     color: white,
                                   ),
                                 ),
                               ),
                             ),
                           ),
-
-
 
                           const SizedBox(height: 20),
                           Text(
@@ -244,25 +253,30 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                             ),
                           ),
                           const SizedBox(height: 6),
-        
+
                           CommonDateWidget(
                             width: width,
                             isDarkMode: isDarkMode,
-                            initialDate: dob, // ← this will now be today if null
+                            initialDate: dob,
+                            // ← this will now be today if null
                             setDate: (DateTime newDate) {
-                              localStorageManager.userMap['DayOfBirth'] = newDate.day;
-                              localStorageManager.userMap['MonthOfBirth'] = newDate.month;
-                              localStorageManager.userMap['YearOfBirth'] = newDate.year;
-        
+                              localStorageManager.userMap['DayOfBirth'] =
+                                  newDate.day;
+                              localStorageManager.userMap['MonthOfBirth'] =
+                                  newDate.month;
+                              localStorageManager.userMap['YearOfBirth'] =
+                                  newDate.year;
+
                               // Keep observable DOB updated
                               initialProfileController.userDob.value =
-                              "${newDate.day.toString().padLeft(2, '0')}/${newDate.month.toString().padLeft(2, '0')}/${newDate.year}";
-        
-                              print("Date updated: ${initialProfileController.userDob.value}");
+                                  "${newDate.day.toString().padLeft(2, '0')}/${newDate.month.toString().padLeft(2, '0')}/${newDate.year}";
+
+                              print(
+                                "Date updated: ${initialProfileController.userDob.value}",
+                              );
                             },
                           ),
-        
-        
+
                           Transform.translate(
                             offset: Offset(0, -10),
                             child: Text(
@@ -276,7 +290,7 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                           ),
                           GenderRadioButton(),
                           SizedBox(height: defaultSize - 20),
-        
+
                           Text(
                             'Your Occupation',
                             style: const TextStyle(
@@ -287,26 +301,37 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                           ),
                           const SizedBox(height: defaultSize - 20),
                           Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(width: 1, color: white),
-                                borderRadius: BorderRadius.circular(4),
-                                color:  AppColors.primaryColor,
-                              ),
-                              child: Obx(() => DropdownFlutter<String>(
-                                hintText: 'Select Occupation',
+                            decoration: BoxDecoration(
+                              border: Border.all(width: 1, color: white),
+                              borderRadius: BorderRadius.circular(4),
+                              color: AppColors.primaryColor,
+                            ),
+                            child: Obx(
+                              () => DropdownFlutter<String>(
+                                hintText: 'Occupation',
                                 items: initialProfileController.occupationList,
-                                initialItem: initialProfileController.selectedOccupation.value.isEmpty
-                                    ? null
-                                    : initialProfileController.selectedOccupation.value,
-        
+                                initialItem:
+                                    initialProfileController
+                                            .selectedOccupation
+                                            .value
+                                            .isEmpty
+                                        ? null
+                                        : initialProfileController
+                                            .selectedOccupation
+                                            .value,
+
                                 onChanged: (value) {
                                   if (value != null) {
-                                    initialProfileController.selectedOccupation.value = value;
-        
+                                    initialProfileController
+                                        .selectedOccupation
+                                        .value = value;
+
                                     final now = DateTime.now();
-                                    final formattedTime = TimeOfDay.now().format(context);
-        
-                                    localStorageManager.userMap['OccupationData'] = {
+                                    final formattedTime = TimeOfDay.now()
+                                        .format(context);
+
+                                    localStorageManager
+                                        .userMap['OccupationData'] = {
                                       'Day': now.day,
                                       'Month': now.month,
                                       'Year': now.year,
@@ -318,87 +343,107 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                 },
                                 decoration: CustomDropdownDecoration(
                                   closedSuffixIcon: Icon(
-                                    Icons.keyboard_arrow_down, // default arrow icon
-                                    color: white,              // change this to any color you want
+                                    Icons.keyboard_arrow_down,
+                                    // default arrow icon
+                                    color:
+                                        white, // change this to any color you want
                                   ),
                                   expandedSuffixIcon: Icon(
-                                    Icons.keyboard_arrow_up, // default arrow icon
-                                    color: white,              // change this to any color you want
+                                    Icons.keyboard_arrow_up,
+                                    // default arrow icon
+                                    color:
+                                        white, // change this to any color you want
                                   ),
 
-                                  closedFillColor: AppColors.primaryColor,
-                                  expandedFillColor: AppColors.primaryColor,
-                                  hintStyle: TextStyle(color: white),
-                                  headerStyle: TextStyle(color: white),
+                                  closedFillColor: Colors.transparent,
+                                  expandedFillColor: white,
 
-                                  listItemStyle: TextStyle(color: white),
+                                  //hintStyle: TextStyle(color: AppColors.w.withOpacity(0.5)),
+                                  listItemStyle: TextStyle(
+                                    color: AppColors.primaryColor,
+                                  ),
                                 ),
-
                               ),
-                            )
+                            ),
                           ),
                           const SizedBox(height: 22),
-                          Obx(() => Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            decoration: BoxDecoration(color: white , ),
-                            width: double.infinity,
-                            child: SafeArea(
+                          Obx(
+                            () => Center(
                               child: CustomOutlinedButton(
                                 isWhiteReq: true,
                                 width: width,
                                 isDarkMode: isDarkMode,
                                 buttonName: "Submit",
                                 fontWeight: FontWeight.bold,
-                                onTap: initialProfileController.isFormValid.value
-                                    ? () {
-                                  final nameModel = StringValueVM(
-                                    value: initialProfileController.userNameText.value,
-                                  );
+                                onTap:
+                                    initialProfileController.isFormValid.value
+                                        ? () {
+                                          final nameModel = StringValueVM(
+                                            value:
+                                                initialProfileController
+                                                    .userNameText
+                                                    .value,
+                                          );
 
-                                  final genderModel = StringValueVM(
-                                    value: initialProfileController.userGenderValue.value,
-                                  );
+                                          final genderModel = StringValueVM(
+                                            value:
+                                                initialProfileController
+                                                    .userGenderValue
+                                                    .value,
+                                          );
 
-                                  final dobString = initialProfileController.userDob.value;
-                                  final parts = dobString.split('/');
-                                  int? day, month, year;
-                                  if (parts.length >= 3) {
-                                    day = int.tryParse(parts[0]);
-                                    month = int.tryParse(parts[1]);
-                                    year = int.tryParse(parts[2]);
-                                  }
+                                          final dobString =
+                                              initialProfileController
+                                                  .userDob
+                                                  .value;
+                                          final parts = dobString.split('/');
+                                          int? day, month, year;
+                                          if (parts.length >= 3) {
+                                            day = int.tryParse(parts[0]);
+                                            month = int.tryParse(parts[1]);
+                                            year = int.tryParse(parts[2]);
+                                          }
 
-                                  final dobModel = DateOfBirthVM(
-                                    dayOfBirth: day,
-                                    monthOfBirth: month,
-                                    yearOfBirth: year,
-                                  );
+                                          final dobModel = DateOfBirthVM(
+                                            dayOfBirth: day,
+                                            monthOfBirth: month,
+                                            yearOfBirth: year,
+                                          );
 
-                                  final occupationModel = OccupationVM(
-                                    day: DateTime.now().day,
-                                    month: DateTime.now().month,
-                                    year: DateTime.now().year,
-                                    time: TimeOfDay.now().format(context),
-                                    name: initialProfileController.selectedOccupation.value,
-                                  );
+                                          final occupationModel = OccupationVM(
+                                            day: DateTime.now().day,
+                                            month: DateTime.now().month,
+                                            year: DateTime.now().year,
+                                            time: TimeOfDay.now().format(
+                                              context,
+                                            ),
+                                            name:
+                                                initialProfileController
+                                                    .selectedOccupation
+                                                    .value,
+                                          );
 
-                                  initialProfileController.saveData(
-                                    nameModel,
-                                    genderModel,
-                                    dobModel,
-                                    occupationModel,
-                                  );
+                                          initialProfileController.saveData(
+                                            nameModel,
+                                            genderModel,
+                                            dobModel,
+                                            occupationModel,
+                                            context
+                                          );
 
-                                  Get.to(
-                                    HeightAndWeight(
-                                      gender: initialProfileController.userGenderValue.toString(),
-                                    ),
-                                  );
-                                }
-                                    : null, // disables the button
+                                          Get.to(
+                                            HeightWeightScreen(
+                                              gender:
+                                                  initialProfileController
+                                                      .userGenderValue
+                                                      .toString(),
+                                            ),
+                                          );
+                                        }
+                                        : null, // disables the button
                               ),
                             ),
-                          )),
+                          ),
                         ],
                       ),
                     ),

@@ -5,9 +5,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import '../../common/custom_snackbar.dart';
 import '../../env/env.dart';
 import '../../services/api_service.dart';
-import '../localStorageManager.dart';
+import '../local_storage_manager.dart';
 
 
 class HealthTipsController extends GetxController {
@@ -20,27 +21,29 @@ class HealthTipsController extends GetxController {
   var isLoading = true.obs;
   var hasError = false.obs;
 
-  @override
-  void onInit() {
-    super.onInit();
-    loadAllHealthTips();
-  }
+  // @override
+  // void onInit() {
+  //   super.onInit();
+  //   loadAllHealthTips();
+  // }
 
-  Future<void> loadAllHealthTips() async {
+  Future<void> loadAllHealthTips(BuildContext context) async {
     isLoading.value = true;
     hasError.value = false;
     try {
-      await GetGeneralhealthtips();
+      await GetGeneralhealthtips(context);
       await GetCustomHealthTips();
     } catch (e) {
       hasError.value = true;
-      Get.snackbar('Error', 'Failed to load health tips');
+      CustomSnackbar.showError(
+          context: context,
+          title:'Error', message: 'Failed to load health tips');
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<void> GetGeneralhealthtips() async {
+  Future<void> GetGeneralhealthtips(BuildContext context) async {
     try {
       Map<String, dynamic> payload = {
         'Tags': ["Health Tips","General"],
@@ -57,7 +60,9 @@ class HealthTipsController extends GetxController {
       );
 
       if (response is http.Response) {
-        Get.snackbar('Error', 'Failed to load general tips: ${response.statusCode}');
+        CustomSnackbar.showError(
+            context: context,
+            title:'Error', message:  'Failed to load general tips: ${response.statusCode}');
         generalTips = [];
         randomTip = null;
         return;
@@ -76,7 +81,9 @@ class HealthTipsController extends GetxController {
     } catch (e) {
       generalTips = [];
       randomTip = null;
-      Get.snackbar('Error', 'Failed to load general tips');
+      CustomSnackbar.showError(
+          context: context,
+          title:'Error', message:  'Failed to load general tips');
     }
   }
 

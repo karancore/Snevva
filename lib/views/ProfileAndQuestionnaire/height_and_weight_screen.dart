@@ -10,14 +10,14 @@ import '../../Controllers/ProfileSetupAndQuestionnare/height_and_weight_controll
 import '../../Widgets/HeightAndWeight/input_bottom_sheet.dart';
 import '../../consts/consts.dart';
 
-class HeightAndWeight extends StatelessWidget {
+class HeightWeightScreen extends StatelessWidget {
   final String gender;
 
-  const HeightAndWeight({super.key, required this.gender});
+  const HeightWeightScreen({super.key, required this.gender});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(HeightANDWeightController());
+    final controller = Get.put(HeightWeightController());
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
@@ -248,7 +248,7 @@ class HeightAndWeight extends StatelessWidget {
                                       value: controller.weightInKg.value,
                                     );
 
-                                    controller.saveData(heightModel, weightModel);
+                                    controller.saveData(heightModel, weightModel , context);
 
                                     Get.to(QuestionnaireScreen());
                                   },

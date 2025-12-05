@@ -1,17 +1,30 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:snevva/Controllers/HealthTips/healthtips_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Information/Health%20Tips/Nutrition_tips.dart/nutrition_tips.dart';
 
-class HealthTipsScreen extends StatelessWidget {
+class HealthTipsScreen extends StatefulWidget {
+  @override
+  State<HealthTipsScreen> createState() => _HealthTipsScreenState();
+}
+
+class _HealthTipsScreenState extends State<HealthTipsScreen> {
+  final controller = Get.put(HealthTipsController());
+
+  @override
+  void initState() {
+    super.initState();
+    controller.loadAllHealthTips(context);
+  }
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
     final isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
-    final controller = Get.put(HealthTipsController());
+
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
@@ -57,27 +70,27 @@ class HealthTipsScreen extends StatelessWidget {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: Image.network(
-                      randomTip?["ThumbnailMedia"]?["CdnUrl"] ??
+                    child: CachedNetworkImage(
+                      imageUrl: randomTip?["ThumbnailMedia"]?["CdnUrl"] ??
                           "https://d3byuuhm0bg21i.cloudfront.net/derivatives/c3d47d00-8a25-46ef-bba3-ec5609c49b08/thumb.webp" ,
                       height: 200,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
+                      errorWidget: (context, error, stackTrace) => Container(
                         color: Colors.grey[200],
                         height: 200,
                         child: const Center(
                             child: Icon(Icons.broken_image, size: 40)),
                       ),
-                      loadingBuilder: (context, child, progress) {
-                        if (progress == null) return child;
-                        return Container(
-                          height: 200,
-                          color: Colors.grey[100],
-                          child: const Center(
-                              child: CircularProgressIndicator()),
-                        );
-                      },
+                      // loadingBuilder: (context, child, progress) {
+                      //   if (progress == null) return child;
+                      //   return Container(
+                      //     height: 200,
+                      //     color: Colors.grey[100],
+                      //     child: const Center(
+                      //         child: CircularProgressIndicator()),
+                      //   );
+                      //},
                     ),
                   ),
                 ),

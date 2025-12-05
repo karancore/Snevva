@@ -83,6 +83,7 @@ dependencies:
   pedometer: ^4.0.1
   flutter_foreground_task: ^9.1.0
   screen_brightness: ^1.0.0
+  cached_network_image: ^3.4.1
 
 
   alarm: ^5.1.5

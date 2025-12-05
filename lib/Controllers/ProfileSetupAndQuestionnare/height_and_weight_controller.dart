@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
-import 'package:snevva/Controllers/localStorageManager.dart';
+import 'package:snevva/Controllers/local_storage_manager.dart';
+import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/models/queryParamViewModels/height_vm.dart';
@@ -7,16 +8,15 @@ import 'package:snevva/models/queryParamViewModels/weight_vm.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:http/http.dart' as http;
 
-class HeightANDWeightController extends GetxController {
-
+class HeightWeightController extends GetxController {
   // height
 
   RxDouble heightInCm = 140.0.obs;
+
   double get heightInFeet => heightInCm.value / 30.48;
 
-
-
   int get feet => (heightInCm.value / 30.48).floor();
+
   int get inches => (((heightInCm.value / 30.48) - feet) * 11).round();
   final localStorageManager = Get.put(LocalStorageManager());
 
@@ -30,19 +30,18 @@ class HeightANDWeightController extends GetxController {
 
   // Weight
 
-// var weight = 52.0.obs;
-
+  // var weight = 52.0.obs;
 
   var weightInKg = 52.0.obs;
 
-  void setWeight(double weightValue){
+  void setWeight(double weightValue) {
     weightInKg.value = weightValue;
   }
 
-
- Future<void> saveData(
+  Future<void> saveData(
     HeightVM height,
     WeightVM weight,
+    BuildContext context,
   ) async {
     final List<Map<String, dynamic>> fields = [
       {
@@ -53,7 +52,7 @@ class HeightANDWeightController extends GetxController {
           'Year': height.year,
           'Time': height.time,
           'Value': height.value,
-      },
+        },
       },
       {
         'endpoint': userWeightApi,
@@ -68,14 +67,19 @@ class HeightANDWeightController extends GetxController {
     ];
 
     try {
-      localStorageManager.userMap['Height']['Value'] = double.parse(height.value!.toStringAsFixed(2));
+      localStorageManager.userMap['Height']['Value'] = double.parse(
+        height.value!.toStringAsFixed(2),
+      );
       heightInCm.value = double.parse(height.value!.toStringAsFixed(2));
 
-      localStorageManager.userMap['Weight']['Value'] = double.parse(weight.value!.toStringAsFixed(2));
+      localStorageManager.userMap['Weight']['Value'] = double.parse(
+        weight.value!.toStringAsFixed(2),
+      );
       weightInKg.value = double.parse(weight.value!.toStringAsFixed(2));
 
-      print("🔄 Updating local storage with height and weight data: ${localStorageManager.userMap}");
-
+      print(
+        "🔄 Updating local storage with height and weight data: ${localStorageManager.userMap}",
+      );
 
       bool allSuccessful = true;
       for (final item in fields) {
@@ -91,35 +95,29 @@ class HeightANDWeightController extends GetxController {
         );
 
         if (response is http.Response) {
-          Get.snackbar(
-            'Error',
-            'Failed to save ${payload.keys.first}.',
-            snackPosition: SnackPosition.BOTTOM,
-            margin: EdgeInsets.all(20),
+          CustomSnackbar.showError(
+            context: context,
+            title: 'Error',
+            message: 'Failed to save ${payload.keys.first}.',
           );
           return;
         }
       }
-      if(allSuccessful) {
-        // Get.snackbar(
-        //   'Success',
-        //   'Profile data saved successfully.',
-        //   snackPosition: SnackPosition.BOTTOM,
-        //   margin: EdgeInsets.all(20),
-        // );
+      if (allSuccessful) {
+        CustomSnackbar.showSuccess(
+          title: 'Success',
+          message: 'Profile data saved successfully.',
+          context: context
+        );
       }
-    } catch (e) {
-      // print("❌ Exception during profile save: $e");
-      // print(stack);
-      Get.snackbar(
-        'Error',
-        'Failed to save profile data',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
+    } catch (e , stack) {
+      print("❌ Exception during profile save: $e");
+      print(stack);
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Failed to save profile data',
       );
     }
   }
-
-
-
 }

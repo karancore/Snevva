@@ -5,7 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
-import 'package:snevva/Controllers/localStorageManager.dart';
+import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Widgets/Dashboard/dashboard_services_widget.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';

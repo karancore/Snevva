@@ -1,4 +1,4 @@
-
+import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/views/Sign%20Up/sign_in_screen.dart';
 import '../../Controllers/language/language_controller.dart';
 import '../../Widgets/CommonWidgets/custom_outlined_button.dart';
@@ -39,8 +39,12 @@ class SelectLanguageScreen extends StatelessWidget {
                 languageText,
                 style: TextStyle(
                   fontSize: 16,
-                  color: isSelected? white : isDarkMode? white : black,
-
+                  color:
+                      isSelected
+                          ? white
+                          : isDarkMode
+                          ? white
+                          : black,
                 ),
               ),
             ),
@@ -50,7 +54,7 @@ class SelectLanguageScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      bottomNavigationBar:  Padding(
+      bottomNavigationBar: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: CustomOutlinedButton(
           buttonName: AppLocalizations.of(context)!.confirmLanguageButton,
@@ -59,14 +63,12 @@ class SelectLanguageScreen extends StatelessWidget {
           onTap: () {
             final selectedLang = langController.selectedLanguage.value;
             if (selectedLang.isNotEmpty) {
-              Get.off(() => SignInScreen(),);
+              Get.off(() => SignInScreen());
             } else {
-              Get.snackbar(
-                'Oops',
-                'Please select a language first',
-                snackPosition: SnackPosition.BOTTOM,
-                padding: EdgeInsets.all(10),
-                margin: EdgeInsets.symmetric(horizontal: 10, vertical: 20),
+              CustomSnackbar.showError(
+                context: context,
+                title: 'Oops',
+                message: 'Please select a language first',
               );
             }
           },
@@ -74,7 +76,7 @@ class SelectLanguageScreen extends StatelessWidget {
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: width * 0.1 ),
+          padding: EdgeInsets.symmetric(horizontal: width * 0.1),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -88,7 +90,7 @@ class SelectLanguageScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
               ),
-              SizedBox(height: defaultSize ),
+              SizedBox(height: defaultSize),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [

@@ -72,17 +72,16 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
 
         Row(
           children: [
-            const Expanded(child: Divider(thickness: 0.4)),
+            const Expanded(child: Divider(thickness: 0.6)),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Text(AppLocalizations.of(context)!.socialSignIn),
+              child: Text(AppLocalizations.of(context)!.socialSignInSingIn),
             ),
-            const Expanded(child: Divider(thickness: 0.4)),
+            const Expanded(child: Divider(thickness: 0.6)),
           ],
         ),
 
         const SizedBox(height: 18),
-
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -150,7 +149,7 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
         ),
 
         const SizedBox(height: 20),
-        const Divider(thickness: 0.4),
+        const Divider(thickness: 0.6),
 
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -169,7 +168,7 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
                 widget.bottomText2,
                 style: const TextStyle(
                   decoration: TextDecoration.underline,
-                  decorationColor: Color(0xFFB579FF),
+                  decorationColor: AppColors.primaryColor,
                   color: AppColors.primaryColor,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,

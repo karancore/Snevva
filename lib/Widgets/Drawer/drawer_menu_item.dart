@@ -52,7 +52,7 @@ class DrawerMenuItem extends StatelessWidget {
                     ),
                     if (isDisabled)
                       TextSpan(
-                        text: "Incoming",
+                        text: "Upcoming",
                         style: TextStyle(
                           fontStyle: FontStyle.italic,
                           fontWeight: FontWeight.w600,

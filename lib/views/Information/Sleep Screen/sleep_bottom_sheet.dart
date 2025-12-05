@@ -249,6 +249,7 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
           CustomOutlinedButton(
             width: width,
             isDarkMode: isDarkMode,
+            backgroundColor: AppColors.primaryColor,
             buttonName: "Next",
             onTap: () async {
               // --- SLEEP TIME ---

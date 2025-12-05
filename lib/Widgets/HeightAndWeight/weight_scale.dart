@@ -19,7 +19,7 @@ class _WeightScaleState extends State<WeightScale>
   final double minWeight = 0;
   final double maxWeight = 150;
 
-  final HeightANDWeightController controller = Get.find();
+  final HeightWeightController controller = Get.find();
 
   @override
   void initState() {

@@ -24,7 +24,7 @@ class _ReminderState extends State<Reminder> {
   }
 
   Future<void> _loadData() async {
-    await controller.getReminders();
+    await controller.getReminders(context);
     await controller.loadAllReminderLists();
   }
 

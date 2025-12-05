@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:snevva/Controllers/localStorageManager.dart';
+import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Widgets/home_wrapper.dart';
+import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/views/Dashboard/dashboard.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
@@ -18,36 +19,10 @@ class SignInController extends GetxController {
 
   final localstorage = Get.put(LocalStorageManager());
 
-  void showSnackbar(String title, String message) {
-    try {
-      // Use WidgetsBinding to schedule the snackbar after frame is built
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (Get.overlayContext != null) {
-          Get.snackbar(
-            title,
-            message,
-            snackPosition: SnackPosition.BOTTOM,
-            margin: EdgeInsets.all(20),
-          );
-        } else {
-          // Fallback: print to console if overlay not available
-          print('$title: $message');
-        }
-      });
-    } catch (e) {
-      print('$title: $message');
-    }
-  }
 
-  Future<bool> signInUsingEmail(String email, String password) async {
+  Future<bool> signInUsingEmail(String email, String password , BuildContext context) async {
     if (email.isEmpty) {
-      // Get.snackbar(
-      //   'Error',
-      //   'Email cannot be empty',
-      //   snackPosition: SnackPosition.BOTTOM,
-      //   margin: EdgeInsets.all(20),
-      // );
-      showSnackbar("Error", "Email cannot be empty");
+      CustomSnackbar.showError(context: context , title: "Error", message:  "Email cannot be empty");
       return false;
     }
 
@@ -56,124 +31,105 @@ class SignInController extends GetxController {
     try {
       final uri = Uri.parse("$baseUrl$signInEmailEndpoint");
       final encryptedEmail = EncryptionService.encryptData(plainEmail);
-      final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
 
+      final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
       headers['X-Data-Hash'] = encryptedEmail['hash']!;
 
-      final encryptedBody = jsonEncode({
+      final encryptedRequestBody = jsonEncode({
         'data': encryptedEmail['encryptedData'],
       });
 
       final response = await http.post(
         uri,
         headers: headers,
-        body: encryptedBody,
+        body: encryptedRequestBody,
       );
+
       print(response.statusCode);
+      print(response.body);
 
-      if (response.statusCode == 200 ) {
+      // ❌ FIX 1 — real condition
+      if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
-        // print("response Body: $responseBody");
+        print("response Body: $responseBody");
 
-        final encryptedBody = responseBody['data'];
-        // print("👉 Encrypted token response: $encryptedBody");
+        // ❌ FIX 2 — rename var
+        final encryptedResponse = responseBody['data'];
+        print("👉 Encrypted token response: $encryptedResponse");
 
         final responseHash = response.headers['x-data-hash'];
-        // print("👉 Response hash: $responseHash");
 
         final decrypted = EncryptionService.decryptData(
-          encryptedBody,
+          encryptedResponse,
           responseHash!,
         );
 
-        print("Decrypted token response: $decrypted");
-        print('');
+        print("Decrypted token response: $decrypted\n");
 
         if (decrypted == null) {
-          showSnackbar('Error', 'Failed to decrypt response');
+          CustomSnackbar.showError(context: context , title: 'Error', message: 'Failed to decrypt response');
           return false;
         }
 
         final Map<String, dynamic> responseData = jsonDecode(decrypted);
+
+        // ❌ FIX 3 — check server status
+        // if (responseData['status'] != true) {
+        //   CustomSnackbar.showError(context: context , title: "Error", message:  "Wrong credentials");
+        //   return false;
+        // }
+
+        // token
         final token = responseData['data'];
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
 
+        // fetch user data
         final userdata = await userInfo();
         final userProfileData = userdata['data'];
         final gender = userdata['data']['Gender'];
+
         await prefs.setString('user_gender', gender);
-        print("$userProfileData");
         localstorage.userMap.value = userProfileData;
 
-        if (userProfileData != null && userProfileData is Map) {
-          // Convert the Map to a JSON string
+        if (userProfileData is Map) {
           final userJson = jsonEncode(userProfileData);
-          // Store it in SharedPreferences
           await prefs.setString('userdata', userJson);
-          print("User data saved to SharedPreferences.");
         }
-        //  else {
-        //   print("User profile data is null or invalid.");
-        // }
 
         final goaldata = await useeractivedataInfo();
         final data = goaldata['data'];
-        // print("Data");
 
-        if (data != null && data is Map) {
-          // Convert the Map to a JSON string
+        if (data is Map) {
           final userGoalJson = jsonEncode(data);
-          // Store it in SharedPreferences
           await prefs.setString('userGoaldata', userGoalJson);
-          print("User data saved to SharedPreferences.");
         }
-        // else {
-        //   print("User profile data is null or invalid.");
-        // }
-
-        // final useractivebasicdata = await useeractivedataInfo();
-        // final basicinfo = useractivebasicdata['data'];
-        // print("bsicinfo $basicinfo");
-        //
-        // if (basicinfo != null && basicinfo is Map) {
-        //
-        //   // Convert the Map to a JSON string
-        //   final userJson = jsonEncode(basicinfo);
-        //
-        //   // Store it in SharedPreferences
-        //   await prefs.setString('useractivedata', userJson);
-        //   print("User active data saved to SharedPreferences.");
-        // } else {
-        //   print("User active data is null or invalid.");
-        // }
 
         userEmailOrPhoneField.clear();
         userPasswordField.clear();
 
-        // Get.snackbar(
-        //   'Success',
-        //   'Sign In Successful.',
-        //   snackPosition: SnackPosition.BOTTOM,
-        //   margin: EdgeInsets.all(20),
-        // );
-
         return true;
       }
-      else if(response.statusCode == 400){
-        showSnackbar('Error', 'Wrong Credentials');
+
+      // Wrong input
+      else if (response.statusCode == 400) {
+        CustomSnackbar.showError(context: context , title: 'Error', message: 'Wrong Credentials');
         return false;
       }
+
+      // Other failures
       else {
-        showSnackbar('Error', 'Sign In failed.');
+        CustomSnackbar.showError(context: context , title: 'Error', message: 'Sign In failed.');
         return false;
       }
     } catch (e) {
-      showSnackbar('Error', 'Sign In failed.');
+      print(e);
+      CustomSnackbar.showError(context: context , title: 'Error', message: 'Sign In failed.');
       return false;
     }
   }
+
 
   Future<dynamic> userInfo() async {
     final response = await ApiService.post(
@@ -210,15 +166,13 @@ class SignInController extends GetxController {
   //   return response;
   // }
 
-  Future<bool> signInUsingPhone(String phone, String password) async {
+  Future<bool> signInUsingPhone(String phone, String password , BuildContext context) async {
     if (phone.isEmpty) {
-      showSnackbar('Error', 'Phone cannot be empty');
+      CustomSnackbar.showError(context: context , title: 'Error', message: 'Phone cannot be empty');
       return false;
     }
-    final plainPhone = jsonEncode({
-      'PhoneNumber': phone,
-      'Password': password,
-    });
+
+    final plainPhone = jsonEncode({'PhoneNumber': phone, 'Password': password});
 
     try {
       final uri = Uri.parse("$baseUrl$signInPhoneEndpoint");
@@ -227,103 +181,70 @@ class SignInController extends GetxController {
 
       headers['X-Data-Hash'] = encryptedPhone['hash']!;
 
-      final encryptedBody = jsonEncode({
+      final encryptedRequestBody = jsonEncode({
         'data': encryptedPhone['encryptedData'],
       });
 
       final response = await http.post(
         uri,
         headers: headers,
-        body: encryptedBody,
+        body: encryptedRequestBody,
       );
 
+      print(response.body);
+      print(response.statusCode);
+
+      // ❌ FIX #1 — real condition
       if (response.statusCode == 200) {
-        final responseBody = jsonDecode(response.body);
-        final encryptedBody = responseBody['data'];
+        final decodedBody = jsonDecode(response.body);
+        print(decodedBody);
+
+        // ❌ FIX #2 — variable rename
+        final encryptedResponse = decodedBody['data'];
         final responseHash = response.headers['x-data-hash'];
+
         final decrypted = EncryptionService.decryptData(
-          encryptedBody,
+          encryptedResponse,
           responseHash!,
         );
+        print(decrypted);
 
-         if (decrypted == null) {
-          showSnackbar('Error', 'Failed to decrypt response');
+        if (decrypted == null) {
+          CustomSnackbar.showError(context: context , title: 'Error', message: 'Failed to decrypt response');
           return false;
         }
 
         final Map<String, dynamic> responseData = jsonDecode(decrypted);
-        final token = responseData['data'];
 
+        // ❌ FIX #3 — check login success
+        // if (responseData['status'] != true) {
+        //   CustomSnackbar.showError(context: context , title: 'Error', message: 'Sign-in failed');
+        //   return false;
+        // }
+
+        final token = responseData['data'];
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
 
+        // Load user data
         final userdata = await userInfo();
         final userProfileData = userdata['data'];
-        final gender = userdata['data']['Gender'];
-        await prefs.setString('user_gender', gender);
-        print("$userProfileData");
-        localstorage.userMap.value = userProfileData;
 
         if (userProfileData != null && userProfileData is Map) {
-          // Convert the Map to a JSON string
           final userJson = jsonEncode(userProfileData);
-          // Store it in SharedPreferences
           await prefs.setString('userdata', userJson);
-          print("User data saved to SharedPreferences.");
         }
-        //  else {
-        //   print("User profile data is null or invalid.");
-        // }
-
-        final goaldata = await useeractivedataInfo();
-        final data = goaldata['data'];
-        // print("Data");
-
-        if (data != null && data is Map) {
-          // Convert the Map to a JSON string
-          final userGoalJson = jsonEncode(data);
-          // Store it in SharedPreferences
-          await prefs.setString('userGoaldata', userGoalJson);
-          print("User data saved to SharedPreferences.");
-        }
-        // else {
-        //   print("User profile data is null or invalid.");
-        // }
-
-        // final useractivebasicdata = await useeractivedataInfo();
-        // final basicinfo = useractivebasicdata['data'];
-        // print("bsicinfo $basicinfo");
-        //
-        // if (basicinfo != null && basicinfo is Map) {
-        //
-        //   // Convert the Map to a JSON string
-        //   final userJson = jsonEncode(basicinfo);
-        //
-        //   // Store it in SharedPreferences
-        //   await prefs.setString('useractivedata', userJson);
-        //   print("User active data saved to SharedPreferences.");
-        // } else {
-        //   print("User active data is null or invalid.");
-        // }
-
-        userEmailOrPhoneField.clear();
-        userPasswordField.clear();
-
-        // Get.snackbar(
-        //   'Success',
-        //   'Sign In Successful.',
-        //   snackPosition: SnackPosition.BOTTOM,
-        //   margin: EdgeInsets.all(20),
-        // );
 
         return true;
       } else {
-        showSnackbar('Error', 'Sign In failed.');
+        CustomSnackbar.showError(context: context , title: 'Error', message: 'Sign In failed.');
         return false;
       }
     } catch (e) {
-      showSnackbar('Error', 'Sign In failed.');
+      print(e);
+      CustomSnackbar.showError(context: context , title: 'Error', message: 'Sign In failed.');
       return false;
     }
   }
+
 }

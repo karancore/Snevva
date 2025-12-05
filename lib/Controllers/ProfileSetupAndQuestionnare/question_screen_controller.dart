@@ -3,6 +3,8 @@ import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:http/http.dart' as http;
 
+import '../../common/custom_snackbar.dart';
+
 class QuestionScreenController extends GetxController {
   final selectedAnswers = <int, List<String>>{}.obs;
 
@@ -34,69 +36,79 @@ class QuestionScreenController extends GetxController {
   }
 
   /// Save data question by question
-Future<void> saveAnswer(int questionIndex) async {
-  try {
-    final answers = selectedAnswers[questionIndex];
-    if (answers == null || answers.isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Please select at least one option.',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: const EdgeInsets.all(20),
-      );
-      return;
-    }
-
-    String endpoint;
-    Map<String, dynamic> payload;
-
-    switch (questionIndex) {
-      case 0: // Health goals
-        endpoint = appactivityGoal;
-        payload = { 'Value': answers[0] };
-        break;
-
-      case 1: // Hobbies
-        endpoint = apphealthGoal;
-        payload = { 'Value': answers[0] };
-        break;
-
-      // case 2: // Occupation
-      //   endpoint = appOccupation;
-      //   payload = { 'Occupation': answers };
-      //   break;
-
-      default:
-        Get.snackbar('Error', 'Unknown question index: $questionIndex');
+  Future<void> saveAnswer(int questionIndex, BuildContext context) async {
+    try {
+      final answers = selectedAnswers[questionIndex];
+      if (answers == null || answers.isEmpty) {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Please select at least one option.',
+        );
         return;
+      }
+
+      String endpoint;
+      Map<String, dynamic> payload;
+
+      switch (questionIndex) {
+        case 0: // Health goals
+          endpoint = appactivityGoal;
+          payload = {'Value': answers[0]};
+          break;
+
+        case 1: // Hobbies
+          endpoint = apphealthGoal;
+          payload = {'Value': answers[0]};
+          break;
+
+        // case 2: // Occupation
+        //   endpoint = appOccupation;
+        //   payload = { 'Occupation': answers };
+        //   break;
+
+        default:
+          CustomSnackbar.showError(
+            context: context,
+            title: 'Error',
+            message: 'Unknown question index: $questionIndex',
+          );
+          return;
+      }
+
+      final response = await ApiService.post(
+        endpoint,
+        payload,
+        withAuth: true,
+        encryptionRequired: true,
+      );
+
+      if (response is http.Response) {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Failed to save Q${questionIndex + 1}',
+        );
+        return;
+      }
+
+      print("✅ Q${questionIndex + 1} saved → $answers");
+    } catch (e) {
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Failed saving Q${questionIndex + 1}',
+      );
     }
-
-    final response = await ApiService.post(
-      endpoint,
-      payload,
-      withAuth: true,
-      encryptionRequired: true,
-    );
-
-    if (response is http.Response) {
-      Get.snackbar('Error', 'Failed to save Q${questionIndex + 1}');
-      return;
-    }
-
-    print("✅ Q${questionIndex + 1} saved → $answers");
-
-  } catch (e) {
-    Get.snackbar('Error', 'Failed saving Q${questionIndex + 1}');
   }
-}
 
-Future<void> saveFinalStep() async {
-  // Handle last question’s API OR summary save
-  print("🎯 Final step reached, do summary save here...");
-}
+  Future<void> saveFinalStep() async {
+    // Handle last question’s API OR summary save
+    print("🎯 Final step reached, do summary save here...");
+  }
 
-bool hasAnySelection(int questionIndex) {
-  return selectedAnswers.containsKey(questionIndex) &&
-         selectedAnswers[questionIndex]!.isNotEmpty;
-}
+  bool hasAnySelection(int questionIndex) {
+    return selectedAnswers.containsKey(questionIndex) &&
+        selectedAnswers[questionIndex]!.isNotEmpty;
+  }
 }

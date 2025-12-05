@@ -40,7 +40,7 @@ class AnswerSelectionWidget extends StatelessWidget {
             const SizedBox(width: 5),
             Text(
               widgetText,
-              style: const TextStyle(fontSize: 10),
+              style: TextStyle(fontSize: 10 , fontWeight: FontWeight.w400),
             ),
             const SizedBox(width: 5),
             Icon(

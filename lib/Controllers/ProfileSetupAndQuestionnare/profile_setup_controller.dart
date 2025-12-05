@@ -2,7 +2,8 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:snevva/Controllers/localStorageManager.dart';
+import 'package:snevva/Controllers/local_storage_manager.dart';
+import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/models/queryParamViewModels/date_of_birth.dart';
 import 'package:snevva/models/queryParamViewModels/occupation_vm.dart';
@@ -28,11 +29,10 @@ class ProfileSetupController extends GetxController {
   void validateForm() {
     isFormValid.value =
         userNameText.value.trim().isNotEmpty &&
-            userGenderValue.value.trim().isNotEmpty &&
-            userDob.value.trim().isNotEmpty &&
-            selectedOccupation.value.trim().isNotEmpty;
+        userGenderValue.value.trim().isNotEmpty &&
+        userDob.value.trim().isNotEmpty &&
+        selectedOccupation.value.trim().isNotEmpty;
   }
-
 
   List<String> occupationList = [
     'Student',
@@ -68,7 +68,9 @@ class ProfileSetupController extends GetxController {
 
   /// ✅ Pick image and save it locally
   Future<void> pickImageFromGallery() async {
-    final XFile? image = await _imgPicker.pickImage(source: ImageSource.gallery);
+    final XFile? image = await _imgPicker.pickImage(
+      source: ImageSource.gallery,
+    );
     if (image != null) {
       pickedImage.value = File(image.path);
       await saveImagePath(image.path); // Save for persistence
@@ -143,8 +145,6 @@ class ProfileSetupController extends GetxController {
     }
   }
 
-
-
   // Future<void> saveData(String name, String gender, String dob) async {
   //   ApiService.post(userNameApi, {'name': name});
   //   ApiService.post(userGenderApi, {'gender': gender});
@@ -156,6 +156,7 @@ class ProfileSetupController extends GetxController {
     StringValueVM gender,
     DateOfBirthVM dob,
     OccupationVM occupation,
+    BuildContext context,
   ) async {
     final List<Map<String, dynamic>> fields = [
       {
@@ -188,7 +189,6 @@ class ProfileSetupController extends GetxController {
     ];
 
     try {
-
       localStorageManager.userMap['Name'] = name.value;
       localStorageManager.userMap['Gender'] = gender.value;
       localStorageManager.userMap['DayOfBirth'] = dob.dayOfBirth;
@@ -197,7 +197,7 @@ class ProfileSetupController extends GetxController {
       localStorageManager.userMap['Occupation'] = occupation.name;
 
       // print("🔄 Updating local storage with profile data: ${localStorageManager.userMap}");
-      
+
       bool allSuccessful = true;
       for (final item in fields) {
         final String endpoint = item['endpoint'] as String;
@@ -212,33 +212,29 @@ class ProfileSetupController extends GetxController {
         );
 
         if (response is http.Response) {
-          Get.snackbar(
-            'Error',
-            'Failed to save ${payload.keys.first}.',
-            snackPosition: SnackPosition.BOTTOM,
-            margin: EdgeInsets.all(20),
+          CustomSnackbar.showError(
+            context: context,
+            title: 'Error',
+            message: 'Failed to save ${payload.keys.first}.',
           );
           return;
         }
       }
-      if(allSuccessful) {
-        // Get.snackbar(
-        //   'Success',
-        //   'Profile data saved successfully.',
-        //   snackPosition: SnackPosition.BOTTOM,
-        //   margin: EdgeInsets.all(20),
-        // );
+      if (allSuccessful) {
+        CustomSnackbar.showSuccess(
+          context: context,
+          title: 'Success',
+          message: 'Profile data saved successfully.',
+        );
       }
-    } catch (e) {
-      // print("❌ Exception during profile save: $e");
-      // print(stack);
-      Get.snackbar(
-        'Error',
-        'Failed to save profile data',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
+    } catch (e, stack) {
+      print("❌ Exception during profile save: $e");
+      print(stack);
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Failed to save profile data',
       );
     }
   }
-
 }

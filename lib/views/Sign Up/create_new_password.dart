@@ -1,8 +1,7 @@
 import 'package:flutter/gestures.dart';
 import '../../Controllers/signupAndSignIn/create_password_controller.dart';
+import '../../common/custom_snackbar.dart';
 import '../../consts/consts.dart';
-
-
 
 class CreateNewPassword extends StatefulWidget {
   final bool otpVerificationStatus;
@@ -21,7 +20,6 @@ class CreateNewPassword extends StatefulWidget {
 }
 
 class _CreateNewPasswordState extends State<CreateNewPassword> {
-
   final controller = Get.put(CreatePasswordController());
 
   @override
@@ -32,65 +30,38 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
     void onCreatePasswordButtonClick() {
       if (controller.password.value.isEmpty ||
           controller.confirmPassword.value.isEmpty) {
-        Get.snackbar(
-          "Error",
-          "Please fill in both password fields",
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            bottom: 20,
-          ),
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
+        CustomSnackbar.showError(
+          title: "Error",
+          message: "Please fill in both password fields",
+          context: context,
         );
         return;
       }
 
       if (!controller.isPasswordValid) {
-        Get.snackbar(
-          "Weak Password",
-          "Your password doesn't meet the criteria",
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            bottom: 20,
-          ),
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
+        CustomSnackbar.showError(
+          title: "Weak Password",
+          message: "Your password doesn't meet the criteria",
+          context: context,
         );
         return;
       }
 
       if (!controller.isConfirmPasswordValid) {
-        Get.snackbar(
-          "Mismatch",
-          "Passwords do not match",
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            bottom: 20,
-          ),
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
+        CustomSnackbar.showError(
+          title: "Mismatch",
+          message: "Passwords do not match",
+          context: context,
         );
+
         return;
       }
 
       if (!controller.isChecked.value) {
-        Get.snackbar(
-          "Agreement Required",
-          "You must agree to the terms",
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            bottom: 20,
-          ),
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
+        CustomSnackbar.showError(
+          title: "Agreement Required",
+          message: "You must agree to the terms",
+          context: context,
         );
 
         return;
@@ -101,6 +72,7 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
           widget.otp,
           widget.otpVerificationStatus,
           controller.confirmPasswordController.text.trim(),
+          context,
         );
       } else if (RegExp(r'^\d{10,}$').hasMatch(widget.emailOrPhoneText)) {
         controller.createNewPasswordWithPhone(
@@ -108,12 +80,15 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
           widget.otp,
           widget.otpVerificationStatus,
           controller.confirmPasswordController.text.trim(),
+          context,
         );
       } else {
-        Get.snackbar('Error', 'Failed To Create New Password.');
+        CustomSnackbar.showError(
+          title: "Error",
+          message: "Failed To Create New Password.",
+          context: context,
+        );
       }
-
-
     }
 
     return Scaffold(
@@ -158,7 +133,7 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               Text(
-                  AppLocalizations.of(context)!.enterPassword,
+                AppLocalizations.of(context)!.enterPassword,
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               SizedBox(height: 30),
@@ -307,10 +282,17 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
                         Icon(
                           Icons.check_circle,
                           color:
-                              controller.hasLetter ? AppColors.primaryColor : Colors.grey,
+                              controller.hasLetter
+                                  ? AppColors.primaryColor
+                                  : Colors.grey,
                         ),
                         SizedBox(width: 5),
-                        Text(AppLocalizations.of(context)!.passwordLetterRequirement, style: TextStyle(fontSize: 12)),
+                        Text(
+                          AppLocalizations.of(
+                            context,
+                          )!.passwordLetterRequirement,
+                          style: TextStyle(fontSize: 12),
+                        ),
                       ],
                     ),
                   ),
@@ -349,7 +331,10 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
                                   : Colors.grey,
                         ),
                         SizedBox(width: 5),
-                        Text(AppLocalizations.of(context)!.passwordMinLength, style: TextStyle(fontSize: 12)),
+                        Text(
+                          AppLocalizations.of(context)!.passwordMinLength,
+                          style: TextStyle(fontSize: 12),
+                        ),
                       ],
                     ),
                   ),
@@ -381,7 +366,10 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                             TextSpan(
-                              text: AppLocalizations.of(context)!.agreeToConditions,
+                              text:
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.agreeToConditions,
                               style: TextStyle(
                                 color: AppColors.primaryColor,
                                 decoration: TextDecoration.underline,

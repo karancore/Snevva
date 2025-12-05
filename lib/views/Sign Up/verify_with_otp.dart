@@ -1,5 +1,6 @@
-import 'package:snevva/Controllers/localStorageManager.dart';
+import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
+import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/views/Sign%20Up/create_new_password.dart';
 import 'package:flutter/services.dart';
 import 'package:pinput/pinput.dart';
@@ -35,19 +36,17 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
     final pin = pinController.text.trim();
 
     if (pin.isEmpty) {
-      Get.snackbar(
-        'Error',
-        'OTP field cannot be empty.',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: const EdgeInsets.all(20),
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'OTP field cannot be empty.',
       );
       return;
     }
     if (otpVerificationStatus == true &&
         widget.isForgotPasswordScreen == false) {
-
-           // Store email in userMap
-    localStorageManager.userMap['Email'] = widget.emailOrPasswordText;
+      // Store email in userMap
+      localStorageManager.userMap['Email'] = widget.emailOrPasswordText;
 
       Get.to(
         CreateNewPassword(
@@ -58,9 +57,9 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
       );
     } else if (otpVerificationStatus == true &&
         widget.isForgotPasswordScreen == true) {
-           // Store email in userMap
-  localStorageManager.userMap['Email'] = widget.emailOrPasswordText;
-  
+      // Store email in userMap
+      localStorageManager.userMap['Email'] = widget.emailOrPasswordText;
+
       Get.to(
         UpdateOldPasword(
           otpVerificationStatus: true,
@@ -69,11 +68,10 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
         ),
       );
     } else {
-      Get.snackbar(
-        'Error',
-        'OTP Verification Failed',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'OTP Verification Failed',
       );
     }
   }
@@ -114,7 +112,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
         fontWeight: FontWeight.w600,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F4FF),
+        color: white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.transparent),
       ),
@@ -122,23 +120,23 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
 
     final focusedPinTheme = defaultPinTheme.copyWith(
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F4FF),
+        color: white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.primaryColor, width: 2),
+        border: Border.all(color: grey, width: 2),
       ),
     );
 
     final submittedPinTheme = defaultPinTheme.copyWith(
       decoration: BoxDecoration(
-        color: const Color(0xFFEAE6FF),
+        color: white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.black),
+        border: Border.all(color: grey),
       ),
     );
 
     final followingPinTheme = defaultPinTheme.copyWith(
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F4FF),
+        color: white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.grey.shade300),
       ),
@@ -152,9 +150,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
         automaticallyImplyLeading: false,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios),
-          onPressed: () {
-            Get.back();
-          },
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SingleChildScrollView(
@@ -184,7 +180,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
                 onCompleted:
                     (pin) =>
                         otpVerificationStatus = otpVerificationController
-                            .verifyOtp(pin),
+                            .verifyOtp(pin, context),
               ),
 
               SizedBox(height: 15),
@@ -192,6 +188,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
                 onTap: () async {
                   final result = await SignUpController().signUpUsingGmail(
                     widget.emailOrPasswordText,
+                    context,
                   );
 
                   if (result != false) {
@@ -211,6 +208,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
                       fontSize: 14,
                       color: Colors.white,
                       decoration: TextDecoration.underline,
+                      decorationColor: AppColors.primaryColor,
                     ),
                   ),
                 ),

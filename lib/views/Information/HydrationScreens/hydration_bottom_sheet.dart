@@ -12,7 +12,6 @@ class HydrationBottomSheet extends StatefulWidget {
     required this.isDarkMode,
   });
 
-
   @override
   State<HydrationBottomSheet> createState() => _HydrationBottomSheetState();
 }
@@ -29,6 +28,7 @@ class _HydrationBottomSheetState extends State<HydrationBottomSheet> {
   final WheelPickerController periodController = WheelPickerController(
     itemCount: 2,
   );
+
   // final WheelPickerController waterController = WheelPickerController(
   //   itemCount: 9,
   //   initialIndex: 3,
@@ -48,7 +48,6 @@ class _HydrationBottomSheetState extends State<HydrationBottomSheet> {
     );
   }
 
-
   WheelPickerStyle defaultWheelPickerStyle = WheelPickerStyle(
     itemExtent: 30,
     squeeze: 1.2,
@@ -56,7 +55,8 @@ class _HydrationBottomSheetState extends State<HydrationBottomSheet> {
     surroundingOpacity: 0.25,
     magnification: 1.3,
   );
-  final HydrationStatController controller = Get.find<HydrationStatController>();
+  final HydrationStatController controller =
+      Get.find<HydrationStatController>();
 
   @override
   Widget build(BuildContext context) {
@@ -65,10 +65,10 @@ class _HydrationBottomSheetState extends State<HydrationBottomSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-       //   const Text(
-       //     'Set Time',
-        //    style: TextStyle(fontSize: 14 , fontWeight: FontWeight.bold),
-        //  ),
+          //   const Text(
+          //     'Set Time',
+          //    style: TextStyle(fontSize: 14 , fontWeight: FontWeight.bold),
+          //  ),
           // SizedBox(
           //   width: double.infinity,
           //   child: Stack(
@@ -154,8 +154,8 @@ class _HydrationBottomSheetState extends State<HydrationBottomSheet> {
           //     ],
           //   ),
           // ),
-         // Divider(color: mediumGrey, thickness: border04px),
-          SizedBox(height: 10,),
+          // Divider(color: mediumGrey, thickness: border04px),
+          SizedBox(height: 10),
           const Text(
             'Water Intake(ml)',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
@@ -166,7 +166,7 @@ class _HydrationBottomSheetState extends State<HydrationBottomSheet> {
               alignment: Alignment.center,
               children: [
                 Positioned(
-                 left: 0,
+                  left: 0,
                   right: 0,
                   child: Container(
                     padding: EdgeInsets.only(right: defaultSize),
@@ -196,8 +196,9 @@ class _HydrationBottomSheetState extends State<HydrationBottomSheet> {
                         flex: 1,
                         child: WheelPicker(
                           controller: waterController,
-                          onIndexChanged: (index, _) =>
-                          {controller.getWaterInMl(100 + index * 50),
+                          onIndexChanged:
+                              (index, _) => {
+                                controller.getWaterInMl(100 + index * 50),
                               },
                           builder: (context, index) {
                             int value = 100 + index * 50;
@@ -235,11 +236,7 @@ class _HydrationBottomSheetState extends State<HydrationBottomSheet> {
                   backgroundColor: AppColors.primaryColor,
                 ),
                 onPressed: () {
-                  // final int hour = hourController.selected + 1;
-                  // final int minute = minuteController.selected;
-                  // final String period = periodController.selected == 0 ? "AM" : "PM";
-                  // final String formattedTime = "$hour:${minute.toString().padLeft(2, '0')} $period";
-                  Get.back();
+                  Get.back(result: controller.waterGoal.value);
                 },
                 child: const Text("Save", style: TextStyle(color: white)),
               ),
@@ -251,23 +248,21 @@ class _HydrationBottomSheetState extends State<HydrationBottomSheet> {
   }
 }
 
-void showHydrationBottomSheetModal(
-  BuildContext context,
-  bool isDarkMode,
-  double height,
-) {
-  showModalBottomSheet(
+Future<int?> showHydrationBottomSheetModal(
+    BuildContext context,
+    bool isDarkMode,
+    double height,
+    ) {
+  return showModalBottomSheet<int>(
     context: context,
     isScrollControlled: true,
     backgroundColor: isDarkMode ? darkGray : scaffoldColorLight,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder:
-        (_) => HydrationBottomSheet(height: height, isDarkMode: isDarkMode),
-  ).then((selectedTime) {
-    if (selectedTime != null) {
-      //  print("Selected time: $selectedTime");
-    }
-  });
+    builder: (_) => HydrationBottomSheet(
+      height: height,
+      isDarkMode: isDarkMode,
+    ),
+  );
 }

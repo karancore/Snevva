@@ -1,23 +1,23 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../common/custom_snackbar.dart';
 import '../../consts/consts.dart';
 import '../../env/env.dart';
 import '../../services/auth_header_helper.dart';
 import '../../services/encryption_service.dart';
 
-class ForgotPasswordController extends GetxController{
-
+class ForgotPasswordController extends GetxController {
   var isLoading = false.obs;
 
-
-  Future<dynamic> resetPasswordUsingGmail(String email) async {
-
+  Future<dynamic> resetPasswordUsingGmail(
+    String email,
+    BuildContext context,
+  ) async {
     if (email.isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Email cannot be empty',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Email cannot be empty',
       );
       return false;
     }
@@ -45,7 +45,10 @@ class ForgotPasswordController extends GetxController{
         final responseBody = jsonDecode(response.body);
         final encryptedBody = responseBody['data'];
         final responseHash = response.headers['x-data-hash'];
-        final decrypted = EncryptionService.decryptData(encryptedBody, responseHash!);
+        final decrypted = EncryptionService.decryptData(
+          encryptedBody,
+          responseHash!,
+        );
 
         if (decrypted == null) {
           return false;
@@ -56,38 +59,41 @@ class ForgotPasswordController extends GetxController{
         final data = responseData['data'];
         final otp = data['Otp'];
 
-        Get.snackbar(
-          'Success',
-          'OTP Sent. $otp',
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.all(20),
+        CustomSnackbar.showSuccess(
+          context: context,
+          title: 'Success',
+          message: 'OTP Sent. $otp',
         );
         return otp;
       } else {
-        Get.snackbar(
-          'Error',
-          'Email Verification failed: ${response.body}',
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.all(20),
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Email Verification failed',
         );
         return false;
       }
     } catch (e) {
-      Get.snackbar('Error', 'Email Verification failed',   snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),);
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Email Verification failed',
+      );
       return false;
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<dynamic> resetPasswordUsingPhone(String phone) async {
+  Future<dynamic> resetPasswordUsingPhone(
+    String phone,
+    BuildContext context,
+  ) async {
     if (phone.isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Phone cannot be empty',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Phone cannot be empty',
       );
       return false;
     }
@@ -112,43 +118,44 @@ class ForgotPasswordController extends GetxController{
         body: encryptedBody,
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode != 200) {
         final responseBody = jsonDecode(response.body);
         final encryptedBody = responseBody['data'];
         final responseHash = response.headers['x-data-hash'];
-        final decrypted = EncryptionService.decryptData(encryptedBody, responseHash!);
+        final decrypted = EncryptionService.decryptData(
+          encryptedBody,
+          responseHash!,
+        );
 
         if (decrypted == null) {
-          return ;
+          return;
         }
 
         final Map<String, dynamic> responseData = jsonDecode(decrypted);
+        print(responseData);
 
         final data = responseData['data'];
         final otp = data['Otp'];
 
-        Get.snackbar(
-          'Success',
-          'OTP Sent. $otp',
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.all(20),
+        CustomSnackbar.showSuccess(
+          context: context,
+          title: 'Success',
+          message: 'OTP Sent. $otp',
         );
         return otp;
       } else {
-        Get.snackbar(
-          'Error',
-          'Phone Number Verification failed: ${response.body}',
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.all(20),
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Phone Number Verification failed',
         );
         return false;
       }
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Phone Number Verification failed',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(20),
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Phone Number Verification failed',
       );
       return false;
     } finally {

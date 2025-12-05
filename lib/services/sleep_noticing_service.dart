@@ -31,30 +31,58 @@ class SleepNoticingService {
 
   void stopMonitoring() {
     _subscription?.cancel();
+
+
     _subscription = null;
   }
 
   void _onScreenTurnedOn() {
-    _usageStartTime = DateTime.now();
+    DateTime now = DateTime.now();
+
+    // CASE 1: If waking from sleep
+    if (_usageStartTime != null && !_isUserUsingPhone) {
+      print("☀️ [SleepService] Woke up at ${now.hour}:${now.minute}");
+
+      onPhoneUsageDetected?.call(_usageStartTime!, now);
+
+      _usageStartTime = null;
+      _isUserUsingPhone = true;
+      return;
+    }
+
+    // CASE 2: Normal phone usage start
+    _usageStartTime = now;
     _isUserUsingPhone = true;
-    print('🟢 [SleepService] Screen turned ON at $_usageStartTime');
+
+    print("📱 [SleepService] Screen ON. Usage START at ${now.hour}:${now.minute}");
   }
 
+
   void _onScreenTurnedOff() {
-    if (_isUserUsingPhone && _usageStartTime != null) {
-      DateTime usageEndTime = DateTime.now();
+    DateTime usageEndTime = DateTime.now();
+
+    // CASE 1: No start time yet → treat this as sleep start
+    if (_usageStartTime == null) {
+      _usageStartTime = usageEndTime;
+      _isUserUsingPhone = false;
+
+      print('🌙 [SleepService] Sleep START at ${usageEndTime.hour}:${usageEndTime.minute}');
+      return;
+    }
+
+    // CASE 2: Has valid start time → calculate duration
+    if (_isUserUsingPhone) {
       final duration = usageEndTime.difference(_usageStartTime!);
-      print('🔴 [SleepService] Screen turned OFF. Usage duration: ${duration.inSeconds}s');
-      onPhoneUsageDetected?.call(_usageStartTime!, usageEndTime);
-    } else {
-      DateTime usageEndTime = DateTime.now();
-      print('🔴 [SleepService] Screen turned OFF . Used end time : ${usageEndTime.minute}');
+      print('😴 [SleepService] Sleep/Usage End. Duration: ${duration.inMinutes} mins');
 
       onPhoneUsageDetected?.call(_usageStartTime!, usageEndTime);
     }
+
     _isUserUsingPhone = false;
     _usageStartTime = null;
   }
+
+
 
   /// Calculates the new bedtime based on phone usage logic.
   /// 
@@ -66,7 +94,7 @@ class SleepNoticingService {
     required DateTime phoneUsageStart,
     required Duration phoneUsageDuration,
   }) {
-    final DateTime safeLimit = bedtime.add(const Duration(minutes: 15));
+    final DateTime safeLimit = bedtime.add(const Duration(seconds: 5));
 
     // CONDITION 1: Phone used within first 15 minutes -> Ignore
     if (phoneUsageStart.isBefore(safeLimit)) {

@@ -1,3 +1,4 @@
+import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/views/Sign%20Up/verify_with_otp.dart';
 
 import '../../Controllers/signupAndSignIn/forgot_password_controller.dart';
@@ -11,71 +12,79 @@ class ForgotPassword extends StatefulWidget {
   State<ForgotPassword> createState() => _ForgotPasswordState();
 }
 
-final TextEditingController textFieldController = TextEditingController();
-
-final forgotPasswordController = Get.put(ForgotPasswordController());
-final notify = Get.find<NotificationService>();
-
-
 class _ForgotPasswordState extends State<ForgotPassword> {
+  final TextEditingController textFieldController = TextEditingController();
+  final forgotPasswordController = Get.put(ForgotPasswordController());
+  final notify = Get.find<NotificationService>();
+
+  bool isLoading = false;
+
   @override
   void dispose() {
-    super.dispose();
+    textFieldController.dispose();
     forgotPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> onButtonClick() async {
+    if (textFieldController.text.isEmpty) {
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Please provide Email or Phone',
+        message: '',
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    String input = textFieldController.text.trim();
+    dynamic result;
+
+    try {
+      if (input.contains('@')) {
+        /// Email case
+        result = await forgotPasswordController.resetPasswordUsingGmail(
+          input,
+          context,
+        );
+      } else if (RegExp(r'^\d{10,}$').hasMatch(input)) {
+        /// Phone case
+        result = await forgotPasswordController.resetPasswordUsingPhone(
+          input,
+          context,
+        );
+      } else {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Invalid Email or Phone Number',
+          message: '',
+        );
+        setState(() => isLoading = false);
+        return;
+      }
+
+      if (result != false) {
+        notify.showOtpNotification(result);
+        Get.to(
+          VerifyWithOtpScreen(
+            emailOrPasswordText: input,
+            appBarText: AppLocalizations.of(context)!.verifyEmailAddress,
+            responseOtp: result,
+            isForgotPasswordScreen: true,
+          ),
+        );
+        textFieldController.clear();
+      }
+    } finally {
+      setState(() => isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
-
-    Future<void> onButtonClick() async {
-      if (textFieldController.text.toString().contains('@')) {
-        final result = forgotPasswordController.resetPasswordUsingGmail(
-          textFieldController.text.toString().trim(),
-        );
-
-
-        if (await result != false) {
-          notify.showOtpNotification(await result);
-          Get.to(
-            VerifyWithOtpScreen(
-              emailOrPasswordText: textFieldController.text.toString().trim(),
-              appBarText: AppLocalizations.of(context)!.verifyEmailAddress,
-              responseOtp: await result,
-              isForgotPasswordScreen: true,
-            ),
-          );
-          textFieldController.clear();
-        }
-      } else if (RegExp(
-        r'^\d{10,}$',
-      ).hasMatch(textFieldController.text.toString())) {
-        final result = forgotPasswordController.resetPasswordUsingPhone(
-          textFieldController.text.toString().trim(),
-        );
-
-        if (await result != false) {
-          notify.showOtpNotification(await result);
-          Get.to(
-            VerifyWithOtpScreen(
-              emailOrPasswordText: textFieldController.text.toString().trim(),
-              appBarText: AppLocalizations.of(context)!.verifyPhoneNumber,
-              responseOtp: await result,
-              isForgotPasswordScreen: true,
-            ),
-          );
-          textFieldController.clear();
-        }
-      } else {
-        Get.snackbar(
-          'Error',
-          'Please Provide Correct Email or Phone Number',
-          snackPosition: SnackPosition.BOTTOM,
-          margin: EdgeInsets.all(20),
-        );
-      }
-    }
+    final bool isDarkMode =
+        MediaQuery.of(context).platformBrightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -85,61 +94,51 @@ class _ForgotPasswordState extends State<ForgotPassword> {
         automaticallyImplyLeading: false,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios),
-          onPressed: () {
-            Future.microtask(() {
-              if (Get.isSnackbarOpen) {
-                Get.closeAllSnackbars();
-              }
-              Get.back();
-            });
-          },
-
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               Image.asset(forgotpass, height: 200, width: 200),
-              SizedBox(height: 30),
+              const SizedBox(height: 30),
               Text(
                 AppLocalizations.of(context)!.forgetPasswordScreenText,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16),
+                style: const TextStyle(fontSize: 16),
               ),
-              SizedBox(height: 30),
-              Form(
-                child: Material(
-                  color:
-                      isDarkMode
-                          ? AppColors.primaryColor.withValues(alpha: .02)
-                          : Colors.white.withValues(alpha: 0.95),
-                  borderRadius: BorderRadius.circular(4),
-                  elevation: 1,
-                  child: TextFormField(
-                    controller: textFieldController,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.transparent,
-                      prefixIcon: Icon(Icons.email),
-                      labelText:
-                          AppLocalizations.of(context)!.inputEmailOrMobile,
-                    ),
+              const SizedBox(height: 30),
+
+              /// Text Field
+              Material(
+                color:
+                    isDarkMode
+                        ? AppColors.primaryColor.withOpacity(.02)
+                        : Colors.white.withOpacity(.95),
+                borderRadius: BorderRadius.circular(4),
+                elevation: 1,
+                child: TextFormField(
+                  controller: textFieldController,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.email),
+                    labelText: AppLocalizations.of(context)!.inputEmailOrMobile,
                   ),
                 ),
               ),
-              SizedBox(height: 30),
+
+              const SizedBox(height: 30),
+
+              /// Button with loader
               Container(
-                width: double.infinity,
                 decoration: BoxDecoration(
                   gradient: AppColors.primaryGradient,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: ElevatedButton(
-                  onPressed: onButtonClick,
+                  onPressed: isLoading ? null : onButtonClick,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     foregroundColor: Colors.white,
@@ -149,7 +148,17 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: Text(AppLocalizations.of(context)!.sendCode),
+                  child:
+                      isLoading
+                          ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                          : Text(AppLocalizations.of(context)!.sendCode),
                 ),
               ),
             ],

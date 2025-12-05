@@ -1,5 +1,6 @@
-import 'package:snevva/Controllers/LocalStorageManager.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
+import 'package:snevva/common/custom_snackbar.dart';
+import '../../Controllers/local_storage_manager.dart';
 import '../../consts/consts.dart';
 import '../ProfileSetupAndQuestionnaire/height_and_weight_field.dart';
 
@@ -13,7 +14,7 @@ class InputBottomSheet extends StatefulWidget {
 class _InputBottomSheetState extends State<InputBottomSheet> {
   final TextEditingController _heightController = TextEditingController();
   final TextEditingController _weightController = TextEditingController();
-  final localStorageManager = Get.put(LocalStorageManager());
+  final localStorageManager = Get.find<LocalStorageManager>();
 
   @override
   void dispose() {
@@ -22,13 +23,16 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
     super.dispose();
   }
 
-  void _validateAndSave() {
+  void _validateAndSave(BuildContext context) {
     final heightText = _heightController.text.trim();
     final weightText = _weightController.text.trim();
 
     if (heightText.isEmpty || weightText.isEmpty) {
-      Get.snackbar("Error", "Height and Weight cannot be empty",
-          snackPosition: SnackPosition.BOTTOM);
+      CustomSnackbar.showError(
+        context: context,
+        title: "title",
+        message: "message",
+      );
       return;
     }
 
@@ -36,26 +40,39 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
     final weight = double.tryParse(weightText);
 
     if (height == null || weight == null) {
-      Get.snackbar("Error", "Please enter valid numeric values",
-          snackPosition: SnackPosition.BOTTOM);
+      CustomSnackbar.showError(
+        context: context,
+        title: "Error",
+        message: "Please enter valid numeric values",
+      );
+
       return;
     }
 
     if (height < 50 || height > 250) {
-      Get.snackbar("Error", "Height must be between 50 cm and 250 cm",
-          snackPosition: SnackPosition.BOTTOM);
+      CustomSnackbar.showError(
+        context: context,
+        title: "Error",
+        message: "Height must be between 50 cm and 250 cm",
+      );
       return;
     }
 
     if (weight < 20 || weight > 300) {
-      Get.snackbar("Error", "Weight must be between 20 kg and 300 kg",
-          snackPosition: SnackPosition.BOTTOM);
+      CustomSnackbar.showError(
+        context: context,
+        title: "Error",
+        message: "Weight must be between 20 kg and 300 kg",
+      );
       return;
     }
 
     // ✅ Save into localStorageManager
     localStorageManager.userMap['Height']['Value'] = height;
     localStorageManager.userMap['Weight']['Value'] = weight;
+    print("Input Bottom Sheet : $height");
+    print("Input Bottom Sheet : $weight");
+
 
     print("Updated Height/Weight → ${localStorageManager.userMap}");
 
@@ -88,14 +105,16 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     HeightAndWeighField(
-                      controller: _heightController, // ADDED
+                      controller: _heightController,
+                      // ADDED
                       width: width,
                       isDarkMode: isDarkMode,
                       unit: 'cm',
                       hintText: 'Height',
                     ),
                     HeightAndWeighField(
-                      controller: _weightController, // ADDED
+                      controller: _weightController,
+                      // ADDED
                       width: width,
                       isDarkMode: isDarkMode,
                       unit: 'Kg',
@@ -111,8 +130,9 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
                   child: CustomOutlinedButton(
                     width: width,
                     isDarkMode: isDarkMode,
+                    backgroundColor: AppColors.primaryColor,
                     buttonName: "Save",
-                    onTap: _validateAndSave,
+                    onTap: () => _validateAndSave(context),
                   ),
                 ),
               ],

@@ -7,12 +7,14 @@ import '../../Widgets/MoodTracker/animated_circle_widget.dart';
 class MoodTrackerScreen extends StatelessWidget {
   const MoodTrackerScreen({super.key});
 
+
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
-    final controller = Get.put(MoodController());
+
+    final controller = Get.find<MoodController>();
 
     final pageController = PageController(
       initialPage: controller.selectedMoodIndex.value,
@@ -124,7 +126,7 @@ class MoodTrackerScreen extends StatelessWidget {
 
             // Save button
             ElevatedButton(
-              onPressed: () => controller.updateMood(),
+              onPressed: () => controller.updateMood(context),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   vertical: 20,

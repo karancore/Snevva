@@ -79,6 +79,10 @@ class _CommonDateWidgetState extends State<CommonDateWidget> {
                 });
               },
               style: DateTimePickerStyle(
+                activeDecoration: BoxDecoration(
+                  color: Colors.transparent
+                ),
+
                 activeStyle: TextStyle(fontSize: 16, color: Colors.white),
                 inactiveStyle: const TextStyle(fontSize: 16, color: Colors.white),
                 disabledStyle: const TextStyle(fontSize: 16, color: Colors.white),
@@ -97,8 +101,8 @@ class _CommonDateWidgetState extends State<CommonDateWidget> {
 
   Widget _dateBox() {
     return Material(
+
       borderRadius: BorderRadius.circular(4),
-      color: AppColors.primaryColor,
       clipBehavior: Clip.antiAlias,
       child: Container(
         height: 44.0,

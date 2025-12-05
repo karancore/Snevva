@@ -1,4 +1,4 @@
-import '../../Controllers/localStorageManager.dart';
+import '../../Controllers/local_storage_manager.dart';
 import '../../consts/consts.dart';
 import '../../views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 

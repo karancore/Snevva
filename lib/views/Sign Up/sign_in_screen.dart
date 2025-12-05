@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:snevva/Controllers/localStorageManager.dart';
+import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
+import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
-import 'package:snevva/views/ProfileAndQuestionnaire/height_and_weight.dart';
+import 'package:snevva/views/ProfileAndQuestionnaire/height_and_weight_screen.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/questionnaire_screen.dart';
 import 'package:snevva/views/Sign%20Up/forgot_password.dart';
-import 'package:timezone/timezone.dart';
 import '../../Widgets/SignInScreens/sign_in_footer_widget.dart';
 import '../../Widgets/home_wrapper.dart';
 import 'create_new_profile.dart';
@@ -21,7 +21,8 @@ class SignInScreen extends StatefulWidget {
 
 final TextEditingController userEmailOrPhoneField = TextEditingController();
 final TextEditingController userPasswordField = TextEditingController();
-final signInController = Get.put(SignInController());
+final signInController = Get.find<SignInController>();
+
 final localStorageManager = Get.put(LocalStorageManager());
 
 class _SignInScreenState extends State<SignInScreen> {
@@ -63,7 +64,7 @@ class _SignInScreenState extends State<SignInScreen> {
       prefs.setString('user_credential', emailOrPhone);
     }
 
-    final userInfo = signInController.userProfData;
+    final userInfo = await signInController.userInfo();
     final userData = userInfo['data'];
     print(userData);
     await prefs.setString('userdata', jsonEncode(userData));
@@ -101,7 +102,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
         // 🚀 Missing height/weight
         final gender = userData['Gender']?.toString() ?? 'Unknown';
-        Get.offAll(() => HeightAndWeight(gender: gender));
+        Get.offAll(() => HeightWeightScreen(gender: gender));
         return; // <<< CRITICAL
       }
 
@@ -117,10 +118,14 @@ class _SignInScreenState extends State<SignInScreen> {
 
   // Handle sign-in error and show snackbar
   void _handleSignInError() {
-    signInController.showSnackbar('Error', 'Incorrect Credential.');
+    CustomSnackbar.showError(
+      context: context,
+      title: "Error",
+      message: "Invalid credentials. Please try again.",
+    );
   }
 
-  Future<void> onSignInButtonClick() async {
+  Future<void> onSignInButtonClick(BuildContext context) async {
     if (isLoading) return; // Prevent multiple taps
     setState(() {
       isLoading = true;
@@ -132,43 +137,47 @@ class _SignInScreenState extends State<SignInScreen> {
     print(emailOrPhone);
     final password = userPasswordField.text.trim();
     print(password);
-    final emailRegExp = RegExp(r'^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$');
+    final emailRegExp = RegExp(
+      r'^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$',
+    );
     bool isValid = emailRegExp.hasMatch(emailOrPhone);
     print(isValid);
-
-
-
 
     try {
       // Checking if it's an email or phone number
       if (isValid) {
         // Sign in using email
-        await signInController.signInUsingEmail(emailOrPhone, password).then((
-          success,
-        ) async {
-          if (success) {
-            print("Sign-in successful with email.");
-            await _handleSuccessfulSignIn(emailOrPhone, prefs);
-          } else {
-            print("Sign-in failed with email.");
-            // Get.snackbar('error', 'Wrong Credentails');
+        await signInController
+            .signInUsingEmail(emailOrPhone, password, context)
+            .then((success) async {
+              if (success) {
+                print("Sign-in successful with email.");
+                await _handleSuccessfulSignIn(emailOrPhone, prefs);
+              } else {
+                print("Sign-in failed with email.");
+                // CustomSnackbar.showError(
+                //   context: context,
+                //   title: 'Error',
+                //   message: 'Wrong Credentails',
+                // );
 
-            _handleSignInError();
-          }
-        });
+                _handleSignInError();
+              }
+            });
       } else if (RegExp(r'^\d{10,}$').hasMatch(emailOrPhone)) {
         // Sign in using phone number
-        await signInController.signInUsingPhone(emailOrPhone, password).then((
-          success,
-        ) async {
-          if (success) {
-            print("Sign-in successful with phone.");
-            await _handleSuccessfulSignIn(emailOrPhone, prefs);
-          } else {
-            print("Sign-in failed with phone.");
-            _handleSignInError();
-          }
-        });
+        await signInController
+            .signInUsingPhone(emailOrPhone, password, context)
+            .then((success) async {
+              if (success) {
+                print("Sign-in successful with phone.");
+                await _handleSuccessfulSignIn(emailOrPhone, prefs);
+              } else {
+                print("Sign-in failed with phone.");
+                print(success.toString());
+                _handleSignInError();
+              }
+            });
       } else {
         // Invalid email or phone format
         _handleSignInError();
@@ -200,166 +209,178 @@ class _SignInScreenState extends State<SignInScreen> {
               bottom: 20,
               top: 100,
             ),
-            child: Material(
-              color:
-                  isDarkMode
-                      ? Colors.white.withValues(alpha: 0.2)
-                      : Colors.white,
-              elevation: 5.0,
-              borderRadius: BorderRadius.circular(8.0),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(defaultSize - 10),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8.0),
-                      color: Colors.transparent,
-                    ),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 20),
-                        Form(
-                          child: Column(
-                            children: [
-                              Material(
-                                color:
-                                    isDarkMode
-                                        ? AppColors.primaryColor.withValues(
-                                          alpha: .02,
-                                        )
-                                        : Colors.white.withValues(alpha: 0.95),
-                                elevation: 1,
-                                borderRadius: BorderRadius.circular(4),
-                                child: TextFormField(
-                                  controller: userEmailOrPhoneField,
-                                  decoration: InputDecoration(
-                                    filled: true,
-                                    fillColor: Colors.transparent,
-                                    prefixIcon: Icon(Icons.email_outlined),
-                                    labelText:
-                                        AppLocalizations.of(
-                                          context,
-                                        )!.inputEmailOrMobile,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade400, width: 1.2),
+              ),
+              child: Material(
+                color:
+                    isDarkMode
+                        ? Colors.white.withValues(alpha: 0.2)
+                        : Colors.white,
+                borderRadius: BorderRadius.circular(8.0),
+
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(defaultSize - 10),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8.0),
+                        color: Colors.transparent,
+                      ),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 20),
+                          Form(
+                            child: Column(
+                              children: [
+                                Material(
+                                  color:
+                                      isDarkMode
+                                          ? AppColors.primaryColor.withValues(
+                                            alpha: .02,
+                                          )
+                                          : Colors.white.withValues(
+                                            alpha: 0.95,
+                                          ),
+                                  elevation: 1,
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: TextFormField(
+                                    controller: userEmailOrPhoneField,
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: Colors.transparent,
+                                      prefixIcon: Icon(Icons.email_outlined),
+                                      labelText:
+                                          AppLocalizations.of(
+                                            context,
+                                          )!.inputEmailOrMobile,
+                                    ),
                                   ),
                                 ),
-                              ),
 
-                              const SizedBox(height: 12),
+                                const SizedBox(height: 12),
 
-                              Material(
-                                elevation: 1,
-                                color:
-                                    isDarkMode
-                                        ? AppColors.primaryColor.withValues(
-                                          alpha: .02,
-                                        )
-                                        : Colors.white.withValues(alpha: 0.95),
-                                borderRadius: BorderRadius.circular(4),
-                                child: TextFormField(
-                                  obscureText: visible,
-                                  controller: userPasswordField,
-                                  decoration: InputDecoration(
-                                    filled: true,
-                                    fillColor: Colors.transparent,
-                                    prefixIcon: Icon(Icons.lock_outline),
-                                    suffixIcon: IconButton(
-                                      onPressed: showPassword,
-                                      icon: Icon(
-                                        visible
-                                            ? Icons.visibility
-                                            : Icons.visibility_off,
+                                Material(
+                                  elevation: 1,
+                                  color:
+                                      isDarkMode
+                                          ? AppColors.primaryColor.withValues(
+                                            alpha: .02,
+                                          )
+                                          : Colors.white.withValues(
+                                            alpha: 0.95,
+                                          ),
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: TextFormField(
+                                    obscureText: visible,
+                                    controller: userPasswordField,
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: Colors.transparent,
+                                      prefixIcon: Icon(Icons.lock_outline),
+                                      suffixIcon: IconButton(
+                                        onPressed: showPassword,
+                                        icon: Icon(
+                                          visible
+                                              ? Icons.visibility
+                                              : Icons.visibility_off,
+                                        ),
+                                        color:
+                                            Theme.of(context)
+                                                .inputDecorationTheme
+                                                .suffixIconColor,
                                       ),
-                                      color:
-                                          Theme.of(context)
-                                              .inputDecorationTheme
-                                              .suffixIconColor,
+                                      labelText:
+                                          AppLocalizations.of(
+                                            context,
+                                          )!.inputPassword,
                                     ),
-                                    labelText:
-                                        AppLocalizations.of(
-                                          context,
-                                        )!.inputPassword,
                                   ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // Row(
+                              //   children: [
+                              //     Checkbox(
+                              //       value: rememberMe,
+                              //       activeColor: AppColors.primaryColor,
+                              //       onChanged: (value) {
+                              //         setState(() {
+                              //           rememberMe = value!;
+                              //         });
+                              //       },
+                              //     ),
+                              //     Text(
+                              //       AppLocalizations.of(
+                              //         context,
+                              //       )!.checkboxRememberMe,
+                              //       style: TextStyle(fontSize: 14),
+                              //     ),
+                              //   ],
+                              // ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ForgotPassword(),
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  '''${AppLocalizations.of(context)!.linkForgotPassword}?''',
+                                  style: TextStyle(fontSize: 14),
                                 ),
                               ),
                             ],
                           ),
-                        ),
 
-                        const SizedBox(height: 12),
+                          const SizedBox(height: 12),
 
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            // Row(
-                            //   children: [
-                            //     Checkbox(
-                            //       value: rememberMe,
-                            //       onChanged: (value) {
-                            //         setState(() {
-                            //           rememberMe = value!;
-                            //         });
-                            //       },
-                            //     ),
-                            //     Text(
-                            //       AppLocalizations.of(
-                            //         context,
-                            //       )!.checkboxRememberMe,
-                            //       style: TextStyle(fontSize: 12),
-                            //     ),
-                            //   ],
-                            // ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.push(
+                          // Sign in Button
+                          SignInFooterWidget(
+                            buttonText:
+                                AppLocalizations.of(context)!.signInButtonText,
+                            bottomText:
+                                AppLocalizations.of(context)!.notMemberText,
+                            bottomText2:
+                                AppLocalizations.of(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ForgotPassword(),
-                                  ),
-                                );
-                              },
-                              child: Text(
-                                '''${AppLocalizations.of(context)!.linkForgotPassword}?''',
-                                style: TextStyle(fontSize: 14),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        // Sign in Button
-                        SignInFooterWidget(
-                          buttonText:
-                              AppLocalizations.of(context)!.signInButtonText,
-                          bottomText:
-                              AppLocalizations.of(context)!.notMemberText,
-                          bottomText2:
-                              AppLocalizations.of(
-                                context,
-                              )!.createNewAccountText,
-                          googleText:
-                              AppLocalizations.of(context)!.googleTextSignIn,
-                          onElevatedButtonPress: onSignInButtonClick,
-                          isLoading: isLoading,
-                          // Pass here
-                          onBottomTextPressed: () {
-                            Get.to(CreateNewProfile());
-                          },
-                        ),
-                      ],
+                                )!.createNewAccountText,
+                            googleText:
+                                AppLocalizations.of(context)!.googleTextSignIn,
+                            onElevatedButtonPress:
+                                () => onSignInButtonClick(context),
+                            isLoading: isLoading,
+                            // Pass here
+                            onBottomTextPressed: () {
+                              Get.to(CreateNewProfile());
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  Positioned(
-                    top: -80,
-                    left: 0,
-                    right: 0,
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      child: Image.asset(elemascot),
+                    Positioned(
+                      top: -80,
+                      left: 0,
+                      right: 0,
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: Image.asset(elemascot),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

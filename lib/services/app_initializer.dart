@@ -19,7 +19,7 @@ import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
-import 'package:snevva/Controllers/localStorageManager.dart';
+import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 
 
@@ -95,10 +95,10 @@ Future<bool> initializeApp() async {
   await setupHive();
 
   // Start only pedometer background service
-  await initBackgroundService();
+  // await initBackgroundService();
 
   // Optional: runtime permissions
-  await requestAllPermissions();
+  // await requestAllPermissions();
 
   // Notifications
   final notifService = Get.put(NotificationService());

@@ -1,8 +1,11 @@
+import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:http/http.dart' as http;
+
+import '../../common/custom_snackbar.dart';
 
 class WomenHealthController extends GetxController {
   var periodDays = "5".obs;
@@ -28,8 +31,7 @@ class WomenHealthController extends GetxController {
   }
 
   void formattedDate() {
-    formattedCurrentDate.value =
-        DateFormat('EEE dd MMM').format(_currentDate);
+    formattedCurrentDate.value = DateFormat('EEE dd MMM').format(_currentDate);
   }
 
   void onDateChanged(DateTime newDate) {
@@ -100,34 +102,52 @@ class WomenHealthController extends GetxController {
     }
   }
 
-  Future<void> saveWomenHealthData(int periodDays, int periodCycleDays, int periodDay, int periodMonth, int periodYear) async {
-  try {
-    Map<String, dynamic> payload = {
-          'PeroidsDuration': periodDays,
-          'PeroidsCycleCount': periodCycleDays,
-          'PeriodDay': periodDay,
-          'PeriodMonth': periodMonth,
-          'PeriodYear': periodYear,
-          'Disorder' : null,
-        };
-    final response = await ApiService.post(
-      womenhealth,
-      payload,
-      withAuth: true,
-      encryptionRequired: true,
-    );
+  Future<void> saveWomenHealthData(
+    int periodDays,
+    int periodCycleDays,
+    int periodDay,
+    int periodMonth,
+    int periodYear,
+    BuildContext context,
+  ) async {
+    try {
+      Map<String, dynamic> payload = {
+        'PeroidsDuration': periodDays,
+        'PeroidsCycleCount': periodCycleDays,
+        'PeriodDay': periodDay,
+        'PeriodMonth': periodMonth,
+        'PeriodYear': periodYear,
+        'Disorder': null,
+      };
+      final response = await ApiService.post(
+        womenhealth,
+        payload,
+        withAuth: true,
+        encryptionRequired: true,
+      );
 
-    if (response is http.Response) {
-      Get.snackbar('Error', 'Failed to save Women Health Data: ${response.statusCode}');
-      return;
+      if (response is http.Response) {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Failed to save Women Health Data: ${response.statusCode}',
+        );
+        return;
+      }
+
+      CustomSnackbar.showSuccess(
+        context: context,
+        title: 'Success',
+        message: 'Women Health Data saved successfully!',
+      );
+
+      print("✅ Women Health Data saved successfully: $response");
+    } catch (e) {
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Failed saving Women Health Data',
+      );
     }
-
-    // Get.snackbar('Success', 'Women Health Data saved successfully!');
-
-    print("✅ Women Health Data saved successfully: $response");
-
-  } catch (e) {
-    Get.snackbar('Error', 'Failed saving Women Health Data');
   }
-}
 }

@@ -4,6 +4,7 @@ import 'package:linear_progress_bar/linear_progress_bar.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/question_screen_controller.dart';
 import 'package:snevva/Widgets/home_wrapper.dart';
+import 'package:snevva/common/custom_snackbar.dart';
 import '../../Widgets/ProfileSetupAndQuestionnaire/answer_selection_widget.dart';
 import '../../Widgets/ProfileSetupAndQuestionnaire/custom_dialog.dart';
 import '../../consts/consts.dart';
@@ -111,11 +112,11 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                           const Text(
                             'Let\'s Setup your profile 😊',
                             style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w500,
+                              fontSize: 26,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 20),
                           LinearProgressBar(
                             maxSteps: questions.length,
                             progressType: LinearProgressBar.progressTypeLinear,
@@ -127,7 +128,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 32),
                     SizedBox(
                       height: height * 0.55,
                       child: CardSwiper(
@@ -156,12 +157,12 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                                   Text(
                                     question.questionText,
                                     style: const TextStyle(
-                                      fontSize: 22,
+                                      fontSize: 20,
                                       fontWeight: FontWeight.w500,
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
-                                  const SizedBox(height: 20),
+                                  const SizedBox(height: 16),
                                   Wrap(
                                     spacing: 10,
                                     runSpacing: 10,
@@ -262,24 +263,21 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                                                   questions.length - 1;
 
                                               // if (!isLast) {
-                                                final hasSelected =
-                                                    questionScreenController
-                                                        .hasAnySelection(
-                                                          _currentIndex,
-                                                        );
+                                              final hasSelected =
+                                                  questionScreenController
+                                                      .hasAnySelection(
+                                                        _currentIndex,
+                                                      );
 
-                                                if (!hasSelected) {
-                                                  Get.snackbar(
-                                                    'Oops!',
-                                                    'Please select at least one option before continuing.',
-                                                    snackPosition:
-                                                        SnackPosition.BOTTOM,
-                                                    backgroundColor:
-                                                        Colors.red.withOpacity(0.7),
-                                                    colorText: Colors.white,
-                                                  );
-                                                  return; // stop here if no option
-                                                }
+                                              if (!hasSelected) {
+                                                CustomSnackbar.showError(
+                                                  context: context,
+                                                  title: 'Oops!',
+                                                  message:
+                                                      'Please select at least one option before continuing.',
+                                                );
+                                                return; // stop here if no option
+                                              }
                                               // }
 
                                               if (isLast) {
@@ -294,14 +292,20 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                                                 //   barrierDismissible: false,
                                                 // );
                                                 await questionScreenController
-                                                    .saveAnswer(_currentIndex);
+                                                    .saveAnswer(
+                                                      _currentIndex,
+                                                      context,
+                                                    );
                                                 _controller.swipe(
                                                   CardSwiperDirection.left,
                                                 );
                                                 Get.offAll(HomeWrapper());
                                               } else {
                                                 await questionScreenController
-                                                    .saveAnswer(_currentIndex);
+                                                    .saveAnswer(
+                                                      _currentIndex,
+                                                      context,
+                                                    );
                                                 _controller.swipe(
                                                   CardSwiperDirection.left,
                                                 );

@@ -4,7 +4,9 @@ import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:get/get.dart';
+
 import 'package:snevva/Widgets/home_wrapper.dart';
+import 'package:snevva/initial_bindings.dart';
 import 'package:snevva/services/app_initializer.dart';
 import 'package:snevva/utils/theme.dart';
 import 'package:snevva/views/Sign%20Up/sign_in_screen.dart';
@@ -21,7 +23,6 @@ void main() async {
       channelImportance: NotificationChannelImportance.LOW,
       priority: NotificationPriority.LOW,
       onlyAlertOnce: true,
-
     ),
 
     foregroundTaskOptions: ForegroundTaskOptions(
@@ -29,13 +30,11 @@ void main() async {
       autoRunOnBoot: true,
       allowWakeLock: true,
       allowWifiLock: true,
-
     ),
     iosNotificationOptions: IOSNotificationOptions(showNotification: true),
   );
   WidgetsFlutterBinding.ensureInitialized();
   await Alarm.init();
-
   final isRemembered = await initializeApp();
   runApp(MyApp(isRemembered: isRemembered));
 }
@@ -63,7 +62,7 @@ class _MyAppState extends State<MyApp> {
       // Already initialized
       return;
     }
-    
+
     try {
       _receivePort = await FlutterForegroundTask.receivePort;
 
@@ -78,24 +77,19 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) {
-        if (!didPop) {
-          Get.back();
-        }
-      },
-      child: GetMaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: "Snevva",
-        theme: SnevvaTheme.lightTheme,
-        darkTheme: SnevvaTheme.darkTheme,
-        themeMode: ThemeMode.system,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        locale: const Locale('en'),
-        home: widget.isRemembered ? HomeWrapper() : SignInScreen(),
-      ),
+    return GetMaterialApp(
+      initialBinding: InitialBindings(),
+      debugShowCheckedModeBanner: false,
+      title: "Snevva",
+      theme: SnevvaTheme.lightTheme,
+      darkTheme: SnevvaTheme.darkTheme,
+      themeMode: ThemeMode.system,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: const Locale('en'),
+
+      home: widget.isRemembered ? HomeWrapper() : SignInScreen(),
     );
+
   }
 }

@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
 
+import '../../common/custom_snackbar.dart';
+
 class MoodController extends GetxController {
   List<String> moods = ['Pleasent', 'Unpleasent', 'Good'];
 
@@ -12,7 +14,6 @@ class MoodController extends GetxController {
   var selectedMoodIndex = (-1).obs;
   RxString selectedMood = ''.obs;
 
-  
   void selectMood(int index) {
     selectedMoodIndex.value = index;
   }
@@ -29,8 +30,7 @@ class MoodController extends GetxController {
     }
   }
 
-
-  Future<bool> updateMood() async {
+  Future<bool> updateMood(BuildContext context) async {
     if (selectedMoodIndex.value == -1) {
       Get.snackbar('No Mood Selected', 'Please select your mood first');
       return false;
@@ -57,17 +57,26 @@ class MoodController extends GetxController {
       );
 
       if (response is http.Response && response.statusCode >= 400) {
-        Get.snackbar(
-          'Error',
-          '❌ Failed to save Mood record: ${response.statusCode}',
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: '❌ Failed to save Mood record: ${response.statusCode}',
         );
         return false;
       } else {
-        Get.snackbar('Success', '✅ Mood record saved successfully');
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Success',
+          message: '✅ Mood record saved successfully',
+        );
         return true;
       }
     } catch (e) {
-      Get.snackbar('Error', '❌ Exception while saving Mood record');
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: '❌ Exception while saving Mood record',
+      );
       return false;
     }
   }
