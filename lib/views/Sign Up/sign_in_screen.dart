@@ -126,70 +126,47 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   Future<void> onSignInButtonClick(BuildContext context) async {
-    if (isLoading) return; // Prevent multiple taps
-    setState(() {
-      isLoading = true;
-    });
+  if (isLoading) return;
 
-    final prefs = await SharedPreferences.getInstance();
+  setState(() => isLoading = true);
 
-    final emailOrPhone = userEmailOrPhoneField.text.trim();
-    print(emailOrPhone);
-    final password = userPasswordField.text.trim();
-    print(password);
-    final emailRegExp = RegExp(
-      r'^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$',
-    );
-    bool isValid = emailRegExp.hasMatch(emailOrPhone);
-    print(isValid);
+  final prefs = await SharedPreferences.getInstance();
+  final input = userEmailOrPhoneField.text.trim();
+  final password = userPasswordField.text.trim();
 
-    try {
-      // Checking if it's an email or phone number
-      if (isValid) {
-        // Sign in using email
-        await signInController
-            .signInUsingEmail(emailOrPhone, password, context)
-            .then((success) async {
-              if (success) {
-                print("Sign-in successful with email.");
-                await _handleSuccessfulSignIn(emailOrPhone, prefs);
-              } else {
-                print("Sign-in failed with email.");
-                // CustomSnackbar.showError(
-                //   context: context,
-                //   title: 'Error',
-                //   message: 'Wrong Credentails',
-                // );
+  final emailRegExp = RegExp(r'^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$');
+  final phoneRegExp = RegExp(r'^\d{10,}$');
 
-                _handleSignInError();
-              }
-            });
-      } else if (RegExp(r'^\d{10,}$').hasMatch(emailOrPhone)) {
-        // Sign in using phone number
-        await signInController
-            .signInUsingPhone(emailOrPhone, password, context)
-            .then((success) async {
-              if (success) {
-                print("Sign-in successful with phone.");
-                await _handleSuccessfulSignIn(emailOrPhone, prefs);
-              } else {
-                print("Sign-in failed with phone.");
-                print(success.toString());
-                _handleSignInError();
-              }
-            });
-      } else {
-        // Invalid email or phone format
-        _handleSignInError();
-      }
-    } catch (e) {
+  bool isEmail = emailRegExp.hasMatch(input);
+  bool isPhone = phoneRegExp.hasMatch(input);
+
+  try {
+    bool success = false;
+
+    if (isEmail) {
+      // 🔹 Email Login
+      success = await signInController.signInUsingEmail(input, password, context);
+    } else if (isPhone) {
+      // 🔹 Phone Login
+      success = await signInController.signInUsingPhone(input, password, context);
+    } else {
+      // 🔹 Invalid input
       _handleSignInError();
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
+      return;
     }
+
+    // 🔹 Handle result
+    if (success) {
+      await _handleSuccessfulSignIn(input, prefs);
+    } else {
+      _handleSignInError();
+    }
+  } catch (e) {
+    _handleSignInError();
+  } finally {
+    setState(() => isLoading = false);
   }
+}
 
   @override
   Widget build(BuildContext context) {

@@ -102,7 +102,7 @@ class SignUpController extends GetxController {
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
-          message: 'Signup failed: ${response.body}',
+          message: 'Signup failed',
         );
       }
     } catch (e) {
@@ -195,7 +195,7 @@ class SignUpController extends GetxController {
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
-          message: 'Signup failed: ${response.body}',
+          message: 'Signup failed',
         );
       }
     } catch (e) {
