@@ -239,14 +239,12 @@ class _StepCounterState extends State<StepCounter> {
                   children: [
                     const SizedBox(height: 90),
                     Obx(() {
+                      final steps = stepController.todaySteps.value;
                       return TweenAnimationBuilder<int>(
-                        tween: IntTween(
-                          begin: 0,
-                          end: stepController.todaySteps.value,
-                        ),
+                        tween: IntTween(begin: 0, end: steps),
                         duration: const Duration(milliseconds: 600),
                         builder:
-                            (_, val, __) => Text(
+                            (context, val, child) => Text(
                               "$val",
                               style: const TextStyle(
                                 fontSize: 38,
@@ -270,7 +268,7 @@ class _StepCounterState extends State<StepCounter> {
                               isDarkMode,
                             );
                             if (updated != null) {
-                              stepController.saveGoal(updated);
+                              stepController.updateStepGoal(updated);
                             }
                           },
                           child: SvgPicture.asset(
@@ -283,6 +281,7 @@ class _StepCounterState extends State<StepCounter> {
                     ),
                   ],
                 ),
+                
               ],
             ),
 
@@ -368,7 +367,8 @@ class _StepCounterState extends State<StepCounter> {
                 weekLabels:
                     _isMonthlyView
                         ? _monthLabels(_selectedMonth)
-                        : _weekLabels(), isMonthlyView: _isMonthlyView,
+                        : _weekLabels(),
+                isMonthlyView: _isMonthlyView,
               ),
             ),
           ],
