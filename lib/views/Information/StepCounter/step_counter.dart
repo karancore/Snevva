@@ -2,8 +2,6 @@ import 'dart:async';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:intl/intl.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
@@ -11,7 +9,10 @@ import 'package:snevva/Widgets/CommonWidgets/common_stat_graph_widget.dart';
 import 'package:snevva/Widgets/semi_circular_progress.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/steps_model.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class StepCounter extends StatefulWidget {
   final int? customGoal;
@@ -33,25 +34,58 @@ class _StepCounterState extends State<StepCounter> {
   Position? _currentPosition;
   StreamSubscription<Position>? _locationSub;
 
+  Timer? _uiRefreshTimer;
+
   double _graphMaxY = 10;
 
   String _dayKey(DateTime d) => "${d.year}-${d.month}-${d.day}";
+
   DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
 
   @override
   void initState() {
     super.initState();
+
+    stepController.loadGoal();
+    _loadTodaySteps();
     _loadWeeklyData();
-    // _initLocationTracking(); // optional
+    // _initLocationTracking();
+
+    /// 🔥 UI auto-refresh every 5 seconds (background service updates prefs)
+    _uiRefreshTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+      final prefs = await SharedPreferences.getInstance();
+      final todaySteps = prefs.getInt("todaySteps") ?? 0;
+      if (mounted) {
+        setState(() {
+          stepController.todaySteps.value = todaySteps;
+        });
+      }
+      if (_isMonthlyView) {
+        _loadMonthlyData(_selectedMonth);
+      } else {
+        _loadWeeklyData();
+      }
+    });
   }
 
   @override
   void dispose() {
     _locationSub?.cancel();
+    _uiRefreshTimer?.cancel();
     super.dispose();
   }
 
   // ===== LOADERS =====
+
+  Future<void> _loadTodaySteps() async {
+    final todayKey = _dayKey(_startOfDay(DateTime.now()));
+    final entry = _box.get(todayKey);
+    if (!mounted) return;
+    setState(() {
+      stepController.todaySteps.value = entry?.steps ?? 0;
+    });
+  }
+
   Future<void> _loadWeeklyData() async {
     final now = DateTime.now();
     final start = _startOfDay(now).subtract(const Duration(days: 6));
@@ -122,6 +156,7 @@ class _StepCounterState extends State<StepCounter> {
   }
 
   // ===== LABELS =====
+
   List<String> _weekLabels() {
     final now = DateTime.now();
     final start = _startOfDay(now).subtract(const Duration(days: 6));
@@ -137,6 +172,7 @@ class _StepCounterState extends State<StepCounter> {
   }
 
   // ===== SWITCH VIEWS =====
+
   void _toggleView() async {
     setState(() => _isMonthlyView = !_isMonthlyView);
     if (_isMonthlyView) {
@@ -147,12 +183,17 @@ class _StepCounterState extends State<StepCounter> {
   }
 
   void _changeMonth(int delta) async {
-    final newMonth = DateTime(_selectedMonth.year, _selectedMonth.month + delta, 1);
+    final newMonth = DateTime(
+      _selectedMonth.year,
+      _selectedMonth.month + delta,
+      1,
+    );
     setState(() => _selectedMonth = newMonth);
     await _loadMonthlyData(newMonth);
   }
 
   // ===== BUILD =====
+
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
@@ -177,38 +218,50 @@ class _StepCounterState extends State<StepCounter> {
                     const SizedBox(height: 50),
                   ],
                 ),
-
-                // semi-circle progress
-                Obx(() {
-                  final percent =
-                      (stepController.todaySteps.value / stepController.stepGoal.value)
-                          .clamp(0.0, 1.0);
-
-                  return SemiCircularProgress(
-                    percent: percent,
-                    radius: width / 3,
-                    strokeWidth: 12,
-                    color: AppColors.primaryColor,
-                    backgroundColor: Colors.grey.withOpacity(0.3),
-                  );
-                }),
-
-                // Steps text & goal
+                TweenAnimationBuilder<double>(
+                  tween: Tween(
+                    begin: 0,
+                    end: (stepController.todaySteps.value /
+                            stepController.stepGoal.value)
+                        .clamp(0.0, 1.0),
+                  ),
+                  duration: const Duration(milliseconds: 800),
+                  builder:
+                      (_, val, __) => SemiCircularProgress(
+                        percent: val,
+                        radius: width / 3,
+                        strokeWidth: 12,
+                        color: AppColors.primaryColor,
+                        backgroundColor: Colors.grey.withOpacity(0.3),
+                      ),
+                ),
                 Column(
                   children: [
                     const SizedBox(height: 90),
-                    Obx(() => Text(
-                          "${stepController.todaySteps.value}",
-                          style: const TextStyle(
-                            fontSize: 38,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )),
+                    Obx(() {
+                      return TweenAnimationBuilder<int>(
+                        tween: IntTween(
+                          begin: 0,
+                          end: stepController.todaySteps.value,
+                        ),
+                        duration: const Duration(milliseconds: 600),
+                        builder:
+                            (_, val, __) => Text(
+                              "$val",
+                              style: const TextStyle(
+                                fontSize: 38,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                      );
+                    }),
                     const Text('Steps', style: TextStyle(fontSize: 16)),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Obx(() => Text('Goal: ${stepController.stepGoal.value}')),
+                        Obx(
+                          () => Text('Goal: ${stepController.stepGoal.value}'),
+                        ),
                         const SizedBox(width: 8),
                         GestureDetector(
                           onTap: () async {
@@ -217,10 +270,14 @@ class _StepCounterState extends State<StepCounter> {
                               isDarkMode,
                             );
                             if (updated != null) {
-                              stepController.updateStepGoal(updated);
+                              stepController.saveGoal(updated);
                             }
                           },
-                          child: SvgPicture.asset(editIcon, width: 15, height: 15),
+                          child: SvgPicture.asset(
+                            editIcon,
+                            width: 15,
+                            height: 15,
+                          ),
                         ),
                       ],
                     ),
@@ -232,17 +289,23 @@ class _StepCounterState extends State<StepCounter> {
             const SizedBox(height: 30),
 
             // ===== STATS =====
-            Obx(() {
-              final steps = stepController.todaySteps.value;
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _infoItem(dis, '${(steps * 0.0008).toStringAsFixed(2)} km'),
-                  _infoItem(cal, '${(steps * 0.04).toStringAsFixed(0)} cal'),
-                  _infoItem(time, '${(steps / 100).toStringAsFixed(0)} min'),
-                ],
-              );
-            }),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _infoItem(
+                  dis,
+                  '${(stepController.todaySteps.value * 0.0008).toStringAsFixed(2)} km',
+                ),
+                _infoItem(
+                  cal,
+                  '${(stepController.todaySteps.value * 0.04).toStringAsFixed(0)} cal',
+                ),
+                _infoItem(
+                  time,
+                  '${(stepController.todaySteps.value / 100).toStringAsFixed(0)} min',
+                ),
+              ],
+            ),
 
             const SizedBox(height: 25),
 
@@ -278,7 +341,9 @@ class _StepCounterState extends State<StepCounter> {
                     TextButton(
                       onPressed: _toggleView,
                       child: Text(
-                        _isMonthlyView ? "Switch to Weekly" : "Switch to Monthly",
+                        _isMonthlyView
+                            ? "Switch to Weekly"
+                            : "Switch to Monthly",
                       ),
                     ),
                   ],
@@ -299,9 +364,10 @@ class _StepCounterState extends State<StepCounter> {
                 gridLineInterval: (_graphMaxY / 5).ceilToDouble(),
                 points: _points,
                 measureUnit: 'K',
-                weekLabels: _isMonthlyView
-                    ? _monthLabels(_selectedMonth)
-                    : _weekLabels(),
+                weekLabels:
+                    _isMonthlyView
+                        ? _monthLabels(_selectedMonth)
+                        : _weekLabels(),
               ),
             ),
           ],

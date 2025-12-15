@@ -1,9 +1,6 @@
-class Env {
-  static const bool enableConsole = true;
-  static const bool enableSnackbar = true;
-}
+
 // baseUrl
-// const String baseUrl = "https://localhost:7238";
+//const String baseUrl = "https://localhost:7238";
  const String baseUrl = "https://abdmstg.coretegra.com";
 
 
@@ -79,4 +76,3 @@ const String genralmusicAPI = '/api/mentalwellness/getbyTags';
 const String waterrecords = '/api/fetchinfo/waterintakeData';
 
 const String ellychat = '/api/decisiontree/getContent';
-const String uploadprofilepic = '/api/media/intent';

@@ -377,7 +377,7 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                 fontWeight: FontWeight.bold,
                                 onTap:
                                     initialProfileController.isFormValid.value
-                                        ? () async {
+                                        ? () {
                                           final nameModel = StringValueVM(
                                             value:
                                                 initialProfileController
@@ -430,8 +430,6 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                             occupationModel,
                                             context
                                           );
-
-                                          await initialProfileController.uploadProfilePicture(context);
 
                                           Get.to(
                                             HeightWeightScreen(
