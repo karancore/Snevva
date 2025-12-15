@@ -84,6 +84,8 @@ dependencies:
   flutter_foreground_task: ^9.1.0
   screen_brightness: ^1.0.0
   cached_network_image: ^3.4.1
+  mime: ^1.0.4
+  http_parser: ^4.0.2
 
 
   alarm: ^5.1.5

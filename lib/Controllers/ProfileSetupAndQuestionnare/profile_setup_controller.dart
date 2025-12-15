@@ -11,6 +11,9 @@ import 'package:snevva/models/queryParamViewModels/string_value_vm.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import '../../consts/consts.dart';
+import 'dart:convert';
+import 'package:mime/mime.dart';
+
 
 class ProfileSetupController extends GetxController {
   RxString userNameText = ''.obs;
@@ -237,4 +240,92 @@ class ProfileSetupController extends GetxController {
       );
     }
   }
+
+  Future<void> uploadProfilePicture(BuildContext context) async {
+  if (pickedImage.value == null) {
+    print("⚠️ No profile image selected");
+    return;
+  }
+
+  try {
+    final mediaResponse = await _createProfileMedia(
+      file: pickedImage.value!,
+    );
+
+    await _uploadImageToUploadUrl(
+      file: pickedImage.value!,
+      uploadUrl: mediaResponse['UploadUrl'],
+      contentType: mediaResponse['ContentType'],
+    );
+
+    CustomSnackbar.showSuccess(
+      context: context,
+      title: 'Success',
+      message: 'Profile picture uploaded successfully.',
+    );
+  } catch (e, stack) {
+    print("❌ Profile image upload failed: $e");
+    print(stack);
+    CustomSnackbar.showError(
+      context: context,
+      title: 'Error',
+      message: 'Failed to upload profile picture.',
+    );
+  }
+}
+
+Future<Map<String, dynamic>> _createProfileMedia({
+  required File file,
+}) async {
+  final fileName = file.path.split('/').last;
+  final contentType =
+      lookupMimeType(file.path) ?? 'image/jpeg';
+
+  final payload = {
+    "Title": "Profile Picture",
+    "Description": "User profile image",
+    "OriginalFilename": fileName,
+    "ContentType": contentType,
+    "IsProfilePicture": true,
+  };
+
+  final response = await ApiService.post(
+    uploadprofilepic,
+    payload,
+    withAuth: true,
+    encryptionRequired: true,
+  );
+
+  if (response is http.Response) {
+    throw Exception("Failed to create media record");
+  }
+
+  // ApiService already decrypts → response is Map
+  return response as Map<String, dynamic>;
+}
+
+Future<void> _uploadImageToUploadUrl({
+  required File file,
+  required String uploadUrl,
+  required String contentType,
+}) async {
+  final bytes = await file.readAsBytes();
+
+  final response = await http.put(
+    Uri.parse(uploadUrl),
+    headers: {
+      "Content-Type": contentType,
+    },
+    body: bytes,
+  );
+
+  if (response.statusCode != 200 &&
+      response.statusCode != 201) {
+    throw Exception(
+      "Upload failed with status ${response.statusCode}",
+    );
+  }
+}
+
+
 }

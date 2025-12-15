@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-
 import 'package:snevva/models/queryParamViewModels/step_goal_vm.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/env/env.dart';
@@ -14,40 +13,67 @@ class StepCounterController extends GetxController {
 
   SharedPreferences? _prefs;
 
+  static const String _stepsKey = "today_steps";
+  static const String _dateKey = "last_step_date";
+
+
   @override
   void onInit() {
     super.onInit();
     _initPrefs();
   }
 
-  // ================================================================
-  // INIT
-  // ================================================================
-
   Future<void> _initPrefs() async {
     _prefs = await SharedPreferences.getInstance();
+    await _checkAndResetIfNewDay();
     await loadGoal();
-    await loadTodaySteps();
+    await _loadTodaySteps();
   }
 
-  // ================================================================
-  // TODAY STEPS (from background isolate)
-  // ================================================================
 
-  Future<void> loadTodaySteps() async {
-    if (_prefs == null) return;
-    todaySteps.value = _prefs!.getInt("todaySteps") ?? 0;
+  String _todayKey() {
+    final now = DateTime.now();
+    return "${now.year}-${now.month}-${now.day}";
   }
 
-  Future<void> saveTodaySteps(int value) async {
+  Future<void> _checkAndResetIfNewDay() async {
     if (_prefs == null) return;
+
+    final storedDate = _prefs!.getString(_dateKey);
+    final today = _todayKey();
+
+    if (storedDate != today) {
+      // 🔥 New day → reset
+      await _prefs!.setString(_dateKey, today);
+      await _prefs!.setInt(_stepsKey, 0);
+      todaySteps.value = 0;
+    }
+  }
+
+
+  Future<void> _loadTodaySteps() async {
+    if (_prefs == null) return;
+    todaySteps.value = _prefs!.getInt(_stepsKey) ?? 0;
+  }
+
+  /// Called by background service / pedometer
+  Future<void> addSteps(int delta) async {
+    if (_prefs == null) return;
+
+    await _checkAndResetIfNewDay();
+
+    final updated = todaySteps.value + delta;
+    todaySteps.value = updated;
+    await _prefs!.setInt(_stepsKey, updated);
+  }
+
+  Future<void> setSteps(int value) async {
+    if (_prefs == null) return;
+
     todaySteps.value = value;
-    await _prefs!.setInt("todaySteps", value);
+    await _prefs!.setInt(_stepsKey, value);
   }
 
-  // ================================================================
-  // STEP GOAL
-  // ================================================================
 
   Future<void> saveGoal(int goal) async {
     if (_prefs == null) return;
@@ -60,9 +86,6 @@ class StepCounterController extends GetxController {
     stepGoal.value = _prefs!.getInt("step_goal") ?? 8000;
   }
 
-  // ================================================================
-  // UPDATE GOAL (local + server)
-  // ================================================================
 
   Future<void> updateStepGoal(int goal) async {
     await saveGoal(goal);
@@ -96,21 +119,18 @@ class StepCounterController extends GetxController {
       );
 
       if (response is http.Response) {
-        print('Error ❌ Failed to save step goal: ${response.statusCode}');
+        print('❌ Failed to save step goal: ${response.statusCode}');
         return;
       }
 
-      print("✅ Step goal saved successfully: $response");
+      print("✅ Step goal saved successfully");
     } catch (e) {
-      print('Error❌ Exception while saving step goal');
+      print('❌ Exception while saving step goal');
     }
   }
 
-  // ================================================================
-  // SAVE DAILY STEP RECORD (server)
-  // ================================================================
 
-  Future<void> saveStepRecord(int count) async {
+  Future<void> saveStepRecord() async {
     try {
       final now = DateTime.now();
 
@@ -119,7 +139,7 @@ class StepCounterController extends GetxController {
         "Month": now.month,
         "Year": now.year,
         "Time": TimeOfDay.now().format(Get.context!),
-        "Count": count,
+        "Count": todaySteps.value,
       };
 
       final response = await ApiService.post(
@@ -130,12 +150,12 @@ class StepCounterController extends GetxController {
       );
 
       if (response is http.Response && response.statusCode >= 400) {
-        print('Error ❌ Failed to save step record: ${response.statusCode}');
+        print('❌ Failed to save step record: ${response.statusCode}');
       } else {
         print("✅ Step record saved successfully!");
       }
     } catch (e) {
-      print('Error ❌ Exception while saving step record');
+      print('❌ Exception while saving step record');
     }
   }
 }

@@ -14,27 +14,27 @@ import 'package:snevva/views/Sign%20Up/sign_in_screen.dart';
 import 'l10n/app_localizations.dart';
 
 void main() async {
-  FlutterForegroundTask.initCommunicationPort();
-  FlutterForegroundTask.init(
-    androidNotificationOptions: AndroidNotificationOptions(
-      channelId: 'sleep_channel',
-      channelName: 'Sleep Tracking',
-      channelDescription: 'Tracks sleep based on screen on/off',
-      channelImportance: NotificationChannelImportance.LOW,
-      priority: NotificationPriority.LOW,
-      onlyAlertOnce: true,
-    ),
+  // FlutterForegroundTask.initCommunicationPort();
+  // FlutterForegroundTask.init(
+  //   androidNotificationOptions: AndroidNotificationOptions(
+  //     channelId: 'sleep_channel',
+  //     channelName: 'Sleep Tracking',
+  //     channelDescription: 'Tracks sleep based on screen on/off',
+  //     channelImportance: NotificationChannelImportance.LOW,
+  //     priority: NotificationPriority.LOW,
+  //     onlyAlertOnce: true,
+  //   ),
 
-    foregroundTaskOptions: ForegroundTaskOptions(
-      eventAction: ForegroundTaskEventAction.repeat(30000), // 30 sec
-      autoRunOnBoot: true,
-      allowWakeLock: true,
-      allowWifiLock: true,
-    ),
-    iosNotificationOptions: IOSNotificationOptions(showNotification: true),
-  );
-  WidgetsFlutterBinding.ensureInitialized();
-  await Alarm.init();
+  //   foregroundTaskOptions: ForegroundTaskOptions(
+  //     eventAction: ForegroundTaskEventAction.repeat(30000), // 30 sec
+  //     autoRunOnBoot: true,
+  //     allowWakeLock: true,
+  //     allowWifiLock: true,
+  //   ),
+  //   iosNotificationOptions: IOSNotificationOptions(showNotification: true),
+  // );
+  // WidgetsFlutterBinding.ensureInitialized();
+  // await Alarm.init();
   final isRemembered = await initializeApp();
   runApp(MyApp(isRemembered: isRemembered));
 }
@@ -54,7 +54,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    _initForegroundListener();
+    // _initForegroundListener();
   }
 
   void _initForegroundListener() async {
@@ -88,7 +88,7 @@ class _MyAppState extends State<MyApp> {
       supportedLocales: AppLocalizations.supportedLocales,
       locale: const Locale('en'),
 
-      home: widget.isRemembered ? HomeWrapper() : SignInScreen(),
+      home: HomeWrapper(),
     );
 
   }
