@@ -1,8 +1,35 @@
 import 'package:flutter/material.dart';
 
 import '../consts/colors.dart';
+import 'animted_reminder_bar.dart';
 
 class CustomSnackbar {
+
+  OverlayEntry? overlay;
+
+  void showReminderBar(BuildContext context) {
+    final bool isDarkMode = MediaQuery.of(context).platformBrightness == Brightness.dark;
+
+    overlay = OverlayEntry(builder: (context) {
+      return Positioned(
+        top: 60,
+        left: 0,
+        right: 0,
+        child: Material(
+          color: isDarkMode ? white : black,
+          child: AnimatedReminderBar(show: true),
+        ),
+      );
+    });
+
+    Overlay.of(context).insert(overlay!);
+
+    // Remove after 3 seconds + animation
+    Future.delayed(const Duration(seconds: 4), () {
+      overlay?.remove();
+    });
+  }
+
   static void showError({
     required BuildContext context,
     required String title,

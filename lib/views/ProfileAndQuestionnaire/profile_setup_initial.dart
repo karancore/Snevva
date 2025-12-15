@@ -482,7 +482,7 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                                 context,
                                               );
 
-                                          await initialProfileController.uploadProfilePicture(context);
+                                          //await initialProfileController.uploadProfilePicture(context);
 
                                           if (result == true) {
                                             Get.to(

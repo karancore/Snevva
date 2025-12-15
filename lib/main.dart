@@ -93,7 +93,7 @@ class _MyAppState extends State<MyApp> {
       supportedLocales: AppLocalizations.supportedLocales,
       locale: const Locale('en'),
 
-      home: widget.isRemembered ? HomeWrapper() : SignInScreen(),
+      home: HomeWrapper(),
     );
   }
 }

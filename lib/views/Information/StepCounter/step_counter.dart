@@ -359,6 +359,7 @@ class _StepCounterState extends State<StepCounter> {
                 isDarkMode: isDarkMode,
                 height: 20,
                 graphTitle: '',
+                isSleepGraph: false,
                 yAxisInterval: (_graphMaxY / 5).ceilToDouble(),
                 yAxisMaxValue: _graphMaxY,
                 gridLineInterval: (_graphMaxY / 5).ceilToDouble(),
@@ -367,7 +368,7 @@ class _StepCounterState extends State<StepCounter> {
                 weekLabels:
                     _isMonthlyView
                         ? _monthLabels(_selectedMonth)
-                        : _weekLabels(),
+                        : _weekLabels(), isMonthlyView: _isMonthlyView,
               ),
             ),
           ],
