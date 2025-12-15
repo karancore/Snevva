@@ -42,9 +42,6 @@ class _StepCounterState extends State<StepCounter> {
 
   DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  int _lastSteps = 0;
-double _lastPercent = 0;
-
 
 
 //   @override
@@ -90,8 +87,8 @@ void initState() {
   super.initState();
 
   // Init animation baselines
-  _lastSteps = stepController.todaySteps.value;
-  _lastPercent = stepController.stepGoal.value == 0
+ stepController.lastSteps = stepController.todaySteps.value;
+ stepController.lastPercent = stepController.stepGoal.value == 0
       ? 0
       : stepController.todaySteps.value /
           stepController.stepGoal.value;
@@ -288,11 +285,11 @@ void dispose() {
           .clamp(0.0, 1.0);
 
       final tween = Tween<double>(
-        begin: _lastPercent,
+        begin: stepController.lastPercent,
         end: percent,
       );
 
-      _lastPercent = percent;
+      stepController.lastPercent = percent;
 
       return TweenAnimationBuilder<double>(
         tween: tween,
@@ -313,27 +310,25 @@ void dispose() {
 
         /// ✅ STEP COUNTER (incremental animation)
         Obx(() {
-          final steps = stepController.todaySteps.value;
+  final steps = stepController.todaySteps.value;
 
-          final tween = IntTween(
-            begin: _lastSteps,
-            end: steps,
-          );
+  final tween = IntTween(
+    begin: stepController.lastSteps,
+    end: steps,
+  );
 
-          _lastSteps = steps;
+  stepController.lastSteps = steps;
 
-          return TweenAnimationBuilder<int>(
-            tween: tween,
-            duration: const Duration(milliseconds: 600),
-            builder: (_, val, __) => Text(
-              "$val",
-              style: const TextStyle(
-                fontSize: 38,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          );
-        }),
+  return TweenAnimationBuilder<int>(
+    tween: tween,
+    duration: const Duration(milliseconds: 600),
+    builder: (_, val, __) => Text(
+      "$val",
+      style: const TextStyle(fontSize: 38, fontWeight: FontWeight.bold),
+    ),
+  );
+}),
+
 
         const Text('Steps', style: TextStyle(fontSize: 16)),
 

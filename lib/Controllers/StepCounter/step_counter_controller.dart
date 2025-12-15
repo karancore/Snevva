@@ -12,6 +12,9 @@ class StepCounterController extends GetxController {
   RxInt stepGoal = 8000.obs;
   RxInt todaySteps = 0.obs;
 
+  int lastSteps = 0;
+  double lastPercent = 0;
+
   SharedPreferences? _prefs;
 
   @override
