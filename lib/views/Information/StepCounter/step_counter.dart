@@ -42,38 +42,101 @@ class _StepCounterState extends State<StepCounter> {
 
   DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  @override
-  void initState() {
-    super.initState();
+  int _lastSteps = 0;
+double _lastPercent = 0;
 
-    stepController.loadGoal();
-    _loadTodaySteps();
-    _loadWeeklyData();
-    // _initLocationTracking();
 
-    /// 🔥 UI auto-refresh every 5 seconds (background service updates prefs)
-    _uiRefreshTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
-      final prefs = await SharedPreferences.getInstance();
-      final todaySteps = prefs.getInt("todaySteps") ?? 0;
-      if (mounted) {
-        setState(() {
-          stepController.todaySteps.value = todaySteps;
-        });
+
+//   @override
+// void initState() {
+//   super.initState();
+
+//   /// Initialize animation baselines
+//   _lastSteps = stepController.todaySteps.value;
+//   _lastPercent = stepController.stepGoal.value == 0
+//       ? 0
+//       : stepController.todaySteps.value /
+//           stepController.stepGoal.value;
+
+//   /// Load persisted data
+//   stepController.loadGoal();
+//   _loadTodaySteps();
+//   _loadWeeklyData();
+//   // _initLocationTracking();
+
+//   /// 🔥 UI auto-refresh (safe + guarded)
+//   _uiRefreshTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+//     final prefs = await SharedPreferences.getInstance();
+//     final todaySteps = prefs.getInt("todaySteps") ?? 0;
+
+//     // Update only if changed (prevents animation spam)
+//     if (todaySteps != stepController.todaySteps.value) {
+//       stepController.todaySteps.value = todaySteps;
+//     }
+
+//     // Refresh graph data
+//     if (_isMonthlyView) {
+//       _loadMonthlyData(_selectedMonth);
+//     } else {
+//       _loadWeeklyData();
+//     }
+//   });
+// }
+
+late final StreamSubscription<BoxEvent> _hiveSub;
+
+@override
+void initState() {
+  super.initState();
+
+  // Init animation baselines
+  _lastSteps = stepController.todaySteps.value;
+  _lastPercent = stepController.stepGoal.value == 0
+      ? 0
+      : stepController.todaySteps.value /
+          stepController.stepGoal.value;
+
+  // Initial load
+  stepController.loadGoal();
+  _loadTodaySteps();
+  _loadWeeklyData();
+
+  // 🔥 Hive realtime listener (single source of truth)
+  _hiveSub = _box.watch().listen((BoxEvent event) {
+    final todayKey = _dayKey(_startOfDay(DateTime.now()));
+
+    // ✅ Update TODAY steps
+    if (event.key == todayKey && event.value is StepEntry) {
+      final steps = (event.value as StepEntry).steps;
+
+      if (steps != stepController.todaySteps.value) {
+        stepController.todaySteps.value = steps;
       }
-      if (_isMonthlyView) {
-        _loadMonthlyData(_selectedMonth);
-      } else {
-        _loadWeeklyData();
-      }
-    });
-  }
+    }
 
-  @override
-  void dispose() {
-    _locationSub?.cancel();
-    _uiRefreshTimer?.cancel();
-    super.dispose();
-  }
+    // ✅ Update graph
+    if (_isMonthlyView) {
+      _loadMonthlyData(_selectedMonth);
+    } else {
+      _loadWeeklyData();
+    }
+  });
+}
+
+
+@override
+void dispose() {
+  _hiveSub.cancel();
+  super.dispose();
+}
+
+
+  // @override
+  // void dispose() {
+  //   _locationSub?.cancel();
+  //   _uiRefreshTimer?.cancel();
+  //   super.dispose();
+  // }
 
   // ===== LOADERS =====
 
@@ -81,9 +144,8 @@ class _StepCounterState extends State<StepCounter> {
     final todayKey = _dayKey(_startOfDay(DateTime.now()));
     final entry = _box.get(todayKey);
     if (!mounted) return;
-    setState(() {
       stepController.todaySteps.value = entry?.steps ?? 0;
-    });
+
   }
 
   Future<void> _loadWeeklyData() async {
@@ -210,101 +272,115 @@ class _StepCounterState extends State<StepCounter> {
           children: [
             // ===== STEP PROGRESS =====
             Stack(
-              alignment: Alignment.center,
-              children: [
-                Column(
-                  children: [
-                    Image.asset(run, width: 80, height: 80),
-                    const SizedBox(height: 50),
-                  ],
-                ),
-                TweenAnimationBuilder<double>(
-                  tween: Tween(
-                    begin: 0,
-                    end: (stepController.todaySteps.value /
-                            stepController.stepGoal.value)
-                        .clamp(0.0, 1.0),
-                  ),
-                  duration: const Duration(milliseconds: 800),
-                  builder:
-                      (_, val, __) => SemiCircularProgress(
-                        percent: val,
-                        radius: width / 3,
-                        strokeWidth: 12,
-                        color: AppColors.primaryColor,
-                        backgroundColor: Colors.grey.withOpacity(0.3),
-                      ),
-                ),
-                Column(
-                  children: [
-                    const SizedBox(height: 90),
-                    Obx(() {
-                      final steps = stepController.todaySteps.value;
-                      return TweenAnimationBuilder<int>(
-                        tween: IntTween(begin: 0, end: steps),
-                        duration: const Duration(milliseconds: 600),
-                        builder:
-                            (context, val, child) => Text(
-                              "$val",
-                              style: const TextStyle(
-                                fontSize: 38,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                      );
-                    }),
-                    const Text('Steps', style: TextStyle(fontSize: 16)),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Obx(
-                          () => Text('Goal: ${stepController.stepGoal.value}'),
-                        ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () async {
-                            final updated = await showStepCounterBottomSheet(
-                              context,
-                              isDarkMode,
-                            );
-                            if (updated != null) {
-                              stepController.updateStepGoal(updated);
-                            }
-                          },
-                          child: SvgPicture.asset(
-                            editIcon,
-                            width: 15,
-                            height: 15,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                
-              ],
+  alignment: Alignment.center,
+  children: [
+    Column(
+      children: [
+        Image.asset(run, width: 80, height: 80),
+        const SizedBox(height: 50),
+      ],
+    ),
+
+    /// ✅ PROGRESS RING (smooth, no reset)
+    Obx(() {
+      final percent = (stepController.todaySteps.value /
+              stepController.stepGoal.value)
+          .clamp(0.0, 1.0);
+
+      final tween = Tween<double>(
+        begin: _lastPercent,
+        end: percent,
+      );
+
+      _lastPercent = percent;
+
+      return TweenAnimationBuilder<double>(
+        tween: tween,
+        duration: const Duration(milliseconds: 800),
+        builder: (_, val, __) => SemiCircularProgress(
+          percent: val,
+          radius: width / 3,
+          strokeWidth: 12,
+          color: AppColors.primaryColor,
+          backgroundColor: Colors.grey.withOpacity(0.3),
+        ),
+      );
+    }),
+
+    Column(
+      children: [
+        const SizedBox(height: 90),
+
+        /// ✅ STEP COUNTER (incremental animation)
+        Obx(() {
+          final steps = stepController.todaySteps.value;
+
+          final tween = IntTween(
+            begin: _lastSteps,
+            end: steps,
+          );
+
+          _lastSteps = steps;
+
+          return TweenAnimationBuilder<int>(
+            tween: tween,
+            duration: const Duration(milliseconds: 600),
+            builder: (_, val, __) => Text(
+              "$val",
+              style: const TextStyle(
+                fontSize: 38,
+                fontWeight: FontWeight.bold,
+              ),
             ),
+          );
+        }),
+
+        const Text('Steps', style: TextStyle(fontSize: 16)),
+
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Obx(() => Text('Goal: ${stepController.stepGoal.value}')),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () async {
+                final updated = await showStepCounterBottomSheet(
+                  context,
+                  isDarkMode,
+                );
+                if (updated != null) {
+                  stepController.updateStepGoal(updated);
+                }
+              },
+              child: SvgPicture.asset(
+                editIcon,
+                width: 15,
+                height: 15,
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  ],
+),
 
             const SizedBox(height: 30),
 
             // ===== STATS =====
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _infoItem(
-                  dis,
-                  '${(stepController.todaySteps.value * 0.0008).toStringAsFixed(2)} km',
-                ),
-                _infoItem(
-                  cal,
-                  '${(stepController.todaySteps.value * 0.04).toStringAsFixed(0)} cal',
-                ),
-                _infoItem(
-                  time,
-                  '${(stepController.todaySteps.value / 100).toStringAsFixed(0)} min',
-                ),
-              ],
-            ),
+            Obx(() {
+  final steps = stepController.todaySteps.value;
+
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    children: [
+      _infoItem(dis, '${(steps * 0.0008).toStringAsFixed(2)} km'),
+      _infoItem(cal, '${(steps * 0.04).toStringAsFixed(0)} cal'),
+      _infoItem(time, '${(steps / 100).toStringAsFixed(0)} min'),
+    ],
+  );
+}),
+
 
             const SizedBox(height: 25),
 
