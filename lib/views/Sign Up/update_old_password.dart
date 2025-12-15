@@ -49,7 +49,7 @@ class _UpdateOldPaswordState extends State<UpdateOldPasword> {
           widget.otp,
           widget.otpVerificationStatus,
           controller.confirmPasswordController.text.trim(),
-          context
+          context,
         );
       } else if (RegExp(r'^\d{10,}$').hasMatch(input)) {
         controller.updateOldPasswordWithPhone(
@@ -57,7 +57,7 @@ class _UpdateOldPaswordState extends State<UpdateOldPasword> {
           widget.otp,
           widget.otpVerificationStatus,
           controller.confirmPasswordController.text.trim(),
-          context
+          context,
         );
       } else {
         CustomSnackbar.showError(

@@ -8,7 +8,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.isWhiteRequired = false,
     this.showDrawerIcon = true,
     this.showCloseButton = true,
-    this.onClose
+    this.onClose,
   });
 
   final String appbarText;
@@ -56,7 +56,10 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   Padding(
                     padding: const EdgeInsets.only(right: 20),
                     child: InkWell(
-                      onTap: onClose != null ? onClose! : () => Navigator.pop(context),
+                      onTap:
+                          onClose != null
+                              ? onClose!
+                              : () => Navigator.pop(context),
                       child:
                           isWhiteRequired!
                               ? SizedBox(

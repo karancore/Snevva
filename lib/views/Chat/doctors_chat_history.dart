@@ -68,9 +68,9 @@ class DoctorsChatHistory extends StatelessWidget {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
-  //  final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
+    //  final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
     return Scaffold(
-      drawer: Drawer(child: DrawerMenuWidget(height: height, width: width),),
+      drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: AppBar(
         elevation: 0,
         automaticallyImplyLeading: false,
@@ -121,10 +121,7 @@ class DoctorsChatHistory extends StatelessWidget {
 
       body: SafeArea(
         child: Column(
-          children: [
-            _buildTabBar(),
-            Expanded(child: _buildChatList()),
-          ],
+          children: [_buildTabBar(), Expanded(child: _buildChatList())],
         ),
       ),
     );
@@ -149,7 +146,10 @@ class DoctorsChatHistory extends StatelessWidget {
       margin: EdgeInsets.only(right: 20),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
       decoration: BoxDecoration(
-        color: selected ? AppColors.primaryColor.withOpacity(0.2): Colors.transparent,
+        color:
+            selected
+                ? AppColors.primaryColor.withOpacity(0.2)
+                : Colors.transparent,
         borderRadius: BorderRadius.circular(20),
         border: selected ? null : Border.all(color: Colors.grey.shade300),
       ),
@@ -166,7 +166,8 @@ class DoctorsChatHistory extends StatelessWidget {
   Widget _buildChatList() {
     return ListView.separated(
       itemCount: chatData.length,
-      separatorBuilder: (_, _) => Divider(indent: 20, thickness: 1, endIndent: 20, ),
+      separatorBuilder:
+          (_, _) => Divider(indent: 20, thickness: 1, endIndent: 20),
       itemBuilder: (context, index) {
         final data = chatData[index];
         return ListTile(

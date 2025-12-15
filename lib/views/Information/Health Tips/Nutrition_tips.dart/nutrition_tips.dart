@@ -9,7 +9,6 @@ import 'package:snevva/consts/colors.dart';
 import 'package:snevva/consts/images.dart';
 
 class NutritionTipsPage extends StatelessWidget {
-
   @override
   Widget build(BuildContext context) {
     final Map<String, dynamic> tipData = Get.arguments;
@@ -28,7 +27,7 @@ class NutritionTipsPage extends StatelessWidget {
         backgroundColor: transparent,
         centerTitle: true,
         title: Text(
-          tipData['Heading']?? "Sleep Well",
+          tipData['Heading'] ?? "Sleep Well",
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -40,9 +39,9 @@ class NutritionTipsPage extends StatelessWidget {
         leading: Builder(
           builder:
               (context) => IconButton(
-            icon: SvgPicture.asset(drawerIcon ,color: white,),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
+                icon: SvgPicture.asset(drawerIcon, color: white),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              ),
         ),
 
         // Conditionally show close (cross) icon
@@ -57,7 +56,7 @@ class NutritionTipsPage extends StatelessWidget {
                 child: Icon(
                   Icons.clear,
                   size: 21,
-                  color: white , // Adapt to theme
+                  color: white, // Adapt to theme
                 ),
               ),
             ),
@@ -181,7 +180,6 @@ class NutritionTipsPage extends StatelessWidget {
           ),
         ],
       ),
-
     );
   }
 }

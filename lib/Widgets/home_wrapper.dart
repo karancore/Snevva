@@ -31,6 +31,7 @@ class _HomeWrapperState extends State<HomeWrapper> {
       _selectedIndex = index;
     });
   }
+
   @override
   void initState() {
     super.initState();
@@ -38,7 +39,6 @@ class _HomeWrapperState extends State<HomeWrapper> {
     // checksession();
     // localStorageManager.checksession();
   }
-
 
   // Future<void> checksession() async {
   //   final prefs = await SharedPreferences.getInstance();
@@ -64,9 +64,7 @@ class _HomeWrapperState extends State<HomeWrapper> {
 
     return Scaffold(
       key: _scaffoldKey,
-      drawer: Drawer(
-        child: DrawerMenuWidget(height: height, width: width),
-      ),
+      drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       body: GestureDetector(
         onHorizontalDragUpdate: (details) {
           if (details.delta.dx > 10) {

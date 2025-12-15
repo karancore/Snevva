@@ -1,4 +1,3 @@
-
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import '../../../../Widgets/Drawer/drawer_menu_wigdet.dart';
@@ -17,9 +16,13 @@ class FitnessScreen extends StatelessWidget {
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: CustomAppBar(appbarText: "Fitness"),
       bottomNavigationBar: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8), // fixed error here
+        padding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 8,
+        ), // fixed error here
         child: CustomOutlinedButton(
           width: width,
+          backgroundColor: AppColors.primaryColor,
           isDarkMode: isDarkMode,
           buttonName: 'Start',
           onTap: () {},
@@ -45,7 +48,6 @@ class FitnessScreen extends StatelessWidget {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-
                   Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
@@ -79,8 +81,9 @@ class FitnessScreen extends StatelessWidget {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color:
-                                  AppColors.primaryColor.withOpacity(0.2),
+                                  color: AppColors.primaryColor.withOpacity(
+                                    0.2,
+                                  ),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
@@ -111,7 +114,7 @@ class FitnessScreen extends StatelessWidget {
                                   ),
                                   child: const Column(
                                     crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         "Step 1",
@@ -143,7 +146,7 @@ class FitnessScreen extends StatelessWidget {
                                   ),
                                   child: const Column(
                                     crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         "Step 2",

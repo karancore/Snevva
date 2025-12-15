@@ -14,7 +14,7 @@ class EmergencyContact extends StatelessWidget {
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
 
-   // final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
+    // final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
@@ -109,7 +109,9 @@ class EmergencyContact extends StatelessWidget {
             Row(
               children: [
                 InkWell(
-                  onTap: () {Get.to(AddEmergencyContact());},
+                  onTap: () {
+                    Get.to(AddEmergencyContact());
+                  },
                   borderRadius: BorderRadius.circular(40),
                   child: Padding(
                     padding: const EdgeInsets.all(3.0),
@@ -171,7 +173,6 @@ class EmergencyContact extends StatelessWidget {
               phone: '+91 8765355343',
               relation: 'Brother',
             ),
-
           ],
         ),
       ),

@@ -23,11 +23,12 @@ class _DoctorProfileState extends State<DoctorProfile> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
-      appBar: CustomAppBar(appbarText: "Doctor Profile", isWhiteRequired: true,),
-      bottomNavigationBar:   Padding(
+      appBar: CustomAppBar(appbarText: "Doctor Profile", isWhiteRequired: true),
+      bottomNavigationBar: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
         child: CustomOutlinedButton(
           width: width,
+          backgroundColor: AppColors.primaryColor,
           isDarkMode: isDarkMode,
           buttonName: "Schedule Appointment",
           onTap: () {
@@ -44,9 +45,11 @@ class _DoctorProfileState extends State<DoctorProfile> {
                 Container(
                   width: double.infinity,
                   height: height * 0.28,
-                  decoration: BoxDecoration(gradient: AppColors.primaryGradient),
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                  ),
                 ),
-             SizedBox(height: height * 0.08),
+                SizedBox(height: height * 0.08),
                 Column(
                   children: [
                     Text(
@@ -96,7 +99,7 @@ class _DoctorProfileState extends State<DoctorProfile> {
               right: 0,
               child: Center(
                 child: CircleAvatar(
-                  radius:  height * 0.08,
+                  radius: height * 0.08,
                   backgroundImage: AssetImage(doc1),
                 ),
               ),

@@ -80,7 +80,6 @@ class _CommonQuestionBottomSheetState extends State<CommonQuestionBottomSheet> {
                     mainAxisSize: MainAxisSize.min,
                     // Essential for content-based height
                     children: [
-
                       AutoSizeText(
                         widget.questionHeading,
                         textAlign: TextAlign.center,
@@ -167,7 +166,9 @@ class _CommonQuestionBottomSheetState extends State<CommonQuestionBottomSheet> {
                                           onIndexChanged: (index, _) {
                                             setState(() {
                                               if (widget.setDay != null) {
-                                                widget.setDay!((index + 1).toString());
+                                                widget.setDay!(
+                                                  (index + 1).toString(),
+                                                );
                                               }
                                             });
                                           },
@@ -196,11 +197,10 @@ class _CommonQuestionBottomSheetState extends State<CommonQuestionBottomSheet> {
                       CustomOutlinedButton(
                         width: widget.width,
                         isDarkMode: widget.isDarkMode,
+                        backgroundColor: AppColors.primaryColor,
                         buttonName: "Next",
                         onTap: widget.onNext,
-                        backgroundColor: AppColors.primaryColor,
                       ),
-
                     ],
                   ),
                 ),

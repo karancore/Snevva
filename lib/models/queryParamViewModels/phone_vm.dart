@@ -11,4 +11,3 @@ class PhoneVM {
     this.password,
   });
 }
-

@@ -4,10 +4,5 @@ class UserCodeVM {
   final int? month;
   final int? year;
 
-  UserCodeVM({
-    required this.userCode,
-    this.date,
-    this.month,
-    this.year,
-  });
+  UserCodeVM({required this.userCode, this.date, this.month, this.year});
 }

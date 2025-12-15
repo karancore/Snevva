@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:snevva/Widgets/SignInScreens/sign_in_footer_widget.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
@@ -13,88 +14,77 @@ class CreateNewProfile extends StatefulWidget {
   State<CreateNewProfile> createState() => _CreateNewProfileState();
 }
 
-final TextEditingController emailOrPasswordTextController =
-    TextEditingController();
-
 class _CreateNewProfileState extends State<CreateNewProfile> {
   bool agreedToTerms = false;
   DateTime? selectedDate;
 
+  final TextEditingController emailOrPasswordTextController =
+      TextEditingController();
+
   @override
   void dispose() {
+    emailOrPasswordTextController.dispose();
     super.dispose();
   }
 
-  final signupController = Get.find<SignUpController>();
+  final signupController = Get.put(SignUpController());
 
   bool isLoading = false;
   bool isSigningIn = false;
 
-  @override
-  Widget build(BuildContext context) {
-    Future<void> onButtonClick() async {
-      if (isLoading) return;
-      setState(() => isLoading = true);
+  Future<void> onButtonClick(String input) async {
+    final emailRegex = RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[a-zA-Z]{2,4}$');
+    final phoneRegex = RegExp(r'^[6-9]\d{9}$');
 
-      try {
-        if (emailOrPasswordTextController.text.toString().contains('@')) {
-          final result = await signupController.signUpUsingGmail(
-            emailOrPasswordTextController.text.toString().trim(),
-            context
-          );
+    try {
+      if (emailRegex.hasMatch(input)) {
+        final result = await signupController.signUpUsingGmail(input, context);
 
-          if (result != false && result != null) {
-            Get.to(
-              VerifyWithOtpScreen(
-                emailOrPasswordText:
-                    emailOrPasswordTextController.text.toString().trim(),
-                appBarText: AppLocalizations.of(context)!.verifyEmailAddress,
-                responseOtp: result,
-                isForgotPasswordScreen: false,
-              ),
-            );
-            emailOrPasswordTextController.clear();
-          }
-        } else if (RegExp(
-          r'^\d{10,}$',
-        ).hasMatch(emailOrPasswordTextController.text.toString())) {
-          final result = await signupController.signUpUsingPhone(
-            emailOrPasswordTextController.text.toString().trim(),
-            context
+        if (result != null && result != false) {
+          Get.to(
+            VerifyWithOtpScreen(
+              emailOrPasswordText: input,
+              appBarText: AppLocalizations.of(context)!.verifyEmailAddress,
+              responseOtp: result,
+              isForgotPasswordScreen: false,
+            ),
           );
-
-          if (result != false && result != null) {
-            Get.to(
-              VerifyWithOtpScreen(
-                emailOrPasswordText:
-                    emailOrPasswordTextController.text.toString().trim(),
-                appBarText: AppLocalizations.of(context)!.verifyPhoneNumber,
-                responseOtp: result,
-                isForgotPasswordScreen: false,
-              ),
-            );
-            emailOrPasswordTextController.clear();
-          }
-        } else {
-          CustomSnackbar.showError(
-            title: 'Error',
-            message: 'Please Provide Correct Email or Phone Number',
-            context: context,
-          );
+          emailOrPasswordTextController.clear();
         }
-      } catch (e) {
+      } else if (phoneRegex.hasMatch(input)) {
+        final result = await signupController.signUpUsingPhone(input, context);
+
+        if (result != null && result != false) {
+          Get.to(
+            VerifyWithOtpScreen(
+              emailOrPasswordText: input,
+              appBarText: AppLocalizations.of(context)!.verifyPhoneNumber,
+              responseOtp: result,
+              isForgotPasswordScreen: false,
+            ),
+          );
+          emailOrPasswordTextController.clear();
+        }
+      } else {
         CustomSnackbar.showError(
           title: 'Error',
           message: 'Please Provide Correct Email or Phone Number',
           context: context,
         );
-      } finally {
-        setState(() {
-          isLoading = false;
-        });
       }
+    } catch (e, s) {
+      print("❌ Caught error: $e");
+      print("📌 Stack: $s");
+      CustomSnackbar.showError(
+        title: 'Error',
+        message: 'Failed to create profile',
+        context: context,
+      );
     }
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -113,7 +103,20 @@ class _CreateNewProfileState extends State<CreateNewProfile> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: ElevatedButton(
-                  onPressed: isLoading ? null : onButtonClick,
+                  onPressed:
+                      isLoading
+                          ? null
+                          : () async {
+                            setState(() {
+                              isLoading = true;
+                            });
+                            await onButtonClick(
+                              emailOrPasswordTextController.text.trim(),
+                            );
+                            setState(() {
+                              isLoading = false;
+                            });
+                          },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     foregroundColor: Colors.white,
@@ -213,34 +216,38 @@ class _CreateNewProfileState extends State<CreateNewProfile> {
 
               const SizedBox(height: 12),
               const Divider(thickness: 1),
+              const SizedBox(height: 12),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  AutoSizeText(
-                    AppLocalizations.of(context)!.alreadyHaveAccount,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Get.offAll(SignInScreen());
-                    },
-                    child: Text(
-                      AppLocalizations.of(context)!.loginInText,
-                      style: const TextStyle(
-                        decoration: TextDecoration.underline,
-                        decorationColor: AppColors.primaryColor,
-                        color: AppColors.primaryColor,
-                        fontSize: 12,
+              Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: AppLocalizations.of(context)!.alreadyHaveAccount,
+                      style: TextStyle(
                         fontWeight: FontWeight.w500,
+                        fontSize: 16,
                       ),
                     ),
-                  ),
-                ],
+                    TextSpan(text: " "),
+                    TextSpan(
+                      text: AppLocalizations.of(context)!.loginInText,
+
+                      style: TextStyle(
+                        color: AppColors.primaryColor,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
+                        decorationColor: AppColors.primaryColor,
+
+                        decoration: TextDecoration.underline,
+                      ),
+                      recognizer:
+                          TapGestureRecognizer()
+                            ..onTap = () {
+                              Get.offAll(SignInScreen());
+                            },
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

@@ -9,23 +9,38 @@ void main() {
   });
 
   group('SleepNoticingService Logic Tests', () {
-    test('Condition 1: Phone used within 15 minutes of bedtime -> Ignore usage', () {
-      final bedtime = DateTime(2023, 1, 1, 22, 0); // 10:00 PM
-      final phoneUsageStart = DateTime(2023, 1, 1, 22, 10); // 10:10 PM (within 15 mins)
-      final phoneUsageDuration = Duration(minutes: 5);
+    test(
+      'Condition 1: Phone used within 15 minutes of bedtime -> Ignore usage',
+      () {
+        final bedtime = DateTime(2023, 1, 1, 22, 0); // 10:00 PM
+        final phoneUsageStart = DateTime(
+          2023,
+          1,
+          1,
+          22,
+          10,
+        ); // 10:10 PM (within 15 mins)
+        final phoneUsageDuration = Duration(minutes: 5);
 
-      final newBedtime = service.calculateNewBedtime(
-        bedtime: bedtime,
-        phoneUsageStart: phoneUsageStart,
-        phoneUsageDuration: phoneUsageDuration,
-      );
+        final newBedtime = service.calculateNewBedtime(
+          bedtime: bedtime,
+          phoneUsageStart: phoneUsageStart,
+          phoneUsageDuration: phoneUsageDuration,
+        );
 
-      expect(newBedtime, bedtime);
-    });
+        expect(newBedtime, bedtime);
+      },
+    );
 
     test('Condition 2: Phone used after 15 minutes -> Adjust bedtime', () {
       final bedtime = DateTime(2023, 1, 1, 22, 0); // 10:00 PM
-      final phoneUsageStart = DateTime(2023, 1, 1, 22, 20); // 10:20 PM (after 15 mins)
+      final phoneUsageStart = DateTime(
+        2023,
+        1,
+        1,
+        22,
+        20,
+      ); // 10:20 PM (after 15 mins)
       final phoneUsageDuration = Duration(minutes: 10); // Used for 10 mins
 
       // Expected Logic:
@@ -42,27 +57,36 @@ void main() {
       expect(newBedtime, expectedBedtime);
     });
 
-    test('Edge Case: Usage exactly at 15 minutes -> Should Adjust (based on current logic)', () {
-      final bedtime = DateTime(2023, 1, 1, 22, 0);
-      final phoneUsageStart = DateTime(2023, 1, 1, 22, 15); // Exactly 15 mins
-      final phoneUsageDuration = Duration(minutes: 5);
+    test(
+      'Edge Case: Usage exactly at 15 minutes -> Should Adjust (based on current logic)',
+      () {
+        final bedtime = DateTime(2023, 1, 1, 22, 0);
+        final phoneUsageStart = DateTime(2023, 1, 1, 22, 15); // Exactly 15 mins
+        final phoneUsageDuration = Duration(minutes: 5);
 
-      // Usage End = 22:20
-      // New Bedtime = 22:20 - 15 = 22:05
-      final expectedBedtime = DateTime(2023, 1, 1, 22, 5);
+        // Usage End = 22:20
+        // New Bedtime = 22:20 - 15 = 22:05
+        final expectedBedtime = DateTime(2023, 1, 1, 22, 5);
 
-      final newBedtime = service.calculateNewBedtime(
-        bedtime: bedtime,
-        phoneUsageStart: phoneUsageStart,
-        phoneUsageDuration: phoneUsageDuration,
-      );
+        final newBedtime = service.calculateNewBedtime(
+          bedtime: bedtime,
+          phoneUsageStart: phoneUsageStart,
+          phoneUsageDuration: phoneUsageDuration,
+        );
 
-      expect(newBedtime, expectedBedtime);
-    });
+        expect(newBedtime, expectedBedtime);
+      },
+    );
 
     test('Edge Case: Midnight Crossing', () {
       final bedtime = DateTime(2023, 1, 1, 23, 30); // 11:30 PM
-      final phoneUsageStart = DateTime(2023, 1, 2, 0, 10); // 12:10 AM next day (40 mins later)
+      final phoneUsageStart = DateTime(
+        2023,
+        1,
+        2,
+        0,
+        10,
+      ); // 12:10 AM next day (40 mins later)
       final phoneUsageDuration = Duration(minutes: 20);
 
       // Usage End = 00:10 + 20m = 00:30

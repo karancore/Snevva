@@ -77,8 +77,6 @@ Future<int?> showStepCounterBottomSheet(BuildContext context, bool isDarkMode) {
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (_) => StepCounterBottomSheet(parentContext: context,),
+    builder: (_) => StepCounterBottomSheet(parentContext: context),
   );
 }
-
-

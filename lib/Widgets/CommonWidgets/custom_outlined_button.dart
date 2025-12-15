@@ -26,7 +26,6 @@ class CustomOutlinedButton extends StatelessWidget {
     final isDisabled = onTap == null;
 
     return Container(
-
       height: 50,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(4),
@@ -37,9 +36,7 @@ class CustomOutlinedButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: Colors.transparent),
           fixedSize: Size(width, 40),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           padding: EdgeInsets.zero,
         ),
         child: Text(

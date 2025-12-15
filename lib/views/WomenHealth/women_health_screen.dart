@@ -160,8 +160,10 @@ class WomenHealthScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: SafeArea(
                 child: FloatingButtonBar(
-                  onStatBtnTap: () => Get.to( () => WomenHealthHistory() ),
-                  onReminderBtnTap: () {Get.to(()=>Reminder());},
+                  onStatBtnTap: () => Get.to(() => WomenHealthHistory()),
+                  onReminderBtnTap: () {
+                    Get.to(() => Reminder());
+                  },
                   onAddBtnTap: () async {
                     DateTime now = DateTime.now();
 

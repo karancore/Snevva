@@ -14,7 +14,7 @@ Future<bool> backgroundEntry(ServiceInstance service) async {
   try {
     // Initialize Dart plugins FIRST
     DartPluginRegistrant.ensureInitialized();
-    
+
     // CRITICAL: Set foreground notification IMMEDIATELY on Android
     // This MUST happen before any other async operations to prevent
     // ForegroundServiceDidNotStartInTimeException
@@ -63,10 +63,7 @@ Future<bool> backgroundEntry(ServiceInstance service) async {
           final newSteps = (todayEntry?.steps ?? 0) + diff;
 
           // Save in Hive
-          await box.put(
-            todayKey,
-            StepEntry(date: now, steps: newSteps),
-          );
+          await box.put(todayKey, StepEntry(date: now, steps: newSteps));
 
           // Save in SharedPreferences
           await prefs.setInt("todaySteps", newSteps);

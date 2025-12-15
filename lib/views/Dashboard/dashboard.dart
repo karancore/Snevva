@@ -16,6 +16,7 @@ import '../../Controllers/Hydration/hydration_stat_controller.dart';
 import '../../Widgets/Dashboard/dashboard_ads_carousel_slider.dart';
 import '../../Widgets/Dashboard/dashboard_header_widget.dart';
 import '../../Widgets/Dashboard/dashboard_service_overview_dynamic_widgets.dart';
+import '../../common/global_variables.dart';
 import '../../services/notification_service.dart';
 
 class Dashboard extends StatefulWidget {
@@ -27,13 +28,18 @@ class Dashboard extends StatefulWidget {
   State<Dashboard> createState() => _DashboardState();
 }
 
-class _DashboardState extends State<Dashboard> with SingleTickerProviderStateMixin {
+class _DashboardState extends State<Dashboard>
+    with SingleTickerProviderStateMixin {
   bool switchValue = false;
   String? username;
+  bool isVisible = true;
+  final localStorageManager = Get.put(LocalStorageManager());
 
   late AnimationController _animationController;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final notificationController = Get.put(NotificationService());
 
   @override
   void initState() {
@@ -52,10 +58,7 @@ class _DashboardState extends State<Dashboard> with SingleTickerProviderStateMix
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
     );
 
@@ -80,9 +83,6 @@ class _DashboardState extends State<Dashboard> with SingleTickerProviderStateMix
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
     final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
-    final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-    final localStorageManager = Get.put(LocalStorageManager());
-    final notificationController = Get.put(NotificationService());
 
     return Scaffold(
       key: _scaffoldKey,
@@ -93,23 +93,33 @@ class _DashboardState extends State<Dashboard> with SingleTickerProviderStateMix
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Obx(() => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('🖐🏻 Hello', style: TextStyle(fontSize: 16)),
-                  Text(
-                    localStorageManager.userMap['Name']?.toString() ?? 'User',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              )),
+              Obx(
+                () => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('🖐🏻 Hello', style: TextStyle(fontSize: 16)),
+                    Text(
+                      localStorageManager.userMap['Name']?.toString() ?? 'User',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const Spacer(),
               Obx(() {
-                bool hasNewNotif = notificationController.hasNewNotification.value;
+                bool hasNewNotif =
+                    notificationController.hasNewNotification.value;
                 return Stack(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.notifications_none, size: 28, color: AppColors.primaryColor),
+                      icon: const Icon(
+                        Icons.notifications_none,
+                        size: 28,
+                        color: AppColors.primaryColor,
+                      ),
                       onPressed: () {
                         Get.to(() => Alerts());
                         notificationController.hasNewNotification.value = false;
@@ -151,9 +161,17 @@ class _DashboardState extends State<Dashboard> with SingleTickerProviderStateMix
         },
         child: SafeArea(
           child: ScrollConfiguration(
-            behavior: ScrollBehavior().copyWith(scrollbars: false, overscroll: false),
+            behavior: ScrollBehavior().copyWith(
+              scrollbars: false,
+              overscroll: false,
+            ),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.only(
+                left: 24,
+                right: 24,
+                bottom: 24,
+                top: 4,
+              ),
               child: FadeTransition(
                 opacity: _fadeAnimation,
                 child: SlideTransition(
@@ -161,7 +179,87 @@ class _DashboardState extends State<Dashboard> with SingleTickerProviderStateMix
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 15),
+                      if (isVisible)
+                        Obx(() {
+                          bool anyEmpty =
+                              hasEmptyValue(localStorageManager.userMap) ||
+                              hasEmptyValue(
+                                localStorageManager.userGoalDataMap,
+                              );
+                          print(anyEmpty);
+
+                          return anyEmpty
+                              ? SizedBox.shrink()
+                              : Container(
+                                height: 32,
+                                margin: EdgeInsets.zero,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: grey.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4.0,
+                                      ),
+                                      child: InkWell(
+                                        onTap: () {
+                                          setState(() {
+                                            isVisible = !isVisible;
+                                          });
+                                        },
+                                        child: Icon(
+                                          Icons.close,
+                                          color: grey,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+
+                                    // WRAP TEXT INSIDE EXPANDED
+                                    Expanded(
+                                      child: Text(
+                                        "Complete your profile to get full insights",
+                                        style: TextStyle(
+                                          color: grey,
+                                          fontSize: 12,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4.0,
+                                      ),
+
+                                      child: InkWell(
+                                        onTap: () {},
+                                        child: Icon(
+                                          Icons.info,
+                                          color: grey,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                        })
+                      else
+                        SizedBox.shrink(),
+                      if (isVisible)
+                        SizedBox(height: 32)
+                      else
+                        SizedBox.shrink(),
+
                       DashboardHeaderWidget(),
                       const SizedBox(height: 24),
                       DashboardServiceOverviewDynamicWidgets(

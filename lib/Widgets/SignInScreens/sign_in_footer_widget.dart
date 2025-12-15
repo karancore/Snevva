@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 
 import '../../consts/consts.dart';
 import '../../services/google_auth.dart';
+import '../../views/Sign Up/sign_in_screen.dart';
 
 class SignInFooterWidget extends StatefulWidget {
   final String bottomText;
@@ -55,16 +57,17 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            child: widget.isLoading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : Text(widget.buttonText),
+            child:
+                widget.isLoading
+                    ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                    : Text(widget.buttonText),
           ),
         ),
 
@@ -72,12 +75,12 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
 
         Row(
           children: [
-            const Expanded(child: Divider(thickness: 0.6)),
+            const Expanded(child: Divider(thickness: 1)),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
               child: Text(AppLocalizations.of(context)!.socialSignInSingIn),
             ),
-            const Expanded(child: Divider(thickness: 0.6)),
+            const Expanded(child: Divider(thickness: 1)),
           ],
         ),
 
@@ -105,28 +108,27 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
                   });
                   await GoogleAuthService.signInWithGoogle(context);
                   setState(() {
-                    isSigningIn = false; // Sign-in complete, stop the loading indicator
+                    isSigningIn =
+                        false; // Sign-in complete, stop the loading indicator
                   });
                 },
-                icon: isSigningIn
-                    ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.black87),
-                  ),
-                )
-                    : Image.asset(
-                  google,
-                  height: 28,
-                  width: 28,
-                ),
+                icon:
+                    isSigningIn
+                        ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.black87,
+                            ),
+                          ),
+                        )
+                        : Image.asset(google, height: 28, width: 28),
                 padding: const EdgeInsets.all(12),
                 splashRadius: 28,
               ),
             ),
-
 
             // Facebook icon (conditionally shown)
             if (widget.facebookText != null)
@@ -140,42 +142,40 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
             // Apple icon (conditionally shown)
             if (widget.appleText != null)
               IconButton(
-                onPressed: () {
-                  // TODO: Handle Apple login
-                },
+                onPressed: () {},
                 icon: Image.asset(apple, height: 32, width: 32),
               ),
           ],
         ),
 
-        const SizedBox(height: 20),
-        const Divider(thickness: 0.6),
+        const SizedBox(height: 12),
+        const Divider(thickness: 1),
+        const SizedBox(height: 12),
 
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AutoSizeText(
-              widget.bottomText,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                overflow: TextOverflow.ellipsis,
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: widget.bottomText,
+                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
               ),
-            ),
-            TextButton(
-              onPressed: widget.onBottomTextPressed,
-              child: Text(
-                widget.bottomText2,
-                style: const TextStyle(
-                  decoration: TextDecoration.underline,
-                  decorationColor: AppColors.primaryColor,
+              TextSpan(text: " "),
+              TextSpan(
+                text: widget.bottomText2,
+
+                style: TextStyle(
                   color: AppColors.primaryColor,
-                  fontSize: 12,
                   fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                  decorationColor: AppColors.primaryColor,
+
+                  decoration: TextDecoration.underline,
                 ),
+                recognizer:
+                    TapGestureRecognizer()..onTap = widget.onBottomTextPressed,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );

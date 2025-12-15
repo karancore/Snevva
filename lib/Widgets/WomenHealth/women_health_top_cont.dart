@@ -1,4 +1,3 @@
-
 import 'package:flutter_svg/svg.dart';
 import '../../Controllers/WomenHealth/women_health_controller.dart';
 import '../../consts/consts.dart';
@@ -15,13 +14,11 @@ class WomenHealthTopCont extends StatefulWidget {
 
   @override
   State<WomenHealthTopCont> createState() => _WomenHealthTopContState();
-
 }
 
 class _WomenHealthTopContState extends State<WomenHealthTopCont> {
-
-  final WomenHealthController womenController = Get.find<WomenHealthController>();
-
+  final WomenHealthController womenController =
+      Get.find<WomenHealthController>();
 
   @override
   Widget build(BuildContext context) {
@@ -34,10 +31,7 @@ class _WomenHealthTopContState extends State<WomenHealthTopCont> {
         width: double.infinity,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16.0),
-          border: Border.all(
-            color: AppColors.primaryColor,
-            width: border04px,
-          ),
+          border: Border.all(color: AppColors.primaryColor, width: border04px),
         ),
         child: Stack(
           children: [
@@ -61,10 +55,7 @@ class _WomenHealthTopContState extends State<WomenHealthTopCont> {
               top: 20,
               left: 20,
               child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 4,
-                  vertical: 4,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(2),
                   border: Border.all(
@@ -76,7 +67,12 @@ class _WomenHealthTopContState extends State<WomenHealthTopCont> {
                   children: [
                     SvgPicture.asset(calenderIcon, height: 16),
                     SizedBox(width: 4),
-                    Obx(() => Text(womenController.formattedCurrentDate.value, style: TextStyle(fontSize: 12))),
+                    Obx(
+                      () => Text(
+                        womenController.formattedCurrentDate.value,
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -115,21 +111,20 @@ class _WomenHealthTopContState extends State<WomenHealthTopCont> {
                         fontWeight: FontWeight.w400,
                       ),
                     ),
-                  Obx(
-                    ()=> AutoSizeText(
-                         "${womenController.dayLeftNextPeriod.value} days",
-                          minFontSize: 20,
-                          maxFontSize: 28,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 28,
-                            color: white,
-                            fontWeight: FontWeight.w600,
-                          ),
+                    Obx(
+                      () => AutoSizeText(
+                        "${womenController.dayLeftNextPeriod.value} days",
+                        minFontSize: 20,
+                        maxFontSize: 28,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 28,
+                          color: white,
+                          fontWeight: FontWeight.w600,
                         ),
-                  ),
-
+                      ),
+                    ),
                   ],
                 ),
               ),

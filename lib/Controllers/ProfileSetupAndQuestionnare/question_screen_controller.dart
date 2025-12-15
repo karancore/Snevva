@@ -83,7 +83,10 @@ class QuestionScreenController extends GetxController {
         encryptionRequired: true,
       );
 
+      print(response);
+
       if (response is http.Response) {
+        print(response);
         CustomSnackbar.showError(
           context: context,
           title: 'Error',

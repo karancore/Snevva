@@ -6,7 +6,7 @@ class MenuItem {
   final String title;
   final String subtitle;
   final String imagePath;
-  final Widget?  navigateTo;
+  final Widget? navigateTo;
   final VoidCallback? onTap;
   final bool? isDisabled;
 
@@ -44,9 +44,7 @@ class MenuItemWidget extends StatelessWidget {
 
     return title == "AI Symptom Checker"
         ? Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
           child: Column(
             children: [
               Row(
@@ -58,7 +56,11 @@ class MenuItemWidget extends StatelessWidget {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: SvgPicture.asset(imagePath, fit: BoxFit.cover , color: disabledColor.withOpacity(1),),
+                    child: SvgPicture.asset(
+                      imagePath,
+                      fit: BoxFit.cover,
+                      color: disabledColor.withOpacity(1),
+                    ),
                   ),
                   const SizedBox(width: 12),
 
@@ -72,17 +74,20 @@ class MenuItemWidget extends StatelessWidget {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
-                            color: disabledColor
+                            color: disabledColor,
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(subtitle, style: TextStyle(fontSize: 13 , color: disabledColor)),
+                        Text(
+                          subtitle,
+                          style: TextStyle(fontSize: 13, color: disabledColor),
+                        ),
                       ],
                     ),
                   ),
 
                   // Arrow icon
-                  Icon(Icons.arrow_forward_ios, size: 16 , color: disabledColor),
+                  Icon(Icons.arrow_forward_ios, size: 16, color: disabledColor),
                 ],
               ),
               const SizedBox(height: 10),
@@ -100,9 +105,7 @@ class MenuItemWidget extends StatelessWidget {
                 }
               },
           child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
             child: Column(
               children: [
                 Row(

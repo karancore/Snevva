@@ -6,9 +6,14 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:get/get.dart';
 
 import 'package:snevva/Widgets/home_wrapper.dart';
+import 'package:snevva/consts/consts.dart';
 import 'package:snevva/initial_bindings.dart';
 import 'package:snevva/services/app_initializer.dart';
 import 'package:snevva/utils/theme.dart';
+import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
+import 'package:snevva/views/ProfileAndQuestionnaire/height_and_weight_screen.dart';
+import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
+import 'package:snevva/views/ProfileAndQuestionnaire/questionnaire_screen.dart';
 import 'package:snevva/views/Sign%20Up/sign_in_screen.dart';
 
 import 'l10n/app_localizations.dart';
@@ -90,6 +95,5 @@ class _MyAppState extends State<MyApp> {
 
       home: widget.isRemembered ? HomeWrapper() : SignInScreen(),
     );
-
   }
 }

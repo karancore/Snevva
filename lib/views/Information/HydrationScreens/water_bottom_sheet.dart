@@ -112,9 +112,7 @@ Future<int?> showWaterBottomSheet({
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (_) => WaterBottomSheet(
-      parentContext: context,
-      onConfirm: onConfirm,
-    ),
+    builder:
+        (_) => WaterBottomSheet(parentContext: context, onConfirm: onConfirm),
   );
 }

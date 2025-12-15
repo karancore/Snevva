@@ -60,7 +60,7 @@ class MoodController extends GetxController {
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
-          message: '❌ Failed to save Mood record: ${response.statusCode}',
+          message: 'Failed to save Mood record: ${response.statusCode}',
         );
         return false;
       } else {
@@ -75,7 +75,7 @@ class MoodController extends GetxController {
       CustomSnackbar.showError(
         context: context,
         title: 'Error',
-        message: '❌ Exception while saving Mood record',
+        message: 'Exception while saving Mood record',
       );
       return false;
     }

@@ -10,6 +10,9 @@ class AnswerOption {
   final String iconPath;
   final bool multipleSelection;
 
-  AnswerOption(
-      {this.multipleSelection = false, required this.text, required this.iconPath});
+  AnswerOption({
+    this.multipleSelection = false,
+    required this.text,
+    required this.iconPath,
+  });
 }

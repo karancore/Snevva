@@ -1,8 +1,6 @@
-
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
-
 
 import '../../consts/consts.dart';
 
@@ -19,7 +17,7 @@ class AddEmergencyContact extends StatelessWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
-      appBar: CustomAppBar(appbarText: "Add Member", isWhiteRequired: true,),
+      appBar: CustomAppBar(appbarText: "Add Member", isWhiteRequired: true),
       body: Column(
         children: [
           SizedBox(
@@ -29,7 +27,9 @@ class AddEmergencyContact extends StatelessWidget {
                 Container(
                   width: double.infinity,
                   height: height * 0.25,
-                  decoration: BoxDecoration(gradient: AppColors.primaryGradient),
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                  ),
                 ),
 
                 Positioned(
@@ -74,7 +74,7 @@ class AddEmergencyContact extends StatelessWidget {
                 Material(
                   elevation: 1,
                   borderRadius: BorderRadius.circular(4),
-                  color: isDarkMode? scaffoldColorDark : scaffoldColorLight,
+                  color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
                   clipBehavior: Clip.antiAlias,
                   child: TextFormField(
                     decoration: InputDecoration(
@@ -82,18 +82,17 @@ class AddEmergencyContact extends StatelessWidget {
                         horizontal: 12,
                         vertical: 12,
                       ),
-                      hintText:
-                          'Enter Snevva Id',
+                      hintText: 'Enter Snevva Id',
                       hintStyle: const TextStyle(color: mediumGrey),
                     ),
                   ),
                 ),
 
-                SizedBox(height: defaultSize - 10,),
+                SizedBox(height: defaultSize - 10),
                 Material(
                   elevation: 1,
                   borderRadius: BorderRadius.circular(4),
-                  color: isDarkMode? scaffoldColorDark : scaffoldColorLight,
+                  color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
                   clipBehavior: Clip.antiAlias,
                   child: TextFormField(
                     decoration: InputDecoration(
@@ -101,18 +100,17 @@ class AddEmergencyContact extends StatelessWidget {
                         horizontal: 12,
                         vertical: 12,
                       ),
-                      hintText:
-                          'Enter Name',
+                      hintText: 'Enter Name',
                       hintStyle: const TextStyle(color: mediumGrey),
                     ),
                   ),
                 ),
 
-                SizedBox(height: defaultSize - 10,),
+                SizedBox(height: defaultSize - 10),
                 Material(
                   elevation: 1,
                   borderRadius: BorderRadius.circular(4),
-                  color: isDarkMode? scaffoldColorDark : scaffoldColorLight,
+                  color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
                   clipBehavior: Clip.antiAlias,
                   child: TextFormField(
                     decoration: InputDecoration(
@@ -126,20 +124,19 @@ class AddEmergencyContact extends StatelessWidget {
                   ),
                 ),
 
-                SizedBox(height: defaultSize - 10,),
+                SizedBox(height: defaultSize - 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Material(
                       elevation: 1,
                       borderRadius: BorderRadius.circular(4),
-                      color: isDarkMode? scaffoldColorDark : scaffoldColorLight,
+                      color:
+                          isDarkMode ? scaffoldColorDark : scaffoldColorLight,
                       clipBehavior: Clip.antiAlias,
                       child: Container(
                         width: width / 5,
-                        decoration: BoxDecoration(
-
-                        ),
+                        decoration: BoxDecoration(),
                         child: TextFormField(
                           textAlign: TextAlign.center,
                           decoration: InputDecoration(
@@ -147,8 +144,7 @@ class AddEmergencyContact extends StatelessWidget {
                               horizontal: 2,
                               vertical: 2,
                             ),
-                            hintText:
-                          '15',
+                            hintText: '15',
                             hintStyle: const TextStyle(color: mediumGrey),
                           ),
                         ),
@@ -157,12 +153,12 @@ class AddEmergencyContact extends StatelessWidget {
                     Material(
                       elevation: 1,
                       borderRadius: BorderRadius.circular(4),
-                      color: isDarkMode? scaffoldColorDark : scaffoldColorLight,
+                      color:
+                          isDarkMode ? scaffoldColorDark : scaffoldColorLight,
                       clipBehavior: Clip.antiAlias,
                       child: Container(
                         width: width / 3,
-                        decoration: BoxDecoration(
-                        ),
+                        decoration: BoxDecoration(),
                         child: TextFormField(
                           textAlign: TextAlign.center,
                           decoration: InputDecoration(
@@ -170,8 +166,7 @@ class AddEmergencyContact extends StatelessWidget {
                               horizontal: 2,
                               vertical: 2,
                             ),
-                            hintText:
-                            'March',
+                            hintText: 'March',
                             hintStyle: const TextStyle(color: mediumGrey),
                           ),
                         ),
@@ -180,13 +175,12 @@ class AddEmergencyContact extends StatelessWidget {
                     Material(
                       elevation: 1,
                       borderRadius: BorderRadius.circular(4),
-                      color: isDarkMode? scaffoldColorDark : scaffoldColorLight,
+                      color:
+                          isDarkMode ? scaffoldColorDark : scaffoldColorLight,
                       clipBehavior: Clip.antiAlias,
                       child: Container(
-                        width: width /3.5 ,
-                        decoration: BoxDecoration(
-
-                        ),
+                        width: width / 3.5,
+                        decoration: BoxDecoration(),
                         child: TextFormField(
                           textAlign: TextAlign.center,
                           decoration: InputDecoration(
@@ -194,8 +188,7 @@ class AddEmergencyContact extends StatelessWidget {
                               horizontal: 2,
                               vertical: 2,
                             ),
-                            hintText:
-                            '1986',
+                            hintText: '1986',
                             hintStyle: const TextStyle(color: mediumGrey),
                           ),
                         ),
@@ -204,15 +197,14 @@ class AddEmergencyContact extends StatelessWidget {
                   ],
                 ),
 
-                SizedBox(height: defaultSize - 10,),
+                SizedBox(height: defaultSize - 10),
 
                 Material(
                   elevation: 1,
                   borderRadius: BorderRadius.circular(4),
-                  color: isDarkMode? scaffoldColorDark : scaffoldColorLight,
+                  color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
                   clipBehavior: Clip.antiAlias,
                   child: TextFormField(
-
                     decoration: InputDecoration(
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -230,8 +222,14 @@ class AddEmergencyContact extends StatelessWidget {
           Spacer(),
           Padding(
             padding: const EdgeInsets.all(20.0),
-            child: CustomOutlinedButton(width: width, isDarkMode: isDarkMode, buttonName: "Save", onTap: (){}),
-          )
+            child: CustomOutlinedButton(
+              width: width,
+              backgroundColor: AppColors.primaryColor,
+              isDarkMode: isDarkMode,
+              buttonName: "Save",
+              onTap: () {},
+            ),
+          ),
         ],
       ),
     );

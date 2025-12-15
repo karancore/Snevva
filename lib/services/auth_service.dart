@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 import 'package:snevva/env/env.dart';
 
 class AuthService {
-
   Future<String> login(String username, String password) async {
     final response = await http.post(
       Uri.parse('$baseUrl/login'),

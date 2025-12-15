@@ -12,9 +12,7 @@ class Alerts extends StatefulWidget {
   State<Alerts> createState() => _AlertsState();
 }
 
-class _AlertsState extends State<Alerts>
-    with SingleTickerProviderStateMixin {
-
+class _AlertsState extends State<Alerts> with SingleTickerProviderStateMixin {
   late final NotificationService notif;
 
   @override
@@ -23,7 +21,6 @@ class _AlertsState extends State<Alerts>
     // Use the existing instance instead of creating new one
     notif = Get.find<NotificationService>();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -46,11 +43,7 @@ class _AlertsState extends State<Alerts>
             // crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Image.asset(
-                noNotif,
-                 width: 180,
-                height: 180,
-              ),
+              Image.asset(noNotif, width: 180, height: 180),
               const SizedBox(height: 24),
 
               // 🔕 Title
@@ -72,7 +65,6 @@ class _AlertsState extends State<Alerts>
               //   },
               //   child: const Text("Click Me"),
               // )
-
             ],
           ),
         ),

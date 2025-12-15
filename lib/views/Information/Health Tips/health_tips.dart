@@ -18,13 +18,13 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
     super.initState();
     controller.loadAllHealthTips(context);
   }
+
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
     final isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
-
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
@@ -37,13 +37,16 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
         }
 
         if (controller.hasError.value) {
-          return const Center(child: Text('Failed to load health tips. Please try again.'));
+          return const Center(
+            child: Text('Failed to load health tips. Please try again.'),
+          );
         }
 
         if (controller.randomTips.isEmpty && controller.randomTip == null) {
-          return const Center(child: Text('No health tips available at the moment.'));
+          return const Center(
+            child: Text('No health tips available at the moment.'),
+          );
         }
-
 
         final randomTip = controller.randomTip;
         final List<dynamic> randomTips = controller.randomTips;
@@ -54,7 +57,7 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
             children: [
               // ✅ Top Image with heading/title
               Padding(
-                padding: const EdgeInsets.fromLTRB(16.0,14.0,16.0,8.0),
+                padding: const EdgeInsets.fromLTRB(16.0, 14.0, 16.0, 8.0),
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -71,17 +74,20 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: CachedNetworkImage(
-                      imageUrl: randomTip?["ThumbnailMedia"]?["CdnUrl"] ??
-                          "https://d3byuuhm0bg21i.cloudfront.net/derivatives/c3d47d00-8a25-46ef-bba3-ec5609c49b08/thumb.webp" ,
+                      imageUrl:
+                          randomTip?["ThumbnailMedia"]?["CdnUrl"] ??
+                          "https://d3byuuhm0bg21i.cloudfront.net/derivatives/c3d47d00-8a25-46ef-bba3-ec5609c49b08/thumb.webp",
                       height: 200,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorWidget: (context, error, stackTrace) => Container(
-                        color: Colors.grey[200],
-                        height: 200,
-                        child: const Center(
-                            child: Icon(Icons.broken_image, size: 40)),
-                      ),
+                      errorWidget:
+                          (context, error, stackTrace) => Container(
+                            color: Colors.grey[200],
+                            height: 200,
+                            child: const Center(
+                              child: Icon(Icons.broken_image, size: 40),
+                            ),
+                          ),
                       // loadingBuilder: (context, child, progress) {
                       //   if (progress == null) return child;
                       //   return Container(
@@ -98,23 +104,25 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
 
               // ✅ Tip Title & Subtitle
               Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    randomTip?["Heading"] ?? "No Heading",
-                    style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    randomTip?['Title'] ?? "No Title",
-                    style: TextStyle(fontSize: 14),
-                  ),
-                ],
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      randomTip?["Heading"] ?? "No Heading",
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      randomTip?['Title'] ?? "No Title",
+                      style: TextStyle(fontSize: 14),
+                    ),
+                  ],
+                ),
               ),
-            ),
 
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -129,47 +137,63 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
-                  children:
-
-                  List.generate(numRows, (rowIndex) {
+                  children: List.generate(numRows, (rowIndex) {
                     final firstIndex = rowIndex * 2;
                     final secondIndex = firstIndex + 1;
 
-                    final firstTip = count > firstIndex ? controller.randomTips[firstIndex] : null;
-                    final secondTip = count > secondIndex ? controller.randomTips[secondIndex] : null;
+                    final firstTip =
+                        count > firstIndex
+                            ? controller.randomTips[firstIndex]
+                            : null;
+                    final secondTip =
+                        count > secondIndex
+                            ? controller.randomTips[secondIndex]
+                            : null;
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 16.0),
                       child: Row(
                         children: [
                           Expanded(
-                            child: firstTip != null
-                                ? _buildTipCard(
-                              image: firstTip["ThumbnailMedia"]?["CdnUrl"] ?? "",
-                              heading: firstTip["Heading"] ?? "",
-                              title : firstTip["Title"] ?? "",
-                              onButtonTap: () => Get.to(() => NutritionTipsPage(), arguments: firstTip),
-                              isDarkMode: isDarkMode,
-                            )
-                                : const SizedBox(),
+                            child:
+                                firstTip != null
+                                    ? _buildTipCard(
+                                      image:
+                                          firstTip["ThumbnailMedia"]?["CdnUrl"] ??
+                                          "",
+                                      heading: firstTip["Heading"] ?? "",
+                                      title: firstTip["Title"] ?? "",
+                                      onButtonTap:
+                                          () => Get.to(
+                                            () => NutritionTipsPage(),
+                                            arguments: firstTip,
+                                          ),
+                                      isDarkMode: isDarkMode,
+                                    )
+                                    : const SizedBox(),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
-                            child: secondTip != null
-                                ? _buildTipCard(
-                              image: secondTip["ThumbnailMedia"]?["CdnUrl"] ?? "",
-                              heading: secondTip["Heading"] ?? "",
-                              title : secondTip["Title"] ?? "",
-                              onButtonTap: () => Get.to(() => NutritionTipsPage(), arguments: secondTip),
-                              isDarkMode: isDarkMode,
-                            )
-                                : const SizedBox(),
+                            child:
+                                secondTip != null
+                                    ? _buildTipCard(
+                                      image:
+                                          secondTip["ThumbnailMedia"]?["CdnUrl"] ??
+                                          "",
+                                      heading: secondTip["Heading"] ?? "",
+                                      title: secondTip["Title"] ?? "",
+                                      onButtonTap:
+                                          () => Get.to(
+                                            () => NutritionTipsPage(),
+                                            arguments: secondTip,
+                                          ),
+                                      isDarkMode: isDarkMode,
+                                    )
+                                    : const SizedBox(),
                           ),
                         ],
                       ),
                     );
-
-
                   }),
                 ),
               ),
@@ -204,11 +228,12 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
               height: 120,
               width: double.infinity,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                height: 120,
-                color: Colors.grey[300],
-                child: const Center(child: Icon(Icons.broken_image)),
-              ),
+              errorBuilder:
+                  (context, error, stackTrace) => Container(
+                    height: 120,
+                    color: Colors.grey[300],
+                    child: const Center(child: Icon(Icons.broken_image)),
+                  ),
               loadingBuilder: (context, child, progress) {
                 if (progress == null) return child;
                 return Container(
@@ -227,25 +252,29 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(8.0,2.0,8.0,2.0),
+            padding: const EdgeInsets.fromLTRB(8.0, 2.0, 8.0, 2.0),
             child: Text(
               title,
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.normal),
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.normal,
+              ),
             ),
           ),
           Align(
             alignment: Alignment.centerRight,
             child: Padding(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10.0,
+                vertical: 6,
+              ),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
-                  padding:
-                  const EdgeInsets.fromLTRB(10.0,0.0,10.0,0.0),
+                  padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 0.0),
                 ),
                 onPressed: onButtonTap,
                 child: const Text(

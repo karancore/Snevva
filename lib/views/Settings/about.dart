@@ -7,7 +7,6 @@ class About extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     final mediaQuery = MediaQuery.of(context);
     //  final height = mediaQuery.size.height;
     //  final width = mediaQuery.size.width;
@@ -18,8 +17,17 @@ class About extends StatelessWidget {
         centerTitle: true,
         title: AutoSizeText('About'),
         leading: IconButton(
-            onPressed: () { Get.back(); },
-            icon: Icon(FontAwesomeIcons.arrowLeft, color: isDarkMode? white.withValues(alpha: 0.7) : black.withValues(alpha: 0.8),)),
+          onPressed: () {
+            Get.back();
+          },
+          icon: Icon(
+            FontAwesomeIcons.arrowLeft,
+            color:
+                isDarkMode
+                    ? white.withValues(alpha: 0.7)
+                    : black.withValues(alpha: 0.8),
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -34,7 +42,7 @@ class About extends StatelessWidget {
                 Spacer(),
                 AutoSizeText(
                   'v1.0.0',
-                  style: TextStyle(fontSize: 18 , fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -48,26 +56,23 @@ class About extends StatelessWidget {
 
   Column buildTile(String heading, String subheading) {
     return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AutoSizeText(
-                heading,
-                style: TextStyle(fontSize: 18 , fontWeight: FontWeight.w600),
-              ),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AutoSizeText(
+          heading,
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
 
-              AutoSizeText(
-                subheading,
-                maxFontSize: 14,
-                minFontSize: 8,
-                style: TextStyle(
-                  fontWeight: FontWeight.w400,
-                  color: mediumGrey,
-                ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 2,
-              ),
-              SizedBox(height: 20,),
-            ],
-          );
+        AutoSizeText(
+          subheading,
+          maxFontSize: 14,
+          minFontSize: 8,
+          style: TextStyle(fontWeight: FontWeight.w400, color: mediumGrey),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 2,
+        ),
+        SizedBox(height: 20),
+      ],
+    );
   }
 }

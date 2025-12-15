@@ -7,7 +7,6 @@ import '../../Widgets/MoodTracker/animated_circle_widget.dart';
 class MoodTrackerScreen extends StatelessWidget {
   const MoodTrackerScreen({super.key});
 
-
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
@@ -36,10 +35,7 @@ class MoodTrackerScreen extends StatelessWidget {
                 minFontSize: 20,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w600),
               ),
             ),
             const SizedBox(height: 40),
@@ -54,7 +50,8 @@ class MoodTrackerScreen extends StatelessWidget {
                 },
                 itemBuilder: (context, index) {
                   return Obx(() {
-                    final isSelected = controller.selectedMoodIndex.value == index;
+                    final isSelected =
+                        controller.selectedMoodIndex.value == index;
 
                     Gradient gradient;
                     Color shadow1;
@@ -78,7 +75,6 @@ class MoodTrackerScreen extends StatelessWidget {
                       text = 'Good';
                     }
 
-
                     return AnimatedScale(
                       scale: isSelected ? 1.0 : 0.85,
                       duration: const Duration(milliseconds: 300),
@@ -86,14 +82,17 @@ class MoodTrackerScreen extends StatelessWidget {
                         onTap: () => controller.selectMood(index),
                         child: Center(
                           child: AnimatedShadowCircle(
-                            gradientColor: isSelected
-                                ? gradient
-                                : LinearGradient(
-                              colors: [
-                                (gradient.colors.first).withOpacity(0.4),
-                                (gradient.colors.last).withOpacity(0.4),
-                              ],
-                            ),
+                            gradientColor:
+                                isSelected
+                                    ? gradient
+                                    : LinearGradient(
+                                      colors: [
+                                        (gradient.colors.first).withOpacity(
+                                          0.4,
+                                        ),
+                                        (gradient.colors.last).withOpacity(0.4),
+                                      ],
+                                    ),
                             shadowColor1: shadow1,
                             shadowColor2: shadow2,
                             size: isSelected ? height * 0.22 : height * 0.18,
@@ -110,7 +109,7 @@ class MoodTrackerScreen extends StatelessWidget {
 
             // Selected mood info
             Obx(
-                  () => Padding(
+              () => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 child: Text(
                   controller.selectedMoodIndex.value == -1

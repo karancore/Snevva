@@ -178,7 +178,7 @@ class DrawerMenuWidget extends StatelessWidget {
                         localStorageManager.userGoalDataMap.value = {};
                         localStorageManager.userGoalDataMap.refresh();
 
-                        Get.reset();
+                        // Get.reset();
                         // Clear all navigation history and go to SignInScreen
                         Get.offAll(() => SignInScreen());
                       },

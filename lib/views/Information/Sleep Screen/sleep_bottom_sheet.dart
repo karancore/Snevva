@@ -312,11 +312,7 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
               final prefs = await SharedPreferences.getInstance();
               await prefs.setBool('is_first_time_sleep', false);
 
-              Get.to(
-                () => SleepTrackerScreen(
-
-                ),
-              );
+              Get.to(() => SleepTrackerScreen());
             },
           ),
         ],

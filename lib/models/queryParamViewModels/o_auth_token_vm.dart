@@ -3,4 +3,3 @@ class OAuthTokenVM {
 
   OAuthTokenVM({required this.authToken});
 }
-

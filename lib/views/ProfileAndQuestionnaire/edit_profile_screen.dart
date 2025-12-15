@@ -152,11 +152,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           SizedBox(
                             height: height * 0.18,
                             width: width * 0.35,
+
                             child: Obx(() {
                               final pickedFile =
                                   initialProfileController.pickedImage.value;
                               return CircleAvatar(
-                                radius: 50,
+                                radius: 60,
                                 backgroundImage:
                                     pickedFile != null
                                         ? FileImage(pickedFile)
@@ -889,6 +890,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                       ),
                     ),
+                    SizedBox(height: height * 0.04),
                   ],
                 ),
               ),

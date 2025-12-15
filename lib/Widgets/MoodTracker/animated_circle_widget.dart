@@ -39,7 +39,7 @@ class AnimatedShadowCircle extends StatelessWidget {
         ),
         child: Center(
           child: AutoSizeText(
-            hideText ? '' : text,  // Static text or whatever you want
+            hideText ? '' : text, // Static text or whatever you want
             maxLines: 1,
             minFontSize: 20,
             style: const TextStyle(

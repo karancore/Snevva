@@ -58,6 +58,7 @@ class SelectLanguageScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: CustomOutlinedButton(
           buttonName: AppLocalizations.of(context)!.confirmLanguageButton,
+          backgroundColor: AppColors.primaryColor,
           width: width,
           isDarkMode: isDarkMode,
           onTap: () {

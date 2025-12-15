@@ -12,7 +12,8 @@ class SettingItemWidget extends StatelessWidget {
     super.key,
     required this.icon,
     required this.heading,
-    required this.subHeading, required this.onTap,
+    required this.subHeading,
+    required this.onTap,
   });
 
   @override
@@ -32,11 +33,11 @@ class SettingItemWidget extends StatelessWidget {
                 children: [
                   AutoSizeText(
                     heading,
-                    style: TextStyle(fontSize: 18 , fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
 
                   AutoSizeText(
-                   subHeading,
+                    subHeading,
                     maxFontSize: 14,
                     minFontSize: 8,
                     style: TextStyle(

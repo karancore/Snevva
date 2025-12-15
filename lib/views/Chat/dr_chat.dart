@@ -1,4 +1,3 @@
-
 import 'package:snevva/consts/colors.dart';
 import 'package:snevva/consts/images.dart';
 import 'package:flutter/material.dart';
@@ -53,9 +52,9 @@ class _DrChatState extends State<DrChat> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("Dr. Sharma",),
+        title: Text("Dr. Sharma"),
         centerTitle: true,
-        backgroundColor: isDarkMode? scaffoldColorDark : scaffoldColorLight,
+        backgroundColor: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
         elevation: 0,
         automaticallyImplyLeading: false,
         leading: IconButton(
@@ -105,7 +104,10 @@ class _DrChatState extends State<DrChat> {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: isMe ? AppColors.primaryColor : Colors.grey[200],
+                                color:
+                                    isMe
+                                        ? AppColors.primaryColor
+                                        : Colors.grey[200],
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Text(
@@ -136,7 +138,7 @@ class _DrChatState extends State<DrChat> {
           SafeArea(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              color: isDarkMode? scaffoldColorDark : scaffoldColorLight,
+              color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
               child: Row(
                 children: [
                   Icon(Icons.add, color: Colors.grey),
@@ -145,7 +147,8 @@ class _DrChatState extends State<DrChat> {
                     child: Container(
                       padding: EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: isDarkMode? scaffoldColorDark : scaffoldColorLight,
+                        color:
+                            isDarkMode ? scaffoldColorDark : scaffoldColorLight,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: TextField(

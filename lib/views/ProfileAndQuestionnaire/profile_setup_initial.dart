@@ -187,7 +187,7 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                         children: [
                           SizedBox(height: 40),
                           Text(
-                            AppLocalizations.of(context)!.pleaseEnterYourName,
+                            AppLocalizations.of(context)!.enterYourName,
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w500,
@@ -212,9 +212,7 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                   vertical: 12,
                                 ),
                                 hintText:
-                                    AppLocalizations.of(
-                                      context,
-                                    )!.pleaseEnterYourName,
+                                    AppLocalizations.of(context)!.enterYourName,
                                 hintStyle: const TextStyle(color: white),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(4),
@@ -370,44 +368,82 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                           Obx(
                             () => Center(
                               child: CustomOutlinedButton(
+                                backgroundColor: white,
                                 isWhiteReq: true,
                                 width: width,
                                 isDarkMode: isDarkMode,
                                 buttonName: "Submit",
                                 fontWeight: FontWeight.bold,
+
                                 onTap:
                                     initialProfileController.isFormValid.value
                                         ? () {
+                                          print(
+                                            '🟢 Profile Submit TAP triggered',
+                                          );
+
+                                          // ================= NAME =================
+                                          final nameValue =
+                                              initialProfileController
+                                                  .userNameText
+                                                  .value;
+                                          print(
+                                            '✏️ Name raw value: "$nameValue"',
+                                          );
+
                                           final nameModel = StringValueVM(
-                                            value:
-                                                initialProfileController
-                                                    .userNameText
-                                                    .value,
+                                            value: nameValue,
+                                          );
+
+                                          // ================= GENDER =================
+                                          final genderValue =
+                                              initialProfileController
+                                                  .userGenderValue
+                                                  .value;
+                                          print(
+                                            '🚻 Gender raw value: "$genderValue"',
                                           );
 
                                           final genderModel = StringValueVM(
-                                            value:
-                                                initialProfileController
-                                                    .userGenderValue
-                                                    .value,
+                                            value: genderValue,
                                           );
 
+                                          // ================= DOB =================
                                           final dobString =
                                               initialProfileController
                                                   .userDob
                                                   .value;
+                                          print(
+                                            '📅 DOB raw string: "$dobString"',
+                                          );
+
                                           final parts = dobString.split('/');
                                           int? day, month, year;
+
                                           if (parts.length >= 3) {
                                             day = int.tryParse(parts[0]);
                                             month = int.tryParse(parts[1]);
                                             year = int.tryParse(parts[2]);
                                           }
 
+                                          print(
+                                            '📆 Parsed DOB → day=$day, month=$month, year=$year',
+                                          );
+
                                           final dobModel = DateOfBirthVM(
                                             dayOfBirth: day,
                                             monthOfBirth: month,
                                             yearOfBirth: year,
+                                          );
+
+                                          // ================= OCCUPATION =================
+                                          final occupationValue =
+                                              initialProfileController
+                                                  .selectedOccupation
+                                                  .value;
+
+                                          print(
+                                            '💼 Occupation raw value: "$occupationValue"',
                                           );
 
                                           final occupationModel = OccupationVM(
@@ -417,30 +453,51 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                             time: TimeOfDay.now().format(
                                               context,
                                             ),
-                                            name:
-                                                initialProfileController
-                                                    .selectedOccupation
-                                                    .value,
+                                            name: occupationValue,
                                           );
 
-                                          initialProfileController.saveData(
-                                            nameModel,
-                                            genderModel,
-                                            dobModel,
-                                            occupationModel,
-                                            context
+                                          // ================= FINAL CHECK =================
+                                          print('📦 Models BEFORE saveData():');
+                                          print(
+                                            '   👉 NameModel.value = ${nameModel.value}',
+                                          );
+                                          print(
+                                            '   👉 GenderModel.value = ${genderModel.value}',
+                                          );
+                                          print(
+                                            '   👉 DOBModel = ${dobModel.dayOfBirth}/${dobModel.monthOfBirth}/${dobModel.yearOfBirth}',
+                                          );
+                                          print(
+                                            '   👉 OccupationModel.name = ${occupationModel.name}',
                                           );
 
-                                          Get.to(
-                                            HeightWeightScreen(
-                                              gender:
-                                                  initialProfileController
-                                                      .userGenderValue
-                                                      .toString(),
-                                            ),
+                                          // ================= SAVE =================
+                                          print('💾 Calling saveData()...');
+                                          final result =
+                                              initialProfileController.saveData(
+                                                nameModel,
+                                                genderModel,
+                                                dobModel,
+                                                occupationModel,
+                                                context,
+                                              );
+
+                                          await initialProfileController.uploadProfilePicture(context);
+
+                                          if (result == true) {
+                                            Get.to(
+                                              HeightWeightScreen(
+                                                gender: genderValue.toString(),
+                                              ),
+                                            );
+                                          }
+
+                                          print(
+                                            '➡️ Navigation → HeightWeightScreen',
                                           );
                                         }
-                                        : null, // disables the button
+                                        : null,
+                                // disables the button
                               ),
                             ),
                           ),

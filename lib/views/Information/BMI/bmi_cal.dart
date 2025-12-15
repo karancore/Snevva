@@ -47,7 +47,7 @@ class _BmiCalState extends State<BmiCal> {
         leading: Builder(
           builder:
               (context) => IconButton(
-                icon: SvgPicture.asset(drawerIcon ,color: white,),
+                icon: SvgPicture.asset(drawerIcon, color: white),
                 onPressed: () => Scaffold.of(context).openDrawer(),
               ),
         ),
@@ -64,7 +64,7 @@ class _BmiCalState extends State<BmiCal> {
                 child: Icon(
                   Icons.clear,
                   size: 21,
-                  color: white , // Adapt to theme
+                  color: white, // Adapt to theme
                 ),
               ),
             ),
@@ -311,6 +311,7 @@ class _BmiCalState extends State<BmiCal> {
                     width: width,
                     isDarkMode: isDarkMode,
                     buttonName: "Calculate BMI",
+                    backgroundColor: AppColors.primaryColor,
                     onTap: () {
                       double bmi = weight / ((height / 100) * (height / 100));
                       Get.to(BmiResultPage(bmi: bmi, age: age));

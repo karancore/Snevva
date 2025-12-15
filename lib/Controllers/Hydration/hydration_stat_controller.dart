@@ -47,7 +47,7 @@ class HydrationStatController extends GetxController {
 
     if (lastUpdated == today) {
       waterIntake.value = savedIntake;
-      print("✅ Restored today's water intake: ${waterIntake.value}");
+      print("Restored today's water intake: ${waterIntake.value}");
     } else {
       waterIntake.value = 0.0;
       prefs.setDouble('waterIntake', 0.0);
@@ -93,7 +93,7 @@ class HydrationStatController extends GetxController {
   Future<void> updateWaterGoal(int value, BuildContext context) async {
     waterGoal.value = value;
     print("UPDATED GOAL = $value");
-    print("RX VALUE = ${waterGoal.value}"); // ✅ Update water goal
+    print("RX VALUE = ${waterGoal.value}"); // Update water goal
     await saveWatergoal(
       WaterGoalVM(
         day: DateTime.now().day,
@@ -137,7 +137,7 @@ class HydrationStatController extends GetxController {
         message: 'Water goal saved successfully!',
       );
 
-      print("✅ Water goal saved successfully");
+      print("Water goal saved successfully");
     } catch (e) {
       CustomSnackbar.showError(
         context: context,
@@ -169,20 +169,20 @@ class HydrationStatController extends GetxController {
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
-          message: '❌ Failed to save Water record: ${response.statusCode}',
+          message: 'Failed to save Water record: ${response.statusCode}',
         );
       } else {
         CustomSnackbar.showSuccess(
           context: context,
           title: 'Success',
-          message: '✅ Water record saved successfully',
+          message: 'Water record saved successfully',
         );
       }
     } catch (e) {
       CustomSnackbar.showError(
         context: context,
         title: 'Error',
-        message: '❌ Exception while saving Water record',
+        message: 'Exception while saving Water record',
       );
     }
   }
@@ -205,15 +205,15 @@ class HydrationStatController extends GetxController {
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
-          message: '❌ Failed to fetch Water records: ${response.statusCode}',
+          message: 'Failed to fetch Water records: ${response.statusCode}',
         );
         return;
       }
 
       final resbody = jsonDecode(jsonEncode(response));
-      print("✅ Water records fetched: $resbody");
+      print("Water records fetched: $resbody");
 
-      // ✅ Safely access WaterGoalData
+      // Safely access WaterGoalData
       final waterGoalData = resbody['data']['WaterGoalData'];
       if (waterGoalData != null && waterGoalData['Value'] != null) {
         waterGoal.value = waterGoalData['Value'];
@@ -221,7 +221,7 @@ class HydrationStatController extends GetxController {
         waterGoal.value = 0; // or keep previous value, or handle as needed
       }
 
-      // ✅ WaterIntakeData is a List, not a Map with 'Value'
+      // WaterIntakeData is a List, not a Map with 'Value'
       final intakeList = resbody['data']['WaterIntakeData'] ?? [];
 
       waterHistoryList.clear();
@@ -234,9 +234,9 @@ class HydrationStatController extends GetxController {
         print(water.value);
       }
 
-      print("✅ Fetched ${waterHistoryList.length} Water records");
+      print("Fetched ${waterHistoryList.length} Water records");
     } catch (e) {
-      print("❌ Error fetching water records: $e");
+      print("Error fetching water records: $e");
     } finally {
       isLoading.value = false;
     }

@@ -3,10 +3,5 @@ class AddressVM {
   final String? address;
   final String? postalCode;
 
-  AddressVM({
-    required this.healthUserCode,
-    this.address,
-    this.postalCode,
-  });
-
+  AddressVM({required this.healthUserCode, this.address, this.postalCode});
 }

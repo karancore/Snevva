@@ -2,6 +2,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
+import 'package:snevva/common/animted_reminder_bar.dart';
+import 'package:snevva/common/loader.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Reminder/add_reminder.dart';
 import 'package:snevva/views/Reminder/all_reminder.dart';
@@ -15,6 +17,7 @@ class Reminder extends StatefulWidget {
 
 class _ReminderState extends State<Reminder> {
   final ReminderController controller = Get.put(ReminderController());
+  bool showReminderBar = true;
 
   @override
   void initState() {
@@ -38,16 +41,17 @@ class _ReminderState extends State<Reminder> {
     return Scaffold(
       appBar: CustomAppBar(
         appbarText: "Reminder",
-        showCloseButton: false,
-        showDrawerIcon: false,
+        showCloseButton: true,
+        showDrawerIcon: true,
+        onClose: () {
+          Navigator.of(context).pop();
+        },
       ),
       body: Obx(() {
         // Show loading indicator
-        if (controller.isLoading.value) {
-          return Center(
-            child: CircularProgressIndicator(color: AppColors.primaryColor),
-          );
-        }
+        // if (controller.isLoading.value) {
+        //   return Loader();
+        // }
 
         // Show empty state
         if (controller.reminders.isEmpty) {
@@ -72,82 +76,88 @@ class _ReminderState extends State<Reminder> {
         }
 
         // Show reminder list
-        return RefreshIndicator(
-          onRefresh: _loadData,
-          color: AppColors.primaryColor,
-          child: ListView.builder(
-            itemCount: controller.reminders.length,
-            padding: const EdgeInsets.all(16),
-            itemBuilder: (context, index) {
-              final reminder = controller.reminders[index];
-              final category = reminder['Category'] ?? 'Unknown';
-
-              return Card(
-                color: isDarkMode ? darkGray : Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 4,
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header Row
-                      Row(
-                        children: [
-                          Image.asset(
-                            controller.getCategoryIcon(category),
-                            width: 24,
-                            height: 24,
-                            //color: controller.getCategoryColor(category),
+        return Column(
+          children: [
+            if (showReminderBar) AnimatedReminderBar(show: false),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _loadData,
+                color: AppColors.primaryColor,
+                child: ListView(
+                  padding: EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                  children: [
+                    ...controller.reminders.map((reminder) {
+                      final category = reminder['Category'] ?? 'Unknown';
+                      return Card(
+                        color: isDarkMode ? darkGray : Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
                           ),
-                          SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              reminder['Title'] ?? 'No title',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 18,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Header Row
+                              Row(
+                                children: [
+                                  Image.asset(
+                                    controller.getCategoryIcon(category),
+                                    width: 24,
+                                    height: 24,
+                                  ),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      reminder['Title'] ?? 'No title',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: Icon(
+                                      Icons.keyboard_arrow_down_outlined,
+                                      size: 24,
+                                      color: mediumGrey,
+                                    ),
+                                    onPressed: () async {
+                                      final result = await Get.to(
+                                        () => AddReminder(reminder: reminder),
+                                      );
+                                      if (result == true) {
+                                        await _loadData();
+                                        // setState(() {
+                                        //   showReminderBar = true;
+                                        // });
+                                      }
+                                    },
+                                  ),
+                                ],
                               ),
-                            ),
+                              SizedBox(height: 8),
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 12.0),
+                                child: _buildCategoryContent(
+                                  reminder,
+                                  category,
+                                ),
+                              ),
+                            ],
                           ),
-
-                          IconButton(
-                            icon: Icon(
-                              Icons.keyboard_arrow_down_outlined,
-                              size: 24,
-                              color: mediumGrey,
-                            ),
-                            onPressed: () async {
-                              final result = await Get.to(
-                                () => AddReminder(reminder: reminder),
-                              );
-                              // Reload data when returning from edit
-                              if (result == true) {
-                                await _loadData();
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8),
-
-                      // Category-specific content
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12.0),
-                        child: _buildCategoryContent(reminder, category),
-                      ),
-                    ],
-                  ),
+                        ),
+                      );
+                    }).toList(),
+                  ],
                 ),
-              );
-            },
-          ),
+              ),
+            ),
+          ],
         );
       }),
       bottomNavigationBar: Padding(
@@ -158,6 +168,7 @@ class _ReminderState extends State<Reminder> {
             CustomOutlinedButton(
               width: width / 2.35,
               isDarkMode: isDarkMode,
+              backgroundColor: AppColors.primaryColor,
               buttonName: "History",
               onTap: () {
                 Get.to(() => AllReminder());
@@ -167,6 +178,7 @@ class _ReminderState extends State<Reminder> {
               width: width / 2.35,
               isDarkMode: isDarkMode,
               buttonName: "+ Add Reminder",
+              backgroundColor: AppColors.primaryColor,
               onTap: () async {
                 final result = await Get.to(() => AddReminder());
                 // Always reload data when returning, regardless of result
@@ -198,6 +210,7 @@ class _ReminderState extends State<Reminder> {
   }
 
   Widget _buildCategoryContent(Map<String, dynamic> reminder, String category) {
+    print(reminder.toString());
     print(reminder);
     switch (category) {
       case 'Medicine':
@@ -233,7 +246,7 @@ class _ReminderState extends State<Reminder> {
                 GestureDetector(
                   onTap: () {
                     print("$reminder tapped");
-                    Get.to(AddReminder(reminder: reminder,));
+                    Get.to(AddReminder(reminder: reminder));
                   },
                   child: SvgPicture.asset(
                     pen,
@@ -301,7 +314,7 @@ class _ReminderState extends State<Reminder> {
             GestureDetector(
               onTap: () {
                 print("$reminder tapped");
-                Get.to(AddReminder(reminder: reminder,));
+                Get.to(AddReminder(reminder: reminder));
               },
               child: SvgPicture.asset(
                 pen,
@@ -343,7 +356,7 @@ class _ReminderState extends State<Reminder> {
                 GestureDetector(
                   onTap: () {
                     print("$reminder tapped");
-                    Get.to(AddReminder(reminder: reminder,));
+                    Get.to(AddReminder(reminder: reminder));
                   },
                   child: SvgPicture.asset(
                     pen,

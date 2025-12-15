@@ -21,9 +21,7 @@ class AppointmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final gradient = isHistory
-        ? null
-        : docAppContiner;
+    final gradient = isHistory ? null : docAppContiner;
 
     final containerColor = isHistory ? Colors.grey.shade200 : null;
     final textColor = isHistory ? Colors.black87 : Colors.white;
@@ -41,10 +39,7 @@ class AppointmentCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundImage: AssetImage(imagePath),
-              ),
+              CircleAvatar(radius: 24, backgroundImage: AssetImage(imagePath)),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -60,10 +55,7 @@ class AppointmentCard extends StatelessWidget {
                     ),
                     Text(
                       specialty,
-                      style: TextStyle(
-                        color: subtitleColor,
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: subtitleColor, fontSize: 13),
                     ),
                   ],
                 ),
@@ -73,11 +65,12 @@ class AppointmentCard extends StatelessWidget {
                   backgroundColor: Colors.white,
                   radius: 20,
                   child: ShaderMask(
-                    shaderCallback: (bounds) => const LinearGradient(
-                      colors: [Color(0xFFA95BFF), Color(0xFFB579FF)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ).createShader(bounds),
+                    shaderCallback:
+                        (bounds) => const LinearGradient(
+                          colors: [Color(0xFFA95BFF), Color(0xFFB579FF)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ).createShader(bounds),
                     child: const Icon(
                       Icons.call,
                       size: 20,
@@ -99,19 +92,17 @@ class AppointmentCard extends StatelessWidget {
               children: [
                 Icon(Icons.calendar_today, size: 16, color: textColor),
                 const SizedBox(width: 6),
-                Text(
-                  date,
-                  style: TextStyle(color: textColor, fontSize: 13),
-                ),
+                Text(date, style: TextStyle(color: textColor, fontSize: 13)),
                 const SizedBox(width: 12),
-                Container(width: 1, height: 16, color: textColor.withOpacity(0.3)),
+                Container(
+                  width: 1,
+                  height: 16,
+                  color: textColor.withOpacity(0.3),
+                ),
                 const SizedBox(width: 12),
                 Icon(Icons.access_time, size: 16, color: textColor),
                 const SizedBox(width: 6),
-                Text(
-                  time,
-                  style: TextStyle(color: textColor, fontSize: 13),
-                ),
+                Text(time, style: TextStyle(color: textColor, fontSize: 13)),
               ],
             ),
           ),

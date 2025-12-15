@@ -1,4 +1,3 @@
-
 import 'package:snevva/views/Information/music_player_screen.dart';
 import '../../consts/consts.dart';
 
@@ -12,7 +11,7 @@ class MentalWellnessHeaderWidget extends StatelessWidget {
     required this.heading,
     required this.subHeading,
     required this.boxFit,
-     this.playText,
+    this.playText,
   });
 
   final double height;
@@ -27,7 +26,7 @@ class MentalWellnessHeaderWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => Get.to(MusicLPlayerScreen(appBarSubHeading : subHeading,)),
+      onTap: () => Get.to(MusicLPlayerScreen(appBarSubHeading: subHeading)),
       child: Container(
         height: height,
         width: width,
@@ -39,24 +38,25 @@ class MentalWellnessHeaderWidget extends StatelessWidget {
             image: AssetImage(wellnessContainerImage),
             fit: boxFit,
           ),
-
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(heading, style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-            ),),
-            Text(subHeading, style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-            ),),
+            Text(heading, style: TextStyle(color: Colors.white, fontSize: 20)),
+            Text(
+              subHeading,
+              style: TextStyle(color: Colors.white, fontSize: 20),
+            ),
             Spacer(),
             Container(
-              padding:  containerPadding != null
-                  ? EdgeInsets.only(left: containerPadding!,right: containerPadding! + 5, bottom: containerPadding!-7)
-                  : null,
+              padding:
+                  containerPadding != null
+                      ? EdgeInsets.only(
+                        left: containerPadding!,
+                        right: containerPadding! + 5,
+                        bottom: containerPadding! - 7,
+                      )
+                      : null,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(100),
                 color: Colors.white,
@@ -64,23 +64,17 @@ class MentalWellnessHeaderWidget extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
 
-                  mainAxisSize: MainAxisSize.min,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon( Icons.play_arrow,
-                    color: Colors.black,
-                    size: 28,
-                  ),
+                  Icon(Icons.play_arrow, color: Colors.black, size: 28),
                   if (playText != null)
                     Text(
                       playText!,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 20,
-                      ),
-                    )
+                      style: TextStyle(color: Colors.black, fontSize: 20),
+                    ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),

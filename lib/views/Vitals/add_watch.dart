@@ -2,7 +2,6 @@ import 'package:snevva/views/Vitals/heart_rate.dart';
 import 'package:flutter/material.dart';
 import 'package:snevva/consts/colors.dart';
 
-
 import '../../Widgets/CommonWidgets/custom_appbar.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 
@@ -16,15 +15,14 @@ class AddWatch extends StatefulWidget {
 class _AddWatchState extends State<AddWatch> {
   @override
   Widget build(BuildContext context) {
-
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
     //final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
 
     return Scaffold(
-        drawer: Drawer(child: DrawerMenuWidget(height: height, width: width),),
-        appBar: CustomAppBar(appbarText: "Heart Rate"),
+      drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
+      appBar: CustomAppBar(appbarText: "Heart Rate"),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -35,7 +33,7 @@ class _AddWatchState extends State<AddWatch> {
               Text(
                 "Scan QR code from your\nwatch to connect",
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16,),
+                style: TextStyle(fontSize: 16),
               ),
               SizedBox(height: 30),
               Container(
@@ -62,11 +60,9 @@ class _AddWatchState extends State<AddWatch> {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => HeartRate(),
-                                    ),
-                                  );
+                      context,
+                      MaterialPageRoute(builder: (context) => HeartRate()),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
@@ -86,15 +82,12 @@ class _AddWatchState extends State<AddWatch> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      "Add Later",
-                      style: TextStyle( fontSize: 16),
-                    ),
+                    Text("Add Later", style: TextStyle(fontSize: 16)),
                     Row(
                       children: [
                         Text(
                           "Not able to find! ",
-                          style: TextStyle( fontSize: 13),
+                          style: TextStyle(fontSize: 13),
                         ),
                         GestureDetector(
                           onTap: () {

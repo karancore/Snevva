@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
@@ -12,6 +13,8 @@ import '../../../Controllers/SleepScreen/sleep_controller.dart';
 import '../../../Widgets/CommonWidgets/common_stat_graph_widget.dart';
 import '../../../Widgets/CommonWidgets/custom_outlined_button.dart';
 import '../../../common/global_variables.dart';
+
+enum StatViewMode { weekly, monthly }
 
 class SleepTrackerScreen extends StatefulWidget {
   const SleepTrackerScreen({super.key});
@@ -23,11 +26,13 @@ class SleepTrackerScreen extends StatefulWidget {
 class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
   final sleepService = SleepNoticingService();
   TimeOfDay? selectedTime;
+
+  bool _isMonthlyView = false;
+  DateTime _selectedMonth = DateTime.now();
   TimeOfDay? start = TimeOfDay.now();
   TimeOfDay? end = TimeOfDay.fromDateTime(
     DateTime.now().add(Duration(hours: 8)),
   );
-  double idealSleepMinutes = 8 * 60; // 480 minutes
 
   final SleepController sleepController = Get.put(SleepController());
 
@@ -35,7 +40,6 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
   void initState() {
     super.initState(); // Always call super.initState() first!
     print("Init Sleep Tracker");
-    sleepController.loadCurrentDayDeepSleepData();
     sleepController.loadDeepSleepData();
   }
 
@@ -87,8 +91,25 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     return (minutes / maxDeepSleepMinutes).clamp(0.0, 1.0);
   }
 
+  void _toggleView() {
+    setState(() {
+      _isMonthlyView = !_isMonthlyView;
+      if (_isMonthlyView) {
+        // reset selected month maybe to now
+        _selectedMonth = DateTime.now();
+      }
+    });
+  }
 
-
+  void _changeMonth(int delta) {
+    setState(() {
+      _selectedMonth = DateTime(
+        _selectedMonth.year,
+        _selectedMonth.month + delta,
+        1,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -108,8 +129,6 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
           padding: const EdgeInsets.all(20.0),
           child: Column(
             children: [
-              const SizedBox(height: 20),
-
               //========== ORIGINAL CIRCULAR SLEEP INDICATOR ==========
               SizedBox(
                 child: Stack(
@@ -181,9 +200,11 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
               Stack(
                 alignment: Alignment.center,
                 children: [
-                  Obx((){
+                  Obx(() {
                     return LinearProgressIndicator(
-                      value: getDeepSleepPercent(sleepController.deepSleepDuration.value),
+                      value: getDeepSleepPercent(
+                        sleepController.deepSleepDuration.value,
+                      ),
                       backgroundColor: mediumGrey.withValues(alpha: 0.3),
                       color: AppColors.primaryColor,
                       borderRadius: BorderRadius.circular(20),
@@ -265,7 +286,17 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                 "Sleep Phases",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 4),
+              Obx(
+                () => Text(
+                  "Adjusted Bedtime: ${sleepController.newBedtime.value == null ? "--" : _fmt(sleepController.newBedtime.value!)}",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
 
               // ========== BEDTIME AND WAKE UP SETTINGS ==========
               Material(
@@ -308,7 +339,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Text(
-                                  _fmt(sleepController.bedtime.value!) ,
+                                  _fmt(sleepController.bedtime.value!),
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w400,
@@ -355,7 +386,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Text(
-                                  _fmt(sleepController.waketime.value!) , 
+                                  _fmt(sleepController.waketime.value!),
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w400,
@@ -378,15 +409,46 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                 ),
               ),
 
-              const SizedBox(height: 10),
-              Obx(
-                () => Text(
-                  "Adjusted Bedtime: ${sleepController.newBedtime.value == null ? "--" : _fmt(sleepController.newBedtime.value!)}",
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+              const SizedBox(height: 16),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _isMonthlyView
+                        ? "Monthly Sleep Report"
+                        : "Weekly Sleep Report",
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
+                  Row(
+                    children: [
+                      if (_isMonthlyView) ...[
+                        IconButton(
+                          icon: const Icon(Icons.chevron_left),
+                          onPressed: () => _changeMonth(-1),
+                        ),
+                        Text(
+                          DateFormat('MMMM yyyy').format(_selectedMonth),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.chevron_right),
+                          onPressed: () => _changeMonth(1),
+                        ),
+                      ],
+                      TextButton(
+                        onPressed: _toggleView,
+                        child: Text(
+                          _isMonthlyView
+                              ? "Switch to Weekly"
+                              : "Switch to Monthly",
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
               // const SizedBox(height: 10),
               //
@@ -403,17 +465,31 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
               // ========== SLEEP STATISTICS GRAPH ==========
               SizedBox(
-                height: 200,
+                height: height * 0.2,
                 child: Obx(() {
+                  final labels =
+                      _isMonthlyView
+                          ? sleepController.generateMonthLabels(_selectedMonth)
+                          : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+                  final points =
+                      _isMonthlyView
+                          ? sleepController.getMonthlyDeepSleepSpots(
+                            _selectedMonth,
+                          )
+                          : sleepController.deepSleepSpots.toList();
                   return CommonStatGraphWidget(
                     isDarkMode: isDarkMode,
                     yAxisInterval: 2,
                     yAxisMaxValue: 11,
                     height: height,
                     graphTitle: 'Sleep Statistics',
-                    points: sleepController.deepSleepSpots.toList(),
+                    points: points,
+                    isMonthlyView: _isMonthlyView,
                     gridLineInterval: 2,
+                    weekLabels: labels,
                     measureUnit: 'h',
+                    isSleepGraph: true,
                   );
                 }),
               ),
@@ -439,12 +515,13 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                    "Sleep Tracking Started : Your sleep monitoring is now active.",
+                    "Sleep Tracking Started",
                     style: TextStyle(color: Colors.white),
                   ),
                   backgroundColor: AppColors.primaryColor,
                 ),
               );
+              Navigator.pop(context);
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

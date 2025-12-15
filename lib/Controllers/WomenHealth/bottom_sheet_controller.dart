@@ -5,7 +5,6 @@ class BottomSheetController extends GetxController {
   final RxSet<String> selectedSymptoms = <String>{}.obs;
   final RxSet<String> selectedSymptomsLevel = <String>{}.obs;
 
-
   void nextPage(int totalPages) {
     if (pageIndex.value < totalPages - 1) {
       pageIndex.value++;
@@ -31,5 +30,4 @@ class BottomSheetController extends GetxController {
         ..add(level);
     }
   }
-
 }

@@ -5,7 +5,10 @@ class MoodAnswerSelectionWidget extends StatelessWidget {
     super.key,
     required this.height,
     required this.heading,
-    required this.subHeading, required this.isSelected, required this.onTap, required this.isDarkMode,
+    required this.subHeading,
+    required this.isSelected,
+    required this.onTap,
+    required this.isDarkMode,
   });
 
   final double height;
@@ -15,7 +18,6 @@ class MoodAnswerSelectionWidget extends StatelessWidget {
   final bool isDarkMode;
   final VoidCallback onTap;
 
-
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -24,7 +26,7 @@ class MoodAnswerSelectionWidget extends StatelessWidget {
         width: double.infinity,
         height: height * 0.1,
         decoration: BoxDecoration(
-          color: isSelected? AppColors.primaryColor : Colors.transparent,
+          color: isSelected ? AppColors.primaryColor : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: mediumGrey, width: border04px),
         ),
@@ -33,13 +35,22 @@ class MoodAnswerSelectionWidget extends StatelessWidget {
           children: [
             AutoSizeText(
               heading,
-              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18, color: isSelected? white : isDarkMode? white : black),
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 18,
+                color:
+                    isSelected
+                        ? white
+                        : isDarkMode
+                        ? white
+                        : black,
+              ),
             ),
             AutoSizeText(
               subHeading,
               style: TextStyle(
                 fontWeight: FontWeight.w400,
-                color: isSelected? white : mediumGrey,
+                color: isSelected ? white : mediumGrey,
                 fontSize: 14,
               ),
             ),

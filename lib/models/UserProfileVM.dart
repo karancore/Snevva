@@ -24,7 +24,6 @@ class UserProfileVM {
     this.PostalCodeUser,
     this.AddressByUser,
     this.ProfilePicture,
-    this.OccupationData
-
+    this.OccupationData,
   });
 }

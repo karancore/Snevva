@@ -11,7 +11,7 @@ class DashboardServiceWidgetItems extends StatelessWidget {
     super.key,
     required this.widgetText,
     required this.widgetImg,
-   required this.onTap,
+    required this.onTap,
   });
 
   @override
@@ -29,9 +29,7 @@ class DashboardServiceWidgetItems extends StatelessWidget {
               height: 54,
               width: 54,
               padding: EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6),
-              ),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(6)),
               child: SvgPicture.asset(widgetImg),
             ),
             SizedBox(height: 6),

@@ -1,15 +1,20 @@
 class HeightVM {
-  final int? day;
-  final int? month;
-  final int? year;
-  final String? time;
-  final double? value; // cm
+  final int day;
+  final int month;
+  final int year;
+  final String time;
+  final double value;
 
   HeightVM({
-    this.day,
-    this.month,
-    this.year,
-    this.time,
-    this.value,
+    required this.day,
+    required this.month,
+    required this.year,
+    required this.time,
+    required this.value,
   });
+
+  @override
+  String toString() {
+    return 'HeightVM(day: $day, month: $month, year: $year, time: $time, value: $value)';
+  }
 }

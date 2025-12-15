@@ -32,16 +32,18 @@ class Navbar extends StatelessWidget {
       Icons.grid_view,
     ];
 
-    final icons = (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS)
-        ? iosIcons
-        : androidIcons;
+    final icons =
+        (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS)
+            ? iosIcons
+            : androidIcons;
 
     return SafeArea(
       child: Container(
         decoration: BoxDecoration(
-          color: isDarkMode
-              ? scaffoldColorDark.withValues(alpha: 0.6)
-              : scaffoldColorLight.withValues(alpha: 0.6),
+          color:
+              isDarkMode
+                  ? scaffoldColorDark.withValues(alpha: 0.6)
+                  : scaffoldColorLight.withValues(alpha: 0.6),
           boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
         ),
         padding: const EdgeInsets.symmetric(vertical: 10),
@@ -66,14 +68,14 @@ class Navbar extends StatelessWidget {
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 250),
                         curve: Curves.easeOutCubic,
-                        width: isSelected ? screenWidth * 0.13 : screenWidth * 0.1,
+                        width:
+                            isSelected ? screenWidth * 0.13 : screenWidth * 0.1,
                         height:
-                        isSelected ? screenWidth * 0.13 : screenWidth * 0.1,
+                            isSelected ? screenWidth * 0.13 : screenWidth * 0.1,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: isSelected
-                              ? AppColors.primaryGradient
-                              : null,
+                          gradient:
+                              isSelected ? AppColors.primaryGradient : null,
                         ),
                         child: Icon(
                           icons[index],
@@ -86,14 +88,15 @@ class Navbar extends StatelessWidget {
                         duration: const Duration(milliseconds: 250),
                         curve: Curves.easeOutCubic,
                         style: TextStyle(
-                          color: isSelected
-                              ? AppColors.primaryColor
-                              : isDarkMode
-                              ? white
-                              : black,
+                          color:
+                              isSelected
+                                  ? AppColors.primaryColor
+                                  : isDarkMode
+                                  ? white
+                                  : black,
                           fontSize: screenWidth * 0.03,
                           fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.normal,
+                              isSelected ? FontWeight.w600 : FontWeight.normal,
                         ),
                         child: Text(
                           ["Home", "My Health", "Alerts", "Menu"][index],

@@ -4,18 +4,17 @@ import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import '../../consts/consts.dart';
 
 class DashboardAdsCarouselSlider extends StatefulWidget {
-  const DashboardAdsCarouselSlider({
-    super.key,
-  });
+  const DashboardAdsCarouselSlider({super.key});
 
   @override
-  State<DashboardAdsCarouselSlider> createState() => _DashboardAdsCarouselSliderState();
+  State<DashboardAdsCarouselSlider> createState() =>
+      _DashboardAdsCarouselSliderState();
 }
 
-final items = [adImg1,adImg1,adImg1,adImg1,adImg1];
+final items = [adImg1, adImg1, adImg1, adImg1, adImg1];
 
-class _DashboardAdsCarouselSliderState extends State<DashboardAdsCarouselSlider> {
-
+class _DashboardAdsCarouselSliderState
+    extends State<DashboardAdsCarouselSlider> {
   final CarouselSliderController controller = CarouselSliderController();
   int activeIndex = 0;
 
@@ -37,22 +36,24 @@ class _DashboardAdsCarouselSliderState extends State<DashboardAdsCarouselSlider>
               });
             },
           ),
-          items: items.map((i) {
-            return Builder(
-              builder: (BuildContext context) {
-                return Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.symmetric(horizontal: 5.0),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: Image(image: AssetImage(i),fit: BoxFit.cover,)),
+          items:
+              items.map((i) {
+                return Builder(
+                  builder: (BuildContext context) {
+                    return Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.symmetric(horizontal: 5.0),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Image(image: AssetImage(i), fit: BoxFit.cover),
+                      ),
+                    );
+                  },
                 );
-              },
-            );
-          }).toList(),
+              }).toList(),
         ),
         Positioned(
           bottom: 0,
@@ -65,8 +66,7 @@ class _DashboardAdsCarouselSliderState extends State<DashboardAdsCarouselSlider>
               dotWidth: 10,
               activeDotColor: AppColors.primaryColor,
             ),
-            onDotClicked: (index) =>
-                controller.animateToPage(index),
+            onDotClicked: (index) => controller.animateToPage(index),
           ),
         ),
       ],

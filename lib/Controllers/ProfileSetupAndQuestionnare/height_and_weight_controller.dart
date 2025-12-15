@@ -17,11 +17,33 @@ class HeightWeightController extends GetxController {
 
   int get feet => (heightInCm.value / 30.48).floor();
 
-  int get inches => (((heightInCm.value / 30.48) - feet) * 11).round();
+  int get inches {
+    final remainingCm = heightInCm.value - (feet * 30.48);
+    final inch = (remainingCm / 2.54).round();
+    if (inch == 12) {
+      return 0;
+    }
+    return inch;
+  }
+
+  int get correctedFeet {
+    final remainingCm = heightInCm.value - (feet * 30.48);
+    final inch = (remainingCm / 2.54).round();
+    if (inch == 12) {
+      return feet + 1;
+    }
+    return feet;
+  }
+
   final localStorageManager = Get.put(LocalStorageManager());
 
   void updateFromFeet(double feet) {
-    heightInCm.value = feet * 30.48;
+    // Snap to nearest inch to avoid "5.999" floating point issues
+    // Convert feet (e.g. 5.3) to total inches (63.6), round to nearest whole inch (64)
+    final totalInches = (feet * 12).round();
+    // distinct inches = 64. Convert back to CM
+    final cm = totalInches * 2.54;
+    heightInCm.value = cm;
   }
 
   void updateFromCm(double cm) {
@@ -43,49 +65,90 @@ class HeightWeightController extends GetxController {
     WeightVM weight,
     BuildContext context,
   ) async {
-    final List<Map<String, dynamic>> fields = [
-      {
-        'endpoint': userHeightApi,
-        'payload': {
-          'Day': height.day,
-          'Month': height.month,
-          'Year': height.year,
-          'Time': height.time,
-          'Value': height.value,
-        },
-      },
-      {
-        'endpoint': userWeightApi,
-        'payload': {
-          'Day': weight.day,
-          'Month': weight.month,
-          'Year': weight.year,
-          'Time': weight.time,
-          'Value': weight.value,
-        },
-      },
-    ];
+    print('🟢 saveData() CALLED');
 
     try {
+      print('📥 Incoming HeightVM: ${height.toString()}');
+      print('📥 Incoming WeightVM: ${weight.toString()}');
+
+      final heightValue = (height.value ?? 0).toDouble();
+      final weightValue = (weight.value ?? 0).toDouble();
+
+      print('📏 heightValue: $heightValue');
+      print('⚖️ weightValue: $weightValue');
+
+      /// -----------------------------
+      /// LOCAL STORAGE DEBUG + FIX
+      /// -----------------------------
+      print('🗂 userMap BEFORE init: ${localStorageManager.userMap}');
+
+      // Ensure base map
+      localStorageManager.userMap.value ??= {};
+      print('✅ userMap initialized');
+
+      // Ensure Height map
+      localStorageManager.userMap['Height'] ??= {};
+      print('✅ Height map initialized');
+
+      // Ensure Weight map
+      localStorageManager.userMap['Weight'] ??= {};
+      print('✅ Weight map initialized');
+
+      // Save values
       localStorageManager.userMap['Height']['Value'] = double.parse(
-        height.value!.toStringAsFixed(2),
+        heightValue.toStringAsFixed(2),
       );
-      heightInCm.value = double.parse(height.value!.toStringAsFixed(2));
 
       localStorageManager.userMap['Weight']['Value'] = double.parse(
-        weight.value!.toStringAsFixed(2),
+        weightValue.toStringAsFixed(2),
       );
-      weightInKg.value = double.parse(weight.value!.toStringAsFixed(2));
+
+      print('💾 userMap AFTER save: ${localStorageManager.userMap}');
+
+      // Sync controller state
+      heightInCm.value = heightValue;
+      weightInKg.value = weightValue;
 
       print(
-        "🔄 Updating local storage with height and weight data: ${localStorageManager.userMap}",
+        '🔄 Controller updated → '
+        'heightInCm=${heightInCm.value}, '
+        'weightInKg=${weightInKg.value}',
       );
 
+      /// -----------------------------
+      /// API CALLS DEBUG
+      /// -----------------------------
       bool allSuccessful = true;
+
+      final fields = [
+        {
+          'endpoint': userHeightApi,
+          'payload': {
+            'Day': height.day,
+            'Month': height.month,
+            'Year': height.year,
+            'Time': height.time,
+            'Value': heightValue,
+          },
+        },
+        {
+          'endpoint': userWeightApi,
+          'payload': {
+            'Day': weight.day,
+            'Month': weight.month,
+            'Year': weight.year,
+            'Time': weight.time,
+            'Value': weightValue,
+          },
+        },
+      ];
+
       for (final item in fields) {
-        final String endpoint = item['endpoint'] as String;
-        final Map<String, dynamic> payload =
-            item['payload'] as Map<String, dynamic>;
+        final endpoint = item['endpoint'] as String;
+        final payload = item['payload'] as Map<String, dynamic>;
+
+        print('🌐 API CALL → $endpoint');
+        print('📤 Payload → $payload');
 
         final response = await ApiService.post(
           endpoint,
@@ -95,24 +158,35 @@ class HeightWeightController extends GetxController {
         );
 
         if (response is http.Response) {
-          CustomSnackbar.showError(
-            context: context,
-            title: 'Error',
-            message: 'Failed to save ${payload.keys.first}.',
-          );
-          return;
+          print('📨 API RESPONSE [${response.statusCode}]: ${response.body}');
+
+          if (response.statusCode != 200) {
+            allSuccessful = false;
+            CustomSnackbar.showError(
+              context: context,
+              title: 'Error',
+              message: 'Failed to save ${payload['Value']}',
+            );
+          }
+        } else {
+          print('❌ API response is not http.Response');
+          allSuccessful = false;
         }
       }
+
       if (allSuccessful) {
+        print('🎉 ALL SAVES SUCCESSFUL');
         CustomSnackbar.showSuccess(
+          context: context,
           title: 'Success',
           message: 'Profile data saved successfully.',
-          context: context
         );
       }
-    } catch (e , stack) {
-      print("❌ Exception during profile save: $e");
+    } catch (e, stack) {
+      print('❌ EXCEPTION IN saveData');
+      print(e);
       print(stack);
+
       CustomSnackbar.showError(
         context: context,
         title: 'Error',

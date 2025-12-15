@@ -5,11 +5,10 @@ import '../../consts/consts.dart';
 class WeightScale extends StatefulWidget {
   const WeightScale({super.key});
 
-
   @override
   State<WeightScale> createState() => _WeightScaleState();
-
 }
+
 class _WeightScaleState extends State<WeightScale>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
@@ -19,7 +18,7 @@ class _WeightScaleState extends State<WeightScale>
   final double minWeight = 0;
   final double maxWeight = 150;
 
-  final HeightWeightController controller = Get.find();
+  final controller = Get.put(HeightWeightController());
 
   @override
   void initState() {
@@ -43,18 +42,46 @@ class _WeightScaleState extends State<WeightScale>
   }
 
   void animateNeedleToWeight(double targetWeight) {
-    _animation = Tween<double>(begin: _needleWeight, end: targetWeight)
-        .animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutBack,
-    ))
-      ..addListener(() {
-        setState(() {
-          _needleWeight = _animation.value;
-        });
+    _animation = Tween<double>(begin: _needleWeight, end: targetWeight).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    )..addListener(() {
+      setState(() {
+        _needleWeight = _animation.value;
       });
+    });
 
     _controller.forward(from: 0);
+  }
+
+  void _handlePanUpdate(DragUpdateDetails details, Size size) {
+    final center = Offset(size.width / 2, size.height * 0.85);
+    final touch = details.localPosition;
+
+    // Calculate angle from center to touch point
+    final dx = touch.dx - center.dx;
+    final dy = touch.dy - center.dy;
+    double angle = atan2(dy, dx);
+
+    // Normalize angle to 0-π range (bottom semicircle)
+    if (angle < 0) angle += 2 * pi;
+
+    // Only allow interaction in the scale's range (π to 2π, or bottom half)
+    if (angle >= pi && angle <= 2 * pi) {
+      // Map angle to weight value
+      final normalizedAngle = angle - pi; // 0 to π
+      final weight =
+          minWeight + (normalizedAngle / pi) * (maxWeight - minWeight);
+
+      // Clamp weight to valid range
+      final clampedWeight = weight.clamp(minWeight, maxWeight);
+
+      setState(() {
+        _needleWeight = clampedWeight;
+      });
+
+      // Update controller
+      controller.setWeight(clampedWeight);
+    }
   }
 
   @override
@@ -64,22 +91,33 @@ class _WeightScaleState extends State<WeightScale>
     final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
 
     return Center(
-      child: CustomPaint(
-        size: const Size(300, 300),
-        painter: WeightPainter(
-          _needleWeight, // needle moves, actual weight stays fixed
-          minWeight,
-          maxWeight,
-          isDarkMode,
-          width,
+      child: GestureDetector(
+        onPanUpdate:
+            (details) => _handlePanUpdate(details, const Size(300, 300)),
+        onPanStart:
+            (details) => _handlePanUpdate(
+              DragUpdateDetails(
+                globalPosition: details.globalPosition,
+                localPosition: details.localPosition,
+                delta: Offset.zero,
+                primaryDelta: 0,
+              ),
+              const Size(300, 300),
+            ),
+        child: CustomPaint(
+          size: const Size(300, 300),
+          painter: WeightPainter(
+            _needleWeight, // needle moves, actual weight stays fixed
+            minWeight,
+            maxWeight,
+            isDarkMode,
+            width,
+          ),
         ),
       ),
     );
   }
 }
-
-
-
 
 class WeightPainter extends CustomPainter {
   final double selectedWeight;

@@ -27,18 +27,26 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
     // optionally load monthly data now if needed
   }
 
-  List<WaterHistoryModel> _filterForDay(List<WaterHistoryModel> historyList, DateTime day) {
+  List<WaterHistoryModel> _filterForDay(
+    List<WaterHistoryModel> historyList,
+    DateTime day,
+  ) {
     return historyList.where((entry) {
-      return entry.year == day.year && entry.month == day.month && entry.day == day.day;
+      return entry.year == day.year &&
+          entry.month == day.month &&
+          entry.day == day.day;
     }).toList();
   }
 
   List<WaterHistoryModel> _aggregateByDay(List<WaterHistoryModel> allData) {
-    final Map<String,int> grouped = {};
+    final Map<String, int> grouped = {};
     for (var entry in allData) {
       final key = "${entry.year}-${entry.month}-${entry.day}";
-      grouped.update(key, (v) => v + (entry.value ?? 0),
-          ifAbsent: () => entry.value ?? 0);
+      grouped.update(
+        key,
+        (v) => v + (entry.value ?? 0),
+        ifAbsent: () => entry.value ?? 0,
+      );
     }
     return grouped.entries.map((e) {
       final parts = e.key.split('-');
@@ -53,35 +61,53 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
 
   List<WaterHistoryModel> _getLastWeekData(List<WaterHistoryModel> allData) {
     final aggregated = _aggregateByDay(allData);
-    aggregated.sort((a, b) =>
-        DateTime(a.year, a.month, a.day).compareTo(DateTime(b.year, b.month, b.day)));
+    aggregated.sort(
+      (a, b) => DateTime(
+        a.year,
+        a.month,
+        a.day,
+      ).compareTo(DateTime(b.year, b.month, b.day)),
+    );
     if (aggregated.length > 7) {
       return aggregated.sublist(aggregated.length - 7);
     }
     return aggregated;
   }
 
-  List<WaterHistoryModel> _getMonthData(List<WaterHistoryModel> allData, DateTime month) {
-    final List<WaterHistoryModel> filtered = allData.where((entry) {
-      return entry.year == month.year && entry.month == month.month;
-    }).toList();
-    final grouped = <String,int>{};
+  List<WaterHistoryModel> _getMonthData(
+    List<WaterHistoryModel> allData,
+    DateTime month,
+  ) {
+    final List<WaterHistoryModel> filtered =
+        allData.where((entry) {
+          return entry.year == month.year && entry.month == month.month;
+        }).toList();
+    final grouped = <String, int>{};
     for (var entry in filtered) {
       final key = "${entry.year}-${entry.month}-${entry.day}";
-      grouped.update(key, (v) => v + (entry.value ?? 0),
-          ifAbsent: () => entry.value ?? 0);
-    }
-    final List<WaterHistoryModel> result = grouped.entries.map((e) {
-      final parts = e.key.split('-');
-      return WaterHistoryModel(
-        year: int.parse(parts[0]),
-        month: int.parse(parts[1]),
-        day: int.parse(parts[2]),
-        value: e.value,
+      grouped.update(
+        key,
+        (v) => v + (entry.value ?? 0),
+        ifAbsent: () => entry.value ?? 0,
       );
-    }).toList();
-    result.sort((a, b) =>
-        DateTime(a.year, a.month, a.day).compareTo(DateTime(b.year, b.month, b.day)));
+    }
+    final List<WaterHistoryModel> result =
+        grouped.entries.map((e) {
+          final parts = e.key.split('-');
+          return WaterHistoryModel(
+            year: int.parse(parts[0]),
+            month: int.parse(parts[1]),
+            day: int.parse(parts[2]),
+            value: e.value,
+          );
+        }).toList();
+    result.sort(
+      (a, b) => DateTime(
+        a.year,
+        a.month,
+        a.day,
+      ).compareTo(DateTime(b.year, b.month, b.day)),
+    );
     return result;
   }
 
@@ -106,7 +132,11 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
 
   void _changeMonth(int delta) {
     setState(() {
-      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + delta, 1);
+      _selectedMonth = DateTime(
+        _selectedMonth.year,
+        _selectedMonth.month + delta,
+        1,
+      );
     });
   }
 
@@ -130,8 +160,13 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    _isMonthlyView ? "Monthly Hydration Report" : "Weekly Hydration Report",
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    _isMonthlyView
+                        ? "Monthly Hydration Report"
+                        : "Weekly Hydration Report",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   Row(
                     children: [
@@ -140,8 +175,10 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                           icon: const Icon(Icons.chevron_left),
                           onPressed: () => _changeMonth(-1),
                         ),
-                        Text(DateFormat('MMMM yyyy').format(_selectedMonth),
-                            style: const TextStyle(fontSize: 14)),
+                        Text(
+                          DateFormat('MMMM yyyy').format(_selectedMonth),
+                          style: const TextStyle(fontSize: 14),
+                        ),
                         IconButton(
                           icon: const Icon(Icons.chevron_right),
                           onPressed: () => _changeMonth(1),
@@ -149,7 +186,11 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                       ],
                       TextButton(
                         onPressed: _toggleView,
-                        child: Text(_isMonthlyView ? "Switch to Weekly" : "Switch to Monthly"),
+                        child: Text(
+                          _isMonthlyView
+                              ? "Switch to Weekly"
+                              : "Switch to Monthly",
+                        ),
                       ),
                     ],
                   ),
@@ -162,7 +203,9 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                   return SizedBox(
                     height: height * 0.3,
                     child: Center(
-                      child: CircularProgressIndicator(color: AppColors.primaryColor),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryColor,
+                      ),
                     ),
                   );
                 }
@@ -170,7 +213,10 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                 List<WaterHistoryModel> displayData;
                 List<String> labels;
                 if (_isMonthlyView) {
-                  displayData = _getMonthData(controller.waterHistoryList, _selectedMonth);
+                  displayData = _getMonthData(
+                    controller.waterHistoryList,
+                    _selectedMonth,
+                  );
                   if (displayData.isEmpty) {
                     return _emptyStateContainer(height, isDarkMode);
                   }
@@ -189,30 +235,49 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                 });
 
                 final goalLiters = controller.waterGoal.value / 1000;
-                double maxIntakeLiters = points.map((p) => p.y).fold(0.0, (prev, val) => val > prev ? val : prev);
-                double maxY = ((maxIntakeLiters > goalLiters ? maxIntakeLiters : goalLiters) * 1.25).ceilToDouble();
+                double maxIntakeLiters = points
+                    .map((p) => p.y)
+                    .fold(0.0, (prev, val) => val > prev ? val : prev);
+                double maxY =
+                    ((maxIntakeLiters > goalLiters
+                                ? maxIntakeLiters
+                                : goalLiters) *
+                            1.25)
+                        .ceilToDouble();
                 double interval = (maxY / 5).ceilToDouble();
 
-                return CommonStatGraphWidget(
-                  isDarkMode: isDarkMode,
-                  height: height,
-                  graphTitle: '',
-                  yAxisInterval: interval,
-                  yAxisMaxValue: maxY,
-                  gridLineInterval: interval,
-                  points: points,
-                  weekLabels: labels,
-                  measureUnit: 'L',
+                return SizedBox(
+                  height: height * 0.2,
+                  child: CommonStatGraphWidget(
+                    isMonthlyView: _isMonthlyView,
+                    isDarkMode: isDarkMode,
+                    height: height,
+                    graphTitle: '',
+                    yAxisInterval: interval,
+                    yAxisMaxValue: maxY,
+                    gridLineInterval: interval,
+                    points: points,
+                    weekLabels: labels,
+                    measureUnit: 'L',
+                    isSleepGraph: false,
+                  ),
                 );
               }),
 
               const SizedBox(height: 25),
 
               Obx(() {
-                final todayEntries = _filterForDay(controller.waterHistoryList, DateTime.now());
+                final todayEntries = _filterForDay(
+                  controller.waterHistoryList,
+                  DateTime.now(),
+                );
 
                 if (controller.isLoading.value) {
-                  return Center(child: CircularProgressIndicator(color: AppColors.primaryColor));
+                  return Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primaryColor,
+                    ),
+                  );
                 }
 
                 if (todayEntries.isEmpty) {
@@ -233,17 +298,21 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                       maxLines: 1,
                       maxFontSize: 20,
                       minFontSize: 10,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 15),
                     ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: todayEntries.length,
-                      separatorBuilder: (_, __) => Divider(
-                        color: Colors.grey.withOpacity(0.4),
-                        thickness: 0.6,
-                      ),
+                      separatorBuilder:
+                          (_, __) => Divider(
+                            color: Colors.grey.withOpacity(0.4),
+                            thickness: 0.6,
+                          ),
                       itemBuilder: (context, index) {
                         final entry = todayEntries[index];
                         final formattedTime = entry.time ?? '--:--';
@@ -261,7 +330,10 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 13,
-                                    color: isDarkMode ? Colors.white : Colors.black,
+                                    color:
+                                        isDarkMode
+                                            ? Colors.white
+                                            : Colors.black,
                                   ),
                                 ),
                               ),
@@ -270,7 +342,10 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                                   value,
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: isDarkMode ? Colors.white : Colors.black,
+                                    color:
+                                        isDarkMode
+                                            ? Colors.white
+                                            : Colors.black,
                                   ),
                                 ),
                               ),

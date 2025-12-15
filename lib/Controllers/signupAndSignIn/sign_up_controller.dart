@@ -16,7 +16,10 @@ class SignUpController extends GetxController {
   final notify = Get.put(NotificationService());
 
   Future<dynamic> signUpUsingGmail(String email, BuildContext context) async {
+    print("⏳ signUpUsingGmail() called with email: $email");
+
     if (email.isEmpty) {
+      print("❌ Email empty");
       CustomSnackbar.showError(
         context: context,
         title: 'Error',
@@ -24,42 +27,70 @@ class SignUpController extends GetxController {
       );
       return;
     }
+
+    if (!email.contains("gmail")) {
+      print("❌ Email is not gmail");
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Use your gmail account',
+      );
+      return;
+    }
+
     final plainEmail = jsonEncode({'Gmail': email});
+    print("📨 Plain Email JSON: $plainEmail");
 
     try {
       isLoading.value = true;
-      final uri = Uri.parse("$baseUrl$senOtpEmailEndpoint");
-      final encryptedEmail = EncryptionService.encryptData(plainEmail);
-      final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
+      print("⏳ Sending OTP request…");
 
+      final uri = Uri.parse("$baseUrl$senOtpEmailEndpoint");
+      print("🌐 URL: $uri");
+
+      final encryptedEmail = EncryptionService.encryptData(plainEmail);
+      print("🔐 Encrypted Email: ${encryptedEmail['encryptedData']}");
+      print("🔑 Hash: ${encryptedEmail['hash']}");
+
+      final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
       headers['X-Data-Hash'] = encryptedEmail['hash']!;
+
+      print("📌 Final Request Headers: $headers");
 
       final encryptedBody = jsonEncode({
         'data': encryptedEmail['encryptedData'],
       });
+
+      print("📦 Request Body: $encryptedBody");
 
       final response = await http.post(
         uri,
         headers: headers,
         body: encryptedBody,
       );
+
+      print("📥 Response Status: ${response.statusCode}");
+      print("📥 Raw Response Body: ${response.body}");
+
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
-        // print("response Body: $responseBody");
+        print("📥 Decoded Response Body: $responseBody");
 
         final encryptedBody = responseBody['data'];
-        // print("👉 Encrypted OTP response: $encryptedBody");
+        print("🔐 Encrypted Response Data: $encryptedBody");
 
         final responseHash = response.headers['x-data-hash'];
-        // print("👉 Response hash: $responseHash");
+        print("🔑 Response Hash: $responseHash");
 
         final decrypted = EncryptionService.decryptData(
           encryptedBody,
           responseHash!,
         );
-        // print("Decrypted OTP response: $decrypted");
+
+        print("🔓 Decrypted Response: $decrypted");
 
         if (decrypted == null) {
+          print("❌ Decryption returned null");
           CustomSnackbar.showError(
             context: context,
             title: 'Error',
@@ -69,9 +100,13 @@ class SignUpController extends GetxController {
         }
 
         final Map<String, dynamic> gettedData = jsonDecode(decrypted);
+        print("📄 Decoded Decrypted Data: $gettedData");
 
         final data = gettedData['data'];
+        print("📌 'data' field: $data");
+
         if (data == null || data['Otp'] == null) {
+          print("❌ OTP field missing inside response");
           CustomSnackbar.showError(
             context: context,
             title: 'Error',
@@ -81,8 +116,10 @@ class SignUpController extends GetxController {
         }
 
         final otp = data['Otp'];
+        print("📲 Extracted OTP: $otp");
 
         await notify.showOtpNotification(otp);
+        print("🔔 Local Notification Sent");
 
         CustomSnackbar.showSuccess(
           context: context,
@@ -91,14 +128,20 @@ class SignUpController extends GetxController {
         );
 
         return otp;
-      } else if (response.statusCode == 400) {
+      }
+      // 400 error
+      else if (response.statusCode == 400) {
+        print("❌ Email already registered");
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
           message: 'Email already registered',
         );
         return false;
-      } else {
+      }
+      // Other errors
+      else {
+        print("❌ Unexpected Error: ${response.body}");
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
@@ -112,11 +155,12 @@ class SignUpController extends GetxController {
         message: 'Signup failed',
       );
     } finally {
+      print("🔚 signUpUsingGmail() FINALLY — isLoading set to false");
       isLoading.value = false;
     }
   }
 
-  Future<dynamic> gmailotp(String email, BuildContext context) async {
+  Future<dynamic> gmailOtp(String email, BuildContext context) async {
     if (email.isEmpty) {
       CustomSnackbar.showError(
         context: context,
@@ -323,7 +367,11 @@ class SignUpController extends GetxController {
           message: 'Signup failed: ${response.body}',
         );
       }
-    } catch (e) {
+    } catch (e, s) {
+      print("🚨 Caught Exception in signUpUsingGmail:");
+      print("❗ Error: $e");
+      print("📌 Stack Trace: $s");
+
       CustomSnackbar.showError(
         context: context,
         title: 'Error',

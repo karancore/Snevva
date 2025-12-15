@@ -1,4 +1,3 @@
-
 import '../../consts/consts.dart';
 
 class YogaScreenFooterWidget extends StatelessWidget {
@@ -13,14 +12,14 @@ class YogaScreenFooterWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 10,bottom: 10),
+      padding: const EdgeInsets.only(top: 10, bottom: 10),
       child: Row(
         children: [
           Image(image: AssetImage(containerImg)),
           SizedBox(width: 20),
           Expanded(
             child: Text(
-             containerText,
+              containerText,
               textAlign: TextAlign.justify,
               style: TextStyle(
                 fontSize: 12,

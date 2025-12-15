@@ -151,7 +151,7 @@ class ProfileSetupController extends GetxController {
   //   ApiService.post(userDobApi, {'dob': dob});
   // }
 
-  Future<void> saveData(
+  Future<bool> saveData(
     StringValueVM name,
     StringValueVM gender,
     DateOfBirthVM dob,
@@ -217,7 +217,7 @@ class ProfileSetupController extends GetxController {
             title: 'Error',
             message: 'Failed to save ${payload.keys.first}.',
           );
-          return;
+          return false;
         }
       }
       if (allSuccessful) {
@@ -226,9 +226,10 @@ class ProfileSetupController extends GetxController {
           title: 'Success',
           message: 'Profile data saved successfully.',
         );
+        return true;
       }
     } catch (e, stack) {
-      print("❌ Exception during profile save: $e");
+      print("Exception during profile save: $e");
       print(stack);
       CustomSnackbar.showError(
         context: context,
@@ -236,5 +237,6 @@ class ProfileSetupController extends GetxController {
         message: 'Failed to save profile data',
       );
     }
+    return false;
   }
 }

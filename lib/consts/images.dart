@@ -1,4 +1,3 @@
-
 const splashImg = "assets/Images/mascot-snevva-new1.png";
 
 const doc1 = "assets/Images/Doc1.png";
@@ -33,9 +32,11 @@ const calenderIcon = 'assets/Icons/Profile/calendar-2-line.svg';
 const backIcon = "assets/Icons/Common_Icons/BackIcon.svg";
 const editIcon = "assets/Icons/Common_Icons/editIcon.svg";
 const phoneIcon = "assets/Icons/Common_Icons/phone-line.svg";
-const addCircularContainer = "assets/Icons/Common_Icons/addCircularContainer.svg";
+const addCircularContainer =
+    "assets/Icons/Common_Icons/addCircularContainer.svg";
 const appbarActionCross = "assets/Icons/Common_Icons/appBarActionCross.svg";
-const appbarActionCrossWhite = "assets/Icons/Common_Icons/whiteAppBarActionCross.svg";
+const appbarActionCrossWhite =
+    "assets/Icons/Common_Icons/whiteAppBarActionCross.svg";
 const drawerIconWhite = "assets/Icons/Common_Icons/whiteDrawerIcon.svg";
 const drawerIcon = "assets/Icons/DrawerIcon.svg";
 
@@ -55,7 +56,6 @@ const bookDocIcon = "assets/Icons/Info/shield-cross-fill-4.svg";
 const womenIcon = "assets/Icons/Info/shield-cross-fill-5.svg";
 const waterTrackingIcon = "assets/Icons/Info/shield-cross-fill-6.svg";
 const stepsTrackingIcon = "assets/Icons/Info/shield-cross-fill-7.svg";
-
 
 //Sign up screen
 const apple = 'assets/Icons/Apple.png';
@@ -79,7 +79,6 @@ const stepsIcon = "assets/Icons/Vector.png";
 const sleepIcon = "assets/Icons/hotel-bed-fill.png";
 const heartIcon = "assets/Icons/heart-pulse-fill.png";
 
-
 // Dashboard Ads Images
 const adImg1 = 'assets/Dashboard/Frame 231.png';
 
@@ -101,10 +100,6 @@ const mealIcon = "assets/Icons/reminder/meal.png";
 const waterReminderIcon = "assets/Icons/reminder/water.png";
 const eventIcon = "assets/Icons/reminder/event.png";
 const clockRemIcon = "assets/Icons/reminder/clock.png";
-
-
-
-
 
 //Vitals Screen
 const heartVitalIcon = "assets/Icons/vitals/heart.png";
@@ -155,8 +150,6 @@ const userIcon = 'assets/Icons/Profile/user-3-line.svg';
 const aboutIcon = 'assets/Icons/Profile/information-line.svg';
 const addressIcon = 'assets/Icons/Profile/map-pin-line.svg';
 
-
-
 //Questionnaire Screen image
 const questionImg = 'assets/Images/ProfileSetup/questionImg.png';
 
@@ -178,7 +171,6 @@ const dancerIcon = 'assets/Icons/Questionnaire_Icons/Rectangle(5).png';
 const craftingIcon = 'assets/Icons/Questionnaire_Icons/Paper_crafts.png';
 const otherIcon = 'assets/Icons/Questionnaire_Icons/Rectangle(1).png';
 
-
 // Height And Weight Screen
 const heightMale = "assets/Images/Height_And_Weight/height2.svg";
 const heightFemale = "assets/Images/Height_And_Weight/height1.svg";
@@ -198,15 +190,18 @@ const bmiElephant = 'assets/Images/BMI/bmi_Eli.svg';
 const bmidiet = 'assets/Images/BMI/bmiDiet.jpg';
 const bmiCalculator = 'assets/Images/BMI/bmi-calculator-hero-img.png';
 
-
 //Emergency Screen
 const emergencyButton = "assets/Images/Emergency/emergencyButton.svg";
 const locationPin = "assets/Images/Emergency/locationPin.svg";
 const circularArrowButton = "assets/Images/Emergency/circularArrowButton.svg";
-const emergencyPic1 = "assets/Images/Emergency/3990d867-53ef-4926-aa23-68547feacad21.png";
-const emergencyPic2 = "assets/Images/Emergency/3990d867-53ef-4926-aa23-68547feacad21-2.png";
-const emergencyPic3 = "assets/Images/Emergency/3990d867-53ef-4926-aa23-68547feacad21-3.png";
-const emergencyPic4 = "assets/Images/Emergency/3990d867-53ef-4926-aa23-68547feacad21-4.png";
+const emergencyPic1 =
+    "assets/Images/Emergency/3990d867-53ef-4926-aa23-68547feacad21.png";
+const emergencyPic2 =
+    "assets/Images/Emergency/3990d867-53ef-4926-aa23-68547feacad21-2.png";
+const emergencyPic3 =
+    "assets/Images/Emergency/3990d867-53ef-4926-aa23-68547feacad21-3.png";
+const emergencyPic4 =
+    "assets/Images/Emergency/3990d867-53ef-4926-aa23-68547feacad21-4.png";
 
 // Settings
 const themeIcon = "assets/Icons/Setting/moon-fill.svg";
@@ -216,13 +211,13 @@ const othersIcon = "assets/Icons/Setting/settings-3-fill.svg";
 const aboutFilledIcon = "assets/Icons/Setting/information-fill.svg";
 
 // Scan Report Screen
-const cameraCaptureIcon = "assets/Icons/ScanReport/Frame287.svg" ;
-const cameraFlashIcon = "assets/Icons/ScanReport/Frame41.svg" ;
-const cameraGallaryIcon = "assets/Icons/ScanReport/Frame42.svg" ;
+const cameraCaptureIcon = "assets/Icons/ScanReport/Frame287.svg";
+const cameraFlashIcon = "assets/Icons/ScanReport/Frame41.svg";
+const cameraGallaryIcon = "assets/Icons/ScanReport/Frame42.svg";
 
 // Women Health Screen
 const periodContainerBottomCircle = "assets/Images/WomenHealth/Frame 67.svg";
-const periodContainerTopEffect= "assets/Icons/WomenHealth/Ellipse 8.png";
+const periodContainerTopEffect = "assets/Icons/WomenHealth/Ellipse 8.png";
 const cyclePhaseIcon1 = "assets/Icons/WomenHealth/Cycle.svg";
 const cyclePhaseIcon2 = "assets/Icons/WomenHealth/Vegan.svg";
 const cyclePhaseIcon3 = "assets/Icons/WomenHealth/heart.svg";
@@ -257,8 +252,9 @@ const level3 = "assets/Icons/WomenHealth/3.png";
 
 //Chat Screem
 
-const chatWallpaper = "assets/chat/chat_wallpaper.png";
-
+// const chatWallpaper = "assets/chat/chat_wallpaper.png";
+// //
+const chatWallpaper = "assets/chat/chat_wallpaper_new.webp";
 
 //Step Counter
 const run = "assets/Images/Steps/run.png";

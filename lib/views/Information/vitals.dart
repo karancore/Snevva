@@ -11,10 +11,6 @@ import '../../Controllers/Vitals/vitalsController.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../common/global_variables.dart';
 
-void main() {
-  runApp(VitalScreen());
-}
-
 class VitalScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {

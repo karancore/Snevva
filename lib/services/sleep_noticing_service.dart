@@ -4,7 +4,7 @@ import 'package:screen_state/screen_state.dart';
 class SleepNoticingService {
   StreamSubscription<ScreenStateEvent>? _subscription;
   late Screen _screen;
-  
+
   DateTime? _usageStartTime;
   bool _isUserUsingPhone = false;
 
@@ -32,7 +32,6 @@ class SleepNoticingService {
   void stopMonitoring() {
     _subscription?.cancel();
 
-
     _subscription = null;
   }
 
@@ -54,9 +53,10 @@ class SleepNoticingService {
     _usageStartTime = now;
     _isUserUsingPhone = true;
 
-    print("📱 [SleepService] Screen ON. Usage START at ${now.hour}:${now.minute}");
+    print(
+      "📱 [SleepService] Screen ON. Usage START at ${now.hour}:${now.minute}",
+    );
   }
-
 
   void _onScreenTurnedOff() {
     DateTime usageEndTime = DateTime.now();
@@ -66,14 +66,18 @@ class SleepNoticingService {
       _usageStartTime = usageEndTime;
       _isUserUsingPhone = false;
 
-      print('🌙 [SleepService] Sleep START at ${usageEndTime.hour}:${usageEndTime.minute}');
+      print(
+        '🌙 [SleepService] Sleep START at ${usageEndTime.hour}:${usageEndTime.minute}',
+      );
       return;
     }
 
     // CASE 2: Has valid start time → calculate duration
     if (_isUserUsingPhone) {
       final duration = usageEndTime.difference(_usageStartTime!);
-      print('😴 [SleepService] Sleep/Usage End. Duration: ${duration.inMinutes} mins');
+      print(
+        '😴 [SleepService] Sleep/Usage End. Duration: ${duration.inMinutes} mins',
+      );
 
       onPhoneUsageDetected?.call(_usageStartTime!, usageEndTime);
     }
@@ -82,10 +86,8 @@ class SleepNoticingService {
     _usageStartTime = null;
   }
 
-
-
   /// Calculates the new bedtime based on phone usage logic.
-  /// 
+  ///
   /// [bedtime]: The original scheduled bedtime.
   /// [phoneUsageStart]: When the user started using the phone.
   /// [phoneUsageDuration]: How long they used the phone.
@@ -105,9 +107,12 @@ class SleepNoticingService {
     // CONDITION 2: Phone used after safe window
     // New Bedtime = (Usage End Time - 15 mins)
     // Usage End Time = Start + Duration
-    final DateTime sleepAfterUsage = phoneUsageStart.add(phoneUsageDuration);
-    final DateTime adjustedBedtime = sleepAfterUsage.subtract(const Duration(minutes: 15));
-    
+    final DateTime sleepAfterUsage =
+        phoneUsageStart.add(phoneUsageDuration).toLocal();
+    final DateTime adjustedBedtime = sleepAfterUsage.subtract(
+      const Duration(minutes: 15),
+    );
+
     print('✅ [SleepService] Bedtime ADJUSTED!');
     print('   Original: ${bedtime.hour}:${bedtime.minute}');
     print('   New: ${adjustedBedtime.hour}:${adjustedBedtime.minute}');
@@ -117,7 +122,7 @@ class SleepNoticingService {
   }
 
   /// Calculates deep sleep duration.
-  /// 
+  ///
   /// [newBedtime]: The adjusted bedtime.
   /// [wakeTime]: The scheduled wake up time.
   Duration calculateDeepSleep(DateTime newBedtime, DateTime wakeTime) {

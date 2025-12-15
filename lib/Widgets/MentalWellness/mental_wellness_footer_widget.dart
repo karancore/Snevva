@@ -1,4 +1,3 @@
-
 import 'package:snevva/views/Information/music_player_screen.dart';
 import '../../consts/consts.dart';
 
@@ -17,7 +16,13 @@ class MentalWellnessFooterWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => Get.to(MusicLPlayerScreen(appBarHeading: heading, appBarSubHeading: subHeading,)),
+      onTap:
+          () => Get.to(
+            MusicLPlayerScreen(
+              appBarHeading: heading,
+              appBarSubHeading: subHeading,
+            ),
+          ),
       child: Container(
         height: 100,
         width: 100,
@@ -30,27 +35,19 @@ class MentalWellnessFooterWidget extends StatelessWidget {
             image: AssetImage(wellnessContainerImage),
             fit: BoxFit.fill,
           ),
-      
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.start,
-      
+
           children: [
-      
-            Icon( Icons.play_arrow,
-              color: Colors.white,
-              size: 20,
+            Icon(Icons.play_arrow, color: Colors.white, size: 20),
+            SizedBox(height: 10),
+            Text(heading, style: TextStyle(color: Colors.white, fontSize: 16)),
+            Text(
+              subHeading,
+              style: TextStyle(color: Colors.white, fontSize: 16),
             ),
-            SizedBox(height: 10,),
-            Text(heading, style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-            ),),
-            Text(subHeading, style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-            ),),
           ],
         ),
       ),

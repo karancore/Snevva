@@ -14,7 +14,7 @@ class TextFormFieldTheme {
     prefixIconColor: Colors.grey,
     suffixIconColor: Colors.grey,
     floatingLabelStyle: const TextStyle(color: Colors.black),
-    focusedBorder : const OutlineInputBorder(
+    focusedBorder: const OutlineInputBorder(
       borderSide: BorderSide(width: 2, color: Color(0xFFB579FF)),
     ),
   );

@@ -2,7 +2,9 @@ import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
+import '../../Controllers/SleepScreen/sleep_controller.dart';
 import '../../Controllers/StepCounter/step_counter_controller.dart';
+import '../../common/global_variables.dart';
 import '../../common/statement_of_use_bottom_sheet.dart';
 import '../../consts/consts.dart';
 import '../../views/Information/HydrationScreens/hydration_screen.dart';
@@ -30,6 +32,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
     final stepController = Get.find<StepCounterController>();
     final waterController = Get.find<HydrationStatController>();
     final vitalController = Get.find<VitalsController>();
+    final SleepController sleepController = Get.put(SleepController());
 
     return Column(
       children: [
@@ -165,7 +168,6 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
               onTap: () async {
                 final prefs = await SharedPreferences.getInstance();
                 final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
-                
 
                 final stepController = Get.find<StepCounterController>();
 
@@ -252,7 +254,6 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                 final prefs = await SharedPreferences.getInstance();
                 final isFirstSleep =
                     prefs.getBool('is_first_time_sleep') ?? true;
-                
 
                 if (isFirstSleep) {
                   final agreed = await showSleepBottomSheetModal(
@@ -278,18 +279,25 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
               widgetName: 'Sleep',
               widgetIcon: sleepTrackerIcon,
               width: width,
-              valueText: RichText(
-                text: TextSpan(
-                  text: '7:12h',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    color:
-                        Theme.of(context).textTheme.bodyMedium?.color ??
-                        Colors.black,
+              valueText: Obx(() {
+                return RichText(
+                  text: TextSpan(
+                    text:
+                        sleepController.deepSleepDuration.value == null
+                            ? "--"
+                            : fmtDuration(
+                              sleepController.deepSleepDuration.value!,
+                            ),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color:
+                          Theme.of(context).textTheme.bodyMedium?.color ??
+                          Colors.black,
+                    ),
                   ),
-                ),
-              ),
+                );
+              }),
               valuePraisingText: 'wow!',
               height: height,
               content: Align(

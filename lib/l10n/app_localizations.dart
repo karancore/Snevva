@@ -209,7 +209,7 @@ abstract class AppLocalizations {
   /// No description provided for @notMemberText.
   ///
   /// In en, this message translates to:
-  /// **'Not a member?'**
+  /// **'Not a member ?'**
   String get notMemberText;
 
   /// No description provided for @createNewAccountText.
@@ -415,6 +415,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please enter your name'**
   String get pleaseEnterYourName;
+
+  /// No description provided for @enterYourName.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your name'**
+  String get enterYourName;
 
   /// No description provided for @selectGender.
   ///

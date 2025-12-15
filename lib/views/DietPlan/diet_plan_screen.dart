@@ -1,19 +1,78 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:snevva/Controllers/DietPlan/diet_plan_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
+import 'package:snevva/common/custom_snackbar.dart';
+import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/views/DietPlan/celebrity_diet_plan.dart';
 
 import '../../consts/consts.dart';
 
-class DietPlanScreen extends StatelessWidget {
+class DietPlanScreen extends StatefulWidget {
   const DietPlanScreen({super.key});
+
+  @override
+  State<DietPlanScreen> createState() => _DietPlanScreenState();
+}
+
+class _DietPlanScreenState extends State<DietPlanScreen> {
+  final dietController = Get.put(DietPlanController());
+  late double height;
+  late double width;
+  late bool isDarkMode;
+  final popularDiets = [
+    ["Katrina Kaif", "15-Day Katrina Kaif-Inspire...", katImg],
+    ["Shilpa Shetty", "15-Day Shilpa Shetty-Inspire....", shilpaImg],
+    ["Virat Kohli", "15-Day Virat Kohli-Inspired a million ", virImg],
+    ["Akshay Kumar", "15-Day Akshay Kumar-Inspire...", akImg],
+  ];
+  final categoryDiets = [
+    ['Ketogenic', dietIcon1],
+    ['Non-Veg', dietIcon2],
+    ['Vegan', dietIcon3],
+    ['Fasting', dietIcon4],
+    ['Dash Diet', dietIcon5],
+    ['Gluten-Free', dietIcon6],
+  ];
+
+  final Map<int, List<List<String>>> mostLikedByCategory = {
+    0: [
+      ["Katrina Kaif", "Keto Inspired Plan", katImg],
+      ["Virat Kohli", "High Fat Keto", virImg],
+      ["Akshay Kumar", "Low Carb Keto", akImg],
+      ["Shilpa Shetty", "Clean Keto Diet", shilpaImg],
+    ],
+    1: [
+      ["Virat Kohli", "High Protein Non-Veg", virImg],
+      ["Akshay Kumar", "Muscle Gain Diet", akImg],
+      ["Katrina Kaif", "Lean Body Plan", katImg],
+      ["Shilpa Shetty", "Balanced Diet", shilpaImg],
+    ],
+    2: [
+      ["Shilpa Shetty", "Vegan Cleanse", shilpaImg],
+      ["Katrina Kaif", "Plant Based Glow", katImg],
+      ["Virat Kohli", "Vegan Athlete", virImg],
+      ["Akshay Kumar", "Green Energy Diet", akImg],
+    ],
+  };
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Load default/general diets when screen opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      dietController.getAllDiets(context, "Vegetarian");
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
-    final height = mediaQuery.size.height;
-    final width = mediaQuery.size.width;
-    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
 
+    height = mediaQuery.size.height;
+    width = mediaQuery.size.width;
+    isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: CustomAppBar(appbarText: "Diet Plan"),
@@ -55,25 +114,33 @@ class DietPlanScreen extends StatelessWidget {
             SizedBox(height: defaultSize - 20),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  dietContainer(
-                    width,
-                    'Next Best Step',
-                    'Your body’s doing great...',
-                    dietImg1,
-                    isDarkMode,
-                  ),
-                  dietContainer(
-                    width,
-                    'Stay on Track',
-                    'Keep healthy habits going...',
-                    dietImg1,
-                    isDarkMode,
-                  ),
-                ],
-              ),
+              child: Obx(() {
+                final data = dietController.dietTagResponse.value.data;
+                if (data == null || data.isEmpty) {
+                  return Text("No suggestions"); // prevent crash
+                }
+
+                if (data.length < 2) {
+                  return Text("Not enough suggestions");
+                }
+                if (data.length >= 2) {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: List.generate(2, (i) {
+                      return suggestedItem(
+                        width,
+                        data[i].title ?? "",
+                        data[i].heading ?? "",
+                        data[i].thumbnailMedia ?? dietPlaceholder,
+                        isDarkMode,
+                        i,
+                      );
+                    }),
+                  );
+                } else {
+                  return Text("Not enough suggestions");
+                }
+              }),
             ),
             SizedBox(height: defaultSize - 10),
 
@@ -90,14 +157,13 @@ class DietPlanScreen extends StatelessWidget {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: [
-                  dietCategoryIcons(width, 'Ketogenic', dietIcon1),
-                  dietCategoryIcons(width, 'Non-Veg', dietIcon2),
-                  dietCategoryIcons(width, 'Vegan', dietIcon3),
-                  dietCategoryIcons(width, 'Fasting', dietIcon4),
-                  dietCategoryIcons(width, 'Dash Diet', dietIcon5),
-                  dietCategoryIcons(width, 'Gluten-Free', dietIcon6),
-                ],
+                children: List.generate(categoryDiets.length, (index) {
+                  final category = categoryDiets[index];
+                  final categoryText = category[0];
+                  final icon = category[1];
+
+                  return dietCategoryIcons(width, categoryText, icon, index);
+                }),
               ),
             ),
             SizedBox(height: defaultSize - 10),
@@ -112,74 +178,167 @@ class DietPlanScreen extends StatelessWidget {
               ),
             ),
             SizedBox(height: defaultSize - 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  dietContainer(
-                    width,
-                    'Katrina Kaif',
-                    '15-Day Katrina Kaif-Inspire...',
-                    katImg,
-                    isDarkMode,
-                  ),
-                  dietContainer(
-                    width,
-                    'Shilpa Shetty',
-                    '15-Day Shilpa Shetty-Inspire....',
-                    shilpaImg,
-                    isDarkMode,
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: defaultSize - 10),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  dietContainer(
-                    width,
-                    'Virat Kohli',
-                    '15-Day Virat Kohli-Inspire....',
-                    virImg,
-                    isDarkMode,
-                  ),
-                  dietContainer(
-                    width,
-                    'Akshay Kumar',
-                    '15-Day Akshay Kumar-Inspire...',
-                    akImg,
-                    isDarkMode,
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: defaultSize),
+            Obx(() {
+              final categoryIndex = dietController.selectedCategoryIndex.value;
+              final list = mostLikedByCategory[categoryIndex] ?? [];
+
+              if (list.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Text("No data available"),
+                );
+              }
+
+              final rowCount = (list.length / 2).ceil();
+
+              return Column(
+                children: List.generate(rowCount, (row) {
+                  int start = row * 2;
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        dietContainer(
+                          width,
+                          list[start][0],
+                          list[start][1],
+                          list[start][2],
+                          isDarkMode,
+                        ),
+                        if (start + 1 < list.length)
+                          dietContainer(
+                            width,
+                            list[start + 1][0],
+                            list[start + 1][1],
+                            list[start + 1][2],
+                            isDarkMode,
+                          ),
+                      ],
+                    ),
+                  );
+                }),
+              );
+            }),
           ],
         ),
       ),
     );
   }
 
-  Padding dietCategoryIcons(double width, String categoryText, String icon) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 20),
-      child: SizedBox(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Image.asset(icon, height: width * 0.1, fit: BoxFit.cover),
-            SizedBox(height: 5),
-            AutoSizeText(
-              categoryText,
-              minFontSize: 10,
-              maxLines: 2,
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
+  Widget dietCategoryIcons(
+    double width,
+    String categoryText,
+    String icon,
+    int index,
+  ) {
+    return Obx(() {
+      final isSelected = dietController.selectedCategoryIndex.value == index;
+      return GestureDetector(
+        onTap: () {
+          dietController.changeCategory(index);
+          CustomSnackbar.showSnackbar(
+            context: context,
+            title: categoryText,
+            message: "Tapped",
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.only(left: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Image.asset(icon, height: width * 0.1, fit: BoxFit.cover),
+              SizedBox(height: 5),
+              AutoSizeText(
+                categoryText,
+                minFontSize: 10,
+                maxLines: 2,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  color: isSelected ? AppColors.primaryColor : grey,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  Material suggestedItem(
+    double width,
+    String heading,
+    String subHeading,
+    String dietImg,
+    bool isDarkMode,
+    int index,
+  ) {
+    return Material(
+      color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
+      elevation: 1,
+      borderRadius: BorderRadius.circular(4),
+      child: GestureDetector(
+        onTap:
+            () => Get.to(
+              CelebrityDietPlan(title: heading, img: dietImg, index: index),
             ),
-          ],
+        child: Container(
+          width: width * 0.43,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+            border: Border.all(width: border04px, color: mediumGrey),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: CachedNetworkImage(
+                  imageUrl: dietImg,
+                  height: 120,
+                  width: width * 0.43,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AutoSizeText(
+                      heading,
+                      minFontSize: 10,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    AutoSizeText(
+                      subHeading,
+                      minFontSize: 10,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: mediumGrey,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -210,7 +369,12 @@ class DietPlanScreen extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
-                child: Image.asset(dietImg, height: 120,  width: width * 0.43, fit: BoxFit.cover),
+                child: Image.asset(
+                  dietImg,
+                  height: 120,
+                  width: width * 0.43,
+                  fit: BoxFit.cover,
+                ),
               ),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),

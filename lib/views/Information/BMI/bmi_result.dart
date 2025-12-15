@@ -14,7 +14,6 @@ class BmiResultPage extends StatelessWidget {
   final double bmi;
   final int age;
 
-
   const BmiResultPage({super.key, required this.bmi, required this.age});
 
   String getStatus(double bmi) {
@@ -23,7 +22,7 @@ class BmiResultPage extends StatelessWidget {
     if (bmi < 30) return 'Overweight';
     return 'Obese';
   }
-  
+
   String getImg(double bmi) {
     if (bmi < 18.5) return skinny;
     if (bmi < 25) return bmiEle;
@@ -46,7 +45,6 @@ class BmiResultPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
@@ -72,18 +70,21 @@ class BmiResultPage extends StatelessWidget {
           child: Column(
             children: [
               const SizedBox(height: 90),
-        
+
               // Elephant Image
               Image.asset(
                 imagePath, // Replace with your image path
                 height: 150,
               ),
-        
+
               const SizedBox(height: 20),
-        
+
               // BMI Value Card
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 20,
+                ),
                 decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
@@ -97,9 +98,9 @@ class BmiResultPage extends StatelessWidget {
                   ),
                 ),
               ),
-        
+
               const SizedBox(height: 20),
-        
+
               // Color-coded BMI Indicator Bar
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -135,9 +136,9 @@ class BmiResultPage extends StatelessWidget {
                   ],
                 ),
               ),
-        
+
               const SizedBox(height: 12),
-        
+
               // Status Text
               Text(
                 status,
@@ -149,18 +150,18 @@ class BmiResultPage extends StatelessWidget {
               ),
 
               const SizedBox(height: 30),
-        
+
               // Suggestions Section
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   "Suggestion",
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-        
+
               const SizedBox(height: 12),
 
               Obx(() {
@@ -177,21 +178,27 @@ class BmiResultPage extends StatelessWidget {
                 return Wrap(
                   spacing: 16,
                   runSpacing: 16,
-                  children: tips.map((tip) {
-                    return SizedBox(
-                      width: (width - 56) / 2,
-                      child: _buildTipCard(
-                        heading: tip['Heading'] ?? '',
-                        title: tip['Title'] ?? '',
-                        image: tip['ThumbnailMedia']?['CdnUrl'] ?? "https://d3byuuhm0bg21i.cloudfront.net/derivatives/c3d47d00-8a25-46ef-bba3-ec5609c49b08/thumb.webp",
-                        isDarkMode: isDarkMode,
-                          onButtonTap: () => Get.to(() => NutritionTipsPage(), arguments: tip),
-                      ),
-                    );
-                  }).toList(),
+                  children:
+                      tips.map((tip) {
+                        return SizedBox(
+                          width: (width - 56) / 2,
+                          child: _buildTipCard(
+                            heading: tip['Heading'] ?? '',
+                            title: tip['Title'] ?? '',
+                            image:
+                                tip['ThumbnailMedia']?['CdnUrl'] ??
+                                "https://d3byuuhm0bg21i.cloudfront.net/derivatives/c3d47d00-8a25-46ef-bba3-ec5609c49b08/thumb.webp",
+                            isDarkMode: isDarkMode,
+                            onButtonTap:
+                                () => Get.to(
+                                  () => NutritionTipsPage(),
+                                  arguments: tip,
+                                ),
+                          ),
+                        );
+                      }).toList(),
                 );
               }),
-
 
               const SizedBox(height: 40),
             ],
@@ -200,6 +207,7 @@ class BmiResultPage extends StatelessWidget {
       ),
     );
   }
+
   Widget _buildTipCard({
     required String image,
     required String heading,
@@ -221,11 +229,12 @@ class BmiResultPage extends StatelessWidget {
               height: 120,
               width: double.infinity,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                height: 120,
-                color: Colors.grey[300],
-                child: const Center(child: Icon(Icons.broken_image)),
-              ),
+              errorBuilder:
+                  (context, error, stackTrace) => Container(
+                    height: 120,
+                    color: Colors.grey[300],
+                    child: const Center(child: Icon(Icons.broken_image)),
+                  ),
               loadingBuilder: (context, child, progress) {
                 if (progress == null) return child;
                 return Container(
@@ -244,25 +253,29 @@ class BmiResultPage extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(8.0,2.0,8.0,2.0),
+            padding: const EdgeInsets.fromLTRB(8.0, 2.0, 8.0, 2.0),
             child: Text(
               title,
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.normal),
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.normal,
+              ),
             ),
           ),
           Align(
             alignment: Alignment.centerRight,
             child: Padding(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10.0,
+                vertical: 6,
+              ),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
-                  padding:
-                  const EdgeInsets.fromLTRB(10.0,0.0,10.0,0.0),
+                  padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 0.0),
                 ),
                 onPressed: onButtonTap,
                 child: const Text(
@@ -276,6 +289,7 @@ class BmiResultPage extends StatelessWidget {
       ),
     );
   }
+
   // Widget _suggestionCard({
   //   required String title,
   //   required width,

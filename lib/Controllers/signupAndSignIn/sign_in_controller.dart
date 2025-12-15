@@ -19,10 +19,17 @@ class SignInController extends GetxController {
 
   final localstorage = Get.put(LocalStorageManager());
 
-
-  Future<bool> signInUsingEmail(String email, String password , BuildContext context) async {
+  Future<bool> signInUsingEmail(
+    String email,
+    String password,
+    BuildContext context,
+  ) async {
     if (email.isEmpty) {
-      CustomSnackbar.showError(context: context , title: "Error", message:  "Email cannot be empty");
+      CustomSnackbar.showError(
+        context: context,
+        title: "Error",
+        message: "Email cannot be empty",
+      );
       return false;
     }
 
@@ -67,7 +74,11 @@ class SignInController extends GetxController {
         print("Decrypted token response: $decrypted\n");
 
         if (decrypted == null) {
-          CustomSnackbar.showError(context: context , title: 'Error', message: 'Failed to decrypt response');
+          CustomSnackbar.showError(
+            context: context,
+            title: 'Error',
+            message: 'Failed to decrypt response',
+          );
           return false;
         }
 
@@ -80,56 +91,114 @@ class SignInController extends GetxController {
         // }
 
         // token
-        final token = responseData['data'];
+        final dynamic tokenRaw = responseData['data'];
+
+        if (tokenRaw == null || tokenRaw is! String || tokenRaw.isEmpty) {
+          print('❌ Invalid token received: $tokenRaw');
+
+          CustomSnackbar.showError(
+            context: context,
+            title: 'Error',
+            message: 'Invalid login token received',
+          );
+
+          return false;
+        }
+
+        final String token = tokenRaw;
+        print('✅ JWT Token: $token');
 
         final prefs = await SharedPreferences.getInstance();
+        print('🧠 SharedPreferences instance obtained');
+
+        print('🔐 Saving auth_token...');
         await prefs.setString('auth_token', token);
+        print('✅ auth_token saved');
 
-        // fetch user data
+        // ================== USER INFO ==================
+        print('📡 Fetching userInfo()...');
         final userdata = await userInfo();
-        final userProfileData = userdata['data'];
-        final gender = userdata['data']['Gender'];
+        print('📥 Raw userdata response: $userdata');
 
-        await prefs.setString('user_gender', gender);
+        final userProfileData = userdata['data'];
+        print('👤 userProfileData: $userProfileData');
+        print('👤 userProfileData runtimeType: ${userProfileData.runtimeType}');
+
+        final gender = userdata['data']?['Gender'];
+        print('🚻 Gender from API: $gender (type: ${gender.runtimeType})');
+
+        if (gender != null) {
+          await prefs.setString('user_gender', gender.toString());
+          print('✅ user_gender saved: $gender');
+        } else {
+          await prefs.setString('user_gender', '');
+          print('⚠️ user_gender was NULL — saved empty string');
+        }
+
+        print('🗂 Saving userProfileData into localstorage.userMap...');
         localstorage.userMap.value = userProfileData;
+        print('✅ localstorage.userMap updated');
 
         if (userProfileData is Map) {
           final userJson = jsonEncode(userProfileData);
           await prefs.setString('userdata', userJson);
+          print('💾 userdata saved to SharedPreferences');
+        } else {
+          print('❌ userProfileData is NOT a Map — skipped saving userdata');
         }
 
+        // ================== USER GOAL DATA ==================
+        print('📡 Fetching useeractivedataInfo()...');
         final goaldata = await useeractivedataInfo();
+        print('📥 Raw goaldata response: $goaldata');
+
         final data = goaldata['data'];
+        print('🎯 user goal data: $data');
+        print('🎯 user goal data runtimeType: ${data.runtimeType}');
 
         if (data is Map) {
           final userGoalJson = jsonEncode(data);
           await prefs.setString('userGoaldata', userGoalJson);
+          print('💾 userGoaldata saved to SharedPreferences');
+        } else {
+          print('⚠️ userGoaldata is NOT a Map — nothing saved');
         }
+
+        print('🏁 Sign-in data pipeline COMPLETED');
 
         userEmailOrPhoneField.clear();
         userPasswordField.clear();
 
         return true;
       }
-
       // Wrong input
       else if (response.statusCode == 400) {
-        CustomSnackbar.showError(context: context , title: 'Error', message: 'Wrong Credentials');
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Wrong Credentials',
+        );
         return false;
       }
-
       // Other failures
       else {
-        CustomSnackbar.showError(context: context , title: 'Error', message: 'Sign In failed.');
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Sign In failed.',
+        );
         return false;
       }
-    } catch (e) {
-      print(e);
-      CustomSnackbar.showError(context: context , title: 'Error', message: 'Sign In failed.');
+    } catch (e, st) {
+      print("sign in screen email $e  $st");
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Sign In failed.',
+      );
       return false;
     }
   }
-
 
   Future<dynamic> userInfo() async {
     final response = await ApiService.post(
@@ -166,9 +235,17 @@ class SignInController extends GetxController {
   //   return response;
   // }
 
-  Future<bool> signInUsingPhone(String phone, String password , BuildContext context) async {
+  Future<bool> signInUsingPhone(
+    String phone,
+    String password,
+    BuildContext context,
+  ) async {
     if (phone.isEmpty) {
-      CustomSnackbar.showError(context: context , title: 'Error', message: 'Phone cannot be empty');
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Phone cannot be empty',
+      );
       return false;
     }
 
@@ -210,7 +287,11 @@ class SignInController extends GetxController {
         print(decrypted);
 
         if (decrypted == null) {
-          CustomSnackbar.showError(context: context , title: 'Error', message: 'Failed to decrypt response');
+          CustomSnackbar.showError(
+            context: context,
+            title: 'Error',
+            message: 'Failed to decrypt response',
+          );
           return false;
         }
 
@@ -237,14 +318,21 @@ class SignInController extends GetxController {
 
         return true;
       } else {
-        CustomSnackbar.showError(context: context , title: 'Error', message: 'Sign In failed.');
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Sign In failed.',
+        );
         return false;
       }
-    } catch (e) {
-      print(e);
-      CustomSnackbar.showError(context: context , title: 'Error', message: 'Sign In failed.');
+    } catch (e, st) {
+      print("sign in phone $e $st");
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Sign In failed.',
+      );
       return false;
     }
   }
-
 }

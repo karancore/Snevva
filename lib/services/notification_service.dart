@@ -5,7 +5,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 class NotificationService {
   final FlutterLocalNotificationsPlugin notificationsPlugin =
-  FlutterLocalNotificationsPlugin();
+      FlutterLocalNotificationsPlugin();
 
   var hasNewNotification = false.obs;
 
@@ -15,8 +15,10 @@ class NotificationService {
   Future<void> init() async {
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings();
-    const initSettings =
-    InitializationSettings(android: androidInit, iOS: iosInit);
+    const initSettings = InitializationSettings(
+      android: androidInit,
+      iOS: iosInit,
+    );
 
     await notificationsPlugin.initialize(initSettings);
 
@@ -51,24 +53,35 @@ class NotificationService {
       ),
     );
     hasNewNotification.value = true;
-
   }
 
   // -------------------------------------------------
   // Daily reminders at 10 AM and 10 PM
   // -------------------------------------------------
-  Future<void> scheduleReminder({
-    required int id,
-  }) async {
+  Future<void> scheduleReminder({required int id}) async {
     final now = tz.TZDateTime.now(tz.local);
 
-    tz.TZDateTime morningTime =
-    tz.TZDateTime(tz.local, now.year, now.month, now.day, 10, 0);
-    tz.TZDateTime nightTime =
-    tz.TZDateTime(tz.local, now.year, now.month, now.day, 22, 0);
+    tz.TZDateTime morningTime = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      10,
+      0,
+    );
+    tz.TZDateTime nightTime = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      22,
+      0,
+    );
 
-    if (now.isAfter(morningTime)) morningTime = morningTime.add(const Duration(days: 1));
-    if (now.isAfter(nightTime)) nightTime = nightTime.add(const Duration(days: 1));
+    if (now.isAfter(morningTime))
+      morningTime = morningTime.add(const Duration(days: 1));
+    if (now.isAfter(nightTime))
+      nightTime = nightTime.add(const Duration(days: 1));
 
     // Morning channel (used by Android system)
     const morningDetails = NotificationDetails(
@@ -84,7 +97,6 @@ class NotificationService {
       iOS: DarwinNotificationDetails(),
     );
 
-
     // Night channel
     const nightDetails = NotificationDetails(
       android: AndroidNotificationDetails(
@@ -98,7 +110,6 @@ class NotificationService {
       ),
       iOS: DarwinNotificationDetails(),
     );
-
 
     // ✅ Morning notification text
     await notificationsPlugin.zonedSchedule(
@@ -128,7 +139,7 @@ class NotificationService {
     print('Night scheduled: $nightTime');
   }
 
-    // -------------------------------------------------
+  // -------------------------------------------------
   // OTP Notification (Instant) — shows OTP in notification bar
   // -------------------------------------------------
   Future<void> showOtpNotification(String otp) async {
@@ -152,6 +163,4 @@ class NotificationService {
 
     hasNewNotification.value = true;
   }
-
-
 }

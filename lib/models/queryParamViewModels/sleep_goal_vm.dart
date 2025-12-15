@@ -4,7 +4,7 @@ class SleepGoalVM {
   final int? year;
   final String? time;
   final String? sleepingFrom; // HH:MM
-  final String? sleepingTo;   // HH:MM
+  final String? sleepingTo; // HH:MM
 
   SleepGoalVM({
     this.day,

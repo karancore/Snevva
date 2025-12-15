@@ -23,14 +23,18 @@ class ProfileScreen extends StatelessWidget {
       child: Scaffold(
         drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
         appBar: CustomAppBar(appbarText: "Profile"),
-        bottomNavigationBar: Padding(padding: EdgeInsets.symmetric(horizontal: 20), child: CustomOutlinedButton(
-          buttonName: "Edit Profile",
-          width: width,
-          isDarkMode: isDarkMode,
-          onTap: () {
-            Get.to(() => EditProfileScreen());
-          },
-        ),),
+        bottomNavigationBar: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: CustomOutlinedButton(
+            buttonName: "Edit Profile",
+            width: width,
+            isDarkMode: isDarkMode,
+            backgroundColor: AppColors.primaryColor,
+            onTap: () {
+              Get.to(() => EditProfileScreen());
+            },
+          ),
+        ),
         body: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
@@ -44,14 +48,14 @@ class ProfileScreen extends StatelessWidget {
                       SizedBox(
                         height: height * 0.15,
                         width: width * 0.3,
-                        child:  CircleAvatar(
+                        child: CircleAvatar(
                           radius: 50,
                           backgroundImage:
-                          initialProfileController.pickedImage.value != null
-                              ? FileImage(
-                            initialProfileController.pickedImage.value!,
-                          )
-                              : AssetImage(profileMainImg) as ImageProvider,
+                              initialProfileController.pickedImage.value != null
+                                  ? FileImage(
+                                    initialProfileController.pickedImage.value!,
+                                  )
+                                  : AssetImage(profileMainImg) as ImageProvider,
                         ),
                       ),
                       // Positioned(
@@ -72,7 +76,9 @@ class ProfileScreen extends StatelessWidget {
                     SizedBox(width: 8),
                     Text('UserName'),
                     Spacer(),
-                    Text(localStorageManager.userMap['Name']?.toString() ?? '__',),
+                    Text(
+                      localStorageManager.userMap['Name']?.toString() ?? '__',
+                    ),
                   ],
                 ),
                 SizedBox(height: 10),
@@ -84,7 +90,9 @@ class ProfileScreen extends StatelessWidget {
                     SizedBox(width: 8),
                     Text('Email'),
                     Spacer(),
-                    Text(localStorageManager.userMap['Email']?.toString() ?? '__',),
+                    Text(
+                      localStorageManager.userMap['Email']?.toString() ?? '__',
+                    ),
                   ],
                 ),
                 SizedBox(height: 10),
@@ -92,11 +100,14 @@ class ProfileScreen extends StatelessWidget {
                 SizedBox(height: 10),
                 Row(
                   children: [
-                    SvgPicture.asset(phoneIcon, color: AppColors.primaryColor,),
+                    SvgPicture.asset(phoneIcon, color: AppColors.primaryColor),
                     SizedBox(width: 8),
                     Text('Phone'),
                     Spacer(),
-                    Text(localStorageManager.userMap['PhoneNumber']?.toString() ?? '__',),
+                    Text(
+                      localStorageManager.userMap['PhoneNumber']?.toString() ??
+                          '__',
+                    ),
                   ],
                 ),
                 SizedBox(height: 10),
@@ -110,13 +121,13 @@ class ProfileScreen extends StatelessWidget {
                     Spacer(),
                     Text(
                       "${localStorageManager.userMap['DayOfBirth'] ?? '--'}/"
-                          "${localStorageManager.userMap['MonthOfBirth'] ?? '--'}/"
-                          "${localStorageManager.userMap['YearOfBirth'] ?? '----'}",
+                      "${localStorageManager.userMap['MonthOfBirth'] ?? '--'}/"
+                      "${localStorageManager.userMap['YearOfBirth'] ?? '----'}",
                       style: const TextStyle(fontSize: 16),
                     ),
-      
                   ],
                 ),
+
                 // SizedBox(height: 10),
                 // Divider(color: Colors.grey),
                 // SizedBox(height: 10),
@@ -139,9 +150,8 @@ class ProfileScreen extends StatelessWidget {
                 //     Text('UserName'),
                 //     Spacer(),
                 //     Text('UserName'),
-                  // ],
+                // ],
                 // ),
-                
               ],
             ),
           ),

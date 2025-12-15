@@ -32,14 +32,12 @@ class _SemiCircularProgressState extends State<SemiCircularProgress>
   void initState() {
     super.initState();
 
-    _controller = AnimationController(
-      vsync: this,
-      duration: widget.duration,
-    );
+    _controller = AnimationController(vsync: this, duration: widget.duration);
 
-    _animation = Tween<double>(begin: 0, end: widget.percent).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    _animation = Tween<double>(
+      begin: 0,
+      end: widget.percent,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _controller.forward();
   }
@@ -49,9 +47,10 @@ class _SemiCircularProgressState extends State<SemiCircularProgress>
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.percent != widget.percent) {
-      _animation = Tween<double>(begin: 0, end: widget.percent).animate(
-        CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-      );
+      _animation = Tween<double>(
+        begin: 0,
+        end: widget.percent,
+      ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
       _controller
         ..reset()
         ..forward();
@@ -100,17 +99,19 @@ class _SemiCirclePainter extends CustomPainter {
     final radius = size.width / 2;
     final rect = Rect.fromCircle(center: center, radius: radius);
 
-    final bgPaint = Paint()
-      ..color = backgroundColor
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+    final bgPaint =
+        Paint()
+          ..color = backgroundColor
+          ..strokeWidth = strokeWidth
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round;
 
-    final fgPaint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+    final fgPaint =
+        Paint()
+          ..color = color
+          ..strokeWidth = strokeWidth
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round;
 
     const startAngle = math.pi;
     const totalSweep = math.pi;
@@ -124,19 +125,13 @@ class _SemiCirclePainter extends CustomPainter {
       bgPaint,
     );
 
-    canvas.drawArc(
-      rect,
-      startAngle,
-      totalSweep * percent,
-      false,
-      fgPaint,
-    );
+    canvas.drawArc(rect, startAngle, totalSweep * percent, false, fgPaint);
   }
 
   @override
   bool shouldRepaint(covariant _SemiCirclePainter old) =>
       old.percent != percent ||
-          old.color != color ||
-          old.backgroundColor != backgroundColor ||
-          old.strokeWidth != strokeWidth;
+      old.color != color ||
+      old.backgroundColor != backgroundColor ||
+      old.strokeWidth != strokeWidth;
 }

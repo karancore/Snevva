@@ -32,9 +32,10 @@ class DrawerMenuItem extends StatelessWidget {
                 menuIcon,
                 width: 24,
                 height: 24,
-                color: isDisabled
-                    ? disabledColor
-                    : Theme.of(context).iconTheme.color,
+                color:
+                    isDisabled
+                        ? disabledColor
+                        : Theme.of(context).iconTheme.color,
               ),
               const SizedBox(width: 10),
               RichText(
@@ -45,9 +46,10 @@ class DrawerMenuItem extends StatelessWidget {
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
-                        color: isDisabled
-                            ? disabledColor
-                            : Theme.of(context).textTheme.bodyLarge?.color,
+                        color:
+                            isDisabled
+                                ? disabledColor
+                                : Theme.of(context).textTheme.bodyLarge?.color,
                       ),
                     ),
                     if (isDisabled)
@@ -62,8 +64,7 @@ class DrawerMenuItem extends StatelessWidget {
                       ),
                   ],
                 ),
-              )
-
+              ),
             ],
           ),
         ),

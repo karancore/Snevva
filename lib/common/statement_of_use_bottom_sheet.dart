@@ -20,7 +20,7 @@ class StatementOfUseBottomSheet extends StatelessWidget {
           const SizedBox(height: 12),
           const Text(
             '"Snevvalink" is a platform that helps users monitor their vital signs.\n\n'
-                'If you select Agree and use, you agree to:',
+            'If you select Agree and use, you agree to:',
             style: TextStyle(fontSize: 14),
             textAlign: TextAlign.center,
           ),
@@ -59,10 +59,7 @@ class StatementOfUseBottomSheet extends StatelessWidget {
           // Disagree button
           TextButton(
             onPressed: () => Navigator.pop(context, false), // return false
-            child: const Text(
-              "Disagree",
-              style: TextStyle(color: Colors.grey),
-            ),
+            child: const Text("Disagree", style: TextStyle(color: Colors.grey)),
           ),
         ],
       ),

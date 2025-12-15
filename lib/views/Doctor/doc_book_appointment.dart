@@ -36,105 +36,109 @@ class _DocBookAppointmentState extends State<DocBookAppointment> {
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: CustomAppBar(appbarText: "Book Appointment"),
-      bottomNavigationBar:  Padding(
+      bottomNavigationBar: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: CustomOutlinedButton(width: width, isDarkMode: isDarkMode, buttonName:"Book Appointment (₹500)", onTap: () {
-          showGeneralDialog(
-            context: context,
-            barrierLabel: "Appointment Scheduled",
-            barrierDismissible: true,
-            barrierColor: Colors.black.withOpacity(0.5),
-            transitionDuration: const Duration(milliseconds: 400),
-            pageBuilder: (context, animation, secondaryAnimation) {
-              return const SizedBox(); // Required but unused
-            },
-            transitionBuilder: (
+        child: CustomOutlinedButton(
+          width: width,
+          isDarkMode: isDarkMode,
+          backgroundColor: AppColors.primaryColor,
+          buttonName: "Book Appointment (₹500)",
+          onTap: () {
+            showGeneralDialog(
+              context: context,
+              barrierLabel: "Appointment Scheduled",
+              barrierDismissible: true,
+              barrierColor: Colors.black.withOpacity(0.5),
+              transitionDuration: const Duration(milliseconds: 400),
+              pageBuilder: (context, animation, secondaryAnimation) {
+                return const SizedBox(); // Required but unused
+              },
+              transitionBuilder: (
                 context,
                 animation,
                 secondaryAnimation,
                 child,
-                ) {
-              return SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, 1), // Start from bottom
-                  end: Offset.zero, // End at center
-                ).animate(
-                  CurvedAnimation(
-                    parent: animation,
-                    curve: Curves.easeOutBack,
-                  ),
-                ),
-                child: Dialog(
-                  backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    width: MediaQuery.of(context).size.width * 0.8,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                          ),
-                          child: Image.asset(
-                            tick,
-                          ), // Your tick image asset
-                        ),
-                        const SizedBox(height: 20),
-                        const Text(
-                          "Appointment Scheduled",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        const Text(
-                          "Your appointment scheduled for",
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          "28-sep-2025 01:30PM",
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.purple,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        // Container(
-                        //   decoration: BoxDecoration(gradient: buttonSign),
-                        //   child: ElevatedButton(
-                        //     onPressed: () {
-                        //       Navigator.of(context).pop(); // Close dialog
-                        //       // Navigate to home if needed
-                        //       // Navigator.pushReplacement(...);
-
-                        //     },
-                        //     style: ElevatedButton.styleFrom(
-                        //       backgroundColor: Colors.transparent,
-                        //       foregroundColor: Colors.white,
-                        //       shadowColor: Colors.transparent,
-                        //       shape: RoundedRectangleBorder(
-                        //         borderRadius: BorderRadius.circular(10),
-                        //       ),
-                        //       minimumSize: const Size.fromHeight(40),
-                        //     ),
-                        //     child: const Text("Go to home"),
-                        //   ),
-                        // ),
-                      ],
+              ) {
+                return SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 1), // Start from bottom
+                    end: Offset.zero, // End at center
+                  ).animate(
+                    CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeOutBack,
                     ),
                   ),
-                ),
-              );
-            },
-          );
-        }),
+                  child: Dialog(
+                    backgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      width: MediaQuery.of(context).size.width * 0.8,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                            ),
+                            child: Image.asset(tick), // Your tick image asset
+                          ),
+                          const SizedBox(height: 20),
+                          const Text(
+                            "Appointment Scheduled",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            "Your appointment scheduled for",
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            "28-sep-2025 01:30PM",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.purple,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          // Container(
+                          //   decoration: BoxDecoration(gradient: buttonSign),
+                          //   child: ElevatedButton(
+                          //     onPressed: () {
+                          //       Navigator.of(context).pop(); // Close dialog
+                          //       // Navigate to home if needed
+                          //       // Navigator.pushReplacement(...);
+
+                          //     },
+                          //     style: ElevatedButton.styleFrom(
+                          //       backgroundColor: Colors.transparent,
+                          //       foregroundColor: Colors.white,
+                          //       shadowColor: Colors.transparent,
+                          //       shape: RoundedRectangleBorder(
+                          //         borderRadius: BorderRadius.circular(10),
+                          //       ),
+                          //       minimumSize: const Size.fromHeight(40),
+                          //     ),
+                          //     child: const Text("Go to home"),
+                          //   ),
+                          // ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
@@ -263,7 +267,8 @@ class _DocBookAppointmentState extends State<DocBookAppointment> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primaryColor.withValues(alpha: 0.1), // Light purple background
+                color: AppColors.primaryColor.withValues(alpha: 0.1),
+                // Light purple background
                 borderRadius: BorderRadius.circular(16),
               ),
               child: LayoutBuilder(
@@ -321,7 +326,6 @@ class _DocBookAppointmentState extends State<DocBookAppointment> {
                 },
               ),
             ),
-
           ],
         ),
       ),

@@ -44,23 +44,15 @@ class PeriodCyclePhaseCont extends StatelessWidget {
               maxFontSize: 20,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 20,
-
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
             ),
             AutoSizeText(
-             subHeading,
+              subHeading,
               minFontSize: 10,
               maxFontSize: 14,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 14,
-
-                fontWeight: FontWeight.w200,
-              ),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w200),
             ),
             Spacer(),
             Align(

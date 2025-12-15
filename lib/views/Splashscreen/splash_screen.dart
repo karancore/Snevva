@@ -28,10 +28,11 @@ class _SplashScreenState extends State<SplashScreen>
 
     animationController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-          Get.to(() => SplashScreen2(),
-              transition: Transition.fadeIn,
-              duration: Duration(milliseconds: 600)
-          );
+        Get.to(
+          () => SplashScreen2(),
+          transition: Transition.fadeIn,
+          duration: Duration(milliseconds: 600),
+        );
       }
     });
   }

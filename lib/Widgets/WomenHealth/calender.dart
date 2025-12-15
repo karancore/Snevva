@@ -1,4 +1,3 @@
-
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
@@ -8,7 +7,7 @@ import '../../Controllers/WomenHealth/calender_controller.dart';
 class CalendarWidget extends StatelessWidget {
   final CalendarController controller = Get.put(CalendarController());
   final WomenHealthController womenController =
-  Get.find<WomenHealthController>();
+      Get.find<WomenHealthController>();
 
   final List<String> weekDays = [
     'Sun',
@@ -50,7 +49,6 @@ class CalendarWidget extends StatelessWidget {
       });
     }
 
-
     return cycles;
   }
 
@@ -60,18 +58,20 @@ class CalendarWidget extends StatelessWidget {
     final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
     final DateTime today = DateTime.now();
 
-
     return Obx(() {
       final month = controller.currentMonth.value;
       final days = _getCalendarDays(month);
       final formatter = DateFormat('MMMM yyyy');
 
-      final firstWeekday = DateTime(month.year, month.month, 1).weekday % 7; // Sunday = 0
+      final firstWeekday =
+          DateTime(month.year, month.month, 1).weekday % 7; // Sunday = 0
       final totalCells = firstWeekday + days.length;
 
       // Parse user inputs
-      final int periodLength = int.tryParse(womenController.periodDays.value) ?? 5;
-      final int cycleLength = int.tryParse(womenController.periodCycleDays.value) ?? 28;
+      final int periodLength =
+          int.tryParse(womenController.periodDays.value) ?? 5;
+      final int cycleLength =
+          int.tryParse(womenController.periodCycleDays.value) ?? 28;
 
       // Parse last period date
       DateTime? lastPeriodDate;
@@ -116,7 +116,9 @@ class CalendarWidget extends StatelessWidget {
                 Text(
                   formatter.format(month),
                   style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.bold),
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.chevron_right),
@@ -130,19 +132,21 @@ class CalendarWidget extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 15),
             child: Row(
-              children: weekDays
-                  .map(
-                    (day) => Expanded(
-                  child: Center(
-                    child: Text(
-                      day,
-                      style:
-                      const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              )
-                  .toList(),
+              children:
+                  weekDays
+                      .map(
+                        (day) => Expanded(
+                          child: Center(
+                            child: Text(
+                              day,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
             ),
           ),
 
@@ -223,13 +227,10 @@ class CalendarWidget extends StatelessWidget {
                     Positioned(
                       bottom: 2,
                       right: 4,
-                      child: emoji.isNotEmpty
-                          ? SvgPicture.asset(
-                        emoji,
-                        height: 12,
-                        width: 12,
-                      )
-                          : const SizedBox.shrink(),
+                      child:
+                          emoji.isNotEmpty
+                              ? SvgPicture.asset(emoji, height: 12, width: 12)
+                              : const SizedBox.shrink(),
                     ),
                   ],
                 ),
@@ -249,7 +250,7 @@ class CalendarWidget extends StatelessWidget {
 
     return List.generate(
       lastDayOfMonth.day,
-          (index) => DateTime(month.year, month.month, index + 1),
+      (index) => DateTime(month.year, month.month, index + 1),
     );
   }
 }

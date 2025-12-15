@@ -249,10 +249,10 @@ class _HydrationBottomSheetState extends State<HydrationBottomSheet> {
 }
 
 Future<int?> showHydrationBottomSheetModal(
-    BuildContext context,
-    bool isDarkMode,
-    double height,
-    ) {
+  BuildContext context,
+  bool isDarkMode,
+  double height,
+) {
   return showModalBottomSheet<int>(
     context: context,
     isScrollControlled: true,
@@ -260,9 +260,7 @@ Future<int?> showHydrationBottomSheetModal(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (_) => HydrationBottomSheet(
-      height: height,
-      isDarkMode: isDarkMode,
-    ),
+    builder:
+        (_) => HydrationBottomSheet(height: height, isDarkMode: isDarkMode),
   );
 }

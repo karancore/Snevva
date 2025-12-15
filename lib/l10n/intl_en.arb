@@ -21,7 +21,7 @@
   "createAccount": "Create Account",
   "enterEmailOrPhone": "Enter your email or phone number",
   "signInButtonText": "Sign in",
-  "notMemberText": "Not a member?",
+  "notMemberText": "Not a member ?",
   "createNewAccountText": "Create new account",
   "checkboxRememberMe": "Remember me",
   "linkForgotPassword":  "Forgot Password",
@@ -62,6 +62,7 @@
 
   "setupProfile": "Let's setup your profile 😊",
   "pleaseEnterYourName": "Please enter your name",
+  "enterYourName": "Enter your name",
   "selectGender": "Select Gender",
   "birthdayPrompt": "When’s your birthday?",
   "submit": "Submit",

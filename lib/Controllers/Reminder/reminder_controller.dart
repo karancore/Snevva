@@ -1,29 +1,37 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:alarm/alarm.dart';
 import 'package:alarm/model/alarm_settings.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:get/get.dart';
+import 'package:snevva/common/animted_reminder_bar.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
 
+import '../../common/global_variables.dart';
+
 class ReminderController extends GetxController {
-  // ==================== Controllers ====================
   final titleController = TextEditingController();
   final medicineController = TextEditingController();
   final timeController = TextEditingController();
   final notesController = TextEditingController();
+
+  final beforeReminderController = TextEditingController();
+
   final everyHourController = TextEditingController();
+
   final timesPerDayController = TextEditingController();
 
-  // ==================== Observable Variables ====================
   var reminders = <Map<String, dynamic>>[].obs;
   var alarms = <AlarmSettings>[].obs;
   var isLoading = false.obs;
@@ -33,17 +41,26 @@ class ReminderController extends GetxController {
   var eventList = <Map<String, AlarmSettings>>[].obs;
   var waterList = <Map<String, AlarmSettings>>[].obs;
   var mealsList = <Map<String, AlarmSettings>>[].obs;
+
+  var medicineMeta = <Map<String, dynamic>>[].obs; // { "medicines": ["a","b"] }
+  var eventMeta =
+      <Map<String, dynamic>>[]
+          .obs; // { "before_amount": 10, "before_unit": "minutes" }
+  var waterMeta =
+      <Map<String, dynamic>>[]
+          .obs; // { "interval_hours": 3, "times_per_day": null }
+  var mealsMeta = <Map<String, dynamic>>[].obs; // reserved for future meta
+
   var selectedDateIndex = 0.obs;
 
   var medicineNames = <String>[].obs;
   var remindTimes = <String>[].obs;
 
-  // ==================== State Variables ====================
   var selectedCategory = 'Medicine'.obs;
   var enableNotifications = false.obs;
   var soundVibrationToggle = true.obs;
-  var waterReminderOption = 1.obs;
-  var eventReminderOption = 0.obs;
+  var waterReminderOption = 1.obs; // 0 = interval, 1 = times/day
+  var eventReminderOption = 0.obs; // 0 = before reminder enabled, 1 = disabled
 
   var savedInterval = 0.obs;
   var savedTimes = 0.obs;
@@ -52,11 +69,9 @@ class ReminderController extends GetxController {
   Rx<DateTime?> endDate = Rx<DateTime?>(null);
   Rx<TimeOfDay?> pickedTime = Rx<TimeOfDay?>(null);
 
-  // ==================== Stream Subscription ====================
   static StreamSubscription<AlarmSettings>? subscription;
   bool listenerAttached = false;
 
-  // ==================== Constants ====================
   final List<String> categories = ['Medicine', 'Water', 'Meal', 'Event'];
   final double itemHeight = 56.0;
   final double maxHeight = 150.0;
@@ -69,6 +84,8 @@ class ReminderController extends GetxController {
     checkAndroidScheduleExactAlarmPermission();
     loadAlarms();
     initAlarmListener();
+
+    loadAllReminderLists();
   }
 
   @override
@@ -78,22 +95,30 @@ class ReminderController extends GetxController {
     medicineController.dispose();
     timeController.dispose();
     notesController.dispose();
+    beforeReminderController.dispose();
     everyHourController.dispose();
     timesPerDayController.dispose();
     super.onClose();
   }
 
-  // ==================== Permission Methods ====================
-
   Future<void> checkAndroidNotificationPermission() async {
     final status = await Permission.notification.status;
-    if (status.isDenied) {
-      print('Requesting notification permission...');
+    if (status.isDenied || status.isRestricted || status.isLimited) {
+      if (kDebugMode) print('Requesting notification permission...');
       final res = await Permission.notification.request();
-      print('Notification permission ${res.isGranted ? '' : 'not '}granted');
-    }
-    if (status.isGranted) {
-      enableNotifications.value = true;
+      enableNotifications.value = res.isGranted;
+      if (kDebugMode) {
+        print(
+          'Notification permission ${res.isGranted ? 'granted' : 'not granted'}',
+        );
+      }
+    } else {
+      enableNotifications.value = status.isGranted;
+      if (kDebugMode) {
+        print(
+          'Notification permission ${status.isGranted ? 'already granted' : 'not granted'}',
+        );
+      }
     }
   }
 
@@ -124,56 +149,81 @@ class ReminderController extends GetxController {
     subscription ??= Alarm.ringStream.stream.listen((
       AlarmSettings alarmSettings,
     ) async {
-      print("🔔 ALARM RANG → ID: ${alarmSettings.id}");
+      if (kDebugMode) print("🔔 ALARM RANG → ID: ${alarmSettings.id}");
 
-      await Alarm.stop(alarmSettings.id);
-
-      if (savedInterval.value > 0) {
-        print(
-          "🔄 Rescheduling water alarm (every ${savedInterval.value} hours)",
-        );
-        await scheduleAlarmEveryXHours(savedInterval.value);
-      } else if (savedTimes.value > 0) {
-        int totalMinutes = (24 * 60) ~/ savedTimes.value;
-        int hours = totalMinutes ~/ 60;
-        int minutes = totalMinutes % 60;
-
-        print(
-          "🔄 Rescheduling water alarm (${savedTimes.value} times/day = ${hours}h ${minutes}m)",
-        );
-
-        final nextTime = DateTime.now().add(
-          Duration(hours: hours, minutes: minutes),
-        );
-
-        final newAlarm = AlarmSettings(
-          id: _alarmId(),
-          dateTime: nextTime,
-          assetAudioPath: alarmSound,
-          loopAudio: true,
-          vibrate: soundVibrationToggle.value,
-          volumeSettings: VolumeSettings.fade(
-            volume: 0.8,
-            fadeDuration: Duration(seconds: 5),
-            volumeEnforced: true,
-          ),
-          notificationSettings: NotificationSettings(
-            title:
-                titleController.text.isNotEmpty
-                    ? titleController.text
-                    : 'Water Reminder',
-            body:
-                notesController.text.isNotEmpty
-                    ? notesController.text
-                    : 'Time to drink water!',
-            stopButton: 'Stop',
-            icon: 'alarm',
-            iconColor: AppColors.primaryColor,
-          ),
-        );
-
-        await Alarm.set(alarmSettings: newAlarm);
+      bool isWaterAlarm = false;
+      for (var item in waterList) {
+        if (item.values.first.id == alarmSettings.id) {
+          isWaterAlarm = true;
+          break;
+        }
       }
+
+      if (isWaterAlarm) {
+        await Alarm.stop(alarmSettings.id);
+
+        if (savedInterval.value > 0) {
+          if (kDebugMode) {
+            print(
+              "🔄 Rescheduling water alarm (every ${savedInterval.value} hours)",
+            );
+          }
+          await scheduleAlarmEveryXHours(savedInterval.value);
+        } else if (savedTimes.value > 0) {
+          int totalMinutes = (24 * 60) ~/ savedTimes.value;
+          int hours = totalMinutes ~/ 60;
+          int minutes = totalMinutes % 60;
+
+          if (kDebugMode) {
+            print(
+              "🔄 Rescheduling water alarm (${savedTimes.value} times/day = ${hours}h ${minutes}m)",
+            );
+          }
+
+          final nextTime = DateTime.now().add(
+            Duration(hours: hours, minutes: minutes),
+          );
+
+          final newAlarm = AlarmSettings(
+            id: _alarmId(),
+            dateTime: nextTime,
+            assetAudioPath: alarmSound,
+            loopAudio: true,
+            vibrate: soundVibrationToggle.value,
+            volumeSettings: VolumeSettings.fade(
+              volume: 0.8,
+              fadeDuration: Duration(seconds: 5),
+              volumeEnforced: true,
+            ),
+            androidFullScreenIntent: true,
+            warningNotificationOnKill: Platform.isIOS,
+            notificationSettings:
+                enableNotifications.value
+                    ? NotificationSettings(
+                      title:
+                          titleController.text.isNotEmpty
+                              ? titleController.text
+                              : 'Water Reminder',
+                      body:
+                          notesController.text.isNotEmpty
+                              ? notesController.text
+                              : 'Time to drink water!',
+                      stopButton: 'Stop',
+                      icon: 'alarm',
+                      iconColor: AppColors.primaryColor,
+                    )
+                    : NotificationSettings(
+                      title: 'Water Reminder',
+                      body: 'Drink water',
+                      stopButton: 'Stop',
+                      icon: 'alarm',
+                    ),
+          );
+
+          await Alarm.set(alarmSettings: newAlarm);
+        }
+      }
+      // Medicine, Meal, Event alarms will keep ringing until user stops them
     });
   }
 
@@ -186,12 +236,16 @@ class ReminderController extends GetxController {
   }
 
   int _alarmId() {
-    return DateTime.now().millisecondsSinceEpoch % 2147483647;
+    final rand = Random().nextInt(1 << 16);
+    return (DateTime.now().millisecondsSinceEpoch & 0x7fffffff) ^ rand;
   }
 
   Future<void> setBeforeReminderAlarm(DateTime mainTime) async {
-    int amount = int.tryParse(timesPerDayController.text) ?? 0;
+    // This method expects that beforeReminderController and selectedValue are set.
+    int amount = int.tryParse(beforeReminderController.text) ?? 0;
     String unit = selectedValue.value; // "minutes" or "hours"
+
+    if (amount <= 0) return; // nothing to schedule
 
     Duration offset =
         unit == "minutes" ? Duration(minutes: amount) : Duration(hours: amount);
@@ -209,6 +263,7 @@ class ReminderController extends GetxController {
       loopAudio: true,
       vibrate: soundVibrationToggle.value,
       androidFullScreenIntent: true,
+      warningNotificationOnKill: Platform.isIOS,
       notificationSettings: NotificationSettings(
         title: "Reminder before your event",
         body: "Your event is coming in $amount $unit",
@@ -219,6 +274,14 @@ class ReminderController extends GetxController {
     );
 
     await Alarm.set(alarmSettings: alarmSettings);
+
+    // save meta for the event to allow editing later
+    eventMeta.add({
+      'before_amount': amount,
+      'before_unit': unit,
+      'generated_for': mainTime.toIso8601String(),
+    });
+    await _saveMetaList(eventMeta, 'event_list_meta');
   }
 
   DateTime calculateBeforeReminder() {
@@ -235,7 +298,7 @@ class ReminderController extends GetxController {
       selectedTime.minute,
     );
 
-    int value = int.tryParse(timesPerDayController.text) ?? 0;
+    int value = int.tryParse(beforeReminderController.text) ?? 0;
 
     Duration diff =
         selectedValue.value == "minutes"
@@ -269,7 +332,9 @@ class ReminderController extends GetxController {
 
     if (scheduledTime.isBefore(now) || scheduledTime.isAtSameMomentAs(now)) {
       scheduledTime = scheduledTime.add(Duration(days: 1));
-      print('⚠️ Time was in past/now, moved to tomorrow: $scheduledTime');
+      if (kDebugMode) {
+        print('⚠️ Time was in past/now, moved to tomorrow: $scheduledTime');
+      }
     }
 
     switch (category) {
@@ -283,8 +348,10 @@ class ReminderController extends GetxController {
         await _addEventAlarm(scheduledTime, context);
         break;
     }
-    if (eventReminderOption.value == 0) {
-      setBeforeReminderAlarm(scheduledTime);
+
+    // Only schedule before-minute reminder for events and only if enabled
+    if (category == "Event" && eventReminderOption.value == 0) {
+      await setBeforeReminderAlarm(scheduledTime);
     }
   }
 
@@ -303,6 +370,8 @@ class ReminderController extends GetxController {
         fadeDuration: Duration(seconds: 5),
         volumeEnforced: true,
       ),
+      androidFullScreenIntent: true,
+      warningNotificationOnKill: Platform.isIOS,
       notificationSettings:
           enableNotifications.value
               ? NotificationSettings(
@@ -322,19 +391,30 @@ class ReminderController extends GetxController {
               ),
     );
 
-    print('🔔 Setting alarm:');
-    print('   ID: ${alarmSettings.id}');
-    print('   Time: $scheduledTime');
-    print('   Category: Medicine');
-    print('   Title: ${titleController.text}');
+    if (kDebugMode) {
+      print('🔔 Setting alarm:');
+      print('   ID: ${alarmSettings.id}');
+      print('   Time: $scheduledTime');
+      print('   Category: Medicine');
+      print('   Title: ${titleController.text}');
+    }
 
     final success = await Alarm.set(alarmSettings: alarmSettings);
 
     if (success) {
-      medicineList.add({medicineController.text.trim(): alarmSettings});
+      // FIX: Use titleController instead of medicineController
+      medicineList.add({titleController.text.trim(): alarmSettings});
+
+      // Save medicine names explicitly as metadata instead of parsing notification body
+      medicineMeta.add({'medicines': List<String>.from(medicineNames)});
+      print(medicineMeta.last);
+      await _saveMetaList(medicineMeta, 'medicine_list_meta');
+
       titleController.clear();
       notesController.clear();
       medicineController.clear();
+      medicineNames.clear();
+
       await saveReminderList(medicineList, "medicine_list");
 
       // Reload the combined list
@@ -345,10 +425,12 @@ class ReminderController extends GetxController {
         message: 'Success',
         title: 'Medicine reminder set successfully!',
       );
+      CustomSnackbar().showReminderBar(context);
+
       Get.back(result: true);
 
       final allAlarms = await Alarm.getAlarms();
-      print('   Total alarms active: ${allAlarms.length}');
+      if (kDebugMode) print('   Total alarms active: ${allAlarms.length}');
     }
   }
 
@@ -361,6 +443,8 @@ class ReminderController extends GetxController {
       dateTime: scheduledTime,
       assetAudioPath: alarmSound,
       loopAudio: true,
+      androidFullScreenIntent: true,
+      warningNotificationOnKill: Platform.isIOS,
       vibrate: soundVibrationToggle.value,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
@@ -371,14 +455,17 @@ class ReminderController extends GetxController {
           enableNotifications.value
               ? NotificationSettings(
                 title: titleController.text,
-                body: notesController.text,
+                body:
+                    notesController.text.isNotEmpty
+                        ? notesController.text
+                        : 'Meal reminder',
                 stopButton: 'Stop',
                 icon: 'alarm',
                 iconColor: AppColors.primaryColor,
               )
               : NotificationSettings(
                 title: 'REMINDER',
-                body: 'Take your medicine',
+                body: 'Meal reminder',
                 stopButton: 'Stop',
                 icon: 'alarm',
               ),
@@ -387,11 +474,9 @@ class ReminderController extends GetxController {
     final success = await Alarm.set(alarmSettings: alarmSettings);
     if (success) {
       mealsList.add({titleController.text.trim(): alarmSettings});
-      titleController.clear();
-      notesController.clear();
       await saveReminderList(mealsList, "meals_list");
 
-      // Reload the combined list
+      // reload combined list
       await loadAllReminderLists();
 
       CustomSnackbar.showSuccess(
@@ -399,6 +484,7 @@ class ReminderController extends GetxController {
         title: 'Success',
         message: 'Meal reminder set successfully!',
       );
+      CustomSnackbar().showReminderBar(context);
       Get.back(result: true);
     }
   }
@@ -418,11 +504,12 @@ class ReminderController extends GetxController {
         fadeDuration: Duration(seconds: 5),
         volumeEnforced: true,
       ),
+      androidFullScreenIntent: true,
+      warningNotificationOnKill: Platform.isIOS,
       notificationSettings:
           enableNotifications.value
               ? NotificationSettings(
                 title: titleController.text,
-
                 body:
                     notesController.text.isNotEmpty
                         ? notesController.text
@@ -442,6 +529,15 @@ class ReminderController extends GetxController {
     final success = await Alarm.set(alarmSettings: alarmSettings);
     if (success) {
       eventList.add({titleController.text.trim(): alarmSettings});
+
+      // Save event meta (before reminder amount if present)
+      int beforeAmount = int.tryParse(beforeReminderController.text) ?? 0;
+      eventMeta.add({
+        'before_amount': beforeAmount,
+        'before_unit': selectedValue.value,
+      });
+      await _saveMetaList(eventMeta, 'event_list_meta');
+
       titleController.clear();
       notesController.clear();
       await saveReminderList(eventList, "event_list");
@@ -454,6 +550,7 @@ class ReminderController extends GetxController {
         title: 'Success',
         message: 'Event reminder set successfully!',
       );
+      CustomSnackbar().showReminderBar(context);
       Get.back(result: true);
     }
   }
@@ -465,6 +562,19 @@ class ReminderController extends GetxController {
   }) async {
     bool alarmSet = false;
 
+    if ((times == null || times <= 0) && (interval == null || interval <= 0)) {
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Please enter a valid reminder interval',
+      );
+      return;
+    }
+
+    // Save the scheduling choice so the listener can reschedule correctly
+    savedInterval.value = (interval ?? 0);
+    savedTimes.value = (times ?? 0);
+
     if (times != null && times > 0) {
       int totalMinutes = (24 * 60) ~/ times;
       int hours = totalMinutes ~/ 60;
@@ -474,8 +584,8 @@ class ReminderController extends GetxController {
         Duration(hours: hours, minutes: minutes),
       );
 
-      print('💧 Setting water alarm for $times times/day');
-      print('   Next alarm at: $scheduledTime');
+      if (kDebugMode) print('💧 Setting water alarm for $times times/day');
+      if (kDebugMode) print('   Next alarm at: $scheduledTime');
 
       final alarmSettings = AlarmSettings(
         id: _alarmId(),
@@ -488,6 +598,8 @@ class ReminderController extends GetxController {
           fadeDuration: Duration(seconds: 5),
           volumeEnforced: true,
         ),
+        androidFullScreenIntent: true,
+        warningNotificationOnKill: Platform.isIOS,
         notificationSettings:
             enableNotifications.value
                 ? NotificationSettings(
@@ -506,15 +618,26 @@ class ReminderController extends GetxController {
       );
 
       final success = await Alarm.set(alarmSettings: alarmSettings);
-      print('   Set result: ${success ? "✅" : "❌"}');
-      alarmSet = success;
+      if (success) {
+        waterList.add({titleController.text.toString(): alarmSettings});
+
+        // Save meta for water frequency so it can be shown/edited later
+        waterMeta.add({'interval_hours': interval, 'times_per_day': times});
+        await _saveMetaList(waterMeta, 'water_list_meta');
+
+        titleController.clear();
+        notesController.clear();
+        await saveReminderList(waterList, "water_list");
+      }
+      if (kDebugMode) print('   Set result: ${success ? "✅" : "❌"}');
+      alarmSet = alarmSet || success;
     }
 
     if (interval != null && interval > 0) {
       var scheduledTime = DateTime.now().add(Duration(hours: interval));
 
-      print('💧 Setting water alarm every $interval hours');
-      print('   Next alarm at: $scheduledTime');
+      if (kDebugMode) print('💧 Setting water alarm every $interval hours');
+      if (kDebugMode) print('   Next alarm at: $scheduledTime');
 
       final alarmSettings = AlarmSettings(
         id: _alarmId(),
@@ -527,6 +650,8 @@ class ReminderController extends GetxController {
           fadeDuration: Duration(seconds: 5),
           volumeEnforced: true,
         ),
+        androidFullScreenIntent: true,
+        warningNotificationOnKill: Platform.isIOS,
         notificationSettings:
             enableNotifications.value
                 ? NotificationSettings(
@@ -547,27 +672,23 @@ class ReminderController extends GetxController {
       final success = await Alarm.set(alarmSettings: alarmSettings);
       if (success) {
         waterList.add({titleController.text.toString(): alarmSettings});
+
+        // Save meta for water frequency
+        waterMeta.add({'interval_hours': interval, 'times_per_day': times});
+        await _saveMetaList(waterMeta, 'water_list_meta');
+
         titleController.clear();
         notesController.clear();
-        saveReminderList(waterList, "water_list");
+        await saveReminderList(waterList, "water_list");
       }
-      print('   Set result: ${success ? "✅" : "❌"}');
+      if (kDebugMode) print('   Set result: ${success ? "✅" : "❌"}');
       alarmSet = alarmSet || success;
-    }
-
-    if ((times == null || times <= 0) && (interval == null || interval <= 0)) {
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'Please enter a valid reminder interval',
-      );
-      return;
     }
 
     await loadAlarms();
 
     final allAlarms = await Alarm.getAlarms();
-    print('💧 Total alarms active: ${allAlarms.length}');
+    if (kDebugMode) print('💧 Total alarms active: ${allAlarms.length}');
 
     if (alarmSet) {
       // Reload the combined list before showing success message
@@ -578,6 +699,7 @@ class ReminderController extends GetxController {
         title: 'Success',
         message: 'Water reminder set successfully!',
       );
+      CustomSnackbar().showReminderBar(context);
       Get.back(result: true);
     }
   }
@@ -596,11 +718,14 @@ class ReminderController extends GetxController {
         fadeDuration: Duration(seconds: 5),
         volumeEnforced: true,
       ),
+      androidFullScreenIntent: true,
+      warningNotificationOnKill: Platform.isIOS,
       notificationSettings:
           enableNotifications.value
               ? NotificationSettings(
                 title: titleController.text,
                 body: notesController.text,
+
                 stopButton: 'Stop',
                 icon: 'alarm',
                 iconColor: AppColors.primaryColor,
@@ -615,6 +740,12 @@ class ReminderController extends GetxController {
     );
 
     await Alarm.set(alarmSettings: newAlarm);
+
+    // Also persist this alarm to the waterList so user can see it in UI
+    waterList.add({'AutoWater_${newAlarm.id}': newAlarm});
+    waterMeta.add({'interval_hours': intervalHours, 'times_per_day': null});
+    await saveReminderList(waterList, 'water_list');
+    await _saveMetaList(waterMeta, 'water_list_meta');
   }
 
   Future<void> stopAlarm(
@@ -636,16 +767,40 @@ class ReminderController extends GetxController {
 
     switch (category) {
       case 'Medicine':
-        await _deleteFromListById(medicineList, id, "medicine_list");
+        await _deleteFromListById(
+          medicineList,
+          id,
+          "medicine_list",
+          medicineMeta,
+          'medicine_list_meta',
+        );
         break;
       case 'Meal':
-        await _deleteFromListById(mealsList, id, "meals_list");
+        await _deleteFromListById(
+          mealsList,
+          id,
+          "meals_list",
+          mealsMeta,
+          'meals_list_meta',
+        );
         break;
       case 'Event':
-        await _deleteFromListById(eventList, id, "event_list");
+        await _deleteFromListById(
+          eventList,
+          id,
+          "event_list",
+          eventMeta,
+          'event_list_meta',
+        );
         break;
       case 'Water':
-        await _deleteFromListById(waterList, id, "water_list");
+        await _deleteFromListById(
+          waterList,
+          id,
+          "water_list",
+          waterMeta,
+          'water_list_meta',
+        );
         break;
     }
     await loadAllReminderLists();
@@ -655,6 +810,8 @@ class ReminderController extends GetxController {
     RxList<Map<String, AlarmSettings>> list,
     int id,
     String keyName,
+    RxList<Map<String, dynamic>> metaList,
+    String metaKeyName,
   ) async {
     int index = -1;
     for (int i = 0; i < list.length; i++) {
@@ -667,16 +824,19 @@ class ReminderController extends GetxController {
     if (index != -1) {
       await Alarm.stop(id);
       list.removeAt(index);
+      // also remove meta at same index if present
+      if (index < metaList.length) metaList.removeAt(index);
       await saveReminderList(list, keyName);
+      await _saveMetaList(metaList, metaKeyName);
     }
   }
 
   // ==================== Medicine Management ====================
 
-  void addMedicine() {
+  void addMedicine(String medicineName) {
     if (medicineController.text.isNotEmpty) {
-      medicineNames.add(medicineController.text);
-      medicineController.clear();
+      medicineNames.add(medicineName);
+      // medicineController.clear();
     }
   }
 
@@ -730,7 +890,23 @@ class ReminderController extends GetxController {
           return jsonEncode(jsonMap);
         }).toList();
 
-    prefs.setStringList(keyName, stringList);
+    await prefs.setStringList(keyName, stringList);
+  }
+
+  Future<List<Map<String, dynamic>>> _loadMetaList(String keyName) async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getStringList(keyName);
+    if (stored == null) return [];
+    return stored.map((s) => jsonDecode(s) as Map<String, dynamic>).toList();
+  }
+
+  Future<void> _saveMetaList(
+    RxList<Map<String, dynamic>> list,
+    String keyName,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final enc = list.map((m) => jsonEncode(m)).toList();
+    await prefs.setStringList(keyName, enc);
   }
 
   Future<void> loadAllReminderLists() async {
@@ -742,14 +918,32 @@ class ReminderController extends GetxController {
       eventList.value = await loadReminderList("event_list");
       waterList.value = await loadReminderList("water_list");
 
+      // load metas (if any)
+      medicineMeta.value =
+          (await _loadMetaList(
+            'medicine_list_meta',
+          )).cast<Map<String, dynamic>>();
+      eventMeta.value =
+          (await _loadMetaList('event_list_meta')).cast<Map<String, dynamic>>();
+      waterMeta.value =
+          (await _loadMetaList('water_list_meta')).cast<Map<String, dynamic>>();
+      mealsMeta.value =
+          (await _loadMetaList('meals_list_meta')).cast<Map<String, dynamic>>();
+
       List<Map<String, dynamic>> combined = [];
 
-      for (var item in medicineList) {
+      for (int i = 0; i < medicineList.length; i++) {
+        final item = medicineList[i];
         item.forEach((title, alarm) {
           combined.add({
             "Category": "Medicine",
             "Title": title,
-            "MedicineName": alarm.notificationSettings.body?.split(",") ?? [],
+            // Use explicit meta if present, else try to parse body (fallback)
+            "MedicineName":
+                (i < medicineMeta.length &&
+                        medicineMeta[i]['medicines'] != null)
+                    ? List<String>.from(medicineMeta[i]['medicines'])
+                    : (alarm.notificationSettings.body?.split(',') ?? []),
             "RemindTime": [alarm.dateTime.toString()],
             "Description": alarm.notificationSettings.body ?? "",
             "id": alarm.id,
@@ -757,7 +951,8 @@ class ReminderController extends GetxController {
         });
       }
 
-      for (var item in mealsList) {
+      for (int i = 0; i < mealsList.length; i++) {
+        final item = mealsList[i];
         item.forEach((title, alarm) {
           combined.add({
             "Category": "Meal",
@@ -768,7 +963,8 @@ class ReminderController extends GetxController {
         });
       }
 
-      for (var item in eventList) {
+      for (int i = 0; i < eventList.length; i++) {
+        final item = eventList[i];
         item.forEach((title, alarm) {
           combined.add({
             "Category": "Event",
@@ -779,17 +975,23 @@ class ReminderController extends GetxController {
             "RemindTime": [alarm.dateTime.toString()],
             "Description": alarm.notificationSettings.body ?? "",
             "id": alarm.id,
+            // include meta if available
+            "BeforeMeta": i < eventMeta.length ? eventMeta[i] : {},
           });
         });
       }
 
-      for (var item in waterList) {
+      for (int i = 0; i < waterList.length; i++) {
+        final item = waterList[i];
         item.forEach((title, alarm) {
           combined.add({
             "Category": "Water",
             "Title": title,
-            "RemindFrequencyHour": alarm.dateTime.hour,
-            "RemindFrequencyCount": alarm.dateTime.minute,
+            // Use stored meta to show frequency instead of alarm's date/time values
+            "RemindFrequencyHour":
+                (i < waterMeta.length) ? waterMeta[i]['interval_hours'] : null,
+            "RemindFrequencyCount":
+                (i < waterMeta.length) ? waterMeta[i]['times_per_day'] : null,
             "id": alarm.id,
           });
         });
@@ -797,7 +999,6 @@ class ReminderController extends GetxController {
 
       reminders.value = combined;
     } catch (e) {
-      //CustomSnackbar.showError(context: context , title: 'Error', message:  '❌ Failed to load reminder lists');
       print('Error loading reminder lists: $e');
     } finally {
       isLoading(false);
@@ -810,11 +1011,11 @@ class ReminderController extends GetxController {
     try {
       isLoading(true);
       var result = await getReminderFromAPI(context);
-      var reminders = result as List<Map<String, dynamic>>;
+      final List<Map<String ,dynamic>> reminders = (result as List).map((e) => Map<String , dynamic>.from(e)).toList();
       this.reminders.assignAll(reminders);
-      print(reminders);
+      if (kDebugMode) print(reminders);
     } catch (e) {
-      print("Error fetching reminders");
+      if (kDebugMode) print("Error fetching reminders: $e");
     } finally {
       isLoading(false);
     }
@@ -830,10 +1031,11 @@ class ReminderController extends GetxController {
       );
 
       if (response is http.Response && response.statusCode >= 400) {
+        print('Error Failed to get reminder: ${response.statusCode}');
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
-          message: '❌ Failed to fetch reminders: ${response.statusCode}',
+          message: 'Failed to fetch reminders: Api calling failed',
         );
         return [];
       }
@@ -846,7 +1048,7 @@ class ReminderController extends GetxController {
       CustomSnackbar.showError(
         context: context,
         title: 'Error',
-        message: '❌ Exception while fetching reminders',
+        message: 'Exception while fetching reminders',
       );
       return [];
     }
@@ -868,7 +1070,7 @@ class ReminderController extends GetxController {
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
-          message: '❌ Failed to save Reminder record: ${response.statusCode}',
+          message: 'Failed to save Reminder record: ${response.statusCode}',
         );
       } else {
         getReminders(context);
@@ -877,12 +1079,15 @@ class ReminderController extends GetxController {
       CustomSnackbar.showError(
         context: context,
         title: 'Error',
-        message: '❌ Exception while saving Reminder record',
+        message: 'Exception while saving Reminder record',
       );
     }
   }
 
-  Future<void> updateReminder(Map<String, dynamic> reminderData , BuildContext context) async {
+  Future<void> updateReminder(
+    Map<String, dynamic> reminderData,
+    BuildContext context,
+  ) async {
     try {
       final response = await ApiService.post(
         editreminderApi,
@@ -892,15 +1097,20 @@ class ReminderController extends GetxController {
       );
 
       if (response is http.Response && response.statusCode >= 400) {
-        CustomSnackbar.showError(context : context , title:
-        'Error',
-          message: '❌ Failed to update Reminder record: ${response.statusCode}',
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Failed to update Reminder record: ${response.statusCode}',
         );
       } else {
         getReminders(context);
       }
     } catch (e) {
-      CustomSnackbar.showError(context : context , title: 'Error', message: '❌ Exception while updating Reminder record');
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Exception while updating Reminder record',
+      );
     }
   }
 
@@ -909,44 +1119,81 @@ class ReminderController extends GetxController {
   bool validateAndSave(BuildContext context) {
     if (selectedCategory.value == "Medicine") {
       if (pickedTime.value == null) {
-        CustomSnackbar.showError(context : context , title:
-        'Error',
-          message:  'Please select a reminder time',
-         
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Please select a reminder time',
         );
         return false;
       }
+      if (medicineController.text.isEmpty) {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Please enter medicine name',
+        );
+        return false;
+      }
+
+      // addMedicine(medicineController.text.trim());
       addAlarm(context, timeOfDay: pickedTime.value!, category: "Medicine");
+      medicineController.clear();
+      timeController.clear();
+      titleController.clear();
+      notesController.clear();
       return true;
     } else if (selectedCategory.value == "Water") {
-      if (waterReminderOption.value == 0 && savedInterval.value <= 0) {
-        CustomSnackbar.showError(context : context , title:
-        'Error',
+      if (waterReminderOption.value == 0 &&
+          savedInterval.value <= 0 &&
+          (int.tryParse(everyHourController.text) ?? 0) <= 0) {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
           message: 'Please enter hours interval',
-          
         );
         return false;
       }
-      if (waterReminderOption.value == 1 && savedTimes.value <= 0) {
-        CustomSnackbar.showError(context : context , title:
-          'Error',
+      if (waterReminderOption.value == 1 &&
+          savedTimes.value <= 0 &&
+          (int.tryParse(timesPerDayController.text) ?? 0) <= 0) {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
           message: 'Please enter times per day',
-          
         );
         return false;
       }
+      if (timeController.text.isEmpty) {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Please select time',
+        );
+        return false;
+      }
+
+      // prefer controller values if not already saved
+      final interval =
+          savedInterval.value > 0
+              ? savedInterval.value
+              : int.tryParse(everyHourController.text);
+      final times =
+          savedTimes.value > 0
+              ? savedTimes.value
+              : int.tryParse(timesPerDayController.text);
+
       setWaterAlarm(
         context: context,
-        interval: waterReminderOption.value == 0 ? savedInterval.value : null,
-        times: waterReminderOption.value == 1 ? savedTimes.value : null,
+        interval: waterReminderOption.value == 0 ? interval : null,
+        times: waterReminderOption.value == 1 ? times : null,
       );
       return true;
     } else if (selectedCategory.value == "Meal") {
       if (pickedTime.value == null) {
-        CustomSnackbar.showError(context : context , title:
-          'Error',
-          message:  'Please select a meal time',
-          
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Please select a meal time',
         );
         return false;
       }
@@ -954,10 +1201,10 @@ class ReminderController extends GetxController {
       return true;
     } else if (selectedCategory.value == "Event") {
       if (pickedTime.value == null) {
-        CustomSnackbar.showError(context : context , title:
-          'Error',
-          message:  'Please select an event time',
-          
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Please select an event time',
         );
         return false;
       }
@@ -969,7 +1216,6 @@ class ReminderController extends GetxController {
 
   // ==================== Refresh Methods ====================
 
-  /// Refresh all reminder data from both local storage and API
   Future<void> refreshAllData(BuildContext context) async {
     await Future.wait([loadAllReminderLists(), getReminders(context)]);
   }
@@ -1000,6 +1246,7 @@ class ReminderController extends GetxController {
     medicineController.clear();
     timeController.clear();
     notesController.clear();
+    beforeReminderController.clear();
     everyHourController.clear();
     timesPerDayController.clear();
     selectedCategory.value = 'Medicine';
@@ -1040,6 +1287,14 @@ class ReminderController extends GetxController {
     timesPerDayController.text =
         reminder['RemindFrequencyCount']?.toString() ?? '';
     enableNotifications.value = reminder['EnablePushNotification'] ?? false;
+
+    // load before meta if present
+    if (reminder['BeforeMeta'] != null) {
+      beforeReminderController.text =
+          reminder['BeforeMeta']['before_amount']?.toString() ?? '';
+      selectedValue.value =
+          reminder['BeforeMeta']['before_unit'] ?? selectedValue.value;
+    }
   }
 
   String formatReminderTime(List remindTimes) {
@@ -1063,7 +1318,7 @@ class ReminderController extends GetxController {
           formattedTimes.add(DateFormat('hh:mm a').format(time));
         }
       } catch (e) {
-        print('Error formatting time: $e');
+        if (kDebugMode) print('Error formatting time: $e');
         formattedTimes.add(time.toString());
       }
     }
@@ -1080,16 +1335,15 @@ class ReminderController extends GetxController {
     return (itemCount * itemHeight).clamp(0, maxHeight);
   }
 
-  /// Format time from hour and minute values
-  String formatTimeFromHourMinute(int hour, int minute) {
-    try {
-      final now = DateTime.now();
-      final dateTime = DateTime(now.year, now.month, now.day, hour, minute);
-      return DateFormat('hh:mm a').format(dateTime);
-    } catch (e) {
-      return '$hour:$minute';
-    }
-  }
+  // String formatTimeFromHourMinute(int hour, int minute) {
+  //   try {
+  //     final now = DateTime.now();
+  //     final dateTime = DateTime(now.year, now.month, now.day, hour, minute);
+  //     return DateFormat('hh:mm a').format(dateTime);
+  //   } catch (e) {
+  //     return '$hour:$minute';
+  //   }
+  // }
 
   TimeOfDay _parseTime(String timeString) {
     final format = DateFormat("hh:mm a");

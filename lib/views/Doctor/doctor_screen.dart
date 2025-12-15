@@ -106,23 +106,20 @@ class _DoctorScreenState extends State<DoctorScreen>
       vsync: this,
       duration: Duration(milliseconds: 1000),
     );
-    _slideAnimations = List.generate(
-      doctors.length,
-      (index) {
-        final start = index * (1.0 / doctors.length);
-        final end = start + 0.5;
-        return Tween<Offset>(begin: Offset(-1, 0), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: listAnimationController,
-            curve: Interval(
-              start.clamp(0.0, 1.0),
-              end.clamp(0.0, 1.0),
-              curve: Curves.easeOut,
-            ),
+    _slideAnimations = List.generate(doctors.length, (index) {
+      final start = index * (1.0 / doctors.length);
+      final end = start + 0.5;
+      return Tween<Offset>(begin: Offset(-1, 0), end: Offset.zero).animate(
+        CurvedAnimation(
+          parent: listAnimationController,
+          curve: Interval(
+            start.clamp(0.0, 1.0),
+            end.clamp(0.0, 1.0),
+            curve: Curves.easeOut,
           ),
-        );
-      },
-    );
+        ),
+      );
+    });
     listAnimationController.forward();
   }
 
@@ -143,7 +140,7 @@ class _DoctorScreenState extends State<DoctorScreen>
               child: Row(
                 children: [
                   Transform.translate(
-                   offset: Offset(-8, 0),
+                    offset: Offset(-8, 0),
                     child: Material(
                       color: Colors.transparent,
                       borderRadius: BorderRadius.circular(12),

@@ -81,7 +81,10 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                               ),
                               child: Icon(
                                 FontAwesomeIcons.lightbulb,
-                                color: controller.isFlashOn.value? white : mediumGrey,
+                                color:
+                                    controller.isFlashOn.value
+                                        ? white
+                                        : mediumGrey,
                               ),
                             ),
                           ),

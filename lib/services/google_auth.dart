@@ -10,7 +10,8 @@ class GoogleAuthService {
     try {
       // Initialize Google Sign-In
       await GoogleSignIn.instance.initialize(
-        serverClientId: '272153297465-t72f4dq6q5poav38044ljdv97h1k31mm.apps.googleusercontent.com'
+        serverClientId:
+            '272153297465-t72f4dq6q5poav38044ljdv97h1k31mm.apps.googleusercontent.com',
       );
 
       // Optional: sign out before signing in
@@ -38,8 +39,6 @@ class GoogleAuthService {
         withAuth: true,
         encryptionRequired: false,
       );
-
-
 
       print('Backend response: $response');
 

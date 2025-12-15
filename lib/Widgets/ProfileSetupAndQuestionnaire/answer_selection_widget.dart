@@ -26,7 +26,10 @@ class AnswerSelectionWidget extends StatelessWidget {
         height: 28,
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryColor.withOpacity(0.4) : Colors.transparent,
+          color:
+              isSelected
+                  ? AppColors.primaryColor.withOpacity(0.4)
+                  : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             width: border04px,
@@ -40,7 +43,7 @@ class AnswerSelectionWidget extends StatelessWidget {
             const SizedBox(width: 5),
             Text(
               widgetText,
-              style: TextStyle(fontSize: 10 , fontWeight: FontWeight.w400),
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w400),
             ),
             const SizedBox(width: 5),
             Icon(

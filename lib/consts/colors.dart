@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 // Simple Common colors
 const Color grey = Colors.grey;
 const Color mediumGrey = Color(0xFF878787);
@@ -9,7 +8,7 @@ const Color white = Colors.white;
 const Color transparent = Colors.transparent;
 
 const Color black = Colors.black;
-const Color green  = Color(0xFF8CDC52);
+const Color green = Color(0xFF8CDC52);
 const Color yellow = Color(0xFFFFD900);
 
 final LinearGradient docAppContiner = LinearGradient(
@@ -30,7 +29,7 @@ class AppColors {
     end: Alignment.bottomCenter,
   );
   static const Gradient whiteGradient = LinearGradient(
-    colors: [white, white ],
+    colors: [white, white],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -80,4 +79,3 @@ const Gradient mood3 = LinearGradient(
   end: Alignment.bottomCenter,
   colors: [contColor31, contColor32],
 );
-

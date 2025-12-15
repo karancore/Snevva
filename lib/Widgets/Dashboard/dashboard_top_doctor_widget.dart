@@ -1,13 +1,10 @@
-
 import '../../consts/consts.dart';
 import '../../views/Doctor/doc_book_appointment.dart';
 import '../../views/Doctor/doctor_profile.dart';
 
 class DashboardTopDoctorWidget extends StatelessWidget {
   final double width;
-  DashboardTopDoctorWidget({
-    super.key, required this.width,
-  });
+  DashboardTopDoctorWidget({super.key, required this.width});
 
   final List<Map<String, dynamic>> doctors = [
     {
@@ -96,10 +93,11 @@ class DashboardTopDoctorWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.6, // Adjust this value as needed
+      height:
+          MediaQuery.of(context).size.height *
+          0.6, // Adjust this value as needed
       child: ListView.separated(
-        physics:
-        PageScrollPhysics(), // Disable scrolling inside the list
+        physics: PageScrollPhysics(), // Disable scrolling inside the list
         shrinkWrap: true,
         itemCount: doctors.length,
 
@@ -109,9 +107,7 @@ class DashboardTopDoctorWidget extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => DoctorProfile(),
-                ),
+                MaterialPageRoute(builder: (context) => DoctorProfile()),
               );
             },
             child: Container(
@@ -140,14 +136,12 @@ class DashboardTopDoctorWidget extends StatelessWidget {
                             fontSize: 14,
                           ),
                         ),
-                      AutoSizeText(
+                        AutoSizeText(
                           doctor['specialty'],
-                        minFontSize: 8,
+                          minFontSize: 8,
                           maxLines: 1,
                           maxFontSize: 18,
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: mediumGrey),
+                          style: TextStyle(fontSize: 12, color: mediumGrey),
                         ),
                         Row(
                           children: [
@@ -162,16 +156,14 @@ class DashboardTopDoctorWidget extends StatelessWidget {
                               maxLines: 1,
                               maxFontSize: 14,
                               '${doctor['rating']} (${doctor['reviews']})',
-                              style: TextStyle(
-                                fontSize: 12,
-                              ),
+                              style: TextStyle(fontSize: 12),
                             ),
                           ],
                         ),
                       ],
                     ),
                   ),
-                  SizedBox(width: 8,),
+                  SizedBox(width: 8),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -183,16 +175,17 @@ class DashboardTopDoctorWidget extends StatelessWidget {
                             minFontSize: 8,
                             style: const TextStyle(color: green),
                           ),
-                          SizedBox(width: 4,),
+                          SizedBox(width: 4),
                           AutoSizeText(
                             'Fees: ₹${doctor['totalFee']}',
                             maxLines: 1,
                             minFontSize: 6,
                             style: const TextStyle(
                               decoration: TextDecoration.lineThrough,
-                              color: mediumGrey,fontSize: 8,),
+                              color: mediumGrey,
+                              fontSize: 8,
+                            ),
                           ),
-
                         ],
                       ),
 
@@ -201,7 +194,8 @@ class DashboardTopDoctorWidget extends StatelessWidget {
                         width: width * 0.2,
                         height: width * .08,
                         decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient, // your LinearGradient
+                          gradient:
+                              AppColors.primaryGradient, // your LinearGradient
                           borderRadius: BorderRadius.circular(
                             4,
                           ), // more roundness
@@ -223,13 +217,13 @@ class DashboardTopDoctorWidget extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder:
-                                    (context) => DocBookAppointment(),
+                                builder: (context) => DocBookAppointment(),
                               ),
                             );
                           },
-                          child: const AutoSizeText("Book now",
-                          minFontSize: 8,
+                          child: const AutoSizeText(
+                            "Book now",
+                            minFontSize: 8,
                             maxLines: 1,
                             style: TextStyle(fontSize: 12),
                           ),

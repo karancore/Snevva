@@ -28,6 +28,18 @@ class _AddReminderState extends State<AddReminder> {
     // Load existing reminder data if editing
     if (widget.reminder != null) {
       controller.loadReminderData(widget.reminder!);
+      controller.titleController.text = widget.reminder!['Title'] ?? [];
+      final names = widget.reminder!['MedicineName'];
+      if (names is List) {
+        controller.medicineNames.clear();
+        controller.medicineNames.addAll(names.map((e) => e.toString()));
+      } else if (names != null) {
+        controller.medicineNames.value = [names.toString()];
+      }
+      controller.timeController.text = controller.formatReminderTime(
+        widget.reminder!['RemindTime'] ?? [],
+      );
+      controller.notesController.text = widget.reminder!['Description'] ?? [];
     }
   }
 
@@ -63,6 +75,7 @@ class _AddReminderState extends State<AddReminder> {
         child: CustomOutlinedButton(
           width: width,
           isDarkMode: isDarkMode,
+          backgroundColor: AppColors.primaryColor,
           buttonName: widget.reminder == null ? "Save" : "Update",
           onTap: () => controller.validateAndSave(context),
         ),
@@ -166,42 +179,45 @@ class _AddReminderState extends State<AddReminder> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 10),
+        // Obx(
+        //   () => Row(
+        //     children: [
+        //       Radio(
+        //         value: 0,
+        //         groupValue: controller.waterReminderOption.value,
+        //         onChanged:
+        //             (value) =>
+        //                 controller.waterReminderOption.value = value as int,
+        //       ),
+        //       Text("Remind me every "),
+        //       SizedBox(
+        //         width: 50,
+        //         child: TextField(
+        //           controller: controller.everyHourController,
+        //           keyboardType: TextInputType.number,
+        //           enabled: controller.waterReminderOption.value == 0,
+        //           decoration: InputDecoration(
+        //             isDense: true,
+        //             contentPadding: EdgeInsets.symmetric(
+        //               horizontal: 8,
+        //               vertical: 4,
+        //             ),
+        //           ),
+        //           onChanged: (_) {
+        //             controller.savedInterval.value =
+        //                 int.tryParse(controller.everyHourController.text) ?? 0;
+        //           },
+        //         ),
+        //       ),
+        //       Text(" hours"),
+        //     ],
+        //   ),
+        // ),
         Obx(
-          () => Row(
-            children: [
-              Radio(
-                value: 0,
-                groupValue: controller.waterReminderOption.value,
-                onChanged:
-                    (value) =>
-                        controller.waterReminderOption.value = value as int,
-              ),
-              Text("Remind me every "),
-              SizedBox(
-                width: 50,
-                child: TextField(
-                  controller: controller.everyHourController,
-                  keyboardType: TextInputType.number,
-                  enabled: controller.waterReminderOption.value == 0,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                  ),
-                  onChanged: (_) {
-                    controller.savedInterval.value =
-                        int.tryParse(controller.everyHourController.text) ?? 0;
-                  },
-                ),
-              ),
-              Text(" hours"),
-            ],
-          ),
-        ),
-        Obx(
-          () => Row(
+          () => Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Radio(
                 value: 1,
@@ -210,7 +226,7 @@ class _AddReminderState extends State<AddReminder> {
                     (value) =>
                         controller.waterReminderOption.value = value as int,
               ),
-              Text("Remind me "),
+              Text("Remind me"),
               SizedBox(
                 width: 50,
                 child: TextField(
@@ -231,11 +247,45 @@ class _AddReminderState extends State<AddReminder> {
                   },
                 ),
               ),
-              Text(" times a day"),
+              Text("times a day between"),
+              SizedBox(
+                width: 90,
+                child: TextField(
+                  controller: controller.timeController,
+                  readOnly: true,
+                  style: const TextStyle(fontSize: 13),
+                  onTap: _selectTime,
+                  enabled: controller.waterReminderOption.value == 1,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                  ),
+                ),
+              ),
+              Text("and"),
+              SizedBox(
+                width: 90,
+                child: TextField(
+                  controller: controller.timeController,
+                  readOnly: true,
+                  style: const TextStyle(fontSize: 13),
+                  onTap: _selectTime,
+                  enabled: controller.waterReminderOption.value == 1,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
-        SizedBox(height: 8),
         Obx(
           () =>
               controller.waterList.isEmpty
@@ -354,7 +404,10 @@ class _AddReminderState extends State<AddReminder> {
             SizedBox(width: 8),
             IconButton(
               icon: Icon(Icons.add),
-              onPressed: () => controller.addMedicine(),
+              onPressed:
+                  () => controller.addMedicine(
+                    controller.medicineController.text.trim(),
+                  ),
             ),
           ],
         ),
@@ -487,9 +540,9 @@ class _AddReminderState extends State<AddReminder> {
             ),
             SizedBox(height: 10),
             Obx(
-                  () => Wrap(
-                spacing: 8,           // horizontal spacing
-                runSpacing: 8,        // vertical wrap spacing
+              () => Wrap(
+                spacing: 8, // horizontal spacing
+                runSpacing: 8, // vertical wrap spacing
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Radio(
@@ -513,11 +566,17 @@ class _AddReminderState extends State<AddReminder> {
                       enabled: controller.waterReminderOption.value == 1,
                       decoration: const InputDecoration(
                         isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                       ),
                       onChanged: (_) {
                         controller.savedTimes.value =
-                            int.tryParse(controller.timesPerDayController.text) ?? 0;
+                            int.tryParse(
+                              controller.timesPerDayController.text,
+                            ) ??
+                            0;
                       },
                     ),
                   ),
@@ -528,17 +587,21 @@ class _AddReminderState extends State<AddReminder> {
                     child: DropdownButton<String>(
                       value: controller.selectedValue.value,
                       isExpanded: true,
-                      underline: const SizedBox(), // remove line
+                      underline: const SizedBox(),
+                      // remove line
                       iconSize: 18,
-                      items: ['minutes', 'hours']
-                          .map((value) => DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(
-                          value,
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                      ))
-                          .toList(),
+                      items:
+                          ['minutes', 'hours']
+                              .map(
+                                (value) => DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(
+                                    value,
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                ),
+                              )
+                              .toList(),
                       onChanged: (newValue) {
                         controller.selectedValue.value = newValue!;
                       },
@@ -558,14 +621,16 @@ class _AddReminderState extends State<AddReminder> {
                       enabled: controller.waterReminderOption.value == 1,
                       decoration: const InputDecoration(
                         isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
-            )
-
+            ),
           ],
         ),
         Obx(
@@ -658,6 +723,12 @@ class _AddReminderState extends State<AddReminder> {
       initialEntryMode: TimePickerEntryMode.dialOnly,
     );
 
+    if (widget.reminder != null) {
+      controller.timeController.text = controller.formatReminderTime(
+        widget.reminder?['RemindTime'] ?? [],
+      );
+    }
+
     if (picked != null) {
       controller.pickedTime.value = picked;
       final hour = picked.hourOfPeriod.toString().padLeft(2, '0');
@@ -681,5 +752,4 @@ class _AddReminderState extends State<AddReminder> {
       controller.startDate.value = picked;
     }
   }
-
 }

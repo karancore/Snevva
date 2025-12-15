@@ -146,8 +146,10 @@ class Bmicontroller extends GetxController {
     } catch (e) {
       hasError.value = true;
       CustomSnackbar.showError(
-          context: context,
-          title:'Error', message:  'Failed to load health tips');
+        context: context,
+        title: 'Error',
+        message: 'Failed to load health tips',
+      );
     } finally {
       isLoading.value = false;
     }

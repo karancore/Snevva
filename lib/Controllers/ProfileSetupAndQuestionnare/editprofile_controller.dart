@@ -353,7 +353,7 @@ class EditprofileController extends GetxController {
                                   try {
                                     // ✅ Step 1: Call API to send OTP
                                     final result = await signupController
-                                        .gmailotp(value, context);
+                                        .gmailOtp(value, context);
                                     await notify.showOtpNotification(result);
 
                                     if (result != false && result != null) {
@@ -564,7 +564,7 @@ class EditprofileController extends GetxController {
                     if (otpVerificationStatus) {
                       localStorageManager.userMap['Email'] = initialValue;
                       email = initialValue;
-                      await signupController.updateGmail(email , ctx);
+                      await signupController.updateGmail(email, ctx);
                       if (onUpdated != null) onUpdated();
                     }
                   },
@@ -581,9 +581,9 @@ class EditprofileController extends GetxController {
                                 seconds: 30,
                               ); // Start 30-sec timer
 
-                              final result = await signupController.gmailotp(
+                              final result = await signupController.gmailOtp(
                                 value,
-                                ctx
+                                ctx,
                               );
 
                               if (result != false && result != null) {
@@ -703,7 +703,7 @@ class EditprofileController extends GetxController {
 
                               final result = await signupController.phoneotp(
                                 value,
-                                ctx
+                                ctx,
                               );
 
                               if (result != false && result != null) {

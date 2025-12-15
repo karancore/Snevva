@@ -63,7 +63,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signInButtonText => 'Sign in';
 
   @override
-  String get notMemberText => 'Not a member?';
+  String get notMemberText => 'Not a member ?';
 
   @override
   String get createNewAccountText => 'Create new account';
@@ -169,6 +169,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pleaseEnterYourName => 'Please enter your name';
+
+  @override
+  String get enterYourName => 'Enter your name';
 
   @override
   String get selectGender => 'Select Gender';

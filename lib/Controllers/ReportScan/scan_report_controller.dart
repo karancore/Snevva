@@ -32,22 +32,21 @@ class ScanReportController extends GetxController {
       await cameraController.initialize();
       isCameraInitialized.value = true;
     } catch (e) {
-     log("Camera init error: $e");
+      log("Camera init error: $e");
     }
   }
 
   Future<void> toggleFlash() async {
-
     if (!isCameraInitialized.value) return;
 
     try {
       if (isFlashOn.value) {
         await cameraController.setFlashMode(FlashMode.off);
         isFlashOn.value = false;
-
-        
       } else {
-        await cameraController.setFlashMode(FlashMode.torch); // or .always for photo
+        await cameraController.setFlashMode(
+          FlashMode.torch,
+        ); // or .always for photo
         isFlashOn.value = true;
       }
     } catch (e) {
@@ -71,8 +70,10 @@ class ScanReportController extends GetxController {
   }
 
   Future<void> pickImageFromGallery() async {
-    final XFile? image = await _imgPicker.pickImage(source: ImageSource.gallery);
-    if(image != null){
+    final XFile? image = await _imgPicker.pickImage(
+      source: ImageSource.gallery,
+    );
+    if (image != null) {
       pickedImage.value = File(image.path);
     }
   }

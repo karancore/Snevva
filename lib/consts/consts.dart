@@ -7,4 +7,3 @@ export 'package:snevva/l10n/app_localizations.dart';
 export 'package:get/get.dart';
 export 'package:auto_size_text/auto_size_text.dart';
 export 'package:snevva/consts/sizes.dart';
-

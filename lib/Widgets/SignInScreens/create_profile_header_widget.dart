@@ -1,3 +1,5 @@
+import 'package:snevva/common/iphone_back_button.dart';
+
 import '../../consts/consts.dart';
 
 class CreateProfileHeaderWidget extends StatelessWidget {
@@ -12,30 +14,12 @@ class CreateProfileHeaderWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-    final mediaQuery =  MediaQuery.of(context);
+    final mediaQuery = MediaQuery.of(context);
     final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
 
     return Column(
       children: [
-        Align(
-          alignment: Alignment.topLeft,
-          child: Container(
-            height: 32,
-            width: 32,
-            padding: EdgeInsets.only(left: 2),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(30),
-              color: mediumGrey,
-            ),
-            child: IconButton(
-              icon: Icon(Icons.arrow_back_ios, size: 18, color: Colors.white),
-              onPressed: () {
-                Navigator.pop(context);
-              },
-            ),
-          ),
-        ),
+        Align(alignment: Alignment.topLeft, child: IphoneBackButton()),
 
         SizedBox(height: 16),
         Image.asset(mascot2, height: 100),
@@ -54,14 +38,16 @@ class CreateProfileHeaderWidget extends StatelessWidget {
           child: Column(
             children: [
               Material(
-                elevation: 1,
-                color: isDarkMode? AppColors.primaryColor.withValues(alpha: .02) : Colors.white.withValues(alpha: 0.95),
+                color:
+                    isDarkMode
+                        ? AppColors.primaryColor.withValues(alpha: .02)
+                        : Colors.white.withValues(alpha: 0.95),
                 borderRadius: BorderRadius.circular(4),
                 child: TextFormField(
                   controller: textController,
                   decoration: InputDecoration(
-                   filled: true,
-                   fillColor: Colors.transparent,
+                    filled: true,
+                    fillColor: Colors.transparent,
                     prefixIcon: icon,
                     labelText: AppLocalizations.of(context)!.inputEmailOrMobile,
                   ),

@@ -1,12 +1,12 @@
 import 'package:get/get.dart';
 
 class WaterHistoryModel {
-  int ?id;
+  int? id;
   int day;
   int month;
   int year;
-  String ?time;
-  int ?value; // ML
+  String? time;
+  int? value; // ML
   RxBool isChecked; // Similar to the C# `IsChecked` (Reactive in Flutter)
 
   // Constructor with optional `isChecked` flag

@@ -7,10 +7,10 @@ void main() {
 
     final bedtime = DateTime(2025, 1, 1, 22, 0); // 10pm
     final start = DateTime(2025, 1, 1, 22, 05); // 10:05
-    final end   = DateTime(2025, 1, 1, 22, 10); // 10:10
+    final end = DateTime(2025, 1, 1, 22, 10); // 10:10
 
     ctrl.setBedtime(bedtime);
-    ctrl.setWakeTime(DateTime(2025,1,2,6,30));
+    ctrl.setWakeTime(DateTime(2025, 1, 2, 6, 30));
 
     ctrl.onPhoneUsed(start, end);
 
@@ -22,10 +22,10 @@ void main() {
 
     final bedtime = DateTime(2025, 1, 1, 22, 0);
     final start = DateTime(2025, 1, 1, 22, 20); // 20 min after bedtime
-    final end   = DateTime(2025, 1, 1, 22, 40); // used for 20 min
+    final end = DateTime(2025, 1, 1, 22, 40); // used for 20 min
 
     ctrl.setBedtime(bedtime);
-    ctrl.setWakeTime(DateTime(2025,1,2,6,30));
+    ctrl.setWakeTime(DateTime(2025, 1, 2, 6, 30));
 
     ctrl.onPhoneUsed(start, end);
 

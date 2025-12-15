@@ -65,8 +65,7 @@ class MentalWellnesscontroller extends GetxController {
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
-          message:
-          'Failed to load general music: ${response.statusCode}',
+          message: 'Failed to load general music: ${response.statusCode}',
         );
         return;
       }
@@ -81,9 +80,10 @@ class MentalWellnesscontroller extends GetxController {
       generalMusic.value = [];
       selectedGenralMusics.clear();
       CustomSnackbar.showError(
-          context: context,
-          title: 'Error',
-          message: 'Failed to load general music');
+        context: context,
+        title: 'Error',
+        message: 'Failed to load general music',
+      );
     }
   }
 
@@ -106,8 +106,7 @@ class MentalWellnesscontroller extends GetxController {
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
-          message:
-          'Failed to load meditation music: ${response.statusCode}',
+          message: 'Failed to load meditation music: ${response.statusCode}',
         );
         return;
       }
@@ -122,9 +121,10 @@ class MentalWellnesscontroller extends GetxController {
       meditationMusic.value = [];
       selectedmeditationMusic = null;
       CustomSnackbar.showError(
-          context: context,
-          title: 'Error',
-          message: 'Failed to load meditation music.');
+        context: context,
+        title: 'Error',
+        message: 'Failed to load meditation music.',
+      );
     }
   }
 
@@ -147,8 +147,7 @@ class MentalWellnesscontroller extends GetxController {
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
-          message:
-          'Failed to load Nature  music: ${response.statusCode}',
+          message: 'Failed to load Nature  music: ${response.statusCode}',
         );
         return;
       }
@@ -163,9 +162,10 @@ class MentalWellnesscontroller extends GetxController {
       natureMusic.value = [];
       selectedNatureMusics.clear();
       CustomSnackbar.showError(
-          context: context,
-          title: 'Error',
-          message:  'Failed to load Nature music');
+        context: context,
+        title: 'Error',
+        message: 'Failed to load Nature music',
+      );
     }
   }
 }

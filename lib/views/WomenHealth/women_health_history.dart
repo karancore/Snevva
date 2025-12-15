@@ -11,7 +11,8 @@ import '../../consts/consts.dart';
 class WomenHealthHistory extends StatelessWidget {
   WomenHealthHistory({super.key});
 
-  final WomenHealthController womenController = Get.find<WomenHealthController>();
+  final WomenHealthController womenController =
+      Get.find<WomenHealthController>();
 
   @override
   Widget build(BuildContext context) {
@@ -40,12 +41,21 @@ class WomenHealthHistory extends StatelessWidget {
                     Text(formattedDate),
                     const Spacer(),
                     Material(
-                      color: isDarkMode? scaffoldColorDark: scaffoldColorLight,
+                      color:
+                          isDarkMode ? scaffoldColorDark : scaffoldColorLight,
                       child: InkWell(
                         borderRadius: BorderRadius.circular(20),
-                        onTap: () => showSymptomsBottomSheet(context, isDarkMode, height),
+                        onTap:
+                            () => showSymptomsBottomSheet(
+                              context,
+                              isDarkMode,
+                              height,
+                            ),
                         child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: yellow.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(20),
@@ -99,7 +109,7 @@ class WomenHealthHistory extends StatelessWidget {
                       getDivider(),
                       getSymptoms("Notes", "No Period Data"),
                     ],
-                  ), 
+                  ),
                 ),
               ),
             ),

@@ -18,9 +18,15 @@ class YogaScreen extends StatelessWidget {
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       extendBodyBehindAppBar: true,
-      bottomNavigationBar:   Padding(
+      bottomNavigationBar: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: CustomOutlinedButton(width: width, isDarkMode: isDarkMode, buttonName: "Start", onTap: () {},),
+        child: CustomOutlinedButton(
+          width: width,
+          backgroundColor: AppColors.primaryColor,
+          isDarkMode: isDarkMode,
+          buttonName: "Start",
+          onTap: () {},
+        ),
       ),
       appBar: CustomAppBar(appbarText: "Yoga Screen"),
       body: SingleChildScrollView(
@@ -32,83 +38,81 @@ class YogaScreen extends StatelessWidget {
               child: Image.asset(yogaScreenImg1, fit: BoxFit.fill),
             ),
             SingleChildScrollView(
-                padding: EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Yoga With Elly',
-                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.w600),
+              padding: EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Yoga With Elly',
+                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Ut enim ad minima veniam, quis nostrum exetionem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi quisquam est, qui dolorem ipsum quia dolor sit amet minima veniam.',
+                    textAlign: TextAlign.justify,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.normal,
                     ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Ut enim ad minima veniam, quis nostrum exetionem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi quisquam est, qui dolorem ipsum quia dolor sit amet minima veniam.',
-                      textAlign: TextAlign.justify,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                        fontWeight: FontWeight.normal,
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Image(image: AssetImage(yogaIcon)),
+                          const SizedBox(width: 5),
+                          const Text(
+                            '4',
+                            style: TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Image(image: AssetImage(yogaIcon)),
-                            const SizedBox(width: 5),
-                            const Text(
-                              '4',
-                              style: TextStyle(fontWeight: FontWeight.w500),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 40),
-                        Row(
-                          children: [
-                            Image(image: AssetImage(starIcon)),
-                            const SizedBox(width: 5),
-                            const Text(
-                              '4.5',
-                              style: TextStyle(fontWeight: FontWeight.w500),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 40),
-                        Row(
-                          children: [
-                            Image(image: AssetImage(timerIcon)),
-                            const SizedBox(width: 5),
-                            const Text(
-                              '4 min',
-                              style: TextStyle(fontWeight: FontWeight.w500),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    YogaScreenFooterWidget(
-                      containerText:
-                          'Est, qui dolorem ipsum quia dolor sit amet minima veniam.',
-                      containerImg: yogaScreenImg2,
-                    ),
-                    YogaScreenFooterWidget(
-                      containerText:
-                          'Est, qui dolorem ipsum quia dolor sit amet minima veniam.',
-                      containerImg: yogaScreenImg3,
-                    ),
-                    YogaScreenFooterWidget(
-                      containerText:
-                          'est, qui dolorem ipsum quia dolor sit amet minima veniam.',
-                      containerImg: yogaScreenImg4,
-                    ),
-                  ],
-                ),
+                      const SizedBox(width: 40),
+                      Row(
+                        children: [
+                          Image(image: AssetImage(starIcon)),
+                          const SizedBox(width: 5),
+                          const Text(
+                            '4.5',
+                            style: TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 40),
+                      Row(
+                        children: [
+                          Image(image: AssetImage(timerIcon)),
+                          const SizedBox(width: 5),
+                          const Text(
+                            '4 min',
+                            style: TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  YogaScreenFooterWidget(
+                    containerText:
+                        'Est, qui dolorem ipsum quia dolor sit amet minima veniam.',
+                    containerImg: yogaScreenImg2,
+                  ),
+                  YogaScreenFooterWidget(
+                    containerText:
+                        'Est, qui dolorem ipsum quia dolor sit amet minima veniam.',
+                    containerImg: yogaScreenImg3,
+                  ),
+                  YogaScreenFooterWidget(
+                    containerText:
+                        'est, qui dolorem ipsum quia dolor sit amet minima veniam.',
+                    containerImg: yogaScreenImg4,
+                  ),
+                ],
               ),
-
-
+            ),
           ],
         ),
       ),

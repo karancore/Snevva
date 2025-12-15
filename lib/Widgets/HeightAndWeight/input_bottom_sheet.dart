@@ -1,5 +1,6 @@
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/common/custom_snackbar.dart';
+import '../../Controllers/ProfileSetupAndQuestionnare/height_and_weight_controller.dart';
 import '../../Controllers/local_storage_manager.dart';
 import '../../consts/consts.dart';
 import '../ProfileSetupAndQuestionnaire/height_and_weight_field.dart';
@@ -15,6 +16,7 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
   final TextEditingController _heightController = TextEditingController();
   final TextEditingController _weightController = TextEditingController();
   final localStorageManager = Get.find<LocalStorageManager>();
+  final controller = Get.put(HeightWeightController());
 
   @override
   void dispose() {
@@ -24,14 +26,19 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
   }
 
   void _validateAndSave(BuildContext context) {
+    print('🟢 InputBottomSheet: _validateAndSave CALLED');
+
     final heightText = _heightController.text.trim();
     final weightText = _weightController.text.trim();
 
+    print('✏️ Raw Input → height="$heightText", weight="$weightText"');
+
     if (heightText.isEmpty || weightText.isEmpty) {
+      print('❌ One or both fields empty');
       CustomSnackbar.showError(
         context: context,
-        title: "title",
-        message: "message",
+        title: "Error",
+        message: "Height and Weight cannot be empty",
       );
       return;
     }
@@ -39,17 +46,20 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
     final height = double.tryParse(heightText);
     final weight = double.tryParse(weightText);
 
+    print('🔢 Parsed → height=$height, weight=$weight');
+
     if (height == null || weight == null) {
+      print('❌ Parsing failed');
       CustomSnackbar.showError(
         context: context,
         title: "Error",
         message: "Please enter valid numeric values",
       );
-
       return;
     }
 
     if (height < 50 || height > 250) {
+      print('❌ Height out of range: $height');
       CustomSnackbar.showError(
         context: context,
         title: "Error",
@@ -59,6 +69,7 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
     }
 
     if (weight < 20 || weight > 300) {
+      print('❌ Weight out of range: $weight');
       CustomSnackbar.showError(
         context: context,
         title: "Error",
@@ -67,16 +78,28 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
       return;
     }
 
-    // ✅ Save into localStorageManager
-    localStorageManager.userMap['Height']['Value'] = height;
-    localStorageManager.userMap['Weight']['Value'] = weight;
-    print("Input Bottom Sheet : $height");
-    print("Input Bottom Sheet : $weight");
+    /// -------------------------------
+    /// LOCAL STORAGE DEBUG + FIX
+    /// -------------------------------
+    print('🗂 userMap BEFORE save: ${localStorageManager.userMap}');
 
+    // Ensure maps exist
+    localStorageManager.userMap.value ??= {};
+    localStorageManager.userMap['Height'] ??= {};
+    localStorageManager.userMap['Weight'] ??= {};
 
-    print("Updated Height/Weight → ${localStorageManager.userMap}");
+    print('✅ Maps initialized');
 
-    Navigator.pop(context); // close bottom sheet
+    // Save values
+    controller.updateFromCm(height);
+    controller.setWeight(weight);
+
+    print('💾 Saved Height = $height');
+    print('💾 Saved Weight = $weight');
+
+    print('🗂 userMap AFTER save: ${localStorageManager.userMap}');
+
+    Navigator.pop(context);
   }
 
   @override

@@ -8,19 +8,21 @@ class AppointmentController extends GetxController {
   void changeTab(int index) {
     selectedTab.value = index;
   }
+
   final upcomingAppointments = [
     {
       'doctorName': 'Dr. Jerry Jones',
       'specialty': 'Neuromedicine',
       'image': avatar1,
       'date': 'Monday, 17 June',
-      'time': '10:00 - 11:00'
-    }, {
+      'time': '10:00 - 11:00',
+    },
+    {
       'doctorName': 'Dr. Jerry Jones',
       'specialty': 'Neuromedicine',
       'image': avatar1,
       'date': 'Monday, 17 June',
-      'time': '10:00 - 11:00'
+      'time': '10:00 - 11:00',
     },
   ];
 
@@ -30,13 +32,14 @@ class AppointmentController extends GetxController {
       'specialty': 'Cardiology',
       'image': avatar2,
       'date': 'Tuesday, 4 June',
-      'time': '14:00 - 15:00'
-    }, {
+      'time': '14:00 - 15:00',
+    },
+    {
       'doctorName': 'Dr. Susan Lee',
       'specialty': 'Cardiology',
       'image': avatar2,
       'date': 'Tuesday, 4 June',
-      'time': '14:00 - 15:00'
+      'time': '14:00 - 15:00',
     },
   ];
 

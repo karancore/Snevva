@@ -29,15 +29,12 @@ class GenderRadioButton extends StatelessWidget {
                 children: [
                   RadioMenuButton<String>(
                     value: 'Male',
-                    groupValue:
-                        initialProfileController.userGenderValue.value,
+                    groupValue: initialProfileController.userGenderValue.value,
                     style: ButtonStyle(
                       overlayColor: MaterialStateProperty.all(
                         Colors.transparent,
                       ),
-                      foregroundColor: MaterialStateProperty.all(
-                        Colors.white,
-                      ),
+                      foregroundColor: MaterialStateProperty.all(Colors.white),
                     ),
                     onChanged: (value) {
                       if (value != null) {
@@ -47,7 +44,7 @@ class GenderRadioButton extends StatelessWidget {
                         localStorageManager.userMap['Gender'] = value;
                       }
                     },
-              
+
                     child: AutoSizeText(
                       AppLocalizations.of(context)!.male,
                       minFontSize: 10,
@@ -60,13 +57,10 @@ class GenderRadioButton extends StatelessWidget {
                       overlayColor: MaterialStateProperty.all(
                         Colors.transparent,
                       ),
-              
-                      foregroundColor: MaterialStateProperty.all(
-                        Colors.white,
-                      ),
+
+                      foregroundColor: MaterialStateProperty.all(Colors.white),
                     ),
-                    groupValue:
-                        initialProfileController.userGenderValue.value,
+                    groupValue: initialProfileController.userGenderValue.value,
                     onChanged: (value) {
                       if (value != null) {
                         initialProfileController.setGender(value);
@@ -75,7 +69,7 @@ class GenderRadioButton extends StatelessWidget {
                         localStorageManager.userMap['Gender'] = value;
                       }
                     },
-              
+
                     child: AutoSizeText(
                       AppLocalizations.of(context)!.female,
                       minFontSize: 10,
@@ -97,13 +91,10 @@ class GenderRadioButton extends StatelessWidget {
                       overlayColor: MaterialStateProperty.all(
                         Colors.transparent,
                       ),
-              
-                      foregroundColor: MaterialStateProperty.all(
-                        Colors.white,
-                      ),
+
+                      foregroundColor: MaterialStateProperty.all(Colors.white),
                     ),
-                    groupValue:
-                        initialProfileController.userGenderValue.value,
+                    groupValue: initialProfileController.userGenderValue.value,
                     onChanged: (value) {
                       if (value != null) {
                         initialProfileController.setGender(value);
@@ -112,7 +103,7 @@ class GenderRadioButton extends StatelessWidget {
                         localStorageManager.userMap['Gender'] = value;
                       }
                     },
-              
+
                     child: AutoSizeText(
                       AppLocalizations.of(context)!.other,
                       minFontSize: 10,
@@ -125,13 +116,10 @@ class GenderRadioButton extends StatelessWidget {
                       overlayColor: MaterialStateProperty.all(
                         Colors.transparent,
                       ),
-              
-                      foregroundColor: MaterialStateProperty.all(
-                        Colors.white,
-                      ),
+
+                      foregroundColor: MaterialStateProperty.all(Colors.white),
                     ),
-                    groupValue:
-                        initialProfileController.userGenderValue.value,
+                    groupValue: initialProfileController.userGenderValue.value,
                     onChanged: (value) {
                       if (value != null) {
                         initialProfileController.setGender(value);

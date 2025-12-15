@@ -10,6 +10,7 @@ import 'package:timezone/data/latest.dart';
 import 'package:timezone/timezone.dart';
 
 import 'package:snevva/models/steps_model.dart';
+import 'package:snevva/models/sleep_log.dart';
 import 'package:snevva/services/background_pedometer_service.dart';
 import 'package:snevva/services/notification_service.dart';
 
@@ -21,7 +22,6 @@ import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
-
 
 // ====================================================================
 // 1️⃣ APP PERMISSIONS
@@ -42,7 +42,6 @@ Future<void> requestAllPermissions() async {
   }
 }
 
-
 // ====================================================================
 // 2️⃣ HIVE INITIALIZATION
 // ====================================================================
@@ -53,9 +52,13 @@ Future<void> setupHive() async {
     Hive.registerAdapter(StepEntryAdapter());
   }
 
-  await Hive.openBox<StepEntry>('step_history');
-}
+  if (!Hive.isAdapterRegistered(SleepLogAdapter().typeId)) {
+    Hive.registerAdapter(SleepLogAdapter());
+  }
 
+  await Hive.openBox<StepEntry>('step_history');
+  await Hive.openBox<SleepLog>('sleep_log');
+}
 
 // ====================================================================
 // 3️⃣ BACKGROUND SERVICE ISOLATE ENTRYPOINT
@@ -80,7 +83,6 @@ void onBackgroundStart(ServiceInstance service) async {
   });
 }
 
-
 // ====================================================================
 // 4️⃣ MAIN INITIALIZER
 // ====================================================================
@@ -95,10 +97,10 @@ Future<bool> initializeApp() async {
   await setupHive();
 
   // Start only pedometer background service
-  // await initBackgroundService();
+  await initBackgroundService();
 
   // Optional: runtime permissions
-  // await requestAllPermissions();
+  await requestAllPermissions();
 
   // Notifications
   final notifService = Get.put(NotificationService());

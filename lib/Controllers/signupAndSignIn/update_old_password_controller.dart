@@ -87,7 +87,7 @@ class UpdateOldPasswordController extends GetxController {
     String otp,
     bool verificationStatus,
     String password,
-      BuildContext context
+    BuildContext context,
   ) async {
     final newPlanePassword = jsonEncode({
       'Gmail': email,
@@ -116,11 +116,8 @@ class UpdateOldPasswordController extends GetxController {
       if (response.statusCode == 200) {
         CustomSnackbar.showSuccess(
           context: context,
-          title:
-          'Success',
-          message:  'Password Updated Successfully with gmail',
-          
-          
+          title: 'Success',
+          message: 'Password Updated Successfully with gmail',
         );
 
         resetState();
@@ -129,11 +126,8 @@ class UpdateOldPasswordController extends GetxController {
     } catch (e) {
       CustomSnackbar.showError(
         context: context,
-        title:
-        'Failed',
-        message:  'Password Updation Failed.',
-        
-        
+        title: 'Failed',
+        message: 'Password Updation Failed.',
       );
     }
   }
@@ -143,7 +137,7 @@ class UpdateOldPasswordController extends GetxController {
     String otp,
     bool verificationStatus,
     String password,
-      BuildContext context
+    BuildContext context,
   ) async {
     final newPlanePassword = jsonEncode({
       'PhoneNumber': phone,
@@ -172,11 +166,8 @@ class UpdateOldPasswordController extends GetxController {
       if (response.statusCode == 200) {
         CustomSnackbar.showSuccess(
           context: context,
-          title:
-          'Success',
-          message:  'Password Updated Successfully with phone',
-
-
+          title: 'Success',
+          message: 'Password Updated Successfully with phone',
         );
 
         resetState();
@@ -185,11 +176,8 @@ class UpdateOldPasswordController extends GetxController {
     } catch (e) {
       CustomSnackbar.showError(
         context: context,
-        title:
-        'Failed',
-        message:  'Password Updation Failed.',
-        
-        
+        title: 'Failed',
+        message: 'Password Updation Failed.',
       );
     }
   }

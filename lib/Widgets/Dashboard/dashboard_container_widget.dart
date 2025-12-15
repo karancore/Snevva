@@ -35,7 +35,8 @@ class DashboardContainerWidget extends StatelessWidget {
         width: width / 2.5,
         height: width / 2.5,
         decoration: BoxDecoration(
-          color: isDarkMode? Colors.white.withValues(alpha: 0.1) :Colors.white,
+          color:
+              isDarkMode ? Colors.white.withValues(alpha: 0.1) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -65,7 +66,6 @@ class DashboardContainerWidget extends StatelessWidget {
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
-
                     ),
                   ),
                   const SizedBox(width: 4),

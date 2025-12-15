@@ -59,11 +59,11 @@ class ForgotPasswordController extends GetxController {
         final data = responseData['data'];
         final otp = data['Otp'];
 
-        CustomSnackbar.showSuccess(
-          context: context,
-          title: 'Success',
-          message: 'OTP Sent. $otp',
-        );
+        // CustomSnackbar.showSuccess(
+        //   context: context,
+        //   title: 'Success',
+        //   message: 'OTP Sent. $otp',
+        // );
         return otp;
       } else {
         CustomSnackbar.showError(
@@ -118,7 +118,7 @@ class ForgotPasswordController extends GetxController {
         body: encryptedBody,
       );
 
-      if (response.statusCode != 200) {
+      if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         final encryptedBody = responseBody['data'];
         final responseHash = response.headers['x-data-hash'];
@@ -137,17 +137,18 @@ class ForgotPasswordController extends GetxController {
         final data = responseData['data'];
         final otp = data['Otp'];
 
-        CustomSnackbar.showSuccess(
-          context: context,
-          title: 'Success',
-          message: 'OTP Sent. $otp',
-        );
+        // CustomSnackbar.showSuccess(
+        //   context: context,
+        //   title: 'Success',
+        //   message: 'OTP Sent. $otp',
+        // );
         return otp;
       } else {
+        print(response.body);
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
-          message: 'Phone Number Verification failed',
+          message: response.body,
         );
         return false;
       }

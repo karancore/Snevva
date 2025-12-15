@@ -277,7 +277,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
       appBar: const CustomAppBar(
         appbarText: 'My Health',
         showCloseButton: false,
-        showDrawerIcon: false,
+        showDrawerIcon: true,
       ),
       body: SafeArea(
         child: SingleChildScrollView(

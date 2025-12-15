@@ -5,11 +5,5 @@ class WaterGoalVM {
   final String? time;
   final int? value; // ML
 
-  WaterGoalVM({
-    this.day,
-    this.month,
-    this.year,
-    this.time,
-    this.value,
-  });
+  WaterGoalVM({this.day, this.month, this.year, this.time, this.value});
 }

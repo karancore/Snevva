@@ -1,13 +1,24 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:http/http.dart';
 import 'package:snevva/Controllers/DietPlan/diet_plan_controller.dart';
+import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 
+import '../../common/global_variables.dart';
+import '../../common/loader.dart';
 import '../../consts/consts.dart';
 
 class CelebrityDietPlan extends StatefulWidget {
   final String title;
   final String img;
+  final int? index;
 
-  const CelebrityDietPlan({super.key, required this.title, required this.img});
+  const CelebrityDietPlan({
+    super.key,
+    required this.title,
+    required this.img,
+    this.index,
+  });
 
   @override
   State<CelebrityDietPlan> createState() => _CelebrityDietPlanState();
@@ -15,6 +26,17 @@ class CelebrityDietPlan extends StatefulWidget {
 
 class _CelebrityDietPlanState extends State<CelebrityDietPlan> {
   final dietController = Get.put(DietPlanController());
+  List<String> daysList = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchDietTagData();
+  }
+
+  void fetchDietTagData() async {
+    await dietController.getAllDiets(context, "Vegetarian");
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,16 +46,17 @@ class _CelebrityDietPlanState extends State<CelebrityDietPlan> {
     final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: Text(widget.title),
-        leading: IconButton(
-          onPressed: () {
-            Get.back();
-          },
-          icon: Icon(FontAwesomeIcons.arrowLeft),
-          color: isDarkMode ? white : black,
-        ),
+      appBar: PreferredSize(
+        preferredSize: Size(double.infinity, 48),
+        child: Obx(() {
+          final heading =
+              dietController
+                  .dietTagResponse
+                  .value
+                  .data?[widget.index ?? 0]
+                  .heading;
+          return CustomAppBar(appbarText: heading ?? widget.title);
+        }),
       ),
       body: Column(
         children: [
@@ -53,12 +76,20 @@ class _CelebrityDietPlanState extends State<CelebrityDietPlan> {
                     borderRadius: BorderRadius.vertical(
                       top: Radius.circular(4),
                     ),
-                    child: Image.asset(
-                      widget.img,
-                      height: height * 0.25,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
+                    child: Obx(() {
+                      final imageUrl =
+                          dietController
+                              .dietTagResponse
+                              .value
+                              .data?[widget.index ?? 0]
+                              .thumbnailMedia;
+                      return CachedNetworkImage(
+                        imageUrl: imageUrl ?? dietPlaceholder,
+                        height: height * 0.25,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      );
+                    }),
                   ),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
@@ -67,18 +98,26 @@ class _CelebrityDietPlanState extends State<CelebrityDietPlan> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SizedBox(height: 2),
-                          AutoSizeText(
-                            '${widget.title} eats balanced, nutritious meals with portion control, rooted in Indian traditions—plus a weekly “Sunday binge” for cravings.',
-                            minFontSize: 10,
-                            textAlign: TextAlign.justify,
-                            maxLines: 8,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: mediumGrey,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                          Obx(() {
+                            final description =
+                                dietController
+                                    .dietTagResponse
+                                    .value
+                                    .data?[widget.index ?? 0]
+                                    .shortDescription;
+                            return AutoSizeText(
+                              description ?? '',
+                              minFontSize: 10,
+                              textAlign: TextAlign.justify,
+                              maxLines: 8,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: mediumGrey,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            );
+                          }),
                         ],
                       ),
                     ),
@@ -91,74 +130,118 @@ class _CelebrityDietPlanState extends State<CelebrityDietPlan> {
 
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 20),
-              child: Obx(
-                () => Row(
-                  children: List.generate(7, (index) {
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(20),
-                      onTap: () => dietController.changeDay(index),
-                      child: Padding(
-                        padding: const EdgeInsets.only(
-                          left: 8,
-                          top: 6,
-                          bottom: 6,
+            padding: const EdgeInsets.only(left: 20),
+            child: Obx(() {
+              // if(dietController.isLoading.value){
+              //   return Loader();
+              // }
+              final dataList =
+                  dietController
+                      .dietTagResponse
+                      .value
+                      .data?[widget.index ?? 0]
+                      .mealPlan ??
+                  [];
+              print(dataList.length);
+              if (dataList.isEmpty) {
+                return SizedBox.shrink();
+              }
+              print(dietController.dietTagResponse.value.data);
+              return Column(
+                children: [
+                  //Text(dietController.dietTagResponse.value.toJson().toString()) ,
+                  Row(
+                    children: List.generate(dataList.length, (index) {
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: () => dietController.changeDay(index),
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            left: 8,
+                            top: 6,
+                            bottom: 6,
+                          ),
+                          child: dietDaysCont(
+                            index + 1,
+                            isDarkMode,
+                            isSelected:
+                                dietController.selectedDayIndex.value == index,
+                          ),
                         ),
-                        child: dietDaysCont(
-                          index + 1,
-                          isDarkMode,
-                          isSelected:
-                              dietController.selectedDayIndex.value == index,
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-              ),
-            ),
-          ),
-
-          Expanded(
-            child: PageView.builder(
-              controller: dietController.pageController,
-              onPageChanged: dietController.onPageChanged,
-              itemCount: 7,
-              itemBuilder: (context, index) {
-                return SingleChildScrollView(
-                  scrollDirection: Axis.vertical,
-                  child: Column(
-                    children: [
-                      dietDish(
-                        'Breakfast',
-                        morningDietImg,
-                        'Oats, milk, pomegranate, chia, soaked almonds',
-                        '340',
-                      ),
-                      dietDish(
-                        'Lunch     ',
-                        afternoonDietImg,
-                        'Brown rice, ghee, veg curry, grilled chicken',
-                        '800',
-                      ),
-                      dietDish(
-                        'Snacks   ',
-                        eveningDietImg,
-                        'Roasted makhana & walnuts',
-                        '270'
-                      ),
-                    ],
+                      );
+                    }),
                   ),
-                );
-              },
-            ),
+                ],
+              );
+            }),
+          ),
+          Expanded(
+            child: Obx(() {
+              // if (dietController.isLoading.value) {
+              //   return Center(child: CircularProgressIndicator());
+              // }
+
+              final plans = dietController.dietTagResponse.value.data;
+              if (plans == null || plans.isEmpty) {
+                return Center(child: Text("No diet plans available"));
+              }
+
+              // Select first diet plan
+              final plan = plans[0];
+              final meals = plan.mealPlan ?? [];
+
+              return PageView.builder(
+                controller: dietController.celebrityPageController,
+                onPageChanged: dietController.onCelebrityPageChanged,
+                itemCount: meals.length, // <-- Number of days
+                itemBuilder: (context, index) {
+                  final dayMeal = meals[index];
+
+                  return SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        dietDish(
+                          'Breakfast',
+                          dayMeal.breakFastMedia ?? dietPlaceholder,
+                          dayMeal.breakFast ?? "N/A",
+                          "",
+                        ),
+                        dietDish(
+                          'Lunch',
+                          dayMeal.lunchMedia ?? dietPlaceholder,
+                          dayMeal.lunch ?? "N/A",
+                          "",
+                        ),
+                        dietDish(
+                          'Snacks',
+                          dayMeal.eveningMedia ?? dietPlaceholder,
+                          dayMeal.evening ?? "N/A",
+                          "",
+                        ),
+                        dietDish(
+                          'Dinner',
+                          dayMeal.breakFastMedia ?? dietPlaceholder,
+                          dayMeal.dinner ?? "N/A",
+                          "",
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            }),
           ),
         ],
       ),
     );
   }
 
-  Padding dietDish(String heading, String dishImg, String ingredients, String cal) {
+  Padding dietDish(
+    String heading,
+    String dishImg,
+    String ingredients,
+    String cal,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
       child: Column(
@@ -188,7 +271,7 @@ class _CelebrityDietPlanState extends State<CelebrityDietPlan> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
                   image: DecorationImage(
-                    image: AssetImage(dishImg),
+                    image: CachedNetworkImageProvider(dishImg),
                     fit: BoxFit.cover,
                   ),
                 ),

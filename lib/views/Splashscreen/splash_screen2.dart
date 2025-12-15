@@ -13,8 +13,6 @@ class _SplashScreen2State extends State<SplashScreen2>
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
-
-
   @override
   void initState() {
     super.initState();
@@ -30,10 +28,10 @@ class _SplashScreen2State extends State<SplashScreen2>
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
     _controller.forward();
-    _controller.addStatusListener((status){
-      if(status == AnimationStatus.completed){
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
         Get.to(
-              () => SignInScreen(),
+          () => SignInScreen(),
           transition: Transition.rightToLeftWithFade,
           duration: Duration(milliseconds: 800),
         );

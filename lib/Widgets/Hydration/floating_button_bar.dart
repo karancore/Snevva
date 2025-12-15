@@ -20,9 +20,8 @@ class FloatingButtonBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     final mediaQuery = MediaQuery.of(context);
- //   final width = mediaQuery.size.width;
+    //   final width = mediaQuery.size.width;
     final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
     final controller = Get.find<HydrationStatController>();
 
@@ -102,7 +101,7 @@ class FloatingButtonBar extends StatelessWidget {
               ),
             ),
           ),
-      
+
           // Center white circle container
           Positioned(
             top: -20,
@@ -134,13 +133,13 @@ class FloatingButtonBar extends StatelessWidget {
                       const Icon(Icons.add, size: 36),
                       const SizedBox(height: 4),
                       if (addWaterValue != null)
-                      Text(
-                        "$addWaterValue ml",
-                        style: TextStyle(
-                          color: isDarkMode ? white : black,
-                          fontWeight: FontWeight.bold,
+                        Text(
+                          "$addWaterValue ml",
+                          style: TextStyle(
+                            color: isDarkMode ? white : black,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),

@@ -6,17 +6,15 @@ import '../../consts/consts.dart';
 class MusicLPlayerScreen extends StatefulWidget {
   const MusicLPlayerScreen({
     super.key,
-     this.appBarHeading,
-    required this.appBarSubHeading
+    this.appBarHeading,
+    required this.appBarSubHeading,
   });
-
 
   final String? appBarHeading;
   final String appBarSubHeading;
 
   @override
   State<MusicLPlayerScreen> createState() => _MusicPlayerScreenState();
-
 }
 
 class _MusicPlayerScreenState extends State<MusicLPlayerScreen> {
@@ -37,10 +35,14 @@ class _MusicPlayerScreenState extends State<MusicLPlayerScreen> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      drawer:Drawer(
-        child: DrawerMenuWidget(height: height, width: width),
+      drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
+      appBar: CustomAppBar(
+        appbarText:
+            widget.appBarHeading != null
+                ? '${widget.appBarHeading}  ${widget.appBarSubHeading}'
+                : widget.appBarSubHeading,
+        isWhiteRequired: false,
       ),
-      appBar: CustomAppBar(appbarText: widget.appBarHeading != null ? '${widget.appBarHeading}  ${widget.appBarSubHeading}' : widget.appBarSubHeading, isWhiteRequired: false,),
       body: Stack(
         children: [
           Container(

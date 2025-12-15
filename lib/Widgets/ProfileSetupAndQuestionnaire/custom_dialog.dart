@@ -22,7 +22,7 @@ class MyDialogWidget extends StatelessWidget {
     final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
 
     return Dialog(
-      backgroundColor: isDarkMode? darkGray :Colors.white,
+      backgroundColor: isDarkMode ? darkGray : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(30),
@@ -38,18 +38,18 @@ class MyDialogWidget extends StatelessWidget {
               minFontSize: 10,
               maxFontSize: 20,
               title,
-              style: const TextStyle(fontSize: 20,fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
             ),
             const SizedBox(height: 12),
-          AutoSizeText(
+            AutoSizeText(
               message,
               minFontSize: 10,
               maxFontSize: 18,
               textAlign: TextAlign.center,
-            overflow: TextOverflow.ellipsis,
-            maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
             ),
             const SizedBox(height: 20),
             Row(
@@ -76,12 +76,16 @@ class MyDialogWidget extends StatelessWidget {
                     },
                     child: const Text(
                       'Cancel',
-                      style: TextStyle(color: AppColors.primaryColor, fontSize: 16),
+                      style: TextStyle(
+                        color: AppColors.primaryColor,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
                 ),
                 CustomOutlinedButton(
                   width: width * 0.25,
+                  backgroundColor: AppColors.primaryColor,
                   isDarkMode: isDarkMode,
                   buttonName: 'Scan',
                   onTap: () {

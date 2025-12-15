@@ -3,7 +3,6 @@ import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:crypto/crypto.dart';
 
 class EncryptionService {
-
   static final _key = encrypt.Key.fromUtf8('jc8upb889n3SHP1LTveX0s3tCJOemFYo');
 
   static final _iv = encrypt.IV.fromUtf8('6LG0mK7sv1SMvyfO');
@@ -19,17 +18,14 @@ class EncryptionService {
 
     final hash = sha256.convert(utf8.encode(encrypted)).toString();
 
-    return {
-      'encryptedData': encrypted,
-      'hash': hash,
-    };
+    return {'encryptedData': encrypted, 'hash': hash};
   }
 
   static String? decryptData(String encryptedText, String hash) {
     if (encryptedText.isEmpty) throw Exception("Encrypted text is empty");
 
     final calculatedHash =
-    sha256.convert(utf8.encode(encryptedText)).toString();
+        sha256.convert(utf8.encode(encryptedText)).toString();
 
     if (calculatedHash == hash) {
       final encrypter = encrypt.Encrypter(

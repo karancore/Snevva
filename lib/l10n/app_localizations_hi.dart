@@ -171,6 +171,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get pleaseEnterYourName => 'कृपया अपना नाम दर्ज करें';
 
   @override
+  String get enterYourName => 'Enter your name';
+
+  @override
   String get selectGender => 'लिंग चुनें';
 
   @override

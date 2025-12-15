@@ -357,14 +357,10 @@ Widget _buildMenuGrid(
 
                   if (agreed == true) {
                     await prefs.setBool('is_first_time_sleep', false);
-                    Get.to(
-                      () => SleepTrackerScreen(),
-                    );
+                    Get.to(() => SleepTrackerScreen());
                   }
                 } else {
-                  Get.to(
-                    () => SleepTrackerScreen(),
-                  );
+                  Get.to(() => SleepTrackerScreen());
                 }
               }
               // Handle Steps Tracker

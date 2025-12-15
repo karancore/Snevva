@@ -18,7 +18,7 @@ class _HeartRateState extends State<HeartRate> {
     final width = mediaQuery.size.width;
     //final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
     return Scaffold(
-      drawer: Drawer(child: DrawerMenuWidget(height: height, width: width),),
+      drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: CustomAppBar(appbarText: "Heart Rate"),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30),
@@ -39,29 +39,16 @@ class _HeartRateState extends State<HeartRate> {
             // BPM Value
             Text(
               "73",
-              style: TextStyle(
-                fontSize: 48,
-                fontWeight: FontWeight.bold,
-
-              ),
+              style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
             ),
-            Text(
-              "BPM",
-              style: TextStyle(
-                fontSize: 16,
-
-              ),
-            ),
+            Text("BPM", style: TextStyle(fontSize: 16)),
             SizedBox(height: 16),
 
             // Info Text
             Text(
               "This result is not used as a\nmedical basis",
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-
-              ),
+              style: TextStyle(fontSize: 14),
             ),
             SizedBox(height: 24),
 

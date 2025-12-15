@@ -74,7 +74,8 @@ class SymptomsBottomSheet extends StatelessWidget {
               SizedBox(height: 20),
               Obx(() {
                 final selected = bottomSheetController.selectedSymptoms;
-                final selectedSymptom = selected.isNotEmpty ? selected.last : "a Symptom";
+                final selectedSymptom =
+                    selected.isNotEmpty ? selected.last : "a Symptom";
 
                 return Text(
                   "Select $selectedSymptom Level",
@@ -215,7 +216,11 @@ class SymptomsBottomSheet extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 10,
                   color:
-                      isSelected ? white : isDarkMode ? white : black,
+                      isSelected
+                          ? white
+                          : isDarkMode
+                          ? white
+                          : black,
                 ),
               ),
             ],

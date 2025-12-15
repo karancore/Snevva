@@ -11,7 +11,8 @@ class EmergencyContactWidget extends StatelessWidget {
     super.key,
     required this.name,
     required this.img,
-    required this.phone, required this.relation,
+    required this.phone,
+    required this.relation,
   });
 
   @override
@@ -31,10 +32,7 @@ class EmergencyContactWidget extends StatelessWidget {
                 children: [
                   Text(
                     name,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                   SizedBox(width: 5),
                   Container(

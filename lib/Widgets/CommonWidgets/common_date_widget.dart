@@ -1,8 +1,6 @@
-
 import 'package:intl/intl.dart';
 import 'package:scroll_datetime_picker/scroll_datetime_picker.dart';
 import '../../consts/consts.dart';
-
 
 class CommonDateWidget extends StatefulWidget {
   const CommonDateWidget({
@@ -79,13 +77,17 @@ class _CommonDateWidgetState extends State<CommonDateWidget> {
                 });
               },
               style: DateTimePickerStyle(
-                activeDecoration: BoxDecoration(
-                  color: Colors.transparent
-                ),
+                activeDecoration: BoxDecoration(color: Colors.transparent),
 
                 activeStyle: TextStyle(fontSize: 16, color: Colors.white),
-                inactiveStyle: const TextStyle(fontSize: 16, color: Colors.white),
-                disabledStyle: const TextStyle(fontSize: 16, color: Colors.white),
+                inactiveStyle: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.white,
+                ),
+                disabledStyle: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.white,
+                ),
               ),
               wheelOption: const DateTimePickerWheelOption(
                 diameterRatio: 5,
@@ -101,7 +103,6 @@ class _CommonDateWidgetState extends State<CommonDateWidget> {
 
   Widget _dateBox() {
     return Material(
-
       borderRadius: BorderRadius.circular(4),
       clipBehavior: Clip.antiAlias,
       child: Container(
@@ -110,7 +111,7 @@ class _CommonDateWidgetState extends State<CommonDateWidget> {
         decoration: BoxDecoration(
           border: Border.all(width: 1, color: white),
           borderRadius: BorderRadius.circular(4),
-          color:  AppColors.primaryColor,
+          color: AppColors.primaryColor,
         ),
       ),
     );
