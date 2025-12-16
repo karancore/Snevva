@@ -10,9 +10,13 @@ class CustomSnackbar {
   void showReminderBar(BuildContext context) {
     final bool isDarkMode = MediaQuery.of(context).platformBrightness == Brightness.dark;
 
+    final double topPadding =
+        MediaQuery.of(context).padding.top + 10; // 👈 safe area + 10
+
+
     overlay = OverlayEntry(builder: (context) {
       return Positioned(
-        top: 60,
+        top: topPadding,
         left: 0,
         right: 0,
         child: Material(
