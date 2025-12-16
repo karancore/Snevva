@@ -197,46 +197,84 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                           const SizedBox(height: 8),
                           Material(
                             color: Colors.transparent,
-                            // background matches parent
                             borderRadius: BorderRadius.circular(4),
-                            child: TextFormField(
-                              controller:
-                                  initialProfileController.userNameController,
-                              style: const TextStyle(color: white),
-                              decoration: InputDecoration(
-                                filled: true,
-                                fillColor: Colors.transparent,
-                                // use Material's color
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 12,
-                                ),
-                                hintText:
-                                    AppLocalizations.of(context)!.enterYourName,
-                                hintStyle: const TextStyle(color: white),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                  borderSide: const BorderSide(
-                                    width: 1, // <-- increased width
-                                    color: white,
+                            child: Obx(
+                              () => Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  TextFormField(
+                                    controller:
+                                        initialProfileController
+                                            .userNameController,
+                                    style: const TextStyle(color: white),
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: Colors.transparent,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 12,
+                                          ),
+                                      hintText:
+                                          AppLocalizations.of(
+                                            context,
+                                          )!.enterYourName,
+                                      hintStyle: const TextStyle(color: white),
+
+                                      // 🔴 ERROR HANDLING
+                                      errorText:
+                                          initialProfileController
+                                                  .nameError
+                                                  .value
+                                                  .isEmpty
+                                              ? null
+                                              : initialProfileController
+                                                  .nameError
+                                                  .value,
+                                      errorStyle: const TextStyle(
+                                        color: Colors.redAccent,
+                                        fontSize: 12,
+                                      ),
+
+                                      // 🧱 BORDERS
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(4),
+                                        borderSide: const BorderSide(
+                                          width: 1,
+                                          color: white,
+                                        ),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(4),
+                                        borderSide: BorderSide(
+                                          width: 1,
+                                          color:
+                                              initialProfileController
+                                                      .nameError
+                                                      .value
+                                                      .isEmpty
+                                                  ? Colors.white70
+                                                  : Colors
+                                                      .redAccent, // 🔴 invalid
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(4),
+                                        borderSide: BorderSide(
+                                          width: 1,
+                                          color:
+                                              initialProfileController
+                                                      .nameError
+                                                      .value
+                                                      .isEmpty
+                                                  ? white
+                                                  : Colors
+                                                      .redAccent, // 🔴 invalid
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                  borderSide: const BorderSide(
-                                    width: 1, // <-- increased width
-                                    color:
-                                        Colors
-                                            .white70, // lighter when not focused
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                  borderSide: const BorderSide(
-                                    width: 1, // <-- thicker on focus
-                                    color: white,
-                                  ),
-                                ),
+                                ],
                               ),
                             ),
                           ),
@@ -377,7 +415,7 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
 
                                 onTap:
                                     initialProfileController.isFormValid.value
-                                        ? () {
+                                        ? () async {
                                           print(
                                             '🟢 Profile Submit TAP triggered',
                                           );
@@ -473,8 +511,8 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
 
                                           // ================= SAVE =================
                                           print('💾 Calling saveData()...');
-                                          final result =
-                                              initialProfileController.saveData(
+                                          final bool result =
+                                              await initialProfileController.saveData(
                                                 nameModel,
                                                 genderModel,
                                                 dobModel,
@@ -484,7 +522,7 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
 
                                           //await initialProfileController.uploadProfilePicture(context);
 
-                                          if (result == true) {
+                                          if (result) {
                                             Get.to(
                                               HeightWeightScreen(
                                                 gender: genderValue.toString(),

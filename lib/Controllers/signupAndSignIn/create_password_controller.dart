@@ -116,6 +116,7 @@ class CreatePasswordController extends GetxController {
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
+        
 
         confirmPasswordController.clear();
         passwordController.clear();
@@ -137,7 +138,7 @@ class CreatePasswordController extends GetxController {
     }
   }
 
-  Future<void> createNewPasswordWithPhone(
+  Future<dynamic> createNewPasswordWithPhone(
     String phone,
     String otp,
     bool verificationStatus,
@@ -169,15 +170,55 @@ class CreatePasswordController extends GetxController {
       );
 
       if (response.statusCode == 200) {
-        CustomSnackbar.showSuccess(
-          context: context,
-          title: 'Success',
-          message: 'Password Created Successfully with phone',
+        final responseBody = jsonDecode(response.body);
+        print("response Body: $responseBody");
+
+        final encryptedBody = responseBody['data'];
+        print("👉 Encrypted token response: $encryptedBody");
+
+        final responseHash = response.headers['x-data-hash'];
+        print("👉 Response hash: $responseHash");
+
+        final decrypted = EncryptionService.decryptData(
+          encryptedBody,
+          responseHash!,
         );
+        print("Decrypted token response: $decrypted");
+
+        if (decrypted == null) {
+          CustomSnackbar.showError(
+            context: context,
+            title: 'Error',
+            message: 'Failed to decrypt response',
+          );
+          return false;
+        }
+
+        final Map<String, dynamic> responseData = jsonDecode(decrypted);
+
+        final token = responseData['data'];
+        print("👉 Token: $token");
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', token);
+
         confirmPasswordController.clear();
         passwordController.clear();
         isChecked.value = false;
-        Get.to(ProfileSetupInitial());
+        CustomSnackbar.showSuccess(
+          context: context,
+          title: 'Success',
+          message: 'Password Created Successfully with gmail',
+        );
+
+        Get.offAll(() => ProfileSetupInitial()); // 👈 clears previous stack
+      }else{
+        print('❌ HTTP Error: ${response.statusCode} - ${response.body}');
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Failed to create password. Please try again.',
+        );
       }
     } catch (e) {
       CustomSnackbar.showError(

@@ -30,7 +30,8 @@ class EditprofileController extends GetxController {
   var phoneNumber = '';
   var heightValue = '';
   var weightValue = '';
-  var gender = '';
+  // var gender = '';
+  RxString gender = ''.obs;
   var occupation = '';
   var address = '';
 
@@ -757,7 +758,7 @@ class EditprofileController extends GetxController {
 
     void selectGender(String Usergender) async {
       localStorageManager.userMap['Gender'] = Usergender;
-      gender = Usergender;
+      gender.value = Usergender;
       await saveGender(Usergender, context);
       Navigator.pop(context);
       if (onUpdated != null) onUpdated!();

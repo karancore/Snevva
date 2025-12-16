@@ -2,8 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:snevva/Widgets/SignInScreens/sign_in_footer_widget.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
-import 'package:snevva/views/Sign%20Up/sign_in_screen.dart';
-import 'package:snevva/views/Sign%20Up/verify_with_otp.dart';
+import 'package:snevva/views/SignUp/sign_in_screen.dart';
+import 'package:snevva/views/SignUp/verify_with_otp.dart';
 import '../../Controllers/signupAndSignIn/sign_up_controller.dart';
 import '../../Widgets/SignInScreens/create_profile_header_widget.dart';
 

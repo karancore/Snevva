@@ -39,7 +39,7 @@ class ApiService {
         headers: headers,
         body: encryptedBody,
       );
-      // print(response.body);
+      print(response.body);
       _handleErrors(response);
 
       if (response.statusCode == 200) {

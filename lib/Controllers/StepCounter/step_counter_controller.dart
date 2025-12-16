@@ -20,8 +20,11 @@ class StepCounterController extends GetxController {
   int lastSteps = 0;
   double lastPercent = 0;
 
-  late final Box<StepEntry> _stepBox;
-  late final SharedPreferences _prefs;
+  // late final Box<StepEntry> _stepBox;
+  
+  late  Box<StepEntry> _stepBox;
+  late SharedPreferences _prefs;
+
 
   // =======================
   // INIT
@@ -33,9 +36,10 @@ class StepCounterController extends GetxController {
   }
 
   Future<void> _init() async {
-    _checkDayReset();
-    _stepBox = Hive.box<StepEntry>('step_history');
-    _prefs = await SharedPreferences.getInstance();
+  _prefs = await SharedPreferences.getInstance(); // ✅ FIRST
+  _stepBox = Hive.box<StepEntry>('step_history');
+
+  _checkDayReset(); // ✅ now safe
 
     await loadGoal();
     await loadTodayStepsFromHive();

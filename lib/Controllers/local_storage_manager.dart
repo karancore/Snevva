@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../views/Sign Up/sign_in_screen.dart';
+import '../views/SignUp/sign_in_screen.dart';
 
 class LocalStorageManager extends GetxController {
   RxMap<String, dynamic> userMap = <String, dynamic>{}.obs;

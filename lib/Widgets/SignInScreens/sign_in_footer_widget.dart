@@ -3,7 +3,6 @@ import 'package:flutter/gestures.dart';
 
 import '../../consts/consts.dart';
 import '../../services/google_auth.dart';
-import '../../views/Sign Up/sign_in_screen.dart';
 
 class SignInFooterWidget extends StatefulWidget {
   final String bottomText;

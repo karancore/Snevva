@@ -75,9 +75,9 @@ void onBackgroundStart(ServiceInstance service) async {
     service.setAsForegroundService();
   }
 
-  // ❌ NO SharedPreferences
+  // ❌ BNO SharedPreferences
   // ✅ Background pedometer must write to Hive
-  // via StepCounterController.incrementSteps(delta)
+  // StepCounterController.incrementSteps(delta);
 }
 
 // ====================================================================
@@ -97,10 +97,10 @@ Future<bool> initializeApp() async {
   Get.put(StepCounterController(), permanent: true);
 
   // Start pedometer background service
-  await initBackgroundService();
+  // await initBackgroundService();
 
   // Runtime permissions
-  await requestAllPermissions();
+  // await requestAllPermissions();
 
   // Notifications
   final notifService = Get.put(NotificationService());

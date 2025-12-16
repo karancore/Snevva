@@ -1,5 +1,5 @@
 import 'package:snevva/common/custom_snackbar.dart';
-import 'package:snevva/views/Sign%20Up/verify_with_otp.dart';
+import 'package:snevva/views/SignUp/verify_with_otp.dart';
 
 import '../../Controllers/signupAndSignIn/forgot_password_controller.dart';
 import '../../consts/consts.dart';

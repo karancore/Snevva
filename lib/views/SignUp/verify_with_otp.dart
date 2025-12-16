@@ -1,10 +1,10 @@
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
 import 'package:snevva/common/custom_snackbar.dart';
-import 'package:snevva/views/Sign%20Up/create_new_password.dart';
+import 'package:snevva/views/SignUp/create_new_password.dart';
 import 'package:flutter/services.dart';
 import 'package:pinput/pinput.dart';
-import 'package:snevva/views/Sign%20Up/update_old_password.dart';
+import 'package:snevva/views/SignUp/update_old_password.dart';
 import '../../Controllers/signupAndSignIn/otp_verification_controller.dart';
 import '../../consts/consts.dart';
 
@@ -47,6 +47,9 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
         widget.isForgotPasswordScreen == false) {
       // Store email in userMap
       localStorageManager.userMap['Email'] = widget.emailOrPasswordText;
+      localStorageManager.userMap['PhoneNumber'] = widget.emailOrPasswordText;
+
+      print("dfdfdfdfdfdfdfdfdfdfdfdfdfdfd${localStorageManager.userMap}");
 
       Get.to(
         CreateNewPassword(
@@ -59,6 +62,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
         widget.isForgotPasswordScreen == true) {
       // Store email in userMap
       localStorageManager.userMap['Email'] = widget.emailOrPasswordText;
+      localStorageManager.userMap['PhoneNumber'] = widget.emailOrPasswordText;
 
       Get.to(
         UpdateOldPasword(

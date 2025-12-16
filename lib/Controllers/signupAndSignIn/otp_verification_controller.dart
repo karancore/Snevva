@@ -1,8 +1,8 @@
 import 'package:snevva/services/encryption_service.dart';
-import 'package:snevva/views/Sign%20Up/update_old_password.dart';
+import 'package:snevva/views/SignUp/update_old_password.dart';
 import '../../common/custom_snackbar.dart';
 import '../../consts/consts.dart';
-import '../../views/Sign Up/create_new_password.dart';
+import '../../views/SignUp/create_new_password.dart';
 
 class OTPVerificationController extends GetxController {
   String responseOtp;

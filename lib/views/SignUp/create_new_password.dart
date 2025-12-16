@@ -1,4 +1,5 @@
 import 'package:flutter/gestures.dart';
+import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import '../../Controllers/signupAndSignIn/create_password_controller.dart';
 import '../../common/custom_snackbar.dart';
 import '../../consts/consts.dart';
@@ -67,6 +68,8 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
         return;
       }
       if (widget.emailOrPhoneText.contains('@')) {
+        localStorageManager.userMap['Email'] =
+            widget.emailOrPhoneText.trim();
         controller.createNewPasswordWithGmail(
           widget.emailOrPhoneText.trim(),
           widget.otp,
@@ -75,6 +78,8 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
           context,
         );
       } else if (RegExp(r'^\d{10,}$').hasMatch(widget.emailOrPhoneText)) {
+        localStorageManager.userMap['PhoneNumber'] =
+            widget.emailOrPhoneText.trim();
         controller.createNewPasswordWithPhone(
           widget.emailOrPhoneText.trim(),
           widget.otp,
@@ -106,7 +111,7 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
               padding: const EdgeInsets.only(left: 6),
               child: IconButton(
                 icon: Icon(Icons.arrow_back_ios, size: 18, color: Colors.white),
-                onPressed: () => Get.back(),
+                onPressed: () => SignInScreen(),
               ),
             ),
           ),

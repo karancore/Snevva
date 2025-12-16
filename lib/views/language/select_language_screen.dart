@@ -1,5 +1,5 @@
 import 'package:snevva/common/custom_snackbar.dart';
-import 'package:snevva/views/Sign%20Up/sign_in_screen.dart';
+import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import '../../Controllers/language/language_controller.dart';
 import '../../Widgets/CommonWidgets/custom_outlined_button.dart';
 import '../../consts/consts.dart';

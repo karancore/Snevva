@@ -1,5 +1,5 @@
 import 'package:snevva/consts/consts.dart';
-import 'package:snevva/views/Sign%20Up/sign_in_screen.dart';
+import 'package:snevva/views/SignUp/sign_in_screen.dart';
 
 class SplashScreen2 extends StatefulWidget {
   const SplashScreen2({super.key});

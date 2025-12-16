@@ -13,12 +13,19 @@ import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart'
 import '../../consts/consts.dart';
 
 class ProfileSetupController extends GetxController {
+  // ================= TEXT + ERRORS =================
+  final userNameController = TextEditingController();
   RxString userNameText = ''.obs;
+  RxString nameError = ''.obs; // 🔴 NEW
+
+  // ================= OTHER FIELDS =================
   var userDob = ''.obs;
   var userGenderIcon = ''.obs;
   final RxString userGenderValue = ''.obs;
-  DateTime _selectedDate = DateTime.now();
   var selectedOccupation = ''.obs;
+
+  DateTime _selectedDate = DateTime.now();
+
   final localStorageManager = Get.put(LocalStorageManager());
 
   var pickedImage = Rx<File?>(null);
@@ -26,14 +33,7 @@ class ProfileSetupController extends GetxController {
 
   RxBool isFormValid = false.obs;
 
-  void validateForm() {
-    isFormValid.value =
-        userNameText.value.trim().isNotEmpty &&
-        userGenderValue.value.trim().isNotEmpty &&
-        userDob.value.trim().isNotEmpty &&
-        selectedOccupation.value.trim().isNotEmpty;
-  }
-
+  // ================= OCCUPATIONS =================
   List<String> occupationList = [
     'Student',
     'Employed',
@@ -43,15 +43,36 @@ class ProfileSetupController extends GetxController {
     'Other',
   ];
 
-  final userNameController = TextEditingController();
+  // ================= VALIDATION =================
+  void validateForm() {
+    final name = userNameText.value.trim();
 
+    // ---- NAME VALIDATION ----
+    if (name.isEmpty) {
+      nameError.value = 'Name is required';
+    } else if (!RegExp(r'^[A-Z]').hasMatch(name)) {
+      nameError.value = 'Name must start with a capital letter';
+    } else {
+      nameError.value = '';
+    }
+
+    // ---- FINAL FORM VALIDITY ----
+    isFormValid.value =
+        nameError.value.isEmpty &&
+        name.isNotEmpty &&
+        userGenderValue.value.trim().isNotEmpty &&
+        userDob.value.trim().isNotEmpty &&
+        selectedOccupation.value.trim().isNotEmpty;
+  }
+
+  // ================= LIFECYCLE =================
   @override
   void onInit() {
     super.onInit();
     loadSavedImage();
+
     userNameController.addListener(() {
-      userNameText.value = userNameController.text;
-      initialProfileController.userGenderIcon;
+      userNameText.value = userNameController.text.trim();
       validateForm();
     });
 
@@ -66,50 +87,39 @@ class ProfileSetupController extends GetxController {
     super.onClose();
   }
 
-  /// ✅ Pick image and save it locally
+  // ================= IMAGE =================
   Future<void> pickImageFromGallery() async {
-    final XFile? image = await _imgPicker.pickImage(
-      source: ImageSource.gallery,
-    );
+    final XFile? image =
+        await _imgPicker.pickImage(source: ImageSource.gallery);
+
     if (image != null) {
       pickedImage.value = File(image.path);
-      await saveImagePath(image.path); // Save for persistence
+      await saveImagePath(image.path);
     }
   }
 
-  /// ✅ Save image path to SharedPreferences
   Future<void> saveImagePath(String path) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('profileImagePath', path);
-    print("💾 Image path saved locally: $path");
   }
 
-  /// ✅ Load saved image path from SharedPreferences
   Future<void> loadSavedImage() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? savedPath = prefs.getString('profileImagePath');
 
     if (savedPath != null && File(savedPath).existsSync()) {
       pickedImage.value = File(savedPath);
-      print("✅ Loaded image from local storage: $savedPath");
-    } else {
-      print("⚠️ No saved image found or file missing.");
     }
   }
 
-  // Optional helper — clear image
   Future<void> clearImage() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('profileImagePath');
     pickedImage.value = null;
   }
 
-  void selectGender(String gender) {
-    userGenderValue.value = gender;
-  }
-
+  // ================= GENDER =================
   void setGender(String gender) {
-    print("Gender set to: $gender");
     userGenderValue.value = gender;
     switch (gender) {
       case 'Male':
@@ -120,30 +130,28 @@ class ProfileSetupController extends GetxController {
         break;
       default:
         userGenderIcon.value = genderIcon;
-        break;
     }
   }
 
+  // ================= DOB =================
   void onDateChanged(DateTime newDate) {
     int year = newDate.year;
     int month = newDate.month;
     int day = newDate.day;
+
     int lastDay = DateTime(year, month + 1, 0).day;
-
     if (day > lastDay) {
-      newDate = DateTime(year, month, lastDay);
+      day = lastDay;
     }
 
-    if (_selectedDate != newDate) {
-      _selectedDate = newDate;
+    final formattedDate =
+        "${day.toString().padLeft(2, '0')}/"
+        "${month.toString().padLeft(2, '0')}/"
+        "$year";
 
-      final formattedDate =
-          "${day.toString().padLeft(2, '0')}/"
-          "${month.toString().padLeft(2, '0')}/"
-          "$year";
-      userDob.value = formattedDate;
-    }
+    userDob.value = formattedDate;
   }
+
 
   // Future<void> saveData(String name, String gender, String dob) async {
   //   ApiService.post(userNameApi, {'name': name});
@@ -196,6 +204,9 @@ class ProfileSetupController extends GetxController {
       localStorageManager.userMap['YearOfBirth'] = dob.yearOfBirth;
       localStorageManager.userMap['Occupation'] = occupation.name;
 
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      prefs.setString('user_gender', gender.value);
+
       // print("🔄 Updating local storage with profile data: ${localStorageManager.userMap}");
 
       bool allSuccessful = true;
@@ -212,6 +223,8 @@ class ProfileSetupController extends GetxController {
         );
 
         if (response is http.Response) {
+          allSuccessful = false;
+          print("❌ Failed to save ${payload.keys.first}: ${response.statusCode}");
           CustomSnackbar.showError(
             context: context,
             title: 'Error',
@@ -228,6 +241,7 @@ class ProfileSetupController extends GetxController {
         );
         return true;
       }
+      return true;
     } catch (e, stack) {
       print("Exception during profile save: $e");
       print(stack);

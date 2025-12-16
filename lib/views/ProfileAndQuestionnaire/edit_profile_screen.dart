@@ -50,11 +50,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     final weightValue =
         localStorageManager.userGoalDataMap['WeightData']?['Value'];
-
     controller.weightValue =
         (weightValue is num) ? weightValue.toStringAsFixed(2) : '';
 
-    controller.gender = localStorageManager.userMap['Gender']?.toString() ?? '';
+    controller.gender.value = (localStorageManager.userMap['Gender']?.toString() ?? '');
+
     controller.occupation =
         localStorageManager.userMap['OccupationData']?['Name']?.toString() ??
         '';
@@ -633,7 +633,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       controller
                                           .weightValue; // redundant but consistent
                                   localStorageManager
-                                          .userGoalDataMap['WeightData']?['Value'] =
+                                          .userMap['WeightData']?['Value'] =
                                       controller.weightValue;
                                 }),
                           ),

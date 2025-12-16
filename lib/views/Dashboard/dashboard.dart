@@ -11,7 +11,7 @@ import 'package:snevva/Widgets/Dashboard/dashboard_services_widget.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Alerts/alerts.dart';
-import 'package:snevva/views/Sign%20Up/sign_in_screen.dart';
+import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import '../../Controllers/Hydration/hydration_stat_controller.dart';
 import '../../Widgets/Dashboard/dashboard_ads_carousel_slider.dart';
 import '../../Widgets/Dashboard/dashboard_header_widget.dart';

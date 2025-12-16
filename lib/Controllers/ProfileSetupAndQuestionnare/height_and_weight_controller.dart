@@ -80,30 +80,30 @@ class HeightWeightController extends GetxController {
       /// -----------------------------
       /// LOCAL STORAGE DEBUG + FIX
       /// -----------------------------
-      print('🗂 userMap BEFORE init: ${localStorageManager.userMap}');
+      print('🗂.userGoalDataMap BEFORE init: ${localStorageManager.userGoalDataMap}');
 
       // Ensure base map
-      localStorageManager.userMap.value ??= {};
-      print('✅ userMap initialized');
+      localStorageManager.userGoalDataMap.value ??= {};
+      print('✅.userGoalDataMap initialized');
 
       // Ensure Height map
-      localStorageManager.userMap['Height'] ??= {};
+      localStorageManager.userGoalDataMap['HeightData'] ??= {};
       print('✅ Height map initialized');
 
       // Ensure Weight map
-      localStorageManager.userMap['Weight'] ??= {};
+      localStorageManager.userGoalDataMap['WeightData'] ??= {};
       print('✅ Weight map initialized');
 
       // Save values
-      localStorageManager.userMap['Height']['Value'] = double.parse(
+      localStorageManager.userGoalDataMap['HeightData']['Value'] = double.parse(
         heightValue.toStringAsFixed(2),
       );
 
-      localStorageManager.userMap['Weight']['Value'] = double.parse(
+      localStorageManager.userGoalDataMap['WeightData']['Value'] = double.parse(
         weightValue.toStringAsFixed(2),
       );
 
-      print('💾 userMap AFTER save: ${localStorageManager.userMap}');
+      print('💾.userGoalDataMap AFTER save: ${localStorageManager.userGoalDataMap}');
 
       // Sync controller state
       heightInCm.value = heightValue;
@@ -157,20 +157,11 @@ class HeightWeightController extends GetxController {
           encryptionRequired: true,
         );
 
-        if (response is http.Response) {
-          print('📨 API RESPONSE [${response.statusCode}]: ${response.body}');
-
-          if (response.statusCode != 200) {
-            allSuccessful = false;
-            CustomSnackbar.showError(
-              context: context,
-              title: 'Error',
-              message: 'Failed to save ${payload['Value']}',
-            );
-          }
-        } else {
-          print('❌ API response is not http.Response');
+        if (response is http.Response && response.statusCode >= 400) {
+          print('❌ Save to $endpoint failed with status ${response.statusCode}');
           allSuccessful = false;
+        } else {
+          print('✅ Save to $endpoint successful');
         }
       }
 

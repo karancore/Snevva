@@ -7,7 +7,8 @@ import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/views/Dashboard/dashboard.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
-import 'package:snevva/views/Sign%20Up/sign_in_screen.dart';
+import 'package:snevva/views/SignUp/sign_in_screen.dart';
+import 'package:timezone/timezone.dart';
 import '../../consts/consts.dart';
 import '../../env/env.dart';
 import '../../services/auth_header_helper.dart';
@@ -156,6 +157,8 @@ class SignInController extends GetxController {
         print('🎯 user goal data: $data');
         print('🎯 user goal data runtimeType: ${data.runtimeType}');
 
+         localstorage.userGoalDataMap.value = data;
+
         if (data is Map) {
           final userGoalJson = jsonEncode(data);
           await prefs.setString('userGoaldata', userGoalJson);
@@ -209,6 +212,7 @@ class SignInController extends GetxController {
     );
     // print("$response");
     userProfData = response;
+    localstorage.userMap.value = userProfData['data'];
     return userProfData;
   }
 
@@ -221,6 +225,7 @@ class SignInController extends GetxController {
     );
     // print("$response");
     userGoalData = response;
+    localstorage.userGoalDataMap.value = userGoalData['data'];
     return userGoalData;
   }
 
@@ -272,19 +277,23 @@ class SignInController extends GetxController {
       print(response.statusCode);
 
       // ❌ FIX #1 — real condition
+       // ❌ FIX 1 — real condition
       if (response.statusCode == 200) {
-        final decodedBody = jsonDecode(response.body);
-        print(decodedBody);
+        final responseBody = jsonDecode(response.body);
+        print("response Body: $responseBody");
 
-        // ❌ FIX #2 — variable rename
-        final encryptedResponse = decodedBody['data'];
+        // ❌ FIX 2 — rename var
+        final encryptedResponse = responseBody['data'];
+        print("👉 Encrypted token response: $encryptedResponse");
+
         final responseHash = response.headers['x-data-hash'];
 
         final decrypted = EncryptionService.decryptData(
           encryptedResponse,
           responseHash!,
         );
-        print(decrypted);
+
+        print("Decrypted token response: $decrypted\n");
 
         if (decrypted == null) {
           CustomSnackbar.showError(
@@ -297,24 +306,92 @@ class SignInController extends GetxController {
 
         final Map<String, dynamic> responseData = jsonDecode(decrypted);
 
-        // ❌ FIX #3 — check login success
+        // ❌ FIX 3 — check server status
         // if (responseData['status'] != true) {
-        //   CustomSnackbar.showError(context: context , title: 'Error', message: 'Sign-in failed');
+        //   CustomSnackbar.showError(context: context , title: "Error", message:  "Wrong credentials");
         //   return false;
         // }
 
-        final token = responseData['data'];
+        // token
+        final dynamic tokenRaw = responseData['data'];
+
+        if (tokenRaw == null || tokenRaw is! String || tokenRaw.isEmpty) {
+          print('❌ Invalid token received: $tokenRaw');
+
+          CustomSnackbar.showError(
+            context: context,
+            title: 'Error',
+            message: 'Invalid login token received',
+          );
+
+          return false;
+        }
+
+        final String token = tokenRaw;
+        print('✅ JWT Token: $token');
+
         final prefs = await SharedPreferences.getInstance();
+        print('🧠 SharedPreferences instance obtained');
+
+        print('🔐 Saving auth_token...');
         await prefs.setString('auth_token', token);
+        print('✅ auth_token saved');
 
-        // Load user data
+        // ================== USER INFO ==================
+        print('📡 Fetching userInfo()...');
         final userdata = await userInfo();
-        final userProfileData = userdata['data'];
+        print('📥 Raw userdata response: $userdata');
 
-        if (userProfileData != null && userProfileData is Map) {
+        final userProfileData = userdata['data'];
+        print('👤 userProfileData: $userProfileData');
+        print('👤 userProfileData runtimeType: ${userProfileData.runtimeType}');
+
+        final gender = userdata['data']?['Gender'];
+        print('🚻 Gender from API: $gender (type: ${gender.runtimeType})');
+
+        if (gender != null) {
+          await prefs.setString('user_gender', gender.toString());
+          print('✅ user_gender saved: $gender');
+        } else {
+          await prefs.setString('user_gender', '');
+          print('⚠️ user_gender was NULL — saved empty string');
+        }
+
+        print('🗂 Saving userProfileData into localstorage.userMap...');
+        localstorage.userMap.value = userProfileData;
+        print('✅ localstorage.userMap updated');
+
+        if (userProfileData is Map) {
           final userJson = jsonEncode(userProfileData);
           await prefs.setString('userdata', userJson);
+          print('💾 userdata saved to SharedPreferences');
+        } else {
+          print('❌ userProfileData is NOT a Map — skipped saving userdata');
         }
+
+        // ================== USER GOAL DATA ==================
+        print('📡 Fetching useeractivedataInfo()...');
+        final goaldata = await useeractivedataInfo();
+        print('📥 Raw goaldata response: $goaldata');
+
+        final data = goaldata['data'];
+        print('🎯 user goal data: $data');
+        print('🎯 user goal data runtimeType: ${data.runtimeType}');
+
+        localstorage.userGoalDataMap.value = data;
+
+        if (data is Map) {
+          final userGoalJson = jsonEncode(data);
+          await prefs.setString('userGoaldata', userGoalJson);
+          print('💾 userGoaldata saved to SharedPreferences');
+        } else {
+          print('⚠️ userGoaldata is NOT a Map — nothing saved');
+        }
+
+        print('🏁 Sign-in data pipeline COMPLETED');
+
+        userEmailOrPhoneField.clear();
+        userPasswordField.clear();
 
         return true;
       } else {

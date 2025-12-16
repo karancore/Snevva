@@ -7,7 +7,7 @@ import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/height_and_weight_screen.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/questionnaire_screen.dart';
-import 'package:snevva/views/Sign%20Up/forgot_password.dart';
+import 'package:snevva/views/SignUp/forgot_password.dart';
 import '../../Widgets/SignInScreens/sign_in_footer_widget.dart';
 import '../../Widgets/home_wrapper.dart';
 import 'create_new_profile.dart';

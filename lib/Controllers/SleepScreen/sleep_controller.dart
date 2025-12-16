@@ -38,7 +38,7 @@ class SleepController extends GetxController {
   void onInit() {
     super.onInit();
     _sleepService.onPhoneUsageDetected = onPhoneUsed;
-    loadDeepSleepData();
+    // loadDeepSleepData();
   }
 
   Box<SleepLog> get _box => Hive.box<SleepLog>('sleep_log');

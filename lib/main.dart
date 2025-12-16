@@ -3,8 +3,10 @@ import 'package:alarm/alarm.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:snevva/Widgets/home_wrapper.dart';
 import 'package:snevva/consts/consts.dart';
+import 'package:snevva/initial_bindings.dart';
 import 'package:snevva/services/app_initializer.dart';
 import 'package:snevva/utils/theme.dart';
+import 'package:snevva/views/SignUp/sign_in_screen.dart';
 
 void main() async {
   FlutterForegroundTask.initCommunicationPort();
@@ -80,7 +82,7 @@ class _MyAppState extends State<MyApp> {
       supportedLocales: AppLocalizations.supportedLocales,
       locale: const Locale('en'),
 
-      home: HomeWrapper(),
+      home: SignInScreen(),
     );
   }
 }

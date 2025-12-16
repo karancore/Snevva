@@ -9,7 +9,7 @@ import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_screen.dart';
 import 'package:snevva/views/ReportScan/scan_report_screen.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
-import 'package:snevva/views/Sign%20Up/sign_in_screen.dart';
+import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import '../../consts/consts.dart';
 import 'drawer_menu_item.dart';
 
