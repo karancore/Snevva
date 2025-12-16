@@ -1,45 +1,32 @@
 import 'dart:isolate';
-
-import 'package:alarm/alarm.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
-import 'package:get/get.dart';
-
 import 'package:snevva/Widgets/home_wrapper.dart';
 import 'package:snevva/consts/consts.dart';
-import 'package:snevva/initial_bindings.dart';
 import 'package:snevva/services/app_initializer.dart';
 import 'package:snevva/utils/theme.dart';
-import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
-import 'package:snevva/views/ProfileAndQuestionnaire/height_and_weight_screen.dart';
-import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
-import 'package:snevva/views/ProfileAndQuestionnaire/questionnaire_screen.dart';
-import 'package:snevva/views/Sign%20Up/sign_in_screen.dart';
-
-import 'l10n/app_localizations.dart';
 
 void main() async {
-  FlutterForegroundTask.initCommunicationPort();
-  FlutterForegroundTask.init(
-    androidNotificationOptions: AndroidNotificationOptions(
-      channelId: 'sleep_channel',
-      channelName: 'Sleep Tracking',
-      channelDescription: 'Tracks sleep based on screen on/off',
-      channelImportance: NotificationChannelImportance.LOW,
-      priority: NotificationPriority.LOW,
-      onlyAlertOnce: true,
-    ),
+  // FlutterForegroundTask.initCommunicationPort();
+  // FlutterForegroundTask.init(
+  //   androidNotificationOptions: AndroidNotificationOptions(
+  //     channelId: 'sleep_channel',
+  //     channelName: 'Sleep Tracking',
+  //     channelDescription: 'Tracks sleep based on screen on/off',
+  //     channelImportance: NotificationChannelImportance.LOW,
+  //     priority: NotificationPriority.LOW,
+  //     onlyAlertOnce: true,
+  //   ),
 
-    foregroundTaskOptions: ForegroundTaskOptions(
-      eventAction: ForegroundTaskEventAction.repeat(30000), // 30 sec
-      autoRunOnBoot: true,
-      allowWakeLock: true,
-      allowWifiLock: true,
-    ),
-    iosNotificationOptions: IOSNotificationOptions(showNotification: true),
-  );
-  WidgetsFlutterBinding.ensureInitialized();
-  await Alarm.init();
+  //   foregroundTaskOptions: ForegroundTaskOptions(
+  //     eventAction: ForegroundTaskEventAction.repeat(30000), // 30 sec
+  //     autoRunOnBoot: true,
+  //     allowWakeLock: true,
+  //     allowWifiLock: true,
+  //   ),
+  //   iosNotificationOptions: IOSNotificationOptions(showNotification: true),
+  // );
+  // WidgetsFlutterBinding.ensureInitialized();
+  // await Alarm.init();
   final isRemembered = await initializeApp();
   runApp(MyApp(isRemembered: isRemembered));
 }
@@ -64,7 +51,6 @@ class _MyAppState extends State<MyApp> {
 
   void _initForegroundListener() async {
     if (_receivePort != null) {
-      // Already initialized
       return;
     }
 
@@ -83,7 +69,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      initialBinding: InitialBindings(),
+      // initialBinding: InitialBindings(),
       debugShowCheckedModeBanner: false,
       title: "Snevva",
       theme: SnevvaTheme.lightTheme,

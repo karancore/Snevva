@@ -23,6 +23,7 @@ import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 
+
 // ====================================================================
 // 1️⃣ APP PERMISSIONS
 // ====================================================================
@@ -42,6 +43,7 @@ Future<void> requestAllPermissions() async {
   }
 }
 
+
 // ====================================================================
 // 2️⃣ HIVE INITIALIZATION
 // ====================================================================
@@ -60,8 +62,9 @@ Future<void> setupHive() async {
   await Hive.openBox<SleepLog>('sleep_log');
 }
 
+
 // ====================================================================
-// 3️⃣ BACKGROUND SERVICE ISOLATE ENTRYPOINT
+// 3️⃣ BACKGROUND SERVICE ENTRYPOINT
 // ====================================================================
 bool onIosBackground(ServiceInstance service) => true;
 
@@ -69,19 +72,16 @@ bool onIosBackground(ServiceInstance service) => true;
 void onBackgroundStart(ServiceInstance service) async {
   DartPluginRegistrant.ensureInitialized();
 
-  final prefs = await SharedPreferences.getInstance();
-
-  // Required for Android
+  // Android foreground requirement
   if (service is AndroidServiceInstance) {
     service.setAsForegroundService();
   }
 
-  // Background heartbeat: sync SharedPreferences only
-  service.on('refreshSteps').listen((event) async {
-    final steps = prefs.getInt("todaySteps") ?? 0;
-    print("🔄 Background heartbeat step sync: $steps");
-  });
+  // ❌ NO SharedPreferences
+  // ✅ Background pedometer must write to Hive
+  // via StepCounterController.incrementSteps(delta)
 }
+
 
 // ====================================================================
 // 4️⃣ MAIN INITIALIZER
@@ -93,13 +93,16 @@ Future<bool> initializeApp() async {
   initializeTimeZones();
   setLocalLocation(getLocation('Asia/Kolkata'));
 
-  // Local DB
+  // ✅ HIVE FIRST (CRITICAL)
   await setupHive();
 
-  // Start only pedometer background service
+  // ✅ Register StepCounterController EARLY & PERMANENT
+  Get.put(StepCounterController(), permanent: true);
+
+  // Start pedometer background service
   await initBackgroundService();
 
-  // Optional: runtime permissions
+  // Runtime permissions
   await requestAllPermissions();
 
   // Notifications
@@ -112,16 +115,15 @@ Future<bool> initializeApp() async {
     await prefs.setBool('reminder_scheduled', true);
   }
 
-  // Register Controllers
+  // Other controllers
   Get.put(ProfileSetupController());
   Get.put(SleepController());
-  Get.put(StepCounterController());
   Get.put(MoodController());
   Get.put(SignInController());
   Get.put(VitalsController());
   Get.put(LocalStorageManager());
   Get.put(WomenHealthController());
 
-  // Return login status
+  // Login status
   return prefs.getBool('remember_me') ?? false;
 }

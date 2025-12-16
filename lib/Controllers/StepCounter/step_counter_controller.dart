@@ -1,72 +1,94 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:snevva/env/env.dart';
 
+import 'package:snevva/models/steps_model.dart';
 import 'package:snevva/models/queryParamViewModels/step_goal_vm.dart';
 import 'package:snevva/services/api_service.dart';
-import 'package:snevva/env/env.dart';
 import 'package:snevva/consts/consts.dart';
 
 class StepCounterController extends GetxController {
-  RxInt stepGoal = 8000.obs;
+  // =======================
+  // OBSERVABLE STATE
+  // =======================
   RxInt todaySteps = 0.obs;
+  RxInt stepGoal = 8000.obs;
 
   int lastSteps = 0;
   double lastPercent = 0;
 
+  late Box<StepEntry> _stepBox;
   SharedPreferences? _prefs;
 
+  // =======================
+  // INIT
+  // =======================
   @override
   void onInit() {
     super.onInit();
-    _initPrefs();
+    _init();
   }
 
-  // ================================================================
-  // INIT
-  // ================================================================
-
-  Future<void> _initPrefs() async {
+  Future<void> _init() async {
+    _stepBox = Hive.box<StepEntry>('step_history');
     _prefs = await SharedPreferences.getInstance();
+
     await loadGoal();
-    await loadTodaySteps();
+    await loadTodayStepsFromHive();
   }
 
-  // ================================================================
-  // TODAY STEPS (from background isolate)
-  // ================================================================
+  // =======================
+  // DATE HELPERS
+  // =======================
+  String _dayKey(DateTime d) => "${d.year}-${d.month}-${d.day}";
+  DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  Future<void> loadTodaySteps() async {
-    if (_prefs == null) return;
-    todaySteps.value = _prefs!.getInt("todaySteps") ?? 0;
+  // =======================
+  // TODAY STEPS (HIVE)
+  // =======================
+  Future<void> loadTodayStepsFromHive() async {
+    final todayKey = _dayKey(_startOfDay(DateTime.now()));
+    final entry = _stepBox.get(todayKey);
+    todaySteps.value = entry?.steps ?? 0;
   }
 
-  Future<void> saveTodaySteps(int value) async {
-    if (_prefs == null) return;
-    todaySteps.value = value;
-    await _prefs!.setInt("todaySteps", value);
+  Future<void> saveTodayStepsToHive(int steps) async {
+    final todayKey = _dayKey(_startOfDay(DateTime.now()));
+
+    final entry = StepEntry(
+      date: _startOfDay(DateTime.now()),
+      steps: steps,
+    );
+
+    await _stepBox.put(todayKey, entry);
+    todaySteps.value = steps;
   }
 
-  // ================================================================
-  // STEP GOAL
-  // ================================================================
+  /// 🔥 Called by background pedometer
+  Future<void> incrementSteps(int delta) async {
+    final todayKey = _dayKey(_startOfDay(DateTime.now()));
+    final current = _stepBox.get(todayKey)?.steps ?? 0;
+    await saveTodayStepsToHive(current + delta);
+  }
+
+  // =======================
+  // STEP GOAL (SharedPrefs)
+  // =======================
+  Future<void> loadGoal() async {
+    stepGoal.value = _prefs?.getInt("step_goal") ?? 8000;
+  }
 
   Future<void> saveGoal(int goal) async {
-    if (_prefs == null) return;
     stepGoal.value = goal;
-    await _prefs!.setInt("step_goal", goal);
+    await _prefs?.setInt("step_goal", goal);
   }
 
-  Future<void> loadGoal() async {
-    if (_prefs == null) return;
-    stepGoal.value = _prefs!.getInt("step_goal") ?? 8000;
-  }
-
-  // ================================================================
-  // UPDATE GOAL (local + server)
-  // ================================================================
-
+  // =======================
+  // UPDATE GOAL (LOCAL + API)
+  // =======================
   Future<void> updateStepGoal(int goal) async {
     await saveGoal(goal);
 
@@ -98,22 +120,21 @@ class StepCounterController extends GetxController {
         encryptionRequired: true,
       );
 
-      if (response is http.Response) {
-        print('Error ❌ Failed to save step goal: ${response.statusCode}');
+      if (response is http.Response && response.statusCode >= 400) {
+        print("❌ Step goal save failed");
         return;
       }
 
-      print("✅ Step goal saved successfully: $response");
-    } catch (e) {
-      print('Error❌ Exception while saving step goal');
+      print("✅ Step goal synced");
+    } catch (_) {
+      print("❌ Step goal sync exception");
     }
   }
 
-  // ================================================================
-  // SAVE DAILY STEP RECORD (server)
-  // ================================================================
-
-  Future<void> saveStepRecord(int count) async {
+  // =======================
+  // DAILY RECORD SYNC (API)
+  // =======================
+  Future<void> saveStepRecordToServer() async {
     try {
       final now = DateTime.now();
 
@@ -122,23 +143,19 @@ class StepCounterController extends GetxController {
         "Month": now.month,
         "Year": now.year,
         "Time": TimeOfDay.now().format(Get.context!),
-        "Count": count,
+        "Count": todaySteps.value,
       };
 
-      final response = await ApiService.post(
+      await ApiService.post(
         stepRecord,
         payload,
         withAuth: true,
         encryptionRequired: true,
       );
 
-      if (response is http.Response && response.statusCode >= 400) {
-        print('Error ❌ Failed to save step record: ${response.statusCode}');
-      } else {
-        print("✅ Step record saved successfully!");
-      }
-    } catch (e) {
-      print('Error ❌ Exception while saving step record');
+      print("✅ Daily step record synced");
+    } catch (_) {
+      print("❌ Step record sync failed");
     }
   }
 }
