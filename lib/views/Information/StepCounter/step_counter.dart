@@ -86,23 +86,15 @@ late final StreamSubscription<BoxEvent> _hiveSub;
 void initState() {
   super.initState();
 
-  // Init animation baselines
- stepController.lastSteps = stepController.todaySteps.value;
- stepController.lastPercent = stepController.stepGoal.value == 0
-      ? 0
-      : stepController.todaySteps.value /
-          stepController.stepGoal.value;
-
-  // Initial load
+  // Load goal and steps
   stepController.loadGoal();
-  _loadTodaySteps();
+  stepController.loadTodayStepsFromHive();  // Load steps on init
   _loadWeeklyData();
 
-  // 🔥 Hive realtime listener (single source of truth)
+  // Setup Hive listener
   _hiveSub = _box.watch().listen((BoxEvent event) {
     final todayKey = _dayKey(_startOfDay(DateTime.now()));
 
-    // ✅ Update TODAY steps
     if (event.key == todayKey && event.value is StepEntry) {
       final steps = (event.value as StepEntry).steps;
 
@@ -111,7 +103,7 @@ void initState() {
       }
     }
 
-    // ✅ Update graph
+    // Refresh graph
     if (_isMonthlyView) {
       _loadMonthlyData(_selectedMonth);
     } else {
@@ -119,6 +111,7 @@ void initState() {
     }
   });
 }
+
 
 
 @override
