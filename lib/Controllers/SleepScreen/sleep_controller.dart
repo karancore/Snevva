@@ -50,12 +50,6 @@ class SleepController extends GetxController {
     deepSleepHistory[key] = duration;
 
     // 2) Save to Hive
-    // We strive to have one entry per day. We can use the date key or a composite ID.
-    // Let's check if an entry exists for this date to update it, or add new.
-    // For simplicity, we can use the "zero-hour" date as unique identifier if we wanted,
-    // but here we might just append or update.
-    // To allow updating, we should probably check existing values.
-
     final zeroDate = DateTime(date.year, date.month, date.day);
 
     // Remove existing entry for this day if any
@@ -76,105 +70,28 @@ class SleepController extends GetxController {
     }
 
     print("SavedDeepSleepData (Hive) : $key -> ${duration.inMinutes}m");
+    _updateDeepSleepSpots(); // Update graph after saving
   }
-
-  // void _updateDeepSleepSpots() {
-  //   final int todayIndex = DateTime.now().weekday - 1;
-  //   List<FlSpot> spots = [];
-  //
-  //   deepSleepHistory.forEach((dateKey, duration) {
-  //     // Parse "2025-12-10"
-  //     if (dateKey.contains("-")) {
-  //       final parts = dateKey.split("-");
-  //       final y = int.parse(parts[0]);
-  //       final m = int.parse(parts[1]);
-  //       final d = int.parse(parts[2]);
-  //
-  //       final date = DateTime(y, m, d);
-  //       final weekdayIndex = date.weekday - 1;
-  //
-  //       // Show only this week's data
-  //       if (weekdayIndex <= todayIndex) {
-  //         final hours = duration.inMinutes / 60.0;
-  //         spots.add(FlSpot(weekdayIndex.toDouble(), hours));
-  //       }
-  //     }
-  //   });
-  //
-  //   // Sort by weekday
-  //   spots.sort((a, b) => a.x.compareTo(b.x));
-  //
-  //   deepSleepSpots.value = spots;
-  // }
-  // void _updateDeepSleepSpots() {
-  //   final now = DateTime.now();
-  //
-  //   // Get Monday of the current week
-  //   final weekStart = now.subtract(Duration(days: now.weekday - 1));
-  //
-  //   List<FlSpot> spots = [];
-  //
-  //   deepSleepHistory.forEach((dateKey, duration) {
-  //     if (dateKey.contains("-")) {
-  //       final parts = dateKey.split("-");
-  //       final y = int.parse(parts[0]);
-  //       final m = int.parse(parts[1]);
-  //       final d = int.parse(parts[2]);
-  //
-  //       final date = DateTime(y, m, d);
-  //
-  //       // Include ONLY if this date is within this week
-  //       if (date.isAfter(weekStart.subtract(const Duration(days: 1))) &&
-  //           date.isBefore(now.add(const Duration(days: 1)))) {
-  //
-  //         final weekdayIndex = date.weekday - 1;
-  //         final hours = duration.inMinutes / 60.0;
-  //         deepSleepDuration.value = duration;
-  //
-  //         spots.add(FlSpot(weekdayIndex.toDouble(), hours));
-  //       }
-  //     }
-  //   });
-  //
-  //   // Sort for safety
-  //   spots.sort((a, b) => a.x.compareTo(b.x));
-  //
-  //   deepSleepSpots.value = spots;
-  // }
 
   void _updateDeepSleepSpots() {
     final now = DateTime.now();
+    // Monday of this week
+    final weekStart = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: now.weekday - 1));
 
-    // Monday of this week (0 = Monday)
-    final weekStart = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: now.weekday - 1));
+    List<FlSpot> spots = [];
 
-    // Prepare list for exactly 7 days, Mon → Sun
-    List<FlSpot> spots = List.generate(7, (i) => FlSpot(i.toDouble(), 0.0));
+    for (int i = 0; i < 7; i++) {
+       final date = weekStart.add(Duration(days: i));
+       final key = "${date.year}-${date.month}-${date.day}";
 
-    deepSleepHistory.forEach((dateKey, duration) {
-      if (!dateKey.contains("-")) return;
-
-      final parts = dateKey.split("-");
-      final y = int.parse(parts[0]);
-      final m = int.parse(parts[1]);
-      final d = int.parse(parts[2]);
-
-      final date = DateTime(y, m, d);
-
-      // Include only dates from this week
-      if (date.isBefore(weekStart) || date.isAfter(now)) return;
-
-      final weekdayIndex = date.weekday - 1;
-
-      final hours = duration.inMinutes / 60.0;
-      deepSleepDuration.value = duration;
-      spots[weekdayIndex] = FlSpot(weekdayIndex.toDouble(), hours);
-    });
-    spots.sort((a, b) => a.x.compareTo(b.x));
+       double hours = 0;
+       if (deepSleepHistory.containsKey(key)) {
+         hours = deepSleepHistory[key]!.inMinutes / 60.0;
+       }
+       // i is 0 for Mon, 1 for Tue... matching the labels
+       spots.add(FlSpot(i.toDouble(), hours));
+    }
 
     deepSleepSpots.value = spots;
   }

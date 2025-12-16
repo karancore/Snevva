@@ -24,6 +24,7 @@ class _ReminderState extends State<Reminder> {
     super.initState();
     // Load both API reminders and local alarm lists
     _loadData();
+    controller.loadAllReminderLists();
   }
 
   Future<void> _loadData() async {
@@ -205,6 +206,9 @@ class _ReminderState extends State<Reminder> {
       onConfirm: () async {
         await controller.deleteReminder(reminder);
         Navigator.pop(context);
+        setState(() {
+
+        });
       },
     );
   }

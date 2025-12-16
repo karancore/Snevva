@@ -60,6 +60,7 @@ Future<void> setupHive() async {
 
   await Hive.openBox<StepEntry>('step_history');
   await Hive.openBox<SleepLog>('sleep_log');
+  await Hive.openBox('reminders_box');
 }
 
 
