@@ -27,11 +27,10 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     ["Akshay Kumar", "15-Day Akshay Kumar-Inspire...", akImg],
   ];
   final categoryDiets = [
-    ['Ketogenic', dietIcon1],
-    ['Non-Veg', dietIcon2],
+    ['Vegetarian', dietIcon1],
+    ['Non-Vegetarian', dietIcon2],
     ['Vegan', dietIcon3],
     ['Fasting', dietIcon4],
-    ['Dash Diet', dietIcon5],
     ['Gluten-Free', dietIcon6],
   ];
 
@@ -230,6 +229,11 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     );
   }
 
+  Future<void> fetchCategoryReponse(String categoryText) async {
+    final result = await dietController.getAllDiets(context, categoryText);
+    print(result?.data);
+  }
+
   Widget dietCategoryIcons(
     double width,
     String categoryText,
@@ -238,14 +242,10 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
   ) {
     return Obx(() {
       final isSelected = dietController.selectedCategoryIndex.value == index;
+      fetchCategoryReponse(categoryText);
       return GestureDetector(
         onTap: () {
           dietController.changeCategory(index);
-          CustomSnackbar.showSnackbar(
-            context: context,
-            title: categoryText,
-            message: "Tapped",
-          );
         },
         child: Container(
           padding: const EdgeInsets.only(left: 20),

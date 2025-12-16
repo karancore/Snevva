@@ -161,14 +161,8 @@ class DrawerMenuWidget extends StatelessWidget {
                     child: OutlinedButton(
                       onPressed: () async {
                         final prefs = await SharedPreferences.getInstance();
-                        await prefs.setBool(
-                          'is_first_time_sleep',
-                          true,
-                        );
-                        await prefs.setBool(
-                          'isStepGoalSet',
-                          true,
-                        );
+                        await prefs.setBool('is_first_time_sleep', true);
+                        await prefs.setBool('isStepGoalSet', true);
 
                         await prefs.clear();
 

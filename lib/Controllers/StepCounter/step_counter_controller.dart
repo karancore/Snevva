@@ -40,53 +40,49 @@ class StepCounterController extends GetxController {
     await loadGoal();
     await loadTodayStepsFromHive();
     if (todaySteps.value % 500 == 0) {
-  saveStepRecordToServer();
-}
-
+      saveStepRecordToServer();
+    }
   }
 
   void _checkDayReset() {
-  final now = DateTime.now();
-  final lastDate = _prefs.getString("last_step_date");
+    final now = DateTime.now();
+    final lastDate = _prefs.getString("last_step_date");
 
-  final todayKey = _dayKey(now);
+    final todayKey = _dayKey(now);
 
-  if (lastDate != todayKey) {
-    todaySteps.value = 0;
-    lastSteps = 0;
-    lastPercent = 0;
-    _prefs.setString("last_step_date", todayKey);
-    _saveToHive(0);
+    if (lastDate != todayKey) {
+      todaySteps.value = 0;
+      lastSteps = 0;
+      lastPercent = 0;
+      _prefs.setString("last_step_date", todayKey);
+      _saveToHive(0);
+    }
   }
-}
 
+  //  void updateSteps(int newSteps) {
+  //     if (newSteps == todaySteps.value) return;
 
+  //     // Preserve animation baseline
+  //     lastSteps = todaySteps.value;
 
-//  void updateSteps(int newSteps) {
-//     if (newSteps == todaySteps.value) return;
+  //     todaySteps.value = newSteps; // 🔥 instant UI
+  //     _saveToHive(newSteps);
+  //   }
 
-//     // Preserve animation baseline
-//     lastSteps = todaySteps.value;
-
-//     todaySteps.value = newSteps; // 🔥 instant UI
-//     _saveToHive(newSteps);
-//   }
-
-//   /// Called by background pedometer
-//   void incrementSteps(int delta) {
-//     if (delta <= 0) return;
-//     updateSteps(todaySteps.value + delta);
-//   }
+  //   /// Called by background pedometer
+  //   void incrementSteps(int delta) {
+  //     if (delta <= 0) return;
+  //     updateSteps(todaySteps.value + delta);
+  //   }
 
   /// Called by background pedometer
   void incrementSteps(int delta) {
-  if (delta <= 0) return;
+    if (delta <= 0) return;
 
-  lastSteps = todaySteps.value;
-  todaySteps.value += delta;
-  _saveToHive(todaySteps.value);
-}
-
+    lastSteps = todaySteps.value;
+    todaySteps.value += delta;
+    _saveToHive(todaySteps.value);
+  }
 
   // =======================
   // HIVE PERSISTENCE
@@ -95,13 +91,7 @@ class StepCounterController extends GetxController {
     final today = DateTime.now();
     final key = _dayKey(today);
 
-    _stepBox.put(
-      key,
-      StepEntry(
-        date: _startOfDay(today),
-        steps: steps,
-      ),
-    );
+    _stepBox.put(key, StepEntry(date: _startOfDay(today), steps: steps));
   }
 
   Future<void> loadTodayStepsFromHive() async {
@@ -113,11 +103,9 @@ class StepCounterController extends GetxController {
   // =======================
   // DATE HELPERS
   // =======================
-  String _dayKey(DateTime d) =>
-      "${d.year}-${d.month}-${d.day}";
+  String _dayKey(DateTime d) => "${d.year}-${d.month}-${d.day}";
 
-  DateTime _startOfDay(DateTime d) =>
-      DateTime(d.year, d.month, d.day);
+  DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
 
   // =======================
   // STEP GOAL (SharedPrefs)

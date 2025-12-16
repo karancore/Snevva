@@ -1,4 +1,5 @@
 import 'dart:isolate';
+import 'package:alarm/alarm.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:snevva/Widgets/home_wrapper.dart';
 import 'package:snevva/consts/consts.dart';
@@ -6,27 +7,27 @@ import 'package:snevva/services/app_initializer.dart';
 import 'package:snevva/utils/theme.dart';
 
 void main() async {
-  // FlutterForegroundTask.initCommunicationPort();
-  // FlutterForegroundTask.init(
-  //   androidNotificationOptions: AndroidNotificationOptions(
-  //     channelId: 'sleep_channel',
-  //     channelName: 'Sleep Tracking',
-  //     channelDescription: 'Tracks sleep based on screen on/off',
-  //     channelImportance: NotificationChannelImportance.LOW,
-  //     priority: NotificationPriority.LOW,
-  //     onlyAlertOnce: true,
-  //   ),
+  FlutterForegroundTask.initCommunicationPort();
+  FlutterForegroundTask.init(
+    androidNotificationOptions: AndroidNotificationOptions(
+      channelId: 'sleep_channel',
+      channelName: 'Sleep Tracking',
+      channelDescription: 'Tracks sleep based on screen on/off',
+      channelImportance: NotificationChannelImportance.LOW,
+      priority: NotificationPriority.LOW,
+      onlyAlertOnce: true,
+    ),
 
-  //   foregroundTaskOptions: ForegroundTaskOptions(
-  //     eventAction: ForegroundTaskEventAction.repeat(30000), // 30 sec
-  //     autoRunOnBoot: true,
-  //     allowWakeLock: true,
-  //     allowWifiLock: true,
-  //   ),
-  //   iosNotificationOptions: IOSNotificationOptions(showNotification: true),
-  // );
-  // WidgetsFlutterBinding.ensureInitialized();
-  // await Alarm.init();
+    foregroundTaskOptions: ForegroundTaskOptions(
+      eventAction: ForegroundTaskEventAction.repeat(30000), // 30 sec
+      autoRunOnBoot: true,
+      allowWakeLock: true,
+      allowWifiLock: true,
+    ),
+    iosNotificationOptions: IOSNotificationOptions(showNotification: true),
+  );
+  WidgetsFlutterBinding.ensureInitialized();
+  await Alarm.init();
   final isRemembered = await initializeApp();
   runApp(MyApp(isRemembered: isRemembered));
 }

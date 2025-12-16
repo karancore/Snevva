@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/utils.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart'
     show CustomAppBar;
 import 'package:snevva/Widgets/home_wrapper.dart';
@@ -43,6 +44,11 @@ class _VitalsScreenState extends State<VitalsScreen> {
   final vitalsKey = GlobalKey<FormState>();
 
   final _controller = Get.find<VitalsController>();
+
+  Future<void> toggleVitalsCard() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isFirstTime', false);
+  }
 
   Future<void> updateVitals() async {
     int? newBPM = int.tryParse(bpmController.text);
@@ -95,6 +101,7 @@ class _VitalsScreenState extends State<VitalsScreen> {
   @override
   void initState() {
     super.initState();
+    toggleVitalsCard();
     bpmController.text = heartRate.toString();
     systolicController.text = systolic.toString();
     diastolicController.text = diastolic.toString();

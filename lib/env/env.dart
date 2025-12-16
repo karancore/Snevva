@@ -2,41 +2,46 @@ class Env {
   static const bool enableConsole = true;
   static const bool enableSnackbar = true;
 }
+
 // baseUrl
 // const String baseUrl = "https://localhost:7238";
- const String baseUrl = "https://abdmstg.coretegra.com";
-
+const String baseUrl = "https://abdmstg.coretegra.com";
 
 // send otp api
-const String senOtpEmailEndpoint = '/api/registration/enduser/sendotp/gmail/signup';
-const String senOtpPhoneEndpoint = '/api/registration/enduser/sendotp/phone/signup';
-
+const String senOtpEmailEndpoint =
+    '/api/registration/enduser/sendotp/gmail/signup';
+const String senOtpPhoneEndpoint =
+    '/api/registration/enduser/sendotp/phone/signup';
 
 // create password api
-const String createPswdEmailEndpoint = '/api/registration/enduser/verifyandcreatepassword/gmail/signup';
-const String createPswdPhoneEndpoint = '/api/registration/enduser/verifyandcreatepassword/phone/signup';
-
+const String createPswdEmailEndpoint =
+    '/api/registration/enduser/verifyandcreatepassword/gmail/signup';
+const String createPswdPhoneEndpoint =
+    '/api/registration/enduser/verifyandcreatepassword/phone/signup';
 
 // forget password otp sending api
-const String forgotEmailOtpEndpoint = '/api/registration/sendotp/gmail/forgotpassword';
-const String forgotPhoneOtpEndpoint = '/api/registration/sendotp/phone/forgotpassword';
-
+const String forgotEmailOtpEndpoint =
+    '/api/registration/sendotp/gmail/forgotpassword';
+const String forgotPhoneOtpEndpoint =
+    '/api/registration/sendotp/phone/forgotpassword';
 
 // forget password updating api
-const String forgotPasswordUpdateUsingEmailEndpoint = '/api/registration/verifyandcreatepassword/gmail/forgotpassword';
-const String forgotPasswordUpdateUsingPhoneEndpoint = '/api/registration/verifyandcreatepassword/phone/forgotpassword';
+const String forgotPasswordUpdateUsingEmailEndpoint =
+    '/api/registration/verifyandcreatepassword/gmail/forgotpassword';
+const String forgotPasswordUpdateUsingPhoneEndpoint =
+    '/api/registration/verifyandcreatepassword/phone/forgotpassword';
 
 //update email phone
 const String updateEmailOtpEndpoint = '/api/registration/sendotp/gmail/update';
 const String updatePhoneOtpEndpoint = '/api/registration/sendotp/phone/update';
-const String updatePasswordUpdateUsingEmailEndpoint = '/api/registration/verify/gmail/update';
-const String updatePasswordUpdateUsingPhoneEndpoint = '/api/registration/verify/phone/update';
-
+const String updatePasswordUpdateUsingEmailEndpoint =
+    '/api/registration/verify/gmail/update';
+const String updatePasswordUpdateUsingPhoneEndpoint =
+    '/api/registration/verify/phone/update';
 
 // sign in api
 const String signInEmailEndpoint = '/api/registration/gmail/signin';
 const String signInPhoneEndpoint = '/api/registration/phone/signin';
-
 
 // google auth api
 const String googleApi = '/api/registration/enduser/auth/goosgle2';

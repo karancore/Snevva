@@ -42,84 +42,86 @@ class _StepCounterState extends State<StepCounter> {
 
   DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
 
+  //   @override
+  // void initState() {
+  //   super.initState();
 
+  //   /// Initialize animation baselines
+  //   _lastSteps = stepController.todaySteps.value;
+  //   _lastPercent = stepController.stepGoal.value == 0
+  //       ? 0
+  //       : stepController.todaySteps.value /
+  //           stepController.stepGoal.value;
 
-//   @override
-// void initState() {
-//   super.initState();
+  //   /// Load persisted data
+  //   stepController.loadGoal();
+  //   _loadTodaySteps();
+  //   _loadWeeklyData();
+  //   // _initLocationTracking();
 
-//   /// Initialize animation baselines
-//   _lastSteps = stepController.todaySteps.value;
-//   _lastPercent = stepController.stepGoal.value == 0
-//       ? 0
-//       : stepController.todaySteps.value /
-//           stepController.stepGoal.value;
+  //   /// 🔥 UI auto-refresh (safe + guarded)
+  //   _uiRefreshTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+  //     final prefs = await SharedPreferences.getInstance();
+  //     final todaySteps = prefs.getInt("todaySteps") ?? 0;
 
-//   /// Load persisted data
-//   stepController.loadGoal();
-//   _loadTodaySteps();
-//   _loadWeeklyData();
-//   // _initLocationTracking();
+  //     // Update only if changed (prevents animation spam)
+  //     if (todaySteps != stepController.todaySteps.value) {
+  //       stepController.todaySteps.value = todaySteps;
+  //     }
 
-//   /// 🔥 UI auto-refresh (safe + guarded)
-//   _uiRefreshTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
-//     final prefs = await SharedPreferences.getInstance();
-//     final todaySteps = prefs.getInt("todaySteps") ?? 0;
+  //     // Refresh graph data
+  //     if (_isMonthlyView) {
+  //       _loadMonthlyData(_selectedMonth);
+  //     } else {
+  //       _loadWeeklyData();
+  //     }
+  //   });
+  // }
 
-//     // Update only if changed (prevents animation spam)
-//     if (todaySteps != stepController.todaySteps.value) {
-//       stepController.todaySteps.value = todaySteps;
-//     }
+  late final StreamSubscription<BoxEvent> _hiveSub;
 
-//     // Refresh graph data
-//     if (_isMonthlyView) {
-//       _loadMonthlyData(_selectedMonth);
-//     } else {
-//       _loadWeeklyData();
-//     }
-//   });
-// }
+  @override
+  void initState() {
+    super.initState();
 
-late final StreamSubscription<BoxEvent> _hiveSub;
+    toggleStepsCard();
 
-@override
-void initState() {
-  super.initState();
+    // Load goal and steps
+    stepController.loadGoal();
+    stepController.loadTodayStepsFromHive(); // Load steps on init
+    _loadWeeklyData();
 
-  // Load goal and steps
-  stepController.loadGoal();
-  stepController.loadTodayStepsFromHive();  // Load steps on init
-  _loadWeeklyData();
+    // Setup Hive listener
+    _hiveSub = _box.watch().listen((BoxEvent event) {
+      final todayKey = _dayKey(_startOfDay(DateTime.now()));
 
-  // Setup Hive listener
-  _hiveSub = _box.watch().listen((BoxEvent event) {
-    final todayKey = _dayKey(_startOfDay(DateTime.now()));
+      if (event.key == todayKey && event.value is StepEntry) {
+        final steps = (event.value as StepEntry).steps;
 
-    if (event.key == todayKey && event.value is StepEntry) {
-      final steps = (event.value as StepEntry).steps;
-
-      if (steps != stepController.todaySteps.value) {
-        stepController.todaySteps.value = steps;
+        if (steps != stepController.todaySteps.value) {
+          stepController.todaySteps.value = steps;
+        }
       }
-    }
 
-    // Refresh graph
-    if (_isMonthlyView) {
-      _loadMonthlyData(_selectedMonth);
-    } else {
-      _loadWeeklyData();
-    }
-  });
-}
+      // Refresh graph
+      if (_isMonthlyView) {
+        _loadMonthlyData(_selectedMonth);
+      } else {
+        _loadWeeklyData();
+      }
+    });
+  }
 
+  Future<void> toggleStepsCard() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isStepGoalSet', false);
+  }
 
-
-@override
-void dispose() {
-  _hiveSub.cancel();
-  super.dispose();
-}
-
+  @override
+  void dispose() {
+    _hiveSub.cancel();
+    super.dispose();
+  }
 
   // @override
   // void dispose() {
@@ -134,8 +136,7 @@ void dispose() {
     final todayKey = _dayKey(_startOfDay(DateTime.now()));
     final entry = _box.get(todayKey);
     if (!mounted) return;
-      stepController.todaySteps.value = entry?.steps ?? 0;
-
+    stepController.todaySteps.value = entry?.steps ?? 0;
   }
 
   Future<void> _loadWeeklyData() async {
@@ -262,113 +263,118 @@ void dispose() {
           children: [
             // ===== STEP PROGRESS =====
             Stack(
-  alignment: Alignment.center,
-  children: [
-    Column(
-      children: [
-        Image.asset(run, width: 80, height: 80),
-        const SizedBox(height: 50),
-      ],
-    ),
+              alignment: Alignment.center,
+              children: [
+                Column(
+                  children: [
+                    Image.asset(run, width: 80, height: 80),
+                    const SizedBox(height: 50),
+                  ],
+                ),
 
-    /// ✅ PROGRESS RING (smooth, no reset)
-    Obx(() {
-      final percent = (stepController.todaySteps.value /
-              stepController.stepGoal.value)
-          .clamp(0.0, 1.0);
+                /// ✅ PROGRESS RING (smooth, no reset)
+                Obx(() {
+                  final percent = (stepController.todaySteps.value /
+                          stepController.stepGoal.value)
+                      .clamp(0.0, 1.0);
 
-      final tween = Tween<double>(
-        begin: stepController.lastPercent,
-        end: percent,
-      );
+                  final tween = Tween<double>(
+                    begin: stepController.lastPercent,
+                    end: percent,
+                  );
 
-      stepController.lastPercent = percent;
+                  stepController.lastPercent = percent;
 
-      return TweenAnimationBuilder<double>(
-        tween: tween,
-        duration: const Duration(milliseconds: 800),
-        builder: (_, val, __) => SemiCircularProgress(
-          percent: val,
-          radius: width / 3,
-          strokeWidth: 12,
-          color: AppColors.primaryColor,
-          backgroundColor: Colors.grey.withOpacity(0.3),
-        ),
-      );
-    }),
+                  return TweenAnimationBuilder<double>(
+                    tween: tween,
+                    duration: const Duration(milliseconds: 800),
+                    builder:
+                        (_, val, __) => SemiCircularProgress(
+                          percent: val,
+                          radius: width / 3,
+                          strokeWidth: 12,
+                          color: AppColors.primaryColor,
+                          backgroundColor: Colors.grey.withOpacity(0.3),
+                        ),
+                  );
+                }),
 
-    Column(
-      children: [
-        const SizedBox(height: 90),
+                Column(
+                  children: [
+                    const SizedBox(height: 90),
 
-        /// ✅ STEP COUNTER (incremental animation)
-        Obx(() {
-  final steps = stepController.todaySteps.value;
+                    /// ✅ STEP COUNTER (incremental animation)
+                    Obx(() {
+                      final steps = stepController.todaySteps.value;
 
-  final tween = IntTween(
-    begin: stepController.lastSteps,
-    end: steps,
-  );
+                      final tween = IntTween(
+                        begin: stepController.lastSteps,
+                        end: steps,
+                      );
 
-  stepController.lastSteps = steps;
+                      stepController.lastSteps = steps;
 
-  return TweenAnimationBuilder<int>(
-    tween: tween,
-    duration: const Duration(milliseconds: 600),
-    builder: (_, val, __) => Text(
-      "$val",
-      style: const TextStyle(fontSize: 38, fontWeight: FontWeight.bold),
-    ),
-  );
-}),
+                      return TweenAnimationBuilder<int>(
+                        tween: tween,
+                        duration: const Duration(milliseconds: 600),
+                        builder:
+                            (_, val, __) => Text(
+                              "$val",
+                              style: const TextStyle(
+                                fontSize: 38,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                      );
+                    }),
 
+                    const Text('Steps', style: TextStyle(fontSize: 16)),
 
-        const Text('Steps', style: TextStyle(fontSize: 16)),
-
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Obx(() => Text('Goal: ${stepController.stepGoal.value}')),
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: () async {
-                final updated = await showStepCounterBottomSheet(
-                  context,
-                  isDarkMode,
-                );
-                if (updated != null) {
-                  stepController.updateStepGoal(updated);
-                }
-              },
-              child: SvgPicture.asset(
-                editIcon,
-                width: 15,
-                height: 15,
-              ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Obx(
+                          () => Text('Goal: ${stepController.stepGoal.value}'),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () async {
+                            final updated = await showStepCounterBottomSheet(
+                              context,
+                              isDarkMode,
+                            );
+                            if (updated != null) {
+                              stepController.updateStepGoal(updated);
+                            }
+                          },
+                          child: SvgPicture.asset(
+                            editIcon,
+                            width: 15,
+                            height: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
-      ],
-    ),
-  ],
-),
 
             const SizedBox(height: 30),
 
             // ===== STATS =====
             Obx(() {
-  final steps = stepController.todaySteps.value;
+              final steps = stepController.todaySteps.value;
 
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-    children: [
-      _infoItem(dis, '${(steps * 0.0008).toStringAsFixed(2)} km'),
-      _infoItem(cal, '${(steps * 0.04).toStringAsFixed(0)} cal'),
-      _infoItem(time, '${(steps / 100).toStringAsFixed(0)} min'),
-    ],
-  );
-}),
-
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _infoItem(dis, '${(steps * 0.0008).toStringAsFixed(2)} km'),
+                  _infoItem(cal, '${(steps * 0.04).toStringAsFixed(0)} cal'),
+                  _infoItem(time, '${(steps / 100).toStringAsFixed(0)} min'),
+                ],
+              );
+            }),
 
             const SizedBox(height: 25),
 

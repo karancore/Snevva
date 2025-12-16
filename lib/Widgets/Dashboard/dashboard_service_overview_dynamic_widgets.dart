@@ -284,7 +284,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                   text: TextSpan(
                     text:
                         sleepController.deepSleepDuration.value == null
-                            ? "--"
+                            ? "8 hr"
                             : fmtDuration(
                               sleepController.deepSleepDuration.value!,
                             ),

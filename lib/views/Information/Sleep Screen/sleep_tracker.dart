@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
@@ -40,7 +41,13 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
   void initState() {
     super.initState(); // Always call super.initState() first!
     print("Init Sleep Tracker");
+    toggleSleepCard();
     sleepController.loadDeepSleepData();
+  }
+
+  Future<void> toggleSleepCard() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_first_time_sleep', false);
   }
 
   Future<void> _pickTime(BuildContext context, bool isBedtime) async {

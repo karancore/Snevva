@@ -76,21 +76,24 @@ class SleepController extends GetxController {
   void _updateDeepSleepSpots() {
     final now = DateTime.now();
     // Monday of this week
-    final weekStart = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: now.weekday - 1));
+    final weekStart = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
 
     List<FlSpot> spots = [];
 
     for (int i = 0; i < 7; i++) {
-       final date = weekStart.add(Duration(days: i));
-       final key = "${date.year}-${date.month}-${date.day}";
+      final date = weekStart.add(Duration(days: i));
+      final key = "${date.year}-${date.month}-${date.day}";
 
-       double hours = 0;
-       if (deepSleepHistory.containsKey(key)) {
-         hours = deepSleepHistory[key]!.inMinutes / 60.0;
-       }
-       // i is 0 for Mon, 1 for Tue... matching the labels
-       spots.add(FlSpot(i.toDouble(), hours));
+      double hours = 0;
+      if (deepSleepHistory.containsKey(key)) {
+        hours = deepSleepHistory[key]!.inMinutes / 60.0;
+      }
+      // i is 0 for Mon, 1 for Tue... matching the labels
+      spots.add(FlSpot(i.toDouble(), hours));
     }
 
     deepSleepSpots.value = spots;

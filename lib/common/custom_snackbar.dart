@@ -4,27 +4,28 @@ import '../consts/colors.dart';
 import 'animted_reminder_bar.dart';
 
 class CustomSnackbar {
-
   OverlayEntry? overlay;
 
   void showReminderBar(BuildContext context) {
-    final bool isDarkMode = MediaQuery.of(context).platformBrightness == Brightness.dark;
+    final bool isDarkMode =
+        MediaQuery.of(context).platformBrightness == Brightness.dark;
 
     final double topPadding =
         MediaQuery.of(context).padding.top + 10; // 👈 safe area + 10
 
-
-    overlay = OverlayEntry(builder: (context) {
-      return Positioned(
-        top: topPadding,
-        left: 0,
-        right: 0,
-        child: Material(
-          color: isDarkMode ? white : black,
-          child: AnimatedReminderBar(show: true),
-        ),
-      );
-    });
+    overlay = OverlayEntry(
+      builder: (context) {
+        return Positioned(
+          top: topPadding,
+          left: 0,
+          right: 0,
+          child: Material(
+            color: isDarkMode ? white : black,
+            child: AnimatedReminderBar(show: true),
+          ),
+        );
+      },
+    );
 
     Overlay.of(context).insert(overlay!);
 
@@ -44,9 +45,7 @@ class CustomSnackbar {
         behavior: SnackBarBehavior.floating,
         backgroundColor: Colors.red,
         margin: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         content: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -63,12 +62,7 @@ class CustomSnackbar {
                     ),
                   ),
                   const SizedBox(height: 3),
-                  Text(
-                    message,
-                    style: const TextStyle(
-                      color: Colors.white,
-                    ),
-                  ),
+                  Text(message, style: const TextStyle(color: Colors.white)),
                 ],
               ),
             ),
@@ -78,6 +72,7 @@ class CustomSnackbar {
       ),
     );
   }
+
   static void showSuccess({
     required BuildContext context,
     required String title,
@@ -88,9 +83,7 @@ class CustomSnackbar {
         behavior: SnackBarBehavior.floating,
         backgroundColor: Colors.green,
         margin: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         content: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -107,12 +100,7 @@ class CustomSnackbar {
                     ),
                   ),
                   const SizedBox(height: 3),
-                  Text(
-                    message,
-                    style: const TextStyle(
-                      color: Colors.white,
-                    ),
-                  ),
+                  Text(message, style: const TextStyle(color: Colors.white)),
                 ],
               ),
             ),
@@ -122,6 +110,7 @@ class CustomSnackbar {
       ),
     );
   }
+
   static void showSnackbar({
     required BuildContext context,
     required String title,
@@ -132,9 +121,7 @@ class CustomSnackbar {
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppColors.primaryColor,
         margin: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         content: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -151,12 +138,7 @@ class CustomSnackbar {
                     ),
                   ),
                   const SizedBox(height: 3),
-                  Text(
-                    message,
-                    style: const TextStyle(
-                      color: Colors.white,
-                    ),
-                  ),
+                  Text(message, style: const TextStyle(color: Colors.white)),
                 ],
               ),
             ),

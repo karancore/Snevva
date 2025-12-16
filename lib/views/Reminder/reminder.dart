@@ -129,7 +129,7 @@ class _ReminderState extends State<Reminder> {
                                     ),
                                     onPressed: () async {
                                       final result = await Get.to(
-                                        () => AddReminder(reminder: reminder),
+                                            () => AddReminder(reminder: reminder),
                                       );
                                       if (result == true) {
                                         await _loadData();
@@ -206,9 +206,7 @@ class _ReminderState extends State<Reminder> {
       onConfirm: () async {
         await controller.deleteReminder(reminder);
         Navigator.pop(context);
-        setState(() {
-
-        });
+        setState(() {});
       },
     );
   }
@@ -275,10 +273,11 @@ class _ReminderState extends State<Reminder> {
           children: [
             if (reminder['RemindFrequencyHour'] != null &&
                 reminder['RemindFrequencyHour'] > 0)
+
               Text(
-                "Frequency: Every ${reminder['RemindFrequencyHour']} hours",
-                style: TextStyle(fontSize: 12, color: Color(0xff878787)),
-              ),
+                  "You have to drink water ${controller.timesPerDayController} times",
+                  style: TextStyle(fontSize: 12, color: Color(0xff878787)),
+                ),
             if (reminder['RemindFrequencyCount'] != null &&
                 reminder['RemindFrequencyCount'] > 0)
               Text(
@@ -380,10 +379,13 @@ class _ReminderState extends State<Reminder> {
               "Title: ${reminder['Title'] ?? 'N/A'}",
               style: TextStyle(fontSize: 12, color: Color(0xff878787)),
             ),
-            Text(
-              "Notes: ${reminder['Description'] ?? 'N/A'}",
-              style: TextStyle(fontSize: 12, color: Color(0xff878787)),
-            ),
+            if (controller.notesController.text.isEmpty)
+              SizedBox.shrink()
+            else
+              Text(
+                "Notes: ${reminder['Description'] ?? 'N/A'}",
+                style: TextStyle(fontSize: 12, color: Color(0xff878787)),
+              ),
           ],
         );
 

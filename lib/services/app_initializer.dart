@@ -23,7 +23,6 @@ import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 
-
 // ====================================================================
 // 1️⃣ APP PERMISSIONS
 // ====================================================================
@@ -42,7 +41,6 @@ Future<void> requestAllPermissions() async {
     openAppSettings();
   }
 }
-
 
 // ====================================================================
 // 2️⃣ HIVE INITIALIZATION
@@ -63,7 +61,6 @@ Future<void> setupHive() async {
   await Hive.openBox('reminders_box');
 }
 
-
 // ====================================================================
 // 3️⃣ BACKGROUND SERVICE ENTRYPOINT
 // ====================================================================
@@ -82,7 +79,6 @@ void onBackgroundStart(ServiceInstance service) async {
   // ✅ Background pedometer must write to Hive
   // via StepCounterController.incrementSteps(delta)
 }
-
 
 // ====================================================================
 // 4️⃣ MAIN INITIALIZER

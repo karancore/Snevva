@@ -58,8 +58,11 @@ class DietPlanController extends GetxController {
   ) async {
     try {
       isLoading.value = true;
+      if (categoryText.isEmpty) {
+        categoryText = " Non-Vegetarian";
+      }
       Map<String, dynamic> payload = {
-        "Tags": ["General", "Vegetarian"],
+        "Tags": ["General", categoryText],
         "FetchAll": true,
       };
       final response = await ApiService.post(
