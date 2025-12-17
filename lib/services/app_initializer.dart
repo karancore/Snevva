@@ -97,7 +97,7 @@ Future<bool> initializeApp() async {
   Get.put(StepCounterController(), permanent: true);
 
   // Start pedometer background service
-  // await initBackgroundService();
+  await initBackgroundService();
 
   // Runtime permissions
   // await requestAllPermissions();

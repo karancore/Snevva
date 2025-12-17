@@ -64,14 +64,23 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
     final month = localStorageManager.userMap['MonthOfBirth'];
     final year = localStorageManager.userMap['YearOfBirth'];
 
-    if (day != null && month != null && year != null) {
-      dob = DateTime(year, month, day);
-    } else {
+    if (day == 0 || day == null || month == 0 || month == null || year == 0 || year == null) {
       dob = DateTime.now();
       localStorageManager.userMap['DayOfBirth'] = dob!.day;
       localStorageManager.userMap['MonthOfBirth'] = dob!.month;
       localStorageManager.userMap['YearOfBirth'] = dob!.year;
+    } else {
+      dob = DateTime(year, month, day);
     }
+
+    // if (day != null && month != null && year != null) {
+    //   dob = DateTime(year, month, day);
+    // } else {
+    //   dob = DateTime.now();
+    //   localStorageManager.userMap['DayOfBirth'] = dob!.day;
+    //   localStorageManager.userMap['MonthOfBirth'] = dob!.month;
+    //   localStorageManager.userMap['YearOfBirth'] = dob!.year;
+    // }
 
     initialProfileController.userDob.value =
         "${dob!.day.toString().padLeft(2, '0')}/${dob!.month.toString().padLeft(2, '0')}/${dob!.year}";
@@ -93,11 +102,13 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
     final month = localStorageManager.userMap['MonthOfBirth'];
     final year = localStorageManager.userMap['YearOfBirth'];
 
-    if (day != null && month != null && year != null) {
+    if (day != 0 && month != 0 && year != 0) {
       dob = DateTime(year, month, day);
     } else {
       // If not found, default to today
       dob = DateTime.now();
+      print("DOB not found in local storage, defaulting to today: $dob");
+
       localStorageManager.userMap['DayOfBirth'] = dob!.day;
       localStorageManager.userMap['MonthOfBirth'] = dob!.month;
       localStorageManager.userMap['YearOfBirth'] = dob!.year;
@@ -512,13 +523,14 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                           // ================= SAVE =================
                                           print('💾 Calling saveData()...');
                                           final bool result =
-                                              await initialProfileController.saveData(
-                                                nameModel,
-                                                genderModel,
-                                                dobModel,
-                                                occupationModel,
-                                                context,
-                                              );
+                                              await initialProfileController
+                                                  .saveData(
+                                                    nameModel,
+                                                    genderModel,
+                                                    dobModel,
+                                                    occupationModel,
+                                                    context,
+                                                  );
 
                                           //await initialProfileController.uploadProfilePicture(context);
 

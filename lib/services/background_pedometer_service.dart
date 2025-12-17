@@ -3,86 +3,68 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:timezone/timezone.dart';
-import 'package:timezone/data/latest.dart';
 
 import '../models/steps_model.dart';
 
-/// Background entry point for pedometer service
 @pragma("vm:entry-point")
 Future<bool> backgroundEntry(ServiceInstance service) async {
   try {
-    // Initialize Dart plugins FIRST
     DartPluginRegistrant.ensureInitialized();
 
-    // CRITICAL: Set foreground notification IMMEDIATELY on Android
-    // This MUST happen before any other async operations to prevent
-    // ForegroundServiceDidNotStartInTimeException
+    // Foreground service (Android)
     if (service is AndroidServiceInstance) {
       service.setAsForegroundService();
       service.setForegroundNotificationInfo(
         title: "Step Tracking",
-        content: "Tracking your steps in the background",
+        content: "Tracking your steps in background",
       );
     }
 
-    // Timezone setup
-    initializeTimeZones();
-
-    // SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-
-    // Hive setup
+    // Init Hive
     await Hive.initFlutter();
     if (!Hive.isAdapterRegistered(StepEntryAdapter().typeId)) {
       Hive.registerAdapter(StepEntryAdapter());
     }
-    final box = await Hive.openBox<StepEntry>("step_history");
+    final box = await Hive.openBox<StepEntry>('step_history');
 
-    // Track last step count to calculate diff
-    int? lastRawSteps;
+    // SharedPrefs (ONCE)
+    final prefs = await SharedPreferences.getInstance();
 
-    // Listen to pedometer updates
+    // Listen to pedometer
     Pedometer.stepCountStream.listen(
       (StepCount event) async {
-        try {
-          final int raw = event.steps;
-          final now = TZDateTime.now(local);
-          final todayKey = "${now.year}-${now.month}-${now.day}";
+        final now = DateTime.now();
+        final todayKey = "${now.year}-${now.month}-${now.day}";
 
-          StepEntry? todayEntry = box.get(todayKey);
+        // Load last raw steps
+        final lastRawSteps =
+            prefs.getInt('lastRawSteps') ?? event.steps;
 
-          if (lastRawSteps == null) {
-            lastRawSteps = raw;
-            return;
-          }
+        int diff = event.steps - lastRawSteps;
+        if (diff < 0) diff = 0;
 
-          int diff = raw - lastRawSteps!;
-          if (diff < 0) diff = 0;
+        final todayEntry = box.get(todayKey);
+        final newSteps = (todayEntry?.steps ?? 0) + diff;
 
-          final newSteps = (todayEntry?.steps ?? 0) + diff;
+        // Save
+        await box.put(
+          todayKey,
+          StepEntry(date: now, steps: newSteps),
+        );
 
-          // Save in Hive
-          await box.put(todayKey, StepEntry(date: now, steps: newSteps));
+        await prefs.setInt('todaySteps', newSteps);
+        await prefs.setInt('lastRawSteps', event.steps);
 
-          // Save in SharedPreferences
-          await prefs.setInt("todaySteps", newSteps);
-
-          print("📌 BG STEPS UPDATED: $newSteps");
-
-          lastRawSteps = raw;
-        } catch (e) {
-          print("❌ Error in pedometer listener: $e");
-        }
+        print("👣 Steps updated → $newSteps");
       },
-      onError: (error) {
-        print("❌ Pedometer stream error: $error");
+      onError: (e) {
+        print("❌ Pedometer error: $e");
       },
     );
 
     return true;
   } catch (e) {
-    print("❌ Error in backgroundEntry: $e");
+    print("❌ Background service failed: $e");
     return false;
   }
 }
