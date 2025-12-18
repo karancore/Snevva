@@ -53,7 +53,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     controller.weightValue =
         (weightValue is num) ? weightValue.toStringAsFixed(2) : '';
 
-    controller.gender.value = (localStorageManager.userMap['Gender']?.toString() ?? '');
+    controller.gender.value =
+        (localStorageManager.userMap['Gender']?.toString() ?? '');
 
     controller.occupation =
         localStorageManager.userMap['OccupationData']?['Name']?.toString() ??

@@ -100,7 +100,7 @@ Future<bool> initializeApp() async {
   await initBackgroundService();
 
   // Runtime permissions
-  // await requestAllPermissions();
+  await requestAllPermissions();
 
   // Notifications
   final notifService = Get.put(NotificationService());

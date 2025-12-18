@@ -14,17 +14,16 @@ class StepCounterController extends GetxController {
   // =======================
   // OBSERVABLE STATE
   // =======================
-  final RxInt todaySteps = 0.obs;
-  final RxInt stepGoal = 8000.obs;
+  RxInt todaySteps = 0.obs;
+  RxInt stepGoal = 8000.obs;
 
   int lastSteps = 0;
-  double lastPercent = 0;
+  double lastPercent = 0.0;
 
   // late final Box<StepEntry> _stepBox;
-  
-  late  Box<StepEntry> _stepBox;
-  late SharedPreferences _prefs;
 
+  late Box<StepEntry> _stepBox;
+  late SharedPreferences _prefs;
 
   // =======================
   // INIT
@@ -36,10 +35,10 @@ class StepCounterController extends GetxController {
   }
 
   Future<void> _init() async {
-  _prefs = await SharedPreferences.getInstance(); // ✅ FIRST
-  _stepBox = Hive.box<StepEntry>('step_history');
+    _prefs = await SharedPreferences.getInstance(); // ✅ FIRST
+    _stepBox = Hive.box<StepEntry>('step_history');
 
-  _checkDayReset(); // ✅ now safe
+    _checkDayReset(); // ✅ now safe
 
     await loadGoal();
     await loadTodayStepsFromHive();
@@ -63,28 +62,27 @@ class StepCounterController extends GetxController {
     }
   }
 
-  //  void updateSteps(int newSteps) {
-  //     if (newSteps == todaySteps.value) return;
+  void updateSteps(int newSteps) {
+    lastSteps = todaySteps.value; // 👈 store previous
+    todaySteps.value = newSteps;
 
-  //     // Preserve animation baseline
-  //     lastSteps = todaySteps.value;
-
-  //     todaySteps.value = newSteps; // 🔥 instant UI
-  //     _saveToHive(newSteps);
-  //   }
-
-  //   /// Called by background pedometer
-  //   void incrementSteps(int delta) {
-  //     if (delta <= 0) return;
-  //     updateSteps(todaySteps.value + delta);
-  //   }
+    lastPercent = stepGoal.value == 0
+        ? 0
+        : lastSteps / stepGoal.value;
+  }
 
   /// Called by background pedometer
   void incrementSteps(int delta) {
     if (delta <= 0) return;
 
+    // 🔥 store previous values for animation
     lastSteps = todaySteps.value;
+    lastPercent = stepGoal.value == 0 ? 0 : todaySteps.value / stepGoal.value;
+
+    // 🔥 update reactive value
     todaySteps.value += delta;
+
+    // 🔥 persist
     _saveToHive(todaySteps.value);
   }
 
@@ -98,10 +96,11 @@ class StepCounterController extends GetxController {
     _stepBox.put(key, StepEntry(date: _startOfDay(today), steps: steps));
   }
 
-  Future<void> loadTodayStepsFromHive() async {
+  Future<int> loadTodayStepsFromHive() async {
     final todayKey = _dayKey(DateTime.now());
+
     final entry = _stepBox.get(todayKey);
-    todaySteps.value = entry?.steps ?? 0;
+    return todaySteps.value = entry?.steps ?? 0;
   }
 
   // =======================

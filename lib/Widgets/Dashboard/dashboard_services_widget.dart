@@ -8,6 +8,7 @@ import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.d
 import 'package:snevva/views/Information/mental_wellness_screen.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
+import 'package:snevva/views/WomenHealth/women_health_screen.dart';
 import '../../consts/consts.dart';
 import '../../views/Information/HydrationScreens/hydration_screen.dart';
 import '../../views/Information/Sleep Screen/sleep_bottom_sheet.dart';
@@ -43,7 +44,6 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
       isLoading = false; // Set loading to false once data is loaded
       selectedGender = localStorageManager.userMap['Gender'];
       gender.value = selectedGender ?? localgender ?? 'Unknown';
-      
     });
   }
 
@@ -94,29 +94,21 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
                 widgetText: 'Steps Count',
                 widgetImg: stepsTrackingIcon,
                 onTap: () async {
-                  print("🔵 Step 1: Widget tapped");
                   final prefs = await SharedPreferences.getInstance();
                   final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
-                  print("🔵 Step 2: isGoalSet = $isGoalSet");
-      
+
                   final stepController = Get.find<StepCounterController>();
-      
+
                   if (!isGoalSet) {
-                    print("🔵 Step 3: Showing bottom sheet");
-      
                     final goal = await showStepCounterBottomSheet(
                       context,
                       isDarkMode,
                     );
-      
-                    print("🔵 Step 4: Bottom sheet returned goal = $goal");
-      
+
                     if (goal != null) {
                       await prefs.setBool('isStepGoalSet', true);
                       await prefs.setInt('stepGoalValue', goal);
-      
-                      print("🔵 Step 5: Navigate FIRST");
-      
+
                       if (!context.mounted) return;
                       Navigator.push(
                         context,
@@ -124,22 +116,16 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
                           builder: (_) => StepCounter(customGoal: goal),
                         ),
                       );
-      
-                      print("🔵 Step 6: Now update goal in BACKGROUND (safe)");
-      
+
                       Future.microtask(() async {
                         await stepController.updateStepGoal(goal);
                       });
                     }
                   } else {
                     final goal = prefs.getInt('stepGoalValue') ?? 10000;
-      
-                    print("🔵 Context mounted: ${context.mounted}");
-      
+
                     if (!context.mounted) return;
-      
-                    print("🔵 Navigating immediately");
-      
+
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -149,7 +135,7 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
                   }
                 },
               ),
-      
+
               // DashboardServiceWidgetItems(
               //   widgetText: 'Steps Count',
               //   widgetImg: stepsTrackingIcon,
@@ -218,14 +204,14 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
                   final prefs = await SharedPreferences.getInstance();
                   final isFirstSleep =
                       prefs.getBool('is_first_time_sleep') ?? false;
-      
+
                   if (isFirstSleep) {
                     final agreed = await showSleepBottomSheetModal(
                       context,
                       isDarkMode,
                       height,
                     );
-      
+
                     if (agreed == true) {
                       await prefs.setBool(
                         'is_first_time_sleep',
@@ -257,16 +243,29 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
                 DashboardServiceWidgetItems(
                   widgetText: 'Women Health',
                   widgetImg: womenIcon,
-                  onTap: () {
-                    showWomenBottomSheetsModal(
-                      context,
-                      isDarkMode,
-                      width,
-                      height,
-                    );
+                  onTap: () async {
+                    final prefs = await SharedPreferences.getInstance();
+                    final isFirstWomen =
+                        prefs.getBool('is_first_time_women') ?? true;
+
+                    if (isFirstWomen) {
+                      final agreed = await showWomenBottomSheetsModal(
+                        context,
+                        isDarkMode,
+                        width,
+                        height,
+                      );
+
+                      if (agreed == true) {
+                        await prefs.setBool('is_first_time_women', false);
+                        Get.to(() => WomenHealthScreen());
+                      }
+                    } else {
+                      Get.to(() => WomenHealthScreen());
+                    }
                   },
                 ),
-      
+
               if (gender != 'Female')
                 DashboardServiceWidgetItems(
                   widgetText: 'BMI Calculator',
@@ -293,7 +292,7 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
               //     Get.to(() => BmiCal());
               //   },
               // ),
-      
+
               //SizedBox(height: 80, width: 55),
             ],
           ),

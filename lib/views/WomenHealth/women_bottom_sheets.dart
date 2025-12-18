@@ -37,9 +37,15 @@ class _WomenBottomSheetsState extends State<WomenBottomSheets> {
 
   late final List<Widget> _pages;
 
+  Future<void> toggleWomenBottomCard() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool('is_first_time_women', false);
+  }
+
   @override
   void initState() {
     super.initState();
+    toggleWomenBottomCard();
 
     _pages = [
       CommonQuestionBottomSheet(
@@ -109,8 +115,7 @@ class _WomenBottomSheetsState extends State<WomenBottomSheets> {
           prefs.setBool('women_health_questions_completed', true);
         });
 
-        Get.back();
-        Get.to(() => WomenHealthScreen());
+        Navigator.pop(context, true);
       }
     }
   }
@@ -135,13 +140,13 @@ class _WomenBottomSheetsState extends State<WomenBottomSheets> {
   }
 }
 
-void showWomenBottomSheetsModal(
+Future<bool?> showWomenBottomSheetsModal(
   BuildContext context,
   bool isDarkMode,
   double width,
   double height,
 ) {
-  showModalBottomSheet(
+  return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,

@@ -33,7 +33,14 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
     final waterController = Get.find<HydrationStatController>();
     final vitalController = Get.find<VitalsController>();
     final SleepController sleepController = Get.put(SleepController());
+    bool _loaded = false;
 
+    if (!_loaded) {
+      _loaded = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        sleepController.loadDeepSleepData();
+      });
+    }
     return Column(
       children: [
         Row(
@@ -280,14 +287,10 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
               widgetIcon: sleepTrackerIcon,
               width: width,
               valueText: Obx(() {
+                final d = sleepController.deepSleepDuration.value;
                 return RichText(
                   text: TextSpan(
-                    text:
-                        sleepController.deepSleepDuration.value == null
-                            ? "8 hr"
-                            : fmtDuration(
-                              sleepController.deepSleepDuration.value!,
-                            ),
+                    text: d == null ? "8h 00m" : fmtDuration(d),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,

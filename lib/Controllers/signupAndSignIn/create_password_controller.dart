@@ -116,7 +116,6 @@ class CreatePasswordController extends GetxController {
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
-        
 
         confirmPasswordController.clear();
         passwordController.clear();
@@ -212,7 +211,7 @@ class CreatePasswordController extends GetxController {
         );
 
         Get.offAll(() => ProfileSetupInitial()); // 👈 clears previous stack
-      }else{
+      } else {
         print('❌ HTTP Error: ${response.statusCode} - ${response.body}');
         CustomSnackbar.showError(
           context: context,

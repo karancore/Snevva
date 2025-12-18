@@ -50,6 +50,10 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
 
         final randomTip = controller.randomTip;
         final List<dynamic> randomTips = controller.randomTips;
+        final cdnUrl = randomTip?["ThumbnailMedia"]?["CdnUrl"];
+        // final firstTipUrl = ?["ThumbnailMedia"]?["CdnUrl"];
+        // final secondTipUrl = randomTip?["ThumbnailMedia"]?["CdnUrl"];
+
 
         return SingleChildScrollView(
           child: Column(
@@ -75,8 +79,10 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
                     borderRadius: BorderRadius.circular(16),
                     child: CachedNetworkImage(
                       imageUrl:
-                          randomTip?["ThumbnailMedia"]?["CdnUrl"] ??
-                          "https://d3byuuhm0bg21i.cloudfront.net/derivatives/c3d47d00-8a25-46ef-bba3-ec5609c49b08/thumb.webp",
+                          cdnUrl != null && cdnUrl.isNotEmpty
+                              ? 'https://$cdnUrl'
+                              : "https://d3byuuhm0bg21i.cloudfront.net/derivatives/c3d47d00-8a25-46ef-bba3-ec5609c49b08/thumb.webp",
+
                       height: 200,
                       width: double.infinity,
                       fit: BoxFit.cover,
@@ -149,6 +155,9 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
                         count > secondIndex
                             ? controller.randomTips[secondIndex]
                             : null;
+                    //
+                    print('https://${firstTip?["ThumbnailMedia"]?["CdnUrl"]}');
+                    print('https://${secondTip?["ThumbnailMedia"]?["CdnUrl"]}');
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 16.0),
@@ -159,8 +168,9 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
                                 firstTip != null
                                     ? _buildTipCard(
                                       image:
-                                          firstTip["ThumbnailMedia"]?["CdnUrl"] ??
-                                          "",
+                                          cdnUrl != null && cdnUrl.isNotEmpty
+                                              ? 'https://${firstTip?["ThumbnailMedia"]?["CdnUrl"]}'
+                                              : "https://d3byuuhm0bg21i.cloudfront.net/derivatives/c3d47d00-8a25-46ef-bba3-ec5609c49b08/thumb.webp",
                                       heading: firstTip["Heading"] ?? "",
                                       title: firstTip["Title"] ?? "",
                                       onButtonTap:
@@ -178,8 +188,9 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
                                 secondTip != null
                                     ? _buildTipCard(
                                       image:
-                                          secondTip["ThumbnailMedia"]?["CdnUrl"] ??
-                                          "",
+                                          cdnUrl != null && cdnUrl.isNotEmpty
+                                              ? 'https://${secondTip?["ThumbnailMedia"]?["CdnUrl"]}'
+                                              : "https://d3byuuhm0bg21i.cloudfront.net/derivatives/c3d47d00-8a25-46ef-bba3-ec5609c49b08/thumb.webp",
                                       heading: secondTip["Heading"] ?? "",
                                       title: secondTip["Title"] ?? "",
                                       onButtonTap:

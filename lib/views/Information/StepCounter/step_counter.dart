@@ -42,101 +42,38 @@ class _StepCounterState extends State<StepCounter> {
 
   DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  //   @override
-  // void initState() {
-  //   super.initState();
-
-  //   /// Initialize animation baselines
-  //   _lastSteps = stepController.todaySteps.value;
-  //   _lastPercent = stepController.stepGoal.value == 0
-  //       ? 0
-  //       : stepController.todaySteps.value /
-  //           stepController.stepGoal.value;
-
-  //   /// Load persisted data
-  //   stepController.loadGoal();
-  //   _loadTodaySteps();
-  //   _loadWeeklyData();
-  //   // _initLocationTracking();
-
-  //   /// 🔥 UI auto-refresh (safe + guarded)
-  //   _uiRefreshTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
-  //     final prefs = await SharedPreferences.getInstance();
-  //     final todaySteps = prefs.getInt("todaySteps") ?? 0;
-
-  //     // Update only if changed (prevents animation spam)
-  //     if (todaySteps != stepController.todaySteps.value) {
-  //       stepController.todaySteps.value = todaySteps;
-  //     }
-
-  //     // Refresh graph data
-  //     if (_isMonthlyView) {
-  //       _loadMonthlyData(_selectedMonth);
-  //     } else {
-  //       _loadWeeklyData();
-  //     }
-  //   });
-  // }
-
   late final StreamSubscription<BoxEvent> _hiveSub;
 
   @override
   void initState() {
     super.initState();
 
+    /// UI state
     toggleStepsCard();
 
-    // Load goal and steps
+    /// Load persisted data
     stepController.loadGoal();
-    stepController.loadTodayStepsFromHive(); // Load steps on init
+    stepController.loadTodayStepsFromHive(); // 🔥 MISSING LINE
+
+    /// Initialize animation baselines (same as old code)
+    stepController.lastSteps = stepController.todaySteps.value;
+    stepController.lastPercent =
+        stepController.stepGoal.value == 0
+            ? 0
+            : stepController.todaySteps.value / stepController.stepGoal.value;
+
+    /// Load graph
     _loadWeeklyData();
-
-    // Setup Hive listener
-    _hiveSub = _box.watch().listen((BoxEvent event) {
-      final todayKey = _dayKey(_startOfDay(DateTime.now()));
-
-      if (event.key == todayKey && event.value is StepEntry) {
-        final steps = (event.value as StepEntry).steps;
-
-        if (steps != stepController.todaySteps.value) {
-          stepController.todaySteps.value = steps;
-        }
-      }
-
-      // Refresh graph
-      if (_isMonthlyView) {
-        _loadMonthlyData(_selectedMonth);
-      } else {
-        _loadWeeklyData();
-      }
-    });
   }
 
   Future<void> toggleStepsCard() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isStepGoalSet', false);
+    await prefs.setBool('isStepGoalSet', true);
   }
 
   @override
   void dispose() {
-    _hiveSub.cancel();
     super.dispose();
-  }
-
-  // @override
-  // void dispose() {
-  //   _locationSub?.cancel();
-  //   _uiRefreshTimer?.cancel();
-  //   super.dispose();
-  // }
-
-  // ===== LOADERS =====
-
-  Future<void> _loadTodaySteps() async {
-    final todayKey = _dayKey(_startOfDay(DateTime.now()));
-    final entry = _box.get(todayKey);
-    if (!mounted) return;
-    stepController.todaySteps.value = entry?.steps ?? 0;
   }
 
   Future<void> _loadWeeklyData() async {
@@ -274,30 +211,28 @@ class _StepCounterState extends State<StepCounter> {
 
                 /// ✅ PROGRESS RING (smooth, no reset)
                 Obx(() {
-                  final percent = (stepController.todaySteps.value /
-                          stepController.stepGoal.value)
-                      .clamp(0.0, 1.0);
-
-                  final tween = Tween<double>(
-                    begin: stepController.lastPercent,
-                    end: percent,
-                  );
-
-                  stepController.lastPercent = percent;
+                  final goal = stepController.stepGoal.value;
+                  final percent = goal == 0
+                      ? 0.0
+                      : (stepController.todaySteps.value / goal).clamp(0.0, 1.0);
 
                   return TweenAnimationBuilder<double>(
-                    tween: tween,
-                    duration: const Duration(milliseconds: 800),
-                    builder:
-                        (_, val, __) => SemiCircularProgress(
-                          percent: val,
-                          radius: width / 3,
-                          strokeWidth: 12,
-                          color: AppColors.primaryColor,
-                          backgroundColor: Colors.grey.withOpacity(0.3),
-                        ),
+                    key: ValueKey(stepController.todaySteps.value),
+                    tween: Tween<double>(
+                      begin: stepController.lastPercent,
+                      end: percent,
+                    ),
+                    duration: const Duration(milliseconds: 500),
+                    builder: (_, val, __) => SemiCircularProgress(
+                      percent: val,
+                      radius: width / 3,
+                      strokeWidth: 12,
+                      color: AppColors.primaryColor,
+                      backgroundColor: Colors.grey.withOpacity(0.3),
+                    ),
                   );
                 }),
+
 
                 Column(
                   children: [
@@ -305,28 +240,23 @@ class _StepCounterState extends State<StepCounter> {
 
                     /// ✅ STEP COUNTER (incremental animation)
                     Obx(() {
-                      final steps = stepController.todaySteps.value;
-
-                      final tween = IntTween(
-                        begin: stepController.lastSteps,
-                        end: steps,
-                      );
-
-                      stepController.lastSteps = steps;
-
                       return TweenAnimationBuilder<int>(
-                        tween: tween,
-                        duration: const Duration(milliseconds: 600),
-                        builder:
-                            (_, val, __) => Text(
-                              "$val",
-                              style: const TextStyle(
-                                fontSize: 38,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                        key: ValueKey(stepController.todaySteps.value),
+                        tween: IntTween(
+                          begin: stepController.lastSteps,
+                          end: stepController.todaySteps.value,
+                        ),
+                        duration: const Duration(milliseconds: 400),
+                        builder: (_, val, __) => Text(
+                          "$val",
+                          style: const TextStyle(
+                            fontSize: 38,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       );
                     }),
+
 
                     const Text('Steps', style: TextStyle(fontSize: 16)),
 
@@ -427,6 +357,7 @@ class _StepCounterState extends State<StepCounter> {
               child: CommonStatGraphWidget(
                 isDarkMode: isDarkMode,
                 height: 20,
+                isWaterGraph: false,
                 graphTitle: '',
                 isSleepGraph: false,
                 yAxisInterval: (_graphMaxY / 5).ceilToDouble(),

@@ -89,8 +89,9 @@ class ProfileSetupController extends GetxController {
 
   // ================= IMAGE =================
   Future<void> pickImageFromGallery() async {
-    final XFile? image =
-        await _imgPicker.pickImage(source: ImageSource.gallery);
+    final XFile? image = await _imgPicker.pickImage(
+      source: ImageSource.gallery,
+    );
 
     if (image != null) {
       pickedImage.value = File(image.path);
@@ -151,7 +152,6 @@ class ProfileSetupController extends GetxController {
 
     userDob.value = formattedDate;
   }
-
 
   // Future<void> saveData(String name, String gender, String dob) async {
   //   ApiService.post(userNameApi, {'name': name});
@@ -224,7 +224,9 @@ class ProfileSetupController extends GetxController {
 
         if (response is http.Response) {
           allSuccessful = false;
-          print("❌ Failed to save ${payload.keys.first}: ${response.statusCode}");
+          print(
+            "❌ Failed to save ${payload.keys.first}: ${response.statusCode}",
+          );
           CustomSnackbar.showError(
             context: context,
             title: 'Error',

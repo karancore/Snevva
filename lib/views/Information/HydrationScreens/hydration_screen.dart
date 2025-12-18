@@ -24,9 +24,9 @@ class _HydrationScreenState extends State<HydrationScreen>
       Get.find<HydrationStatController>();
 
   late final AnimationController animationController;
-  late Animation<double> numberAnimation;
+  late Animation<int> numberAnimation;
   late final Worker intakeWorker;
-  double lastValue = 0.0;
+  int lastValue = 0;
 
   // Cooldown Timer
   int lastPressTime = 0;
@@ -42,22 +42,22 @@ class _HydrationScreenState extends State<HydrationScreen>
       duration: const Duration(milliseconds: 600),
     );
 
-    lastValue = controller.waterIntake.value.toDouble();
-    numberAnimation = Tween<double>(
-      begin: 0.0,
+    lastValue = controller.waterIntake.value.toInt();
+    numberAnimation = Tween<int>(
+      begin: 0,
       end: lastValue,
     ).animate(animationController);
     animationController.forward();
 
-    intakeWorker = ever<double>(controller.waterIntake, (newValue) {
+    intakeWorker = ever<int>(controller.waterIntake, (newValue) {
       _animateTo(newValue);
     });
   }
 
-  void _animateTo(double newValue) {
+  void _animateTo(int newValue) {
     if (newValue == lastValue) return;
 
-    numberAnimation = Tween<double>(
+    numberAnimation = Tween<int>(
       begin: numberAnimation.value,
       end: newValue,
     ).animate(animationController);
@@ -144,7 +144,7 @@ class _HydrationScreenState extends State<HydrationScreen>
               );
               if (result != null) {
                 controller.addWaterValue.value = result;
-                _animateTo(controller.waterIntake.value.toDouble());
+                _animateTo(controller.waterIntake.value.toInt());
               }
             },
             addWaterValue: controller.addWaterValue.value,

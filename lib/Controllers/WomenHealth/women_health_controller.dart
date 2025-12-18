@@ -1,7 +1,11 @@
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:snevva/env/env.dart';
+import 'package:snevva/models/tips_response.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:http/http.dart' as http;
 
@@ -11,12 +15,14 @@ class WomenHealthController extends GetxController {
   var periodDays = "5".obs;
   var periodCycleDays = "28".obs;
   var periodLastPeriodDay = "".obs;
-  var nextPeriodDay = "".obs;
-  var nextFertilityDay = "".obs;
-  var nextOvulationDay = "".obs;
+  RxString nextPeriodDay = "".obs;
+  RxString nextFertilityDay = "".obs;
+  RxString nextOvulationDay = "".obs;
   var dayLeftNextPeriod = "".obs;
   var formattedCurrentDate = "".obs;
 
+  var womenHealthTips = <TipData>[].obs;
+  dynamic randomTip;
   var periodDay = 0;
   var periodMonth = 0;
   var periodYear = 0;
@@ -143,11 +149,46 @@ class WomenHealthController extends GetxController {
 
       print("✅ Women Health Data saved successfully: $response");
     } catch (e) {
+      print(e);
       CustomSnackbar.showError(
         context: context,
         title: 'Error',
         message: 'Failed saving Women Health Data',
       );
     }
+  }
+
+  Future<void> getWomenHealthQuotes(BuildContext context) async {
+    try {
+      Map<String, dynamic> payload = {
+        'Tags': ["Female", "Women Health", "Pre-Period Nudges"],
+        'FetchAll': true,
+        'Count': 0,
+        'Index': 0,
+      };
+
+      final response = await ApiService.post(
+        genhealthtipsAPI,
+        payload,
+        withAuth: true,
+        encryptionRequired: true,
+      );
+      debugPrint("women health tips : $response", wrapWidth: 1024);
+      final parsedData = jsonDecode(jsonEncode(response));
+      debugPrint(" women health tips : $parsedData", wrapWidth: 1024);
+
+      final List list = parsedData['data'] ?? [];
+      womenHealthTips.value = list.map((e) => TipData.fromJson(e)).toList();
+      debugPrint("general tips : $womenHealthTips", wrapWidth: 1024);
+    } catch (e) {
+      womenHealthTips.value = [];
+      print(e);
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Failed to load women health tips',
+      );
+    }
+    return null;
   }
 }

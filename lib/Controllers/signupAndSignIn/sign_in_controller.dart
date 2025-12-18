@@ -157,7 +157,7 @@ class SignInController extends GetxController {
         print('🎯 user goal data: $data');
         print('🎯 user goal data runtimeType: ${data.runtimeType}');
 
-         localstorage.userGoalDataMap.value = data;
+        localstorage.userGoalDataMap.value = data;
 
         if (data is Map) {
           final userGoalJson = jsonEncode(data);
@@ -277,7 +277,7 @@ class SignInController extends GetxController {
       print(response.statusCode);
 
       // ❌ FIX #1 — real condition
-       // ❌ FIX 1 — real condition
+      // ❌ FIX 1 — real condition
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         print("response Body: $responseBody");

@@ -37,8 +37,7 @@ Future<bool> backgroundEntry(ServiceInstance service) async {
         final todayKey = "${now.year}-${now.month}-${now.day}";
 
         // Load last raw steps
-        final lastRawSteps =
-            prefs.getInt('lastRawSteps') ?? event.steps;
+        final lastRawSteps = prefs.getInt('lastRawSteps') ?? event.steps;
 
         int diff = event.steps - lastRawSteps;
         if (diff < 0) diff = 0;
@@ -47,10 +46,7 @@ Future<bool> backgroundEntry(ServiceInstance service) async {
         final newSteps = (todayEntry?.steps ?? 0) + diff;
 
         // Save
-        await box.put(
-          todayKey,
-          StepEntry(date: now, steps: newSteps),
-        );
+        await box.put(todayKey, StepEntry(date: now, steps: newSteps));
 
         await prefs.setInt('todaySteps', newSteps);
         await prefs.setInt('lastRawSteps', event.steps);

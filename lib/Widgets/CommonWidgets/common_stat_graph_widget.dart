@@ -1,7 +1,9 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
+import '../../Controllers/Hydration/hydration_stat_controller.dart';
 import '../../Controllers/SleepScreen/sleep_controller.dart';
+import '../../Controllers/StepCounter/step_counter_controller.dart';
 import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
 
@@ -18,6 +20,7 @@ class CommonStatGraphWidget extends StatelessWidget {
     required this.measureUnit,
     required this.isMonthlyView,
     required this.isSleepGraph,
+    required this.isWaterGraph,
     this.weekLabels,
   });
 
@@ -30,12 +33,15 @@ class CommonStatGraphWidget extends StatelessWidget {
   final String measureUnit;
   final bool isMonthlyView;
   final bool isSleepGraph;
+  final bool isWaterGraph;
   final List<FlSpot> points; // Data points for the graph
   final List<String>?
   weekLabels; // Can be days (Mon-Sun) or month days (1,5,10...)
 
   @override
   Widget build(BuildContext context) {
+    final stepController = Get.find<StepCounterController>();
+    final waterController = Get.find<HydrationStatController>();
     String formatted = '';
     final String formattedDate = DateFormat(
       'd MMM, yyyy',
@@ -240,6 +246,9 @@ class CommonStatGraphWidget extends StatelessWidget {
                         lineTouchData: LineTouchData(
                           enabled: true,
                           touchTooltipData: LineTouchTooltipData(
+                            getTooltipColor:
+                                (touchedSpot) => AppColors.primaryColor,
+
                             getTooltipItems: (touchedSpots) {
                               return touchedSpots.map((spot) {
                                 if (isSleepGraph) {
@@ -252,7 +261,9 @@ class CommonStatGraphWidget extends StatelessWidget {
                                 return LineTooltipItem(
                                   isSleepGraph
                                       ? formatted
-                                      : spot.y.round().toString(),
+                                      : (isWaterGraph)
+                                      ? '${spot.y.round().toString()} L'
+                                      : '${(spot.y.round() * 100).toString()} Steps',
                                   const TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
@@ -400,7 +411,9 @@ class CommonStatGraphWidget extends StatelessWidget {
                               return LineTooltipItem(
                                 isSleepGraph
                                     ? formatted
-                                    : spot.y.round().toString(),
+                                    : (isWaterGraph)
+                                    ? '${waterController.waterIntake.value} ml'
+                                    : '${stepController.todaySteps.value} Steps',
                                 const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,

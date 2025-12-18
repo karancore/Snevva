@@ -9,27 +9,27 @@ import 'package:snevva/utils/theme.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 
 void main() async {
-  // FlutterForegroundTask.initCommunicationPort();
-  // FlutterForegroundTask.init(
-  //   androidNotificationOptions: AndroidNotificationOptions(
-  //     channelId: 'sleep_channel',
-  //     channelName: 'Sleep Tracking',
-  //     channelDescription: 'Tracks sleep based on screen on/off',
-  //     channelImportance: NotificationChannelImportance.LOW,
-  //     priority: NotificationPriority.LOW,
-  //     onlyAlertOnce: true,
-  //   ),
+  FlutterForegroundTask.initCommunicationPort();
+  FlutterForegroundTask.init(
+    androidNotificationOptions: AndroidNotificationOptions(
+      channelId: 'sleep_channel',
+      channelName: 'Sleep Tracking',
+      channelDescription: 'Tracks sleep based on screen on/off',
+      channelImportance: NotificationChannelImportance.LOW,
+      priority: NotificationPriority.LOW,
+      onlyAlertOnce: true,
+    ),
 
-  //   foregroundTaskOptions: ForegroundTaskOptions(
-  //     eventAction: ForegroundTaskEventAction.repeat(30000), // 30 sec
-  //     autoRunOnBoot: true,
-  //     allowWakeLock: true,
-  //     allowWifiLock: true,
-  //   ),
-  //   iosNotificationOptions: IOSNotificationOptions(showNotification: true),
-  // );
-  // WidgetsFlutterBinding.ensureInitialized();
-  // await Alarm.init();
+    foregroundTaskOptions: ForegroundTaskOptions(
+      eventAction: ForegroundTaskEventAction.repeat(30000), // 30 sec
+      autoRunOnBoot: true,
+      allowWakeLock: true,
+      allowWifiLock: true,
+    ),
+    iosNotificationOptions: IOSNotificationOptions(showNotification: true),
+  );
+  WidgetsFlutterBinding.ensureInitialized();
+  await Alarm.init();
   final isRemembered = await initializeApp();
   runApp(MyApp(isRemembered: isRemembered));
 }
@@ -82,7 +82,7 @@ class _MyAppState extends State<MyApp> {
       supportedLocales: AppLocalizations.supportedLocales,
       locale: const Locale('en'),
 
-      home: SignInScreen(),
+      home: widget.isRemembered ? HomeWrapper() : SignInScreen(),
     );
   }
 }

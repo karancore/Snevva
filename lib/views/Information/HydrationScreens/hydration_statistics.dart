@@ -250,6 +250,7 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                   height: height * 0.2,
                   child: CommonStatGraphWidget(
                     isMonthlyView: _isMonthlyView,
+                    isWaterGraph: true,
                     isDarkMode: isDarkMode,
                     height: height,
                     graphTitle: '',
@@ -294,7 +295,7 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     AutoSizeText(
-                      "Today's Record (${todayEntries.length} entr${todayEntries.length == 1 ? 'y' : 'ies'})",
+                      "Today's Record (${todayEntries.length} entries ${todayEntries.length == 1 ? 'y' : 'ies'})",
                       maxLines: 1,
                       maxFontSize: 20,
                       minFontSize: 10,

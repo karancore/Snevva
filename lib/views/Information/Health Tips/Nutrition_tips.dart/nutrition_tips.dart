@@ -1,4 +1,5 @@
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
@@ -13,6 +14,7 @@ class NutritionTipsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final Map<String, dynamic> tipData = Get.arguments;
     final List<String> steps = List<String>.from(tipData['Steps'] ?? []);
+    final imageUrl = 'https://${tipData?["ThumbnailMedia"]?["CdnUrl"]}';
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
 
@@ -95,30 +97,31 @@ class NutritionTipsPage extends StatelessWidget {
                     // Circular Image
                     Center(
                       child: ClipOval(
-                        child: Image.network(
-                          tipData["ThumbnailMedia"]?["CdnUrl"] ??
+                        child: CachedNetworkImage(
+                          imageUrl:
+                              imageUrl ??
                               "https://d3byuuhm0bg21i.cloudfront.net/derivatives/c3d47d00-8a25-46ef-bba3-ec5609c49b08/thumb.webp",
                           height: 220,
                           width: 220,
                           fit: BoxFit.cover,
-                          loadingBuilder: (context, child, progress) {
-                            if (progress == null) return child;
-                            return Container(
-                              height: 220,
-                              width: 220,
-                              alignment: Alignment.center,
-                              child: const CircularProgressIndicator(),
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              height: 220,
-                              width: 220,
-                              color: Colors.grey[300],
-                              alignment: Alignment.center,
-                              child: const Icon(Icons.broken_image, size: 40),
-                            );
-                          },
+                          // loadingBuilder: (context, child, progress) {
+                          //   if (progress == null) return child;
+                          //   return Container(
+                          //     height: 220,
+                          //     width: 220,
+                          //     alignment: Alignment.center,
+                          //     child: const CircularProgressIndicator(),
+                          //   );
+                          // },
+                          // errorBuilder: (context, error, stackTrace) {
+                          //   return Container(
+                          //     height: 220,
+                          //     width: 220,
+                          //     color: Colors.grey[300],
+                          //     alignment: Alignment.center,
+                          //     child: const Icon(Icons.broken_image, size: 40),
+                          //   );
+                          // },
                         ),
                       ),
                     ),

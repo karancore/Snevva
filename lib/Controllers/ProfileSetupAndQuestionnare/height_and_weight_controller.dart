@@ -80,7 +80,9 @@ class HeightWeightController extends GetxController {
       /// -----------------------------
       /// LOCAL STORAGE DEBUG + FIX
       /// -----------------------------
-      print('🗂.userGoalDataMap BEFORE init: ${localStorageManager.userGoalDataMap}');
+      print(
+        '🗂.userGoalDataMap BEFORE init: ${localStorageManager.userGoalDataMap}',
+      );
 
       // Ensure base map
       localStorageManager.userGoalDataMap.value ??= {};
@@ -103,7 +105,9 @@ class HeightWeightController extends GetxController {
         weightValue.toStringAsFixed(2),
       );
 
-      print('💾.userGoalDataMap AFTER save: ${localStorageManager.userGoalDataMap}');
+      print(
+        '💾.userGoalDataMap AFTER save: ${localStorageManager.userGoalDataMap}',
+      );
 
       // Sync controller state
       heightInCm.value = heightValue;
@@ -158,7 +162,9 @@ class HeightWeightController extends GetxController {
         );
 
         if (response is http.Response && response.statusCode >= 400) {
-          print('❌ Save to $endpoint failed with status ${response.statusCode}');
+          print(
+            '❌ Save to $endpoint failed with status ${response.statusCode}',
+          );
           allSuccessful = false;
         } else {
           print('✅ Save to $endpoint successful');

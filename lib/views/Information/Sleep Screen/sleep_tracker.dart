@@ -35,6 +35,8 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     DateTime.now().add(Duration(hours: 8)),
   );
 
+  bool _loaded = false;
+
   final SleepController sleepController = Get.put(SleepController());
 
   @override
@@ -42,7 +44,10 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     super.initState(); // Always call super.initState() first!
     print("Init Sleep Tracker");
     toggleSleepCard();
-    sleepController.loadDeepSleepData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // SAFE: runs after build is finished
+      sleepController.loadDeepSleepData();
+    });
   }
 
   Future<void> toggleSleepCard() async {
@@ -128,6 +133,14 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     final double center = size / 2;
     final double radius = center - 20;
 
+    if (!_loaded) {
+      _loaded = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        sleepController.loadDeepSleepData();
+        print(sleepController.deepSleepDuration.value);
+      });
+    }
+
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: CustomAppBar(appbarText: 'Sleep Tracker'),
@@ -181,7 +194,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                           children: [
                             Text(
                               sleepController.deepSleepDuration.value == null
-                                  ? "--"
+                                  ? "No data"
                                   : fmtDuration(
                                     sleepController.deepSleepDuration.value!,
                                   ),
@@ -489,6 +502,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                     isDarkMode: isDarkMode,
                     yAxisInterval: 2,
                     yAxisMaxValue: 11,
+                    isWaterGraph: false,
                     height: height,
                     graphTitle: 'Sleep Statistics',
                     points: points,

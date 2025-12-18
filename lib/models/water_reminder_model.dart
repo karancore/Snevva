@@ -19,7 +19,7 @@ class WaterReminderModel {
     return {
       'id': id,
       'title': title,
-      "Category" : category ,
+      "Category": category,
       'alarms': alarms.map((a) => a.toJson()).toList(),
       'timesPerDay': timesPerDay,
     };

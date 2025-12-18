@@ -42,8 +42,8 @@ class _ReminderState extends State<Reminder> {
     return Scaffold(
       appBar: CustomAppBar(
         appbarText: "Reminder",
-        showCloseButton: true,
-        showDrawerIcon: true,
+        showCloseButton: false,
+        showDrawerIcon: false,
         onClose: () {
           Navigator.of(context).pop();
         },
@@ -96,9 +96,11 @@ class _ReminderState extends State<Reminder> {
                         ),
                         margin: const EdgeInsets.only(bottom: 12),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
+                          padding: const EdgeInsets.only(
+                            left: 12,
+                            top: 8,
+                            right: 8,
+                            bottom: 8,
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,7 +131,7 @@ class _ReminderState extends State<Reminder> {
                                     ),
                                     onPressed: () async {
                                       final result = await Get.to(
-                                            () => AddReminder(reminder: reminder),
+                                        () => AddReminder(reminder: reminder),
                                       );
                                       if (result == true) {
                                         await _loadData();
@@ -141,7 +143,6 @@ class _ReminderState extends State<Reminder> {
                                   ),
                                 ],
                               ),
-                              SizedBox(height: 8),
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 12.0),
                                 child: _buildCategoryContent(
@@ -153,7 +154,7 @@ class _ReminderState extends State<Reminder> {
                           ),
                         ),
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
               ),
@@ -260,7 +261,14 @@ class _ReminderState extends State<Reminder> {
                 const SizedBox(width: 16),
                 GestureDetector(
                   onTap: () => _showDeleteConfirmation(reminder),
-                  child: Icon(Icons.delete, size: 18, color: Color(0xff878787)),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 14.0),
+                    child: Icon(
+                      Icons.delete,
+                      size: 18,
+                      color: Color(0xff878787),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -271,25 +279,29 @@ class _ReminderState extends State<Reminder> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (reminder['RemindFrequencyHour'] != null &&
-                reminder['RemindFrequencyHour'] > 0)
-
-              Text(
-                  "You have to drink water ${controller.timesPerDayController} times",
-                  style: TextStyle(fontSize: 12, color: Color(0xff878787)),
-                ),
-            if (reminder['RemindFrequencyCount'] != null &&
-                reminder['RemindFrequencyCount'] > 0)
-              Text(
-                "Times per day: ${reminder['RemindFrequencyCount']}",
-                style: TextStyle(fontSize: 12, color: Color(0xff878787)),
-              ),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                if (reminder['RemindFrequencyCount'] != null &&
+                    reminder['RemindFrequencyCount'] > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 2.0),
+                    child: Text(
+                      "Times per day: ${reminder['RemindFrequencyCount']}",
+                      style: TextStyle(fontSize: 12, color: Color(0xff878787)),
+                    ),
+                  ),
+                Spacer(flex: 30),
                 GestureDetector(
                   onTap: () => _showDeleteConfirmation(reminder),
-                  child: Icon(Icons.delete, size: 18, color: Color(0xff878787)),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 14.0),
+                    child: Icon(
+                      Icons.delete,
+                      size: 18,
+                      color: Color(0xff878787),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -329,7 +341,10 @@ class _ReminderState extends State<Reminder> {
             const SizedBox(width: 16),
             GestureDetector(
               onTap: () => _showDeleteConfirmation(reminder),
-              child: Icon(Icons.delete, size: 18, color: Color(0xff878787)),
+              child: Padding(
+                padding: const EdgeInsets.only(right: 14.0),
+                child: Icon(Icons.delete, size: 18, color: Color(0xff878787)),
+              ),
             ),
 
             const SizedBox(width: 4),
@@ -371,7 +386,14 @@ class _ReminderState extends State<Reminder> {
                 const SizedBox(width: 16),
                 GestureDetector(
                   onTap: () => _showDeleteConfirmation(reminder),
-                  child: Icon(Icons.delete, size: 18, color: Color(0xff878787)),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 14.0),
+                    child: Icon(
+                      Icons.delete,
+                      size: 18,
+                      color: Color(0xff878787),
+                    ),
+                  ),
                 ),
               ],
             ),

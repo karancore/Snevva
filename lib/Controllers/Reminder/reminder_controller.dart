@@ -581,7 +581,7 @@ class ReminderController extends GetxController {
               : 'Water Reminder',
       alarms: createdAlarms,
       timesPerDay: times.toString(),
-      category: "Water"
+      category: "Water",
     );
 
     // Reload list from Hive to ensure we have the latest data and don't override
@@ -778,8 +778,8 @@ class ReminderController extends GetxController {
   // ==================== Hive Methods ====================
 
   Future<List<Map<String, AlarmSettings>>> loadReminderList(
-      String keyName,
-      ) async {
+    String keyName,
+  ) async {
     print('📦 loadReminderList() → key: $keyName');
 
     final box = Hive.box('reminders_box');
@@ -794,22 +794,22 @@ class ReminderController extends GetxController {
 
     final List<String> stringList = storedList.cast<String>();
 
-    final result = stringList.map((item) {
-      print('🔍 Decoding item: $item');
+    final result =
+        stringList.map((item) {
+          print('🔍 Decoding item: $item');
 
-      final Map<String, dynamic> decoded = jsonDecode(item);
-      final mapped = decoded.map((key, value) {
-        print('   ➜ Alarm title: $key');
-        return MapEntry(key, AlarmSettings.fromJson(value));
-      });
+          final Map<String, dynamic> decoded = jsonDecode(item);
+          final mapped = decoded.map((key, value) {
+            print('   ➜ Alarm title: $key');
+            return MapEntry(key, AlarmSettings.fromJson(value));
+          });
 
-      return mapped;
-    }).toList();
+          return mapped;
+        }).toList();
 
     print('✅ Loaded ${result.length} alarms for $keyName');
     return result;
   }
-
 
   // FIX: Handle both Map and MedicineReminderModel types
   Future<void> saveReminderList(RxList<dynamic> list, String keyName) async {
@@ -819,36 +819,35 @@ class ReminderController extends GetxController {
     final box = Hive.box('reminders_box');
 
     List<String> stringList =
-    list.map((item) {
-      if (item is Map<String, AlarmSettings>) {
-        print('🗂 Saving Map<String, AlarmSettings>');
-        final jsonMap = item.map((key, value) {
-          print('   ➜ Alarm: $key | id=${value.id}');
-          return MapEntry(key, value.toJson());
-        });
-        return jsonEncode(jsonMap);
-      } else if (item is MedicineReminderModel) {
-        print('💊 Saving MedicineReminderModel → ${item.title}');
-        return jsonEncode(item.toJson());
-      } else if (item is WaterReminderModel) {
-        print(
-          '💧 Saving WaterReminderModel → '
+        list.map((item) {
+          if (item is Map<String, AlarmSettings>) {
+            print('🗂 Saving Map<String, AlarmSettings>');
+            final jsonMap = item.map((key, value) {
+              print('   ➜ Alarm: $key | id=${value.id}');
+              return MapEntry(key, value.toJson());
+            });
+            return jsonEncode(jsonMap);
+          } else if (item is MedicineReminderModel) {
+            print('💊 Saving MedicineReminderModel → ${item.title}');
+            return jsonEncode(item.toJson());
+          } else if (item is WaterReminderModel) {
+            print(
+              '💧 Saving WaterReminderModel → '
               'id=${item.id}, '
               'title=${item.title}, '
               'alarms=${item.alarms.length}, '
               'timesPerDay=${item.timesPerDay}',
-        );
-        return jsonEncode(item.toJson());
-      }
+            );
+            return jsonEncode(item.toJson());
+          }
 
-      print('⚠️ Unknown item type: ${item.runtimeType}');
-      return jsonEncode({});
-    }).toList();
+          print('⚠️ Unknown item type: ${item.runtimeType}');
+          return jsonEncode({});
+        }).toList();
 
     await box.put(keyName, stringList);
     print('✅ Saved ${stringList.length} items to Hive → $keyName');
   }
-
 
   // New method to specifically load MedicineReminderModel list
   Future<List<MedicineReminderModel>> loadMedicineReminderList(
@@ -932,7 +931,7 @@ class ReminderController extends GetxController {
             id: _alarmId().toString(),
             alarms: [],
             timesPerDay: timesPerDayController.text,
-            category: "Water"
+            category: "Water",
           );
 
           loadedList.add(fallbackModel);
@@ -958,8 +957,7 @@ class ReminderController extends GetxController {
       print('🔄 loadAllReminderLists() START');
       isLoading(true);
 
-      medicineList.value =
-      await loadMedicineReminderList("medicine_list");
+      medicineList.value = await loadMedicineReminderList("medicine_list");
       print('💊 Medicine loaded: ${medicineList.length}');
 
       mealsList.value = await loadReminderList("meals_list");
@@ -972,7 +970,6 @@ class ReminderController extends GetxController {
       print('💧 Water loaded: ${waterList.length}');
 
       final List<Map<String, dynamic>> combined = [];
-
 
       print('🧩 Building combined reminder list');
 
@@ -1016,10 +1013,10 @@ class ReminderController extends GetxController {
       for (var item in waterList) {
         print(
           '➕ Add Water → '
-              'id=${item.id}, '
-              'title=${item.title}, '
-              'alarms=${item.alarms.length}, '
-              'timesPerDay=${item.timesPerDay}',
+          'id=${item.id}, '
+          'title=${item.title}, '
+          'alarms=${item.alarms.length}, '
+          'timesPerDay=${item.timesPerDay}',
         );
 
         combined.add({
@@ -1040,7 +1037,6 @@ class ReminderController extends GetxController {
       print('🔚 loadAllReminderLists() END');
     }
   }
-
 
   // ==================== API Methods ====================
 

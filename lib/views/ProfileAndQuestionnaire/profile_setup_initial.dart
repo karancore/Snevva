@@ -64,7 +64,12 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
     final month = localStorageManager.userMap['MonthOfBirth'];
     final year = localStorageManager.userMap['YearOfBirth'];
 
-    if (day == 0 || day == null || month == 0 || month == null || year == 0 || year == null) {
+    if (day == 0 ||
+        day == null ||
+        month == 0 ||
+        month == null ||
+        year == 0 ||
+        year == null) {
       dob = DateTime.now();
       localStorageManager.userMap['DayOfBirth'] = dob!.day;
       localStorageManager.userMap['MonthOfBirth'] = dob!.month;

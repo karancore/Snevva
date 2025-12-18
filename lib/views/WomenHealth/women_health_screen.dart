@@ -1,7 +1,9 @@
 import 'package:modern_form_line_awesome_icons/modern_form_line_awesome_icons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
+import 'package:snevva/models/tips_response.dart';
 import 'package:snevva/views/WomenHealth/women_health_history.dart';
 import '../../Widgets/Hydration/floating_button_bar.dart';
 import '../../Widgets/WomenHealth/calender.dart';
@@ -11,11 +13,32 @@ import '../../Widgets/WomenHealth/women_health_top_cont.dart';
 import '../../consts/consts.dart';
 import '../Reminder/reminder.dart';
 
-class WomenHealthScreen extends StatelessWidget {
-  WomenHealthScreen({super.key});
+class WomenHealthScreen extends StatefulWidget {
+  const WomenHealthScreen({super.key});
 
+  @override
+  State<WomenHealthScreen> createState() => _WomenHealthScreenState();
+}
+
+class _WomenHealthScreenState extends State<WomenHealthScreen> {
   final WomenHealthController womenController =
-      Get.find<WomenHealthController>();
+  Get.find<WomenHealthController>();
+
+  @override
+  void initState() {
+    super.initState();
+    toggleWomenBottomCard();
+    fetchWomenTips(context);
+  }
+
+  Future<void> toggleWomenBottomCard() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool('is_first_time_women', false);
+  }
+
+  Future<void> fetchWomenTips(BuildContext ctx) async {
+    await womenController.getWomenHealthQuotes(ctx);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +90,7 @@ class WomenHealthScreen extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.only(left: 10, right: 20),
                     child: Obx(
-                      () => Row(
+                          () => Row(
                         children: [
                           PeriodCyclePhaseCont(
                             height: height,
@@ -106,47 +129,95 @@ class WomenHealthScreen extends StatelessWidget {
                 ),
 
                 CalendarWidget(),
-                Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        left: 20,
-                        right: 20,
-                        bottom: 20,
-                      ),
-                      child: Row(
-                        children: [
-                          AutoSizeText(
-                            "For You",
-                            minFontSize: 20,
-                            maxFontSize: 24,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          Spacer(),
-                          IconButton(
-                            onPressed: () {},
-                            icon: Icon(LineAwesomeIcons.angle_right, size: 24),
-                          ),
-                        ],
-                      ),
-                    ),
-                    WomenHealthQuotesWidget(
-                      contColor: periodHighlighted,
-                      img: quoteIcon1,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Divider(color: mediumGrey, thickness: border04px),
-                    ),
 
-                    WomenHealthQuotesWidget(contColor: yellow, img: quoteIcon2),
-                  ],
-                ),
+                // FIX: Wrap in Obx to make it reactive
+                Obx(() {
+                  // FIX: Add debug print to check list length
+                  print("Tips count: ${womenController.womenHealthTips.length}");
+
+                  // FIX: Show loading or empty state
+                  if (womenController.womenHealthTips.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.all(40.0),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            Icon(LineAwesomeIcons.heart, size: 48, color: Colors.grey),
+                            SizedBox(height: 16),
+                            Text(
+                              "Loading tips...",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  return Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          left: 20,
+                          right: 20, // FIX: Add top padding for spacing
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+
+                          children: [
+                            AutoSizeText(
+                              "For You",
+                              minFontSize: 20,
+                              maxFontSize: 24,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            // Spacer(),
+                            // IconButton(
+                            //   onPressed: () {},
+                            //   icon: Icon(LineAwesomeIcons.angle_right, size: 24),
+                            // ),
+                          ],
+                        ),
+                      ),
+                      // FIX: Add padding around ListView
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: womenController.womenHealthTips.length,
+                        separatorBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.only(left: 20 , right: 20 ),
+                            child: Divider(
+                              color: mediumGrey,
+                              thickness: border04px,
+                            ),
+                          );
+                        },
+                        itemBuilder: (context, index) {
+                          final tip = womenController.womenHealthTips[index];
+                          print("Rendering tip $index: ${tip.title}");
+
+                          // FIX: Add null check for thumbnailMedia
+                          return WomenHealthQuotesWidget(
+                            title: tip.title,
+                            shortDescription: tip.shortDescription,
+                            imageUrl: tip.thumbnailMedia?.cdnUrl ?? '',
+                          );
+                        },
+                      ),
+                    ],
+                  );
+                }),
+
                 SizedBox(height: 120),
               ],
             ),
@@ -171,7 +242,6 @@ class WomenHealthScreen extends StatelessWidget {
                       context: context,
                       initialDate: now,
                       firstDate: now.subtract(Duration(days: 30)),
-                      // allow up to 1 month back
                       lastDate: DateTime(2050),
                       builder: (BuildContext context, Widget? child) {
                         final isDark =
@@ -180,17 +250,17 @@ class WomenHealthScreen extends StatelessWidget {
                         return Theme(
                           data: Theme.of(context).copyWith(
                             colorScheme:
-                                isDark
-                                    ? ColorScheme.dark(
-                                      primary: AppColors.primaryColor,
-                                      onPrimary: white,
-                                      onSurface: white,
-                                    )
-                                    : ColorScheme.light(
-                                      primary: AppColors.primaryColor,
-                                      onPrimary: white,
-                                      onSurface: black,
-                                    ),
+                            isDark
+                                ? ColorScheme.dark(
+                              primary: AppColors.primaryColor,
+                              onPrimary: white,
+                              onSurface: white,
+                            )
+                                : ColorScheme.light(
+                              primary: AppColors.primaryColor,
+                              onPrimary: white,
+                              onSurface: black,
+                            ),
                             textButtonTheme: TextButtonThemeData(
                               style: TextButton.styleFrom(
                                 foregroundColor: AppColors.primaryColor,
@@ -206,7 +276,6 @@ class WomenHealthScreen extends StatelessWidget {
                       womenController.onDateChanged(selectedDate);
                     }
                   },
-
                   onAddBtnLongTap: () {},
                 ),
               ),

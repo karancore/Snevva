@@ -13,7 +13,7 @@ class HydrationStatController extends GetxController {
   RxBool checkVisibility = false.obs;
   RxBool masterCheck = false.obs;
   var addWaterValue = 250.obs;
-  var waterIntake = 0.0.obs;
+  RxInt waterIntake = 0.obs;
 
   RxInt waterGoal = 2000.obs;
 
@@ -28,7 +28,7 @@ class HydrationStatController extends GetxController {
   // Save water intake value locally
   Future<void> saveWaterIntakeLocally() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setDouble('waterIntake', waterIntake.value);
+    prefs.setInt('waterIntake', waterIntake.value);
     print(waterIntake.value);
     prefs.setString(
       'lastUpdatedDate',
@@ -40,7 +40,7 @@ class HydrationStatController extends GetxController {
   Future<void> loadWaterIntake() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    double savedIntake = prefs.getDouble('waterIntake') ?? 0.0;
+    int savedIntake = prefs.getInt('waterIntake') ?? 0;
     print(savedIntake);
     String? lastUpdated = prefs.getString('lastUpdatedDate');
     String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
@@ -49,7 +49,7 @@ class HydrationStatController extends GetxController {
       waterIntake.value = savedIntake;
       print("Restored today's water intake: ${waterIntake.value}");
     } else {
-      waterIntake.value = 0.0;
+      waterIntake.value = 0;
       prefs.setDouble('waterIntake', 0.0);
       prefs.setString('lastUpdatedDate', today);
       print("🔄 New day detected, resetting water intake.");
@@ -86,8 +86,9 @@ class HydrationStatController extends GetxController {
     updateMasterCheckbox(); // Update state after delete
   }
 
-  void getWaterInMl(int value) {
+  int getWaterInMl(int value) {
     addWaterValue.value = value;
+    return addWaterValue.value;
   }
 
   Future<void> updateWaterGoal(int value, BuildContext context) async {

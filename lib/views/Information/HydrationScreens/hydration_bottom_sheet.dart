@@ -196,10 +196,13 @@ class _HydrationBottomSheetState extends State<HydrationBottomSheet> {
                         flex: 1,
                         child: WheelPicker(
                           controller: waterController,
-                          onIndexChanged:
-                              (index, _) => {
-                                controller.getWaterInMl(100 + index * 50),
-                              },
+                          onIndexChanged: (index, _) {
+                            final value = controller.getWaterInMl(
+                              100 + index * 50,
+                            );
+                            controller.addWaterValue.value = value;
+                            print(value);
+                          },
                           builder: (context, index) {
                             int value = 100 + index * 50;
                             return Center(
@@ -236,7 +239,7 @@ class _HydrationBottomSheetState extends State<HydrationBottomSheet> {
                   backgroundColor: AppColors.primaryColor,
                 ),
                 onPressed: () {
-                  Get.back(result: controller.waterGoal.value);
+                  Get.back(result: controller.addWaterValue.value);
                 },
                 child: const Text("Save", style: TextStyle(color: white)),
               ),

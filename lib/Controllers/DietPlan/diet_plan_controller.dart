@@ -59,7 +59,7 @@ class DietPlanController extends GetxController {
     try {
       isLoading.value = true;
       if (categoryText.isEmpty) {
-        categoryText = " Non-Vegetarian";
+        categoryText = "Non-Vegetarian";
       }
       Map<String, dynamic> payload = {
         "Tags": ["General", categoryText],
@@ -80,7 +80,7 @@ class DietPlanController extends GetxController {
           title: 'Error',
           message: 'Failed to load diets : ${response.statusCode}',
         );
-        print(response.body);
+        print('non veg ${response.body}');
         return null;
       }
       final Map<String, dynamic> parsed = Map<String, dynamic>.from(

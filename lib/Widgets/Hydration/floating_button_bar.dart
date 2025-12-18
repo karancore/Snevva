@@ -134,7 +134,7 @@ class FloatingButtonBar extends StatelessWidget {
                       const SizedBox(height: 4),
                       if (addWaterValue != null)
                         Text(
-                          "$addWaterValue ml",
+                          "${controller.addWaterValue} ml",
                           style: TextStyle(
                             color: isDarkMode ? white : black,
                             fontWeight: FontWeight.bold,

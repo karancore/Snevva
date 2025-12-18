@@ -68,8 +68,7 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
         return;
       }
       if (widget.emailOrPhoneText.contains('@')) {
-        localStorageManager.userMap['Email'] =
-            widget.emailOrPhoneText.trim();
+        localStorageManager.userMap['Email'] = widget.emailOrPhoneText.trim();
         controller.createNewPasswordWithGmail(
           widget.emailOrPhoneText.trim(),
           widget.otp,
