@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:hive/hive.dart';
 import 'package:fl_chart/fl_chart.dart';
 
@@ -9,10 +10,8 @@ import '../../services/sleep_noticing_service.dart';
 
 class SleepController extends GetxController {
   /// User bedtime & waketime
-  final Rx<DateTime?> bedtime = Rx<DateTime?>(DateTime.now());
-  final Rx<DateTime?> waketime = Rx<DateTime?>(
-    DateTime.now().add(const Duration(hours: 8)),
-  );
+  final Rxn<DateTime> bedtime = Rxn<DateTime>();
+  final Rxn<DateTime> waketime = Rxn<DateTime>();
 
   final Rx<DateTime?> newBedtime = Rx<DateTime?>(null);
   final Rx<Duration?> deepSleepDuration = Rx<Duration?>(null);
@@ -29,6 +28,7 @@ class SleepController extends GetxController {
 
   /// Hive box
   Box<SleepLog> get _box => Hive.box<SleepLog>('sleep_log');
+  final box = GetStorage();
 
   // ─────────────────────────────────────────────
 
@@ -36,6 +36,17 @@ class SleepController extends GetxController {
   void onInit() {
     super.onInit();
     _sleepService.onPhoneUsageDetected = onPhoneUsed;
+
+    final bedMs = box.read("bedtime");
+    final wakeMs = box.read("waketime");
+
+    if (bedMs != null && bedMs is int) {
+      bedtime.value = DateTime.fromMillisecondsSinceEpoch(bedMs);
+    }
+
+    if (wakeMs != null && wakeMs is int) {
+      waketime.value = DateTime.fromMillisecondsSinceEpoch(wakeMs);
+    }
 
     /// 🔥 LOAD DATA ONCE
     loadDeepSleepData();
@@ -91,11 +102,6 @@ class SleepController extends GetxController {
 
   Duration? get idealWakeupDuration {
     return Duration(minutes: 720);
-  }
-
-  List<String> generateMonthLabels(DateTime month) {
-    final total = daysInMonth(month.year, month.month);
-    return List.generate(total, (i) => '${i + 1}');
   }
 
   List<FlSpot> getMonthlyDeepSleepSpots(DateTime month) {
@@ -263,6 +269,13 @@ class SleepController extends GetxController {
   // SETTERS
   // ─────────────────────────────────────────────
 
-  void setBedtime(DateTime time) => bedtime.value = time;
-  void setWakeTime(DateTime time) => waketime.value = time;
+  void setBedtime(DateTime time) {
+    bedtime.value = time;
+    box.write("bedtime", time.millisecondsSinceEpoch);
+  }
+
+  void setWakeTime(DateTime time) {
+    waketime.value = time;
+    box.write("waketime", time.millisecondsSinceEpoch);
+  }
 }

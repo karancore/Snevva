@@ -24,9 +24,9 @@ class _HydrationScreenState extends State<HydrationScreen>
       Get.find<HydrationStatController>();
 
   late final AnimationController animationController;
-  late Animation<int> numberAnimation;
+  late Animation<double> numberAnimation;
   late final Worker intakeWorker;
-  int lastValue = 0;
+  double lastValue = 0.0;
 
   // Cooldown Timer
   int lastPressTime = 0;
@@ -42,22 +42,22 @@ class _HydrationScreenState extends State<HydrationScreen>
       duration: const Duration(milliseconds: 600),
     );
 
-    lastValue = controller.waterIntake.value.toInt();
-    numberAnimation = Tween<int>(
-      begin: 0,
+    lastValue = controller.waterIntake.value.toDouble();
+    numberAnimation = Tween<double>(
+      begin: 0.0,
       end: lastValue,
     ).animate(animationController);
     animationController.forward();
 
-    intakeWorker = ever<int>(controller.waterIntake, (newValue) {
+    intakeWorker = ever<double>(controller.waterIntake, (newValue) {
       _animateTo(newValue);
     });
   }
 
-  void _animateTo(int newValue) {
+  void _animateTo(double newValue) {
     if (newValue == lastValue) return;
 
-    numberAnimation = Tween<int>(
+    numberAnimation = Tween<double>(
       begin: numberAnimation.value,
       end: newValue,
     ).animate(animationController);
@@ -84,6 +84,8 @@ class _HydrationScreenState extends State<HydrationScreen>
     }
 
     controller.waterIntake.value += controller.addWaterValue.value;
+    //controller.addWaterToToday(controller.addWaterValue.value);
+
     controller.saveWaterRecord(controller.addWaterValue.value, context);
     controller.saveWaterIntakeLocally();
 
@@ -144,7 +146,7 @@ class _HydrationScreenState extends State<HydrationScreen>
               );
               if (result != null) {
                 controller.addWaterValue.value = result;
-                _animateTo(controller.waterIntake.value.toInt());
+                _animateTo(controller.waterIntake.value.toDouble());
               }
             },
             addWaterValue: controller.addWaterValue.value,
