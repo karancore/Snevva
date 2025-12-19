@@ -87,6 +87,8 @@ dependencies:
 
 
   alarm: ^5.1.5
+  googleapis_auth: ^2.0.0
+  flutter_dotenv: ^6.0.0
 #  flutter_sms_autofill: ^1.0.4
 
 
@@ -147,6 +149,9 @@ flutter:
     - assets/sounds/
     - assets/Icons/reminder/
     - assets/chat/
+
+    - .env
+    - secrets/key.json
 
   fonts:
     - family: sans_regular

@@ -1,5 +1,6 @@
 import 'dart:isolate';
 import 'package:alarm/alarm.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:snevva/Widgets/home_wrapper.dart';
 import 'package:snevva/consts/consts.dart';
@@ -29,6 +30,9 @@ void main() async {
     iosNotificationOptions: IOSNotificationOptions(showNotification: true),
   );
   WidgetsFlutterBinding.ensureInitialized();
+
+  await dotenv.load(fileName: ".env");
+
   await Alarm.init();
   final isRemembered = await initializeApp();
   runApp(MyApp(isRemembered: isRemembered));
