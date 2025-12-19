@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
@@ -13,6 +14,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../common/global_variables.dart';
 
 class StepCounter extends StatefulWidget {
   final int? customGoal;
@@ -43,37 +46,54 @@ class _StepCounterState extends State<StepCounter> {
   DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
 
   late final StreamSubscription<BoxEvent> _hiveSub;
+  final service = FlutterBackgroundService();
+  StreamSubscription? _serviceSub;
+
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
+    _startAndAttachService();
+  }
 
-    /// UI state
-    toggleStepsCard();
+  Future<void> _startAndAttachService() async {
+    final isRunning = await service.isRunning();
 
-    /// Load persisted data
+    if (!isRunning) {
+      await service.startService();
+    }
+
+    /// Wait for service to be ready
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    // Load data - controller will handle the streaming
     stepController.loadGoal();
-    stepController.loadTodayStepsFromHive(); // 🔥 MISSING LINE
+    stepController.loadTodayStepsFromHive();
 
-    /// Initialize animation baselines (same as old code)
-    stepController.lastSteps = stepController.todaySteps.value;
-    stepController.lastPercent =
-        stepController.stepGoal.value == 0
-            ? 0
-            : stepController.todaySteps.value / stepController.stepGoal.value;
-
-    /// Load graph
     _loadWeeklyData();
+  }
+  //
+  // void _onStepsUpdated(dynamic event) {
+  //   if (event == null) return;
+  //
+  //   final newSteps = event["steps"] as int;
+  //   final oldSteps = stepController.todaySteps.value;
+  //
+  //   if (newSteps > oldSteps) {
+  //     stepController.incrementSteps(newSteps - oldSteps);
+  //   }
+  // }
+
+  @override
+  void dispose() {
+    // No need to cancel _serviceSub anymore
+    super.dispose();
   }
 
   Future<void> toggleStepsCard() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isStepGoalSet', true);
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   Future<void> _loadWeeklyData() async {
@@ -146,20 +166,20 @@ class _StepCounterState extends State<StepCounter> {
   }
 
   // ===== LABELS =====
-
-  List<String> _weekLabels() {
-    final now = DateTime.now();
-    final start = _startOfDay(now).subtract(const Duration(days: 6));
-    return List.generate(7, (i) {
-      final d = start.add(Duration(days: i));
-      return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.weekday % 7];
-    });
-  }
-
-  List<String> _monthLabels(DateTime month) {
-    final days = DateTime(month.year, month.month + 1, 0).day;
-    return List.generate(days, (i) => "${i + 1}");
-  }
+  //
+  // List<String> _weekLabels() {
+  //   final now = DateTime.now();
+  //   final start = _startOfDay(now).subtract(const Duration(days: 6));
+  //   return List.generate(7, (i) {
+  //     final d = start.add(Duration(days: i));
+  //     return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.weekday % 7];
+  //   });
+  // }
+  //
+  // List<String> _monthLabels(DateTime month) {
+  //   final days = DateTime(month.year, month.month + 1, 0).day;
+  //   return List.generate(days, (i) => "${i + 1}");
+  // }
 
   // ===== SWITCH VIEWS =====
 
@@ -212,9 +232,13 @@ class _StepCounterState extends State<StepCounter> {
                 /// ✅ PROGRESS RING (smooth, no reset)
                 Obx(() {
                   final goal = stepController.stepGoal.value;
-                  final percent = goal == 0
-                      ? 0.0
-                      : (stepController.todaySteps.value / goal).clamp(0.0, 1.0);
+                  final percent =
+                      goal == 0
+                          ? 0.0
+                          : (stepController.todaySteps.value / goal).clamp(
+                            0.0,
+                            1.0,
+                          );
 
                   return TweenAnimationBuilder<double>(
                     key: ValueKey(stepController.todaySteps.value),
@@ -223,16 +247,16 @@ class _StepCounterState extends State<StepCounter> {
                       end: percent,
                     ),
                     duration: const Duration(milliseconds: 500),
-                    builder: (_, val, __) => SemiCircularProgress(
-                      percent: val,
-                      radius: width / 3,
-                      strokeWidth: 12,
-                      color: AppColors.primaryColor,
-                      backgroundColor: Colors.grey.withOpacity(0.3),
-                    ),
+                    builder:
+                        (_, val, __) => SemiCircularProgress(
+                          percent: val,
+                          radius: width / 3,
+                          strokeWidth: 12,
+                          color: AppColors.primaryColor,
+                          backgroundColor: Colors.grey.withOpacity(0.3),
+                        ),
                   );
                 }),
-
 
                 Column(
                   children: [
@@ -247,16 +271,16 @@ class _StepCounterState extends State<StepCounter> {
                           end: stepController.todaySteps.value,
                         ),
                         duration: const Duration(milliseconds: 400),
-                        builder: (_, val, __) => Text(
-                          "$val",
-                          style: const TextStyle(
-                            fontSize: 38,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        builder:
+                            (_, val, __) => Text(
+                              "$val",
+                              style: const TextStyle(
+                                fontSize: 38,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                       );
                     }),
-
 
                     const Text('Steps', style: TextStyle(fontSize: 16)),
 
@@ -353,24 +377,32 @@ class _StepCounterState extends State<StepCounter> {
             const SizedBox(height: 10),
 
             // ===== GRAPH =====
-            Expanded(
-              child: CommonStatGraphWidget(
-                isDarkMode: isDarkMode,
-                height: 20,
-                isWaterGraph: false,
-                graphTitle: '',
-                isSleepGraph: false,
-                yAxisInterval: (_graphMaxY / 5).ceilToDouble(),
-                yAxisMaxValue: _graphMaxY,
-                gridLineInterval: (_graphMaxY / 5).ceilToDouble(),
-                points: _points,
-                measureUnit: 'K',
-                weekLabels:
+            SizedBox(
+              height: height * 0.2,
+              child: Obx(() {
+                final labels =
                     _isMonthlyView
-                        ? _monthLabels(_selectedMonth)
-                        : _weekLabels(),
-                isMonthlyView: _isMonthlyView,
-              ),
+                        ? generateMonthLabels(_selectedMonth)
+                        : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+                final points =
+                    _isMonthlyView
+                        ? stepController.getMonthlyStepsSpots(_selectedMonth)
+                        : stepController.stepSpots.toList();
+                return CommonStatGraphWidget(
+                  isDarkMode: isDarkMode,
+                  height: 20,
+                  isWaterGraph: false,
+                  graphTitle: '',
+                  isSleepGraph: false,
+                  yAxisInterval: 2,
+                  yAxisMaxValue: 11,
+                  gridLineInterval: 2,
+                  measureUnit: 'K',
+                  points: points,
+                  weekLabels: labels,
+                  isMonthlyView: _isMonthlyView,
+                );
+              }),
             ),
           ],
         ),

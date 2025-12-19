@@ -30,31 +30,64 @@ Future<bool> backgroundEntry(ServiceInstance service) async {
     // SharedPrefs (ONCE)
     final prefs = await SharedPreferences.getInstance();
 
+    // Check for day reset
+    final now = DateTime.now();
+    final todayKey = "${now.year}-${now.month}-${now.day}";
+    final lastDate = prefs.getString("last_step_date");
+
+    if (lastDate != todayKey) {
+      // New day - reset everything
+      await prefs.setString("last_step_date", todayKey);
+      await prefs.remove('lastRawSteps'); // Clear last raw steps for new day
+      await box.put(todayKey, StepEntry(date: now, steps: 0));
+
+      // Notify UI of reset
+      service.invoke("steps_updated", {"steps": 0});
+    }
+
     // Listen to pedometer
     Pedometer.stepCountStream.listen(
       (StepCount event) async {
         final now = DateTime.now();
         final todayKey = "${now.year}-${now.month}-${now.day}";
 
-        // Load last raw steps
+        // Get last raw step count
         final lastRawSteps = prefs.getInt('lastRawSteps') ?? event.steps;
 
+        // Calculate difference
         int diff = event.steps - lastRawSteps;
-        if (diff < 0) diff = 0;
 
+        // Handle pedometer reset (device reboot or app restart)
+        if (diff < 0) {
+          diff = event.steps; // Use current steps as delta
+        }
+
+        // Get current stored steps for today
         final todayEntry = box.get(todayKey);
-        final newSteps = (todayEntry?.steps ?? 0) + diff;
+        final currentSteps = todayEntry?.steps ?? 0;
+        final newSteps = currentSteps + diff;
 
-        // Save
+        // Save to Hive
         await box.put(todayKey, StepEntry(date: now, steps: newSteps));
 
-        await prefs.setInt('todaySteps', newSteps);
+        // Update last raw steps
         await prefs.setInt('lastRawSteps', event.steps);
 
-        print("👣 Steps updated → $newSteps");
+        // 🔥 Emit event to UI
+        service.invoke("steps_updated", {"steps": newSteps});
+
+        // Update notification
+        if (service is AndroidServiceInstance) {
+          service.setForegroundNotificationInfo(
+            title: "Step Tracking",
+            content: "$newSteps steps today",
+          );
+        }
+
+        print("👣 Steps updated → $newSteps (diff: $diff)");
       },
-      onError: (e) {
-        print("❌ Pedometer error: $e");
+      onError: (error) {
+        print("❌ Pedometer error: $error");
       },
     );
 

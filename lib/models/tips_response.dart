@@ -16,9 +16,10 @@ class TipsResponse {
       status: json['status'] ?? false,
       statusType: json['statusType'] ?? '',
       message: json['message'] ?? '',
-      data: (json['data'] as List<dynamic>? ?? [])
-          .map((e) => TipData.fromJson(e))
-          .toList(),
+      data:
+          (json['data'] as List<dynamic>? ?? [])
+              .map((e) => TipData.fromJson(e))
+              .toList(),
     );
   }
 
@@ -59,9 +60,10 @@ class TipData {
     return TipData(
       id: json['Id'] ?? 0,
       dataCode: json['DataCode'] ?? '',
-      thumbnailMedia: json['ThumbnailMedia'] != null
-          ? ThumbnailMedia.fromJson(json['ThumbnailMedia'])
-          : null,
+      thumbnailMedia:
+          json['ThumbnailMedia'] != null
+              ? ThumbnailMedia.fromJson(json['ThumbnailMedia'])
+              : null,
       heading: json['Heading'] ?? '',
       title: json['Title'] ?? '',
       shortDescription: json['ShortDescription'] ?? '',
@@ -122,9 +124,10 @@ class ThumbnailMedia {
       contentType: json['ContentType'] ?? '',
       description: json['Description'] ?? '',
       originalFilename: json['OriginalFilename'] ?? '',
-      cdnUrl: rawUrl.isNotEmpty && !rawUrl.startsWith('http')
-          ? 'https://$rawUrl'
-          : rawUrl,
+      cdnUrl:
+          rawUrl.isNotEmpty && !rawUrl.startsWith('http')
+              ? 'https://$rawUrl'
+              : rawUrl,
       originBucket: json['OriginBucket'] ?? '',
       mediaVariantsDto: json['MediaVariantsDto'],
     );

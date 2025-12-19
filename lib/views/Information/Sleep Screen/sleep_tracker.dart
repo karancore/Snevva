@@ -82,8 +82,8 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     }
   }
 
-  String _fmt(DateTime dt) {
-    int hour = dt.hour;
+  String _fmt(DateTime? dt) {
+    int hour = dt!.hour;
     String ampm = hour >= 12 ? "PM" : "AM";
 
     hour = hour % 12; // Convert 13–23 → 1–11
@@ -359,7 +359,9 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Text(
-                                  _fmt(sleepController.bedtime.value!),
+                                  sleepController.bedtime.value != null
+                                      ? _fmt(sleepController.bedtime.value)
+                                      : _fmt(DateTime.now()),
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w400,
@@ -406,7 +408,11 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Text(
-                                  _fmt(sleepController.waketime.value!),
+                                  sleepController.waketime.value != null
+                                      ? _fmt(sleepController.waketime.value)
+                                      : _fmt(
+                                        DateTime.now().add(Duration(hours: 8)),
+                                      ),
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w400,
@@ -489,7 +495,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                 child: Obx(() {
                   final labels =
                       _isMonthlyView
-                          ? sleepController.generateMonthLabels(_selectedMonth)
+                          ? generateMonthLabels(_selectedMonth)
                           : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
                   final points =

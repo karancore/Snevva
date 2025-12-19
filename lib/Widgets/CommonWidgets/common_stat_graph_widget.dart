@@ -82,7 +82,7 @@ class CommonStatGraphWidget extends StatelessWidget {
           // if (y < 0) y = 0;
           return FlSpot(
             double.parse(p.x.toStringAsFixed(2)),
-            double.parse(y.toStringAsFixed(2)),
+            double.parse(y.toStringAsFixed(3)),
           );
         }).toList();
 
@@ -411,9 +411,9 @@ class CommonStatGraphWidget extends StatelessWidget {
                               return LineTooltipItem(
                                 isSleepGraph
                                     ? formatted
-                                    : (isWaterGraph)
-                                    ? '${waterController.waterIntake.value} ml'
-                                    : '${stepController.todaySteps.value} Steps',
+                                    : isWaterGraph
+                                    ? '${(spot.y * 1000).round()} ml'
+                                    : '${(spot.y * 1000).round()} Steps',
                                 const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,

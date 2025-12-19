@@ -22,7 +22,7 @@ class WomenHealthScreen extends StatefulWidget {
 
 class _WomenHealthScreenState extends State<WomenHealthScreen> {
   final WomenHealthController womenController =
-  Get.find<WomenHealthController>();
+      Get.find<WomenHealthController>();
 
   @override
   void initState() {
@@ -90,7 +90,7 @@ class _WomenHealthScreenState extends State<WomenHealthScreen> {
                   child: Padding(
                     padding: const EdgeInsets.only(left: 10, right: 20),
                     child: Obx(
-                          () => Row(
+                      () => Row(
                         children: [
                           PeriodCyclePhaseCont(
                             height: height,
@@ -133,7 +133,9 @@ class _WomenHealthScreenState extends State<WomenHealthScreen> {
                 // FIX: Wrap in Obx to make it reactive
                 Obx(() {
                   // FIX: Add debug print to check list length
-                  print("Tips count: ${womenController.womenHealthTips.length}");
+                  print(
+                    "Tips count: ${womenController.womenHealthTips.length}",
+                  );
 
                   // FIX: Show loading or empty state
                   if (womenController.womenHealthTips.isEmpty) {
@@ -142,7 +144,11 @@ class _WomenHealthScreenState extends State<WomenHealthScreen> {
                       child: Center(
                         child: Column(
                           children: [
-                            Icon(LineAwesomeIcons.heart, size: 48, color: Colors.grey),
+                            Icon(
+                              LineAwesomeIcons.heart,
+                              size: 48,
+                              color: Colors.grey,
+                            ),
                             SizedBox(height: 16),
                             Text(
                               "Loading tips...",
@@ -195,7 +201,7 @@ class _WomenHealthScreenState extends State<WomenHealthScreen> {
                         itemCount: womenController.womenHealthTips.length,
                         separatorBuilder: (context, index) {
                           return Padding(
-                            padding: const EdgeInsets.only(left: 20 , right: 20 ),
+                            padding: const EdgeInsets.only(left: 20, right: 20),
                             child: Divider(
                               color: mediumGrey,
                               thickness: border04px,
@@ -250,17 +256,17 @@ class _WomenHealthScreenState extends State<WomenHealthScreen> {
                         return Theme(
                           data: Theme.of(context).copyWith(
                             colorScheme:
-                            isDark
-                                ? ColorScheme.dark(
-                              primary: AppColors.primaryColor,
-                              onPrimary: white,
-                              onSurface: white,
-                            )
-                                : ColorScheme.light(
-                              primary: AppColors.primaryColor,
-                              onPrimary: white,
-                              onSurface: black,
-                            ),
+                                isDark
+                                    ? ColorScheme.dark(
+                                      primary: AppColors.primaryColor,
+                                      onPrimary: white,
+                                      onSurface: white,
+                                    )
+                                    : ColorScheme.light(
+                                      primary: AppColors.primaryColor,
+                                      onPrimary: white,
+                                      onSurface: black,
+                                    ),
                             textButtonTheme: TextButtonThemeData(
                               style: TextButton.styleFrom(
                                 foregroundColor: AppColors.primaryColor,

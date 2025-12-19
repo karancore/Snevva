@@ -45,6 +45,13 @@ class _AddReminderState extends State<AddReminder> {
       controller.timeController.text = controller.formatReminderTime(
         widget.reminder!['RemindTime'] ?? [],
       );
+      if(widget.reminder!["Category"] == "Medicine" || widget.reminder!["Category"] == "Event" ||widget.reminder!["Category"] == "Meal"){
+        controller.pickedTime.value = TimeOfDay.fromDateTime(
+          DateTime.parse(widget.reminder!['RemindTime'][0]),
+        );
+      }
+
+
       controller.notesController.text =
           widget.reminder!['Description']?.toString() ??
           ''; // FIX: Changed from [] to ''
@@ -95,7 +102,18 @@ class _AddReminderState extends State<AddReminder> {
           isDarkMode: isDarkMode,
           backgroundColor: AppColors.primaryColor,
           buttonName: widget.reminder == null ? "Save" : "Update",
-          onTap: () => controller.validateAndSave(context),
+          onTap:
+              widget.reminder == null
+                  ? () => controller.validateAndSave(context)
+                  : () => controller.updateReminderFromLocal(
+                    context,
+                    id: widget.reminder!['id'],
+                    category: widget.reminder!['Category']!.toString(),
+                    timeOfDay: TimeOfDay.fromDateTime(
+                      DateTime.parse(widget.reminder!['RemindTime'][0]),
+                    ),
+                    times: widget.reminder!["RemindFrequencyCount"],
+                  ),
         ),
       ),
     );
@@ -274,37 +292,37 @@ class _AddReminderState extends State<AddReminder> {
             ],
           ),
         ),
-        SizedBox(height: 10),
-        Obx(
-          () =>
-              controller.waterList.isEmpty
-                  ? SizedBox.shrink()
-                  : SizedBox(
-                    height: controller.getListHeight(
-                      controller.waterList.length,
-                    ),
-                    child: ListView.separated(
-                      separatorBuilder: (context, index) => SizedBox(height: 1),
-                      itemCount: controller.waterList.length,
-                      itemBuilder: (context, index) {
-                        final reminderMap = controller.waterList[index];
-                        final title = reminderMap.title;
-                        return ListTile(
-                          title: Text(title),
-                          trailing: IconButton(
-                            icon: Icon(Icons.delete),
-                            onPressed:
-                                () => controller.stopAlarm(
-                                  index,
-                                  controller.waterList[index].alarms[index],
-                                  controller.waterList,
-                                ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-        ),
+        // SizedBox(height: 10),
+        // Obx(
+        //   () =>
+        //       controller.waterList.isEmpty
+        //           ? SizedBox.shrink()
+        //           : SizedBox(
+        //             height: controller.getListHeight(
+        //               controller.waterList.length,
+        //             ),
+        //             child: ListView.separated(
+        //               separatorBuilder: (context, index) => SizedBox(height: 1),
+        //               itemCount: controller.waterList.length,
+        //               itemBuilder: (context, index) {
+        //                 final reminderMap = controller.waterList[index];
+        //                 final title = reminderMap.title;
+        //                 return ListTile(
+        //                   title: Text(title),
+        //                   trailing: IconButton(
+        //                     icon: Icon(Icons.delete),
+        //                     onPressed:
+        //                         () => controller.stopAlarm(
+        //                           index,
+        //                           controller.waterList[index].alarms[index],
+        //                           controller.waterList,
+        //                         ),
+        //                   ),
+        //                 );
+        //               },
+        //             ),
+        //           ),
+        // ),
       ],
     );
   }
@@ -553,9 +571,8 @@ class _AddReminderState extends State<AddReminder> {
                       controller: controller.timesPerDayController,
                       keyboardType: TextInputType.number,
                       style: const TextStyle(fontSize: 13),
-                      enabled:
-                          controller.eventReminderOption.value ==
-                          0, // FIX: Changed condition
+                      enabled: controller.eventReminderOption.value == 0,
+                      // FIX: Changed condition
                       decoration: const InputDecoration(
                         isDense: true,
                         contentPadding: EdgeInsets.symmetric(

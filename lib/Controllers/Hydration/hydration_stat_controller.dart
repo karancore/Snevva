@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/consts/consts.dart';
@@ -6,6 +7,7 @@ import 'package:snevva/env/env.dart';
 import 'package:snevva/models/queryParamViewModels/water_goal_vm.dart';
 import 'package:snevva/services/api_service.dart';
 import '../../common/custom_snackbar.dart';
+import '../../common/global_variables.dart';
 import '../../models/water_history_model.dart';
 import 'package:http/http.dart' as http;
 
@@ -13,10 +15,13 @@ class HydrationStatController extends GetxController {
   RxBool checkVisibility = false.obs;
   RxBool masterCheck = false.obs;
   var addWaterValue = 250.obs;
-  RxInt waterIntake = 0.obs;
+  var waterIntake = 0.0.obs;
 
   RxInt waterGoal = 2000.obs;
 
+  RxList<WaterHistoryModel> waterHistoryList = <WaterHistoryModel>[].obs;
+  final RxMap<String, int> waterHistoryByDate = <String, int>{}.obs;
+  final RxList<FlSpot> waterSpots = <FlSpot>[].obs;
   var isLoading = true.obs;
 
   @override
@@ -28,7 +33,7 @@ class HydrationStatController extends GetxController {
   // Save water intake value locally
   Future<void> saveWaterIntakeLocally() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setInt('waterIntake', waterIntake.value);
+    prefs.setDouble('waterIntake', waterIntake.value);
     print(waterIntake.value);
     prefs.setString(
       'lastUpdatedDate',
@@ -40,7 +45,7 @@ class HydrationStatController extends GetxController {
   Future<void> loadWaterIntake() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    int savedIntake = prefs.getInt('waterIntake') ?? 0;
+    double savedIntake = prefs.getDouble('waterIntake') ?? 0;
     print(savedIntake);
     String? lastUpdated = prefs.getString('lastUpdatedDate');
     String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
@@ -55,8 +60,6 @@ class HydrationStatController extends GetxController {
       print("🔄 New day detected, resetting water intake.");
     }
   }
-
-  RxList<WaterHistoryModel> waterHistoryList = <WaterHistoryModel>[].obs;
 
   void toggleCheckVisibility() {
     checkVisibility.value = !checkVisibility.value;
@@ -105,6 +108,20 @@ class HydrationStatController extends GetxController {
       ),
       context,
     );
+  }
+
+  List<FlSpot> getMonthlyWaterSpots(DateTime month) {
+    int totalDays = daysInMonth(month.year, month.month);
+    List<FlSpot> spots = [];
+
+    for (int day = 1; day <= totalDays; day++) {
+      final key = "${month.year}-${month.month}-$day";
+      final ml = waterHistoryByDate[key] ?? 0;
+
+      spots.add(FlSpot((day - 1).toDouble(), ml / 1000));
+    }
+
+    return spots;
   }
 
   Future<void> saveWatergoal(WaterGoalVM water, BuildContext context) async {
@@ -158,6 +175,17 @@ class HydrationStatController extends GetxController {
         "Time": TimeOfDay.now().format(Get.context!),
         "Value": count,
       };
+
+      // Optimistically add to local list and update graph
+      final newRecord = WaterHistoryModel(
+        day: now.day,
+        month: now.month,
+        year: now.year,
+        time: TimeOfDay.now().format(Get.context!),
+        value: count,
+      );
+      waterHistoryList.add(newRecord);
+      buildWaterHistoryMap();
 
       final response = await ApiService.post(
         waterRecord,
@@ -236,10 +264,44 @@ class HydrationStatController extends GetxController {
       }
 
       print("Fetched ${waterHistoryList.length} Water records");
+      buildWaterHistoryMap();
     } catch (e) {
       print("Error fetching water records: $e");
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  void buildWaterHistoryMap() {
+    waterHistoryByDate.clear();
+    for (final item in waterHistoryList) {
+      final key = "${item.year}-${item.month}-${item.day}";
+      waterHistoryByDate.update(
+        key,
+        (v) => v + (item.value ?? 0),
+        ifAbsent: () => item.value ?? 0,
+      );
+    }
+    syncTodayIntakeFromMap();
+    updateWaterSpots();
+  }
+
+  void syncTodayIntakeFromMap() {
+    final key = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    waterIntake.value = (waterHistoryByDate[key] ?? 0).toDouble();
+  }
+
+  void updateWaterSpots() {
+    waterSpots.clear();
+    DateTime now = DateTime.now();
+    // Monday = 1, Sunday = 7. Find Monday of current week.
+    DateTime monday = now.subtract(Duration(days: now.weekday - 1));
+
+    for (int i = 0; i < 7; i++) {
+      DateTime date = monday.add(Duration(days: i));
+      String key = "${date.year}-${date.month}-${date.day}";
+      int ml = waterHistoryByDate[key] ?? 0;
+      waterSpots.add(FlSpot(i.toDouble(), ml / 1000.0));
     }
   }
 }

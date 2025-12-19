@@ -164,33 +164,19 @@ class _ReminderState extends State<Reminder> {
       }),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            CustomOutlinedButton(
-              width: width / 2.35,
-              isDarkMode: isDarkMode,
-              backgroundColor: AppColors.primaryColor,
-              buttonName: "History",
-              onTap: () {
-                Get.to(() => AllReminder());
-              },
-            ),
-            CustomOutlinedButton(
-              width: width / 2.35,
-              isDarkMode: isDarkMode,
-              buttonName: "+ Add Reminder",
-              backgroundColor: AppColors.primaryColor,
-              onTap: () async {
-                final result = await Get.to(() => AddReminder());
-                // Always reload data when returning, regardless of result
-                // The controller already handles the update, but this ensures consistency
-                if (result == true) {
-                  await _loadData();
-                }
-              },
-            ),
-          ],
+        child: CustomOutlinedButton(
+          width: double.infinity,
+          isDarkMode: isDarkMode,
+          buttonName: "+ Add Reminder",
+          backgroundColor: AppColors.primaryColor,
+          onTap: () async {
+            final result = await Get.to(() => AddReminder());
+            // Always reload data when returning, regardless of result
+            // The controller already handles the update, but this ensures consistency
+            if (result == true) {
+              await _loadData();
+            }
+          },
         ),
       ),
     );
@@ -292,6 +278,19 @@ class _ReminderState extends State<Reminder> {
                     ),
                   ),
                 Spacer(flex: 30),
+                GestureDetector(
+                  onTap: () {
+                    print("$reminder tapped");
+                    Get.to(AddReminder(reminder: reminder));
+                  },
+                  child: SvgPicture.asset(
+                    pen,
+                    width: 18,
+                    height: 18,
+                    color: Color(0xff878787),
+                  ),
+                ),
+                const SizedBox(width: 16),
                 GestureDetector(
                   onTap: () => _showDeleteConfirmation(reminder),
                   child: Padding(

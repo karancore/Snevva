@@ -54,7 +54,6 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
         // final firstTipUrl = ?["ThumbnailMedia"]?["CdnUrl"];
         // final secondTipUrl = randomTip?["ThumbnailMedia"]?["CdnUrl"];
 
-
         return SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

@@ -290,7 +290,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                 final d = sleepController.deepSleepDuration.value;
                 return RichText(
                   text: TextSpan(
-                    text: d == null ? "8h 00m" : fmtDuration(d),
+                    text: d == null ? "0h 00m" : fmtDuration(d),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,

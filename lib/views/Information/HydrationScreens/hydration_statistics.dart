@@ -3,6 +3,7 @@ import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../../Widgets/CommonWidgets/common_stat_graph_widget.dart';
+import '../../../common/global_variables.dart';
 import '../../../consts/consts.dart';
 import '../../../models/water_history_model.dart';
 import 'package:intl/intl.dart';
@@ -111,14 +112,14 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
     return result;
   }
 
-  List<String> _weekLabels(List<WaterHistoryModel> data) {
-    return data.map((e) => e.day.toString()).toList();
-  }
-
-  List<String> _monthLabels(DateTime month, List<WaterHistoryModel> data) {
-    final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
-    return List.generate(daysInMonth, (i) => (i + 1).toString());
-  }
+  // List<String> _weekLabels(List<WaterHistoryModel> data) {
+  //   return data.map((e) => e.day.toString()).toList();
+  // }
+  //
+  // List<String> _monthLabels(DateTime month, List<WaterHistoryModel> data) {
+  //   final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
+  //   return List.generate(daysInMonth, (i) => (i + 1).toString());
+  // }
 
   void _toggleView() {
     setState(() {
@@ -212,56 +213,68 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
 
                 List<WaterHistoryModel> displayData;
                 List<String> labels;
-                if (_isMonthlyView) {
-                  displayData = _getMonthData(
-                    controller.waterHistoryList,
-                    _selectedMonth,
-                  );
-                  if (displayData.isEmpty) {
-                    return _emptyStateContainer(height, isDarkMode);
-                  }
-                  labels = _monthLabels(_selectedMonth, displayData);
-                } else {
-                  displayData = _getLastWeekData(controller.waterHistoryList);
-                  if (displayData.isEmpty) {
-                    return _emptyStateContainer(height, isDarkMode);
-                  }
-                  labels = _weekLabels(displayData);
-                }
+                // if (_isMonthlyView) {
+                //   displayData = _getMonthData(
+                //     controller.waterHistoryList,
+                //     _selectedMonth,
+                //   );
+                //   if (displayData.isEmpty) {
+                //     return _emptyStateContainer(height, isDarkMode);
+                //   }
+                //   labels = _monthLabels(_selectedMonth, displayData);
+                // } else {
+                //   displayData = _getLastWeekData(controller.waterHistoryList);
+                //   if (displayData.isEmpty) {
+                //     return _emptyStateContainer(height, isDarkMode);
+                //   }
+                //   labels = _weekLabels(displayData);
+                // }
 
-                final points = List<FlSpot>.generate(displayData.length, (i) {
-                  final intakeMl = displayData[i].value?.toDouble() ?? 0;
-                  return FlSpot(i.toDouble(), intakeMl / 1000);
-                });
-
-                final goalLiters = controller.waterGoal.value / 1000;
-                double maxIntakeLiters = points
-                    .map((p) => p.y)
-                    .fold(0.0, (prev, val) => val > prev ? val : prev);
-                double maxY =
-                    ((maxIntakeLiters > goalLiters
-                                ? maxIntakeLiters
-                                : goalLiters) *
-                            1.25)
-                        .ceilToDouble();
-                double interval = (maxY / 5).ceilToDouble();
+                // final points = List<FlSpot>.generate(displayData.length, (i) {
+                //   final intakeMl = displayData[i].value?.toDouble() ?? 0;
+                //   return FlSpot(i.toDouble(), intakeMl / 1000);
+                // });
+                //
+                // final goalLiters = controller.waterGoal.value / 1000;
+                // double maxIntakeLiters = points
+                //     .map((p) => p.y)
+                //     .fold(0.0, (prev, val) => val > prev ? val : prev);
+                // double maxY =
+                //     ((maxIntakeLiters > goalLiters
+                //                 ? maxIntakeLiters
+                //                 : goalLiters) *
+                //             1.25)
+                //         .ceilToDouble();
+                // double interval = (maxY / 5).ceilToDouble();
 
                 return SizedBox(
                   height: height * 0.2,
-                  child: CommonStatGraphWidget(
-                    isMonthlyView: _isMonthlyView,
-                    isWaterGraph: true,
-                    isDarkMode: isDarkMode,
-                    height: height,
-                    graphTitle: '',
-                    yAxisInterval: interval,
-                    yAxisMaxValue: maxY,
-                    gridLineInterval: interval,
-                    points: points,
-                    weekLabels: labels,
-                    measureUnit: 'L',
-                    isSleepGraph: false,
-                  ),
+                  child: Obx(() {
+                    final labels =
+                        _isMonthlyView
+                            ? generateMonthLabels(_selectedMonth)
+                            : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+                    final points =
+                        _isMonthlyView
+                            ? controller.getMonthlyWaterSpots(_selectedMonth)
+                            : controller.waterSpots.toList();
+
+                    return CommonStatGraphWidget(
+                      isMonthlyView: _isMonthlyView,
+                      isWaterGraph: true,
+                      isDarkMode: isDarkMode,
+                      height: height,
+                      graphTitle: 'Hydration Statistics',
+                      yAxisInterval: 2,
+                      yAxisMaxValue: 11,
+                      gridLineInterval: 2,
+                      points: points,
+                      weekLabels: labels,
+                      measureUnit: 'L',
+                      isSleepGraph: false,
+                    );
+                  }),
                 );
               }),
 
@@ -295,7 +308,7 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     AutoSizeText(
-                      "Today's Record (${todayEntries.length} entries ${todayEntries.length == 1 ? 'y' : 'ies'})",
+                      "Today's Record (${todayEntries.length} entr${todayEntries.length == 1 ? 'y' : 'ies'})",
                       maxLines: 1,
                       maxFontSize: 20,
                       minFontSize: 10,

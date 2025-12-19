@@ -103,5 +103,12 @@ int daysInMonth(int year, int month) {
   return DateTime(year, month + 1, 0).day;
 }
 
+String _dateKey(DateTime d) => "${d.year}-${d.month}-${d.day}";
+
+List<String> generateMonthLabels(DateTime month) {
+  final total = daysInMonth(month.year, month.month);
+  return List.generate(total, (i) => '${i + 1}');
+}
+
 const String dietPlaceholder =
     "https://community.softr.io/uploads/db9110/original/2X/7/74e6e7e382d0ff5d7773ca9a87e6f6f8817a68a6.jpeg";
