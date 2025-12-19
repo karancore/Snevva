@@ -45,9 +45,12 @@ class _AddReminderState extends State<AddReminder> {
       controller.timeController.text = controller.formatReminderTime(
         widget.reminder!['RemindTime'] ?? [],
       );
-      controller.pickedTime.value = TimeOfDay.fromDateTime(
-        DateTime.parse(widget.reminder!['RemindTime'][0]),
-      );
+      if(widget.reminder!["Category"] == "Medicine" || widget.reminder!["Category"] == "Event" ||widget.reminder!["Category"] == "Meal"){
+        controller.pickedTime.value = TimeOfDay.fromDateTime(
+          DateTime.parse(widget.reminder!['RemindTime'][0]),
+        );
+      }
+
 
       controller.notesController.text =
           widget.reminder!['Description']?.toString() ??
@@ -109,6 +112,7 @@ class _AddReminderState extends State<AddReminder> {
                     timeOfDay: TimeOfDay.fromDateTime(
                       DateTime.parse(widget.reminder!['RemindTime'][0]),
                     ),
+                    times: widget.reminder!["RemindFrequencyCount"],
                   ),
         ),
       ),

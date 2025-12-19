@@ -623,7 +623,7 @@ class ReminderController extends GetxController {
       BuildContext context, {
         required int id, // The ID of the alarm to update
         required String category,
-        required TimeOfDay timeOfDay,
+        required TimeOfDay? timeOfDay,
         int? times, // Required only for Water
       }) async {
     // 1. Calculate the scheduled DateTime
@@ -632,8 +632,8 @@ class ReminderController extends GetxController {
       startDate.value?.year ?? now.year,
       startDate.value?.month ?? now.month,
       startDate.value?.day ?? now.day,
-      timeOfDay.hour,
-      timeOfDay.minute,
+      timeOfDay == null ? timeOfDay!.hour : now.hour,
+      timeOfDay == null ? timeOfDay!.minute : now.minute,
     );
 
     // If time is in the past, schedule for tomorrow
