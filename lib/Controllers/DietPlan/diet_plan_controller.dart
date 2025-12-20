@@ -58,13 +58,12 @@ class DietPlanController extends GetxController {
   ) async {
     try {
       isLoading.value = true;
-      if (categoryText.isEmpty) {
-        categoryText = "Non-Vegetarian";
-      }
-      Map<String, dynamic> payload = {
-        "Tags": ["General", categoryText],
+
+      final payload = {
+        "Tags": ["General", categoryText.isEmpty ? "Vegetarian" : categoryText],
         "FetchAll": true,
       };
+
       final response = await ApiService.post(
         getDietByTags,
         payload,
@@ -72,15 +71,12 @@ class DietPlanController extends GetxController {
         encryptionRequired: true,
       );
 
-      // print("Payload: $payload");
-
       if (response is http.Response) {
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
-          message: 'Failed to load diets : ${response.statusCode}',
+          message: 'Failed to load diets (${response.statusCode})',
         );
-        print('non veg ${response.body}');
         return null;
       }
       final Map<String, dynamic> parsed = Map<String, dynamic>.from(
@@ -89,10 +85,16 @@ class DietPlanController extends GetxController {
       dietTagResponse.value = DietTagsResponse.fromJson(parsed);
       print("diet controller ${dietTagResponse.value.toJson()}");
     } catch (e) {
-      //print(e);
-      throw Exception(e);
-      CustomSnackbar.showError(context: context, title: 'Error', message: '$e');
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: e.toString(),
+      );
+      return null;
+    } finally {
+      isLoading.value = false;
     }
+    return null;
   }
 
   @override

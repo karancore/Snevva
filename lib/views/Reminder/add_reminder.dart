@@ -45,12 +45,13 @@ class _AddReminderState extends State<AddReminder> {
       controller.timeController.text = controller.formatReminderTime(
         widget.reminder!['RemindTime'] ?? [],
       );
-      if(widget.reminder!["Category"] == "Medicine" || widget.reminder!["Category"] == "Event" ||widget.reminder!["Category"] == "Meal"){
+      if (widget.reminder!["Category"] == "Medicine" ||
+          widget.reminder!["Category"] == "Event" ||
+          widget.reminder!["Category"] == "Meal") {
         controller.pickedTime.value = TimeOfDay.fromDateTime(
           DateTime.parse(widget.reminder!['RemindTime'][0]),
         );
       }
-
 
       controller.notesController.text =
           widget.reminder!['Description']?.toString() ??
@@ -97,23 +98,41 @@ class _AddReminderState extends State<AddReminder> {
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        child: CustomOutlinedButton(
-          width: width,
-          isDarkMode: isDarkMode,
-          backgroundColor: AppColors.primaryColor,
-          buttonName: widget.reminder == null ? "Save" : "Update",
-          onTap:
-              widget.reminder == null
-                  ? () => controller.validateAndSave(context)
-                  : () => controller.updateReminderFromLocal(
-                    context,
-                    id: widget.reminder!['id'],
-                    category: widget.reminder!['Category']!.toString(),
-                    timeOfDay: TimeOfDay.fromDateTime(
-                      DateTime.parse(widget.reminder!['RemindTime'][0]),
-                    ),
-                    times: widget.reminder!["RemindFrequencyCount"],
-                  ),
+        child: SafeArea(
+          child: CustomOutlinedButton(
+            width: width,
+            isDarkMode: isDarkMode,
+            backgroundColor: AppColors.primaryColor,
+            buttonName: widget.reminder == null ? "Save" : "Update",
+            onTap:
+                widget.reminder == null
+                    ? () {
+                      controller.validateAndSave(context);
+                    }
+                    : () {
+                      controller.updateReminderFromLocal(
+                        context,
+                        id: widget.reminder!['id'].toString(),
+                        category: widget.reminder!['Category'].toString(),
+                        timeOfDay:
+                            widget.reminder!['Category'].toString() == "Water"
+                                ? TimeOfDay.now()
+                                : TimeOfDay.fromDateTime(
+                                  DateTime.parse(
+                                    widget.reminder!['RemindTime'][0],
+                                  ),
+                                ),
+                        times:
+                            widget.reminder!['RemindFrequencyCount'] is int
+                                ? widget.reminder!['RemindFrequencyCount']
+                                : int.tryParse(
+                                  widget.reminder!['RemindFrequencyCount']
+                                          ?.toString() ??
+                                      '',
+                                ),
+                      );
+                    },
+          ),
         ),
       ),
     );
@@ -256,7 +275,13 @@ class _AddReminderState extends State<AddReminder> {
                       },
                     ),
                   ),
-                  Text("times a day between"),
+                  Text("times"),
+
+                  Text("a"),
+
+                  Text("day"),
+
+                  Text("between"),
                   SizedBox(
                     height: 40,
                     width: 100,

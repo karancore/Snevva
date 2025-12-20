@@ -64,10 +64,10 @@ class MoodController extends GetxController {
         );
         return false;
       } else {
-        CustomSnackbar.showError(
+        CustomSnackbar.showSuccess(
           context: context,
           title: 'Success',
-          message: '✅ Mood record saved successfully',
+          message: 'Mood record saved successfully',
         );
         return true;
       }

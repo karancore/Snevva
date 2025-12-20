@@ -216,195 +216,200 @@ class _StepCounterState extends State<StepCounter> {
       appBar: CustomAppBar(appbarText: "Step Counter"),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // ===== STEP PROGRESS =====
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                Column(
-                  children: [
-                    Image.asset(run, width: 80, height: 80),
-                    const SizedBox(height: 50),
-                  ],
-                ),
-
-                /// ✅ PROGRESS RING (smooth, no reset)
-                Obx(() {
-                  final goal = stepController.stepGoal.value;
-                  final percent =
-                      goal == 0
-                          ? 0.0
-                          : (stepController.todaySteps.value / goal).clamp(
-                            0.0,
-                            1.0,
-                          );
-
-                  return TweenAnimationBuilder<double>(
-                    key: ValueKey(stepController.todaySteps.value),
-                    tween: Tween<double>(
-                      begin: stepController.lastPercent,
-                      end: percent,
-                    ),
-                    duration: const Duration(milliseconds: 500),
-                    builder:
-                        (_, val, __) => SemiCircularProgress(
-                          percent: val,
-                          radius: width / 3,
-                          strokeWidth: 12,
-                          color: AppColors.primaryColor,
-                          backgroundColor: Colors.grey.withOpacity(0.3),
-                        ),
-                  );
-                }),
-
-                Column(
-                  children: [
-                    const SizedBox(height: 90),
-
-                    /// ✅ STEP COUNTER (incremental animation)
-                    Obx(() {
-                      return TweenAnimationBuilder<int>(
-                        key: ValueKey(stepController.todaySteps.value),
-                        tween: IntTween(
-                          begin: stepController.lastSteps,
-                          end: stepController.todaySteps.value,
-                        ),
-                        duration: const Duration(milliseconds: 400),
-                        builder:
-                            (_, val, __) => Text(
-                              "$val",
-                              style: const TextStyle(
-                                fontSize: 38,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                      );
-                    }),
-
-                    const Text('Steps', style: TextStyle(fontSize: 16)),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Obx(
-                          () => Text('Goal: ${stepController.stepGoal.value}'),
-                        ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () async {
-                            final updated = await showStepCounterBottomSheet(
-                              context,
-                              isDarkMode,
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              // ===== STEP PROGRESS =====
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  Column(
+                    children: [
+                      Image.asset(run, width: 80, height: 80),
+                      const SizedBox(height: 50),
+                    ],
+                  ),
+          
+                  /// ✅ PROGRESS RING (smooth, no reset)
+                  Obx(() {
+                    final goal = stepController.stepGoal.value;
+                    final percent =
+                        goal == 0
+                            ? 0.0
+                            : (stepController.todaySteps.value / goal).clamp(
+                              0.0,
+                              1.0,
                             );
-                            if (updated != null) {
-                              stepController.updateStepGoal(updated);
-                            }
-                          },
-                          child: SvgPicture.asset(
-                            editIcon,
-                            width: 15,
-                            height: 15,
+          
+                    return TweenAnimationBuilder<double>(
+                      key: ValueKey(stepController.todaySteps.value),
+                      tween: Tween<double>(
+                        begin: stepController.lastPercent,
+                        end: percent,
+                      ),
+                      duration: const Duration(milliseconds: 500),
+                      builder:
+                          (_, val, __) => SemiCircularProgress(
+                            percent: val,
+                            radius: width / 3,
+                            strokeWidth: 12,
+                            color: AppColors.primaryColor,
+                            backgroundColor: Colors.grey.withOpacity(0.3),
+                          ),
+                    );
+                  }),
+          
+                  Column(
+                    children: [
+                      const SizedBox(height: 90),
+          
+                      /// ✅ STEP COUNTER (incremental animation)
+                      Obx(() {
+                        return TweenAnimationBuilder<int>(
+                          key: ValueKey(stepController.todaySteps.value),
+                          tween: IntTween(
+                            begin: stepController.lastSteps,
+                            end: stepController.todaySteps.value,
+                          ),
+                          duration: const Duration(milliseconds: 400),
+                          builder:
+                              (_, val, __) => Text(
+                                "$val",
+                                style: const TextStyle(
+                                  fontSize: 38,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                        );
+                      }),
+          
+                      const Text('Steps', style: TextStyle(fontSize: 16)),
+          
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Obx(
+                            () => Text('Goal: ${stepController.stepGoal.value}'),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () async {
+                              final updated = await showStepCounterBottomSheet(
+                                context,
+                                isDarkMode,
+                              );
+                              if (updated != null) {
+                                stepController.updateStepGoal(updated);
+                              }
+                            },
+                            child: SvgPicture.asset(
+                              editIcon,
+                              width: 15,
+                              height: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+          
+              const SizedBox(height: 30),
+          
+              // ===== STATS =====
+              Obx(() {
+                final steps = stepController.todaySteps.value;
+          
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _infoItem(dis, '${(steps * 0.0008).toStringAsFixed(2)} km'),
+                    _infoItem(cal, '${(steps * 0.04).toStringAsFixed(0)} cal'),
+                    _infoItem(time, '${(steps / 100).toStringAsFixed(0)} min'),
+                  ],
+                );
+              }),
+          
+              const SizedBox(height: 25),
+          
+              // ===== GRAPH HEADER =====
+              Column(
+                children: [
+                  Text(
+                    _isMonthlyView ? "Monthly Step Stats" : "Weekly Step Stats",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        if (_isMonthlyView)
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.chevron_left),
+                                onPressed: () => _changeMonth(-1),
+                              ),
+                              Text(
+                                DateFormat('MMMM yyyy').format(_selectedMonth),
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.chevron_right),
+                                onPressed: () => _changeMonth(1),
+                              ),
+                            ],
+                          ),
+                        TextButton(
+                          onPressed: _toggleView,
+                          child: Text(
+                            _isMonthlyView
+                                ? "Switch to Weekly"
+                                : "Switch to Monthly",
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 30),
-
-            // ===== STATS =====
-            Obx(() {
-              final steps = stepController.todaySteps.value;
-
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _infoItem(dis, '${(steps * 0.0008).toStringAsFixed(2)} km'),
-                  _infoItem(cal, '${(steps * 0.04).toStringAsFixed(0)} cal'),
-                  _infoItem(time, '${(steps / 100).toStringAsFixed(0)} min'),
-                ],
-              );
-            }),
-
-            const SizedBox(height: 25),
-
-            // ===== GRAPH HEADER =====
-            Column(
-              children: [
-                Text(
-                  _isMonthlyView ? "Monthly Step Stats" : "Weekly Step Stats",
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
                   ),
-                ),
-                Row(
-                  children: [
-                    if (_isMonthlyView)
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.chevron_left),
-                            onPressed: () => _changeMonth(-1),
-                          ),
-                          Text(
-                            DateFormat('MMMM yyyy').format(_selectedMonth),
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.chevron_right),
-                            onPressed: () => _changeMonth(1),
-                          ),
-                        ],
-                      ),
-                    TextButton(
-                      onPressed: _toggleView,
-                      child: Text(
-                        _isMonthlyView
-                            ? "Switch to Weekly"
-                            : "Switch to Monthly",
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 10),
-
-            // ===== GRAPH =====
-            SizedBox(
-              height: height * 0.2,
-              child: Obx(() {
-                final labels =
-                    _isMonthlyView
-                        ? generateMonthLabels(_selectedMonth)
-                        : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-                final points =
-                    _isMonthlyView
-                        ? stepController.getMonthlyStepsSpots(_selectedMonth)
-                        : stepController.stepSpots.toList();
-                return CommonStatGraphWidget(
-                  isDarkMode: isDarkMode,
-                  height: 20,
-                  isWaterGraph: false,
-                  graphTitle: '',
-                  isSleepGraph: false,
-                  yAxisInterval: 2,
-                  yAxisMaxValue: 11,
-                  gridLineInterval: 2,
-                  measureUnit: 'K',
-                  points: points,
-                  weekLabels: labels,
-                  isMonthlyView: _isMonthlyView,
-                );
-              }),
-            ),
-          ],
+                ],
+              ),
+          
+              const SizedBox(height: 10),
+          
+              // ===== GRAPH =====
+              SizedBox(
+                height: height * 0.38,
+                child: Obx(() {
+                  final labels =
+                      _isMonthlyView
+                          ? generateMonthLabels(_selectedMonth)
+                          : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+                  final points =
+                      _isMonthlyView
+                          ? stepController.getMonthlyStepsSpots(_selectedMonth)
+                          : stepController.stepSpots.toList();
+                  return CommonStatGraphWidget(
+                    isDarkMode: isDarkMode,
+                    height: height,
+                    isWaterGraph: false,
+                    graphTitle: '',
+                    isSleepGraph: false,
+                    yAxisInterval: 2,
+                    yAxisMaxValue: 11,
+                    gridLineInterval: 2,
+                    measureUnit: 'K',
+                    points: points,
+                    weekLabels: labels,
+                    isMonthlyView: _isMonthlyView,
+                  );
+                }),
+              ),
+            ],
+          ),
         ),
       ),
     );

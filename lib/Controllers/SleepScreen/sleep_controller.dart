@@ -37,18 +37,6 @@ class SleepController extends GetxController {
     super.onInit();
     _sleepService.onPhoneUsageDetected = onPhoneUsed;
 
-    final bedMs = box.read("bedtime");
-    final wakeMs = box.read("waketime");
-
-    if (bedMs != null && bedMs is int) {
-      bedtime.value = DateTime.fromMillisecondsSinceEpoch(bedMs);
-    }
-
-    if (wakeMs != null && wakeMs is int) {
-      waketime.value = DateTime.fromMillisecondsSinceEpoch(wakeMs);
-    }
-
-    /// 🔥 LOAD DATA ONCE
     loadDeepSleepData();
   }
 
@@ -77,6 +65,21 @@ class SleepController extends GetxController {
     deepSleepHistory.clear();
 
     if (_box.isEmpty) return;
+
+    final bedMs = box.read("bedtime");
+    print("bedtime loaded from hive : $bedMs");
+    final wakeMs = box.read("waketime");
+    print("waketime loaded from hive : $wakeMs");
+
+    if (bedMs != null && bedMs is int) {
+      bedtime.value = DateTime.fromMillisecondsSinceEpoch(bedMs);
+      print("bedtime epoch loaded from hive : ${bedtime.value}");
+    }
+
+    if (wakeMs != null && wakeMs is int) {
+      waketime.value = DateTime.fromMillisecondsSinceEpoch(wakeMs);
+      print("waketime epoch loaded from hive : ${waketime.value}");
+    }
 
     DateTime? latestDate;
     Duration? latestDuration;

@@ -10,7 +10,7 @@ import '../../env/env.dart';
 import '../../services/api_service.dart';
 import '../local_storage_manager.dart';
 
-class MentalWellnesscontroller extends GetxController {
+class MentalWellnessController extends GetxController {
   dynamic generalMusic = <dynamic>[].obs;
   dynamic selectedGenralMusics = <dynamic>[].obs;
   dynamic meditationMusic = <dynamic>[].obs;

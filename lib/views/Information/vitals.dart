@@ -9,6 +9,7 @@ import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/queryParamViewModels/bloodpressure.dart';
 
 import '../../Controllers/Vitals/vitalsController.dart';
+import '../../Widgets/CommonWidgets/custom_outlined_button.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../common/global_variables.dart';
 
@@ -55,6 +56,7 @@ class _VitalsScreenState extends State<VitalsScreen> {
     int? newSystolic = int.tryParse(systolicController.text);
     int? newDiastolic = int.tryParse(diastolicController.text);
     int? newGlucose = int.tryParse(glucoseController.text);
+
     if (vitalsKey.currentState!.validate()) {
       if (newBPM != 0 &&
           newSystolic != null &&
@@ -67,7 +69,6 @@ class _VitalsScreenState extends State<VitalsScreen> {
           bloodGlucose = newGlucose;
         });
 
-        // ✅ Send all values to controller
         final res = _controller.submitVitals(
           BloodPressureData(
             heartRate: heartRate.toDouble(),
@@ -87,7 +88,6 @@ class _VitalsScreenState extends State<VitalsScreen> {
           systolicController.clear();
           diastolicController.clear();
           glucoseController.clear();
-          // Navigator.pop(context);
           Get.to(() => HomeWrapper(key: UniqueKey()));
         }
       } else {
@@ -107,7 +107,6 @@ class _VitalsScreenState extends State<VitalsScreen> {
     diastolicController.text = diastolic.toString();
     glucoseController.text = bloodGlucose.toString();
 
-    // Load BPM from local storage when the screen is initialized
     _controller.loadVitalsFromLocalStorage().then((_) {
       setState(() {
         bpmController.text = _controller.bpm.value.toString();
@@ -118,7 +117,6 @@ class _VitalsScreenState extends State<VitalsScreen> {
       });
     });
 
-    // Add a listener to bpmController to reflect real-time changes
     bpmController.addListener(() {
       setState(() {
         heartRate = int.tryParse(bpmController.text) ?? 0;
@@ -131,7 +129,10 @@ class _VitalsScreenState extends State<VitalsScreen> {
 
   @override
   void dispose() {
-    bpmController.dispose(); // Always dispose controllers
+    bpmController.dispose();
+    systolicController.dispose();
+    diastolicController.dispose();
+    glucoseController.dispose();
     super.dispose();
   }
 
@@ -145,6 +146,15 @@ class _VitalsScreenState extends State<VitalsScreen> {
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
+      bottomNavigationBar: SafeArea(
+        child: CustomOutlinedButton(
+          width: double.infinity,
+          isDarkMode: isDarkMode,
+          backgroundColor: AppColors.primaryColor,
+          buttonName: 'Save Vitals',
+          onTap: updateVitals,
+        ),
+      ),
       appBar: CustomAppBar(
         appbarText: "Vitals",
         onClose: () {
@@ -156,17 +166,16 @@ class _VitalsScreenState extends State<VitalsScreen> {
       ),
       backgroundColor: isDarkMode ? Colors.black : Colors.white,
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           child: Form(
             key: vitalsKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                SizedBox(height: 40),
+                const SizedBox(height: 20),
 
                 // Heart Rate Indicator
-                // Heart Rate Indicator (with editable input)
                 Stack(
                   alignment: Alignment.center,
                   children: [
@@ -184,6 +193,7 @@ class _VitalsScreenState extends State<VitalsScreen> {
                       ),
                     ),
                     Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         SizedBox(
                           width: 80,
@@ -208,10 +218,10 @@ class _VitalsScreenState extends State<VitalsScreen> {
                           ),
                         ),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.favorite, color: Colors.pink, size: 16),
-                            SizedBox(width: 4),
+                            const SizedBox(width: 4),
                             Text(
                               'BPM',
                               style: TextStyle(
@@ -225,11 +235,11 @@ class _VitalsScreenState extends State<VitalsScreen> {
                   ],
                 ),
 
-                SizedBox(height: 40),
+                const SizedBox(height: 30),
 
                 // Vitals Input Card
                 Container(
-                  padding: EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: isDarkMode ? Colors.grey[900] : Colors.white,
                     borderRadius: BorderRadius.circular(16),
@@ -241,23 +251,26 @@ class _VitalsScreenState extends State<VitalsScreen> {
                     ],
                   ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       // Blood Pressure Input
                       Row(
                         children: [
                           Image.asset(heartVitalIcon, width: 24, height: 24),
-                          SizedBox(width: 8),
-                          Text(
-                            'Blood Pressure:',
-                            style: TextStyle(color: textColor),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Blood Pressure:',
+                              style: TextStyle(color: textColor, fontSize: 13),
+                            ),
                           ),
-                          Spacer(),
                           SizedBox(
-                            width: 50,
+                            width: 45,
                             child: TextField(
                               controller: systolicController,
                               keyboardType: TextInputType.number,
-                              style: TextStyle(color: textColor),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: textColor, fontSize: 14),
                               inputFormatters: [
                                 MaxValueTextInputFormatter(120),
                               ],
@@ -265,114 +278,82 @@ class _VitalsScreenState extends State<VitalsScreen> {
                                 hintText: '$systolic',
                                 hintStyle: TextStyle(
                                   color: textColor.withOpacity(0.5),
+                                  fontSize: 14,
                                 ),
-                                border: UnderlineInputBorder(),
+                                border: const UnderlineInputBorder(),
+                                contentPadding: EdgeInsets.zero,
                               ),
                             ),
                           ),
                           Text('/', style: TextStyle(color: textColor)),
                           SizedBox(
-                            width: 50,
+                            width: 45,
                             child: TextField(
                               controller: diastolicController,
                               keyboardType: TextInputType.number,
-                              style: TextStyle(color: textColor),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: textColor, fontSize: 14),
                               inputFormatters: [MaxValueTextInputFormatter(80)],
                               decoration: InputDecoration(
                                 hintText: '$diastolic',
                                 hintStyle: TextStyle(
                                   color: textColor.withOpacity(0.5),
+                                  fontSize: 14,
                                 ),
-                                border: UnderlineInputBorder(),
+                                border: const UnderlineInputBorder(),
+                                contentPadding: EdgeInsets.zero,
                               ),
                             ),
                           ),
-                          Text(' mm/Hg', style: TextStyle(color: textColor)),
+                          Text(' mm/Hg',
+                            style: TextStyle(color: textColor, fontSize: 12),
+                          ),
                         ],
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
 
                       // Blood Glucose Input
                       Row(
                         children: [
                           Image.asset(bloodDropsIcon, width: 24, height: 24),
-                          SizedBox(width: 8),
-                          Text(
-                            'Blood Glucose:',
-                            style: TextStyle(color: textColor),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Blood Glucose:',
+                              style: TextStyle(color: textColor, fontSize: 13),
+                            ),
                           ),
-                          Spacer(),
                           SizedBox(
-                            width: 80,
+                            width: 70,
                             child: TextField(
                               controller: glucoseController,
                               keyboardType: TextInputType.number,
+                              textAlign: TextAlign.center,
                               inputFormatters: [
                                 MaxValueTextInputFormatter(140),
                               ],
-                              style: TextStyle(color: textColor),
+                              style: TextStyle(color: textColor, fontSize: 14),
                               decoration: InputDecoration(
                                 hintText: '$bloodGlucose',
                                 hintStyle: TextStyle(
                                   color: textColor.withOpacity(0.5),
+                                  fontSize: 14,
                                 ),
-                                border: UnderlineInputBorder(),
+                                border: const UnderlineInputBorder(),
+                                contentPadding: EdgeInsets.zero,
                               ),
                             ),
                           ),
-                          Text(' mg/dL', style: TextStyle(color: textColor)),
+                          Text(' mg/dL',
+                            style: TextStyle(color: textColor, fontSize: 12),
+                          ),
                         ],
                       ),
                     ],
                   ),
                 ),
 
-                SizedBox(height: 30),
-
-                // Detecting text
-                // Column(
-                //   children: [
-                //     Text(
-                //       'Detecting....',
-                //       style: TextStyle(
-                //         color: Colors.purpleAccent,
-                //         fontSize: 18,
-                //         fontWeight: FontWeight.bold,
-                //       ),
-                //     ),
-                //     SizedBox(height: 8),
-                //     Text(
-                //       'Just Hold on!\nMeasuring your Vitals',
-                //       textAlign: TextAlign.center,
-                //       style: TextStyle(
-                //         color: textColor.withOpacity(0.6),
-                //         fontSize: 14,
-                //       ),
-                //     ),
-                //   ],
-                // ),
-                Spacer(),
-
-                // Enter Vitals Button
-                GestureDetector(
-                  onTap: updateVitals,
-                  child: Container(
-                    width: double.infinity,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      gradient: AppColors.primaryGradient,
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Save Vitals',
-                        style: TextStyle(color: Colors.white, fontSize: 18),
-                      ),
-                    ),
-                  ),
-                ),
-
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
               ],
             ),
           ),

@@ -6,6 +6,7 @@ import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/views/DietPlan/celebrity_diet_plan.dart';
 
+import '../../common/loader.dart';
 import '../../consts/consts.dart';
 
 class DietPlanScreen extends StatefulWidget {
@@ -58,11 +59,12 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
   @override
   void initState() {
     super.initState();
+    dietController.getAllDiets(context, "Vegetarian");
 
-    // Load default/general diets when screen opens
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      dietController.getAllDiets(context, "Vegetarian");
-    });
+    // // Load default/general diets when screen opens
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //
+    // });
   }
 
   @override
@@ -114,6 +116,10 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Obx(() {
+                if (dietController.isLoading.value) {
+                  return Loader();
+                }
+
                 final data = dietController.dietTagResponse.value.data;
                 if (data == null || data.isEmpty) {
                   return Text("No suggestions"); // prevent crash
@@ -242,10 +248,11 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
   ) {
     return Obx(() {
       final isSelected = dietController.selectedCategoryIndex.value == index;
-      fetchCategoryReponse(categoryText);
+
       return GestureDetector(
         onTap: () {
           dietController.changeCategory(index);
+          fetchCategoryReponse(categoryText);
         },
         child: Container(
           padding: const EdgeInsets.only(left: 20),

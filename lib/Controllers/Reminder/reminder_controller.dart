@@ -620,69 +620,85 @@ class ReminderController extends GetxController {
   }
 
   Future<void> updateReminderFromLocal(
-      BuildContext context, {
-        required int id, // The ID of the alarm to update
-        required String category,
-        required TimeOfDay? timeOfDay,
-        int? times, // Required only for Water
-      }) async {
-    // 1. Calculate the scheduled DateTime
+    BuildContext context, {
+    required String id,
+    required String category,
+    TimeOfDay? timeOfDay,
+    int? times,
+  }) async {
+    print("🚀 updateReminderFromLocal called");
+    print("➡️ id: $id (${id.runtimeType})");
+    print("➡️ category: $category");
+    print("➡️ timeOfDay: $timeOfDay");
+    print("➡️ times: $times (${times.runtimeType})");
+
     final now = DateTime.now();
     var scheduledTime = DateTime(
       startDate.value?.year ?? now.year,
       startDate.value?.month ?? now.month,
       startDate.value?.day ?? now.day,
-      timeOfDay == null ? timeOfDay!.hour : now.hour,
-      timeOfDay == null ? timeOfDay!.minute : now.minute,
+      timeOfDay == TimeOfDay.now() ? timeOfDay!.hour : now.hour,
+      timeOfDay == TimeOfDay.now() ? timeOfDay!.minute : now.minute,
     );
 
-    // If time is in the past, schedule for tomorrow
+    print("🕒 initial scheduledTime → $scheduledTime");
+
     if (scheduledTime.isBefore(now) || scheduledTime.isAtSameMomentAs(now)) {
       scheduledTime = scheduledTime.add(const Duration(days: 1));
+      print("⏭️ time was past → moved to $scheduledTime");
     }
 
-    // 2. Handle Water Updates (Special Logic)
+    // 🚰 WATER
     if (category == 'Water') {
-      if (id is String) {
-        // Find old water reminder group
-        final index = waterList.indexWhere((e) => e.id == id);
-        if (index != -1) {
-          // Stop all old alarms
-          final oldModel = waterList[index];
-          for (var alarm in oldModel.alarms) {
-            await Alarm.stop(alarm.id);
-          }
-          // Remove old entry
-          waterList.removeAt(index);
-          await saveReminderList(waterList, "water_list");
-        }
-        // Create new fresh alarms
-        await setWaterAlarm(times: times, context: context);
-      }
-    }
+      print("🚰 Updating WATER reminder");
 
-    // 3. Handle Single Alarms (Medicine, Meal, Event)
+      final index = waterList.indexWhere((e) => e.id == id);
+      print("🔍 waterList index → $index");
+
+      if (index != -1) {
+        final oldModel = waterList[index];
+        print("🛑 stopping ${oldModel.alarms.length} old alarms");
+
+        for (var alarm in oldModel.alarms) {
+          print("🛑 stop alarm id=${alarm.id}");
+          await Alarm.stop(alarm.id);
+        }
+
+        waterList.removeAt(index);
+        await saveReminderList(waterList, "water_list");
+        print("🗑️ old water reminder removed");
+      }
+
+      print("➕ creating new water alarms with times=$times");
+      await setWaterAlarm(times: times, context: context);
+    }
+    // 💊🍽️📅 SINGLE ALARMS
     else {
-      if (id is int) {
-        final alarmId = id; // Reuse the existing Alarm ID to overwrite it
+      print("🔁 Updating single alarm → $category with id=$id");
 
-        // Switch based on category to call specific update helpers
-        switch (category) {
-          case 'Medicine':
-            await _updateMedicineAlarm(scheduledTime, context, alarmId);
-            break;
-          case 'Meal':
-            await _updateMealAlarm(scheduledTime, context, alarmId);
-            break;
-          case 'Event':
-            await _updateEventAlarm(scheduledTime, context, alarmId);
-            break;
-        }
+      switch (category) {
+        case 'Medicine':
+          await _updateMedicineAlarm(scheduledTime, context, int.parse(id));
+          break;
+        case 'Meal':
+          await _updateMealAlarm(scheduledTime, context, int.parse(id));
+          break;
+        case 'Event':
+          await _updateEventAlarm(scheduledTime, context, int.parse(id));
+          break;
+        default:
+          print("⚠️ Unknown category: $category");
       }
     }
+
+    print("✅ updateReminderFromLocal completed");
   }
 
-  Future<void> _updateMedicineAlarm(DateTime scheduledTime, BuildContext context, int alarmId) async {
+  Future<void> _updateMedicineAlarm(
+    DateTime scheduledTime,
+    BuildContext context,
+    int alarmId,
+  ) async {
     // 1. Re-set the alarm with the SAME ID
     final alarmSettings = AlarmSettings(
       id: alarmId, // <--- Key change: Reuse ID
@@ -695,21 +711,23 @@ class ReminderController extends GetxController {
         fadeDuration: const Duration(seconds: 5),
         volumeEnforced: true,
       ),
-      notificationSettings: enableNotifications.value
-          ? NotificationSettings(
-        title: titleController.text,
-        body: 'Take ${medicineNames.isNotEmpty ? medicineNames.join(", ") : "your medicine"}. ${notesController.text}',
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      )
-          : NotificationSettings(
-        title: '',
-        body: 'Take your medicine',
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      ),
+      notificationSettings:
+          enableNotifications.value
+              ? NotificationSettings(
+                title: titleController.text,
+                body:
+                    'Take ${medicineNames.isNotEmpty ? medicineNames.join(", ") : "your medicine"}. ${notesController.text}',
+                stopButton: 'Stop',
+                icon: 'alarm',
+                iconColor: AppColors.primaryColor,
+              )
+              : NotificationSettings(
+                title: '',
+                body: 'Take your medicine',
+                stopButton: 'Stop',
+                icon: 'alarm',
+                iconColor: AppColors.primaryColor,
+              ),
     );
 
     await Alarm.set(alarmSettings: alarmSettings);
@@ -735,7 +753,12 @@ class ReminderController extends GetxController {
     // 3. Save and Refresh
     await _finalizeUpdate(context, "medicine_list", medicineList);
   }
-  Future<void> _updateMealAlarm(DateTime scheduledTime, BuildContext context, int alarmId) async {
+
+  Future<void> _updateMealAlarm(
+    DateTime scheduledTime,
+    BuildContext context,
+    int alarmId,
+  ) async {
     // Use same AlarmSettings logic as _addMealAlarm but with alarmId
     final alarmSettings = AlarmSettings(
       id: alarmId,
@@ -748,21 +771,22 @@ class ReminderController extends GetxController {
         fadeDuration: const Duration(seconds: 5),
         volumeEnforced: true,
       ),
-      notificationSettings: enableNotifications.value
-          ? NotificationSettings(
-        title: titleController.text,
-        body: notesController.text,
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      )
-          : NotificationSettings(
-        title: 'REMINDER',
-        body: 'Take your meal',
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      ),
+      notificationSettings:
+          enableNotifications.value
+              ? NotificationSettings(
+                title: titleController.text,
+                body: notesController.text,
+                stopButton: 'Stop',
+                icon: 'alarm',
+                iconColor: AppColors.primaryColor,
+              )
+              : NotificationSettings(
+                title: 'REMINDER',
+                body: 'Take your meal',
+                stopButton: 'Stop',
+                icon: 'alarm',
+                iconColor: AppColors.primaryColor,
+              ),
     );
 
     await Alarm.set(alarmSettings: alarmSettings);
@@ -787,7 +811,11 @@ class ReminderController extends GetxController {
     await _finalizeUpdate(context, "meals_list", mealsList);
   }
 
-  Future<void> _updateEventAlarm(DateTime scheduledTime, BuildContext context, int alarmId) async {
+  Future<void> _updateEventAlarm(
+    DateTime scheduledTime,
+    BuildContext context,
+    int alarmId,
+  ) async {
     // Use same AlarmSettings logic as _addEventAlarm but with alarmId
     final alarmSettings = AlarmSettings(
       id: alarmId,
@@ -800,21 +828,25 @@ class ReminderController extends GetxController {
         fadeDuration: const Duration(seconds: 5),
         volumeEnforced: true,
       ),
-      notificationSettings: enableNotifications.value
-          ? NotificationSettings(
-        title: titleController.text,
-        body: notesController.text.isNotEmpty ? notesController.text : 'Event reminder',
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      )
-          : NotificationSettings(
-        title: '',
-        body: 'Event reminder',
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      ),
+      notificationSettings:
+          enableNotifications.value
+              ? NotificationSettings(
+                title: titleController.text,
+                body:
+                    notesController.text.isNotEmpty
+                        ? notesController.text
+                        : 'Event reminder',
+                stopButton: 'Stop',
+                icon: 'alarm',
+                iconColor: AppColors.primaryColor,
+              )
+              : NotificationSettings(
+                title: '',
+                body: 'Event reminder',
+                stopButton: 'Stop',
+                icon: 'alarm',
+                iconColor: AppColors.primaryColor,
+              ),
     );
 
     await Alarm.set(alarmSettings: alarmSettings);
@@ -838,9 +870,11 @@ class ReminderController extends GetxController {
     await _finalizeUpdate(context, "event_list", eventList);
   }
 
-
-
-  Future<void> _finalizeUpdate(BuildContext context, String key, dynamic list) async {
+  Future<void> _finalizeUpdate(
+    BuildContext context,
+    String key,
+    dynamic list,
+  ) async {
     titleController.clear();
     notesController.clear();
     medicineController.clear();
@@ -1319,11 +1353,11 @@ class ReminderController extends GetxController {
       final List remindersList = decbody['data']['Reminders'] as List;
       return remindersList.map((e) => e as Map<String, dynamic>).toList();
     } catch (e) {
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'Exception while fetching reminders',
-      );
+      // CustomSnackbar.showError(
+      //   context: context,
+      //   title: 'Error',
+      //   message: 'Exception while fetching reminders',
+      // );
       return [];
     }
   }
@@ -1350,11 +1384,11 @@ class ReminderController extends GetxController {
         await getReminders(context);
       }
     } catch (e) {
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'Exception while saving Reminder record',
-      );
+      // CustomSnackbar.showError(
+      //   context: context,
+      //   title: 'Error',
+      //   message: 'Exception while saving Reminder record',
+      // );
     }
   }
 
@@ -1380,11 +1414,11 @@ class ReminderController extends GetxController {
         await getReminders(context);
       }
     } catch (e) {
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'Exception while updating Reminder record',
-      );
+      // CustomSnackbar.showError(
+      //   context: context,
+      //   title: 'Error',
+      //   message: 'Exception while updating Reminder record',
+      // );
     }
   }
 
@@ -1401,7 +1435,12 @@ class ReminderController extends GetxController {
         return false;
       }
       if (editingId.value != null) {
-        updateReminderFromLocal(context, id: editingId.value, category: "Medicine", timeOfDay: pickedTime.value!);
+        updateReminderFromLocal(
+          context,
+          id: editingId.value,
+          category: "Medicine",
+          timeOfDay: pickedTime.value!,
+        );
       } else {
         addAlarm(context, timeOfDay: pickedTime.value!, category: "Medicine");
       }
@@ -1442,11 +1481,11 @@ class ReminderController extends GetxController {
       }
       if (editingId.value != null) {
         updateReminderFromLocal(
-            context,
-            id: editingId.value,
-            category: "Water",
-            times: waterReminderOption.value == 1 ? savedTimes.value : null,
-            timeOfDay: TimeOfDay.now()
+          context,
+          id: editingId.value,
+          category: "Water",
+          times: waterReminderOption.value == 1 ? savedTimes.value : null,
+          timeOfDay: TimeOfDay.now(),
         );
       } else {
         setWaterAlarm(
@@ -1465,7 +1504,12 @@ class ReminderController extends GetxController {
         return false;
       }
       if (editingId.value != null) {
-        updateReminderFromLocal(context, id: editingId.value, category: "Meal", timeOfDay: pickedTime.value!);
+        updateReminderFromLocal(
+          context,
+          id: editingId.value,
+          category: "Meal",
+          timeOfDay: pickedTime.value!,
+        );
       } else {
         addAlarm(context, timeOfDay: pickedTime.value!, category: "Meal");
       }
@@ -1480,7 +1524,12 @@ class ReminderController extends GetxController {
         return false;
       }
       if (editingId.value != null) {
-        updateReminderFromLocal(context, id: editingId.value, category: "Event", timeOfDay: pickedTime.value!);
+        updateReminderFromLocal(
+          context,
+          id: editingId.value,
+          category: "Event",
+          timeOfDay: pickedTime.value!,
+        );
       } else {
         addAlarm(context, timeOfDay: pickedTime.value!, category: "Event");
       }

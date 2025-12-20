@@ -167,8 +167,8 @@ class _DashboardState extends State<Dashboard>
             ),
             child: SingleChildScrollView(
               padding: const EdgeInsets.only(
-                left: 24,
-                right: 24,
+                left: 30,
+                right: 30,
                 bottom: 24,
                 top: 4,
               ),
@@ -191,7 +191,7 @@ class _DashboardState extends State<Dashboard>
                           return anyEmpty
                               ? SizedBox.shrink()
                               : Container(
-                                height: 32,
+                                height: 48,
                                 margin: EdgeInsets.zero,
                                 padding: EdgeInsets.symmetric(
                                   horizontal: 10,

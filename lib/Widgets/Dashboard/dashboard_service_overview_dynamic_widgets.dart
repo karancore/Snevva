@@ -44,122 +44,123 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
     return Column(
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            DashboardContainerWidget(
-              widgetName: 'Water',
-              onTap: () {
-                Get.to(() => HydrationScreen());
-              },
-              widgetIcon: waterTrackingIcon,
-              width: width,
-              height: height,
-              valueText: Obx(
-                () => RichText(
-                  text: TextSpan(
-                    text: '${waterController.waterIntake.value} ml',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 10,
-                      color:
-                          Theme.of(context).textTheme.bodyMedium?.color ??
-                          Colors.black,
+            Expanded(
+              child: DashboardContainerWidget(
+                widgetName: 'Water',
+                onTap: () {
+                  Get.to(() => HydrationScreen());
+                },
+                widgetIcon: waterTrackingIcon,
+                width: width,
+                height: height,
+                valueText: Obx(
+                      () => RichText(
+                    text: TextSpan(
+                      text: '${waterController.waterIntake.value} ml',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                        color:
+                        Theme.of(context).textTheme.bodyMedium?.color ??
+                            Colors.black,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              valuePraisingText: 'Amazing',
-              content: Stack(
-                children: [
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: Image.asset(
-                      hydrationEleBottom,
-                      height: 80,
-                      width: width / 2.3,
-                      fit: BoxFit.cover,
+                valuePraisingText: 'Amazing',
+                content: Stack(
+                  children: [
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Image.asset(
+                        hydrationEleBottom,
+                        height: 80,
+                        width: width / 2.3,
+                        fit: BoxFit.cover,
+                      ),
                     ),
-                  ),
-                  Positioned(
-                    top: 5,
-                    right: 0,
-                    left: 0,
-                    bottom: 10,
-                    child: Image.asset(
-                      hydrationDashboardEle,
-                      height: 150,
-                      width: width / 4,
+                    Positioned(
+                      top: 5,
+                      right: 0,
+                      left: 0,
+                      bottom: 10,
+                      child: Image.asset(
+                        hydrationDashboardEle,
+                        height: 150,
+                        width: width / 4,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+                isDarkMode: isDarkMode,
               ),
-              isDarkMode: isDarkMode,
             ),
             SizedBox(width: defaultSize - 10),
-            DashboardContainerWidget(
-              isDarkMode: isDarkMode,
-              widgetName: 'Heart',
-              widgetIcon: vitalIcon,
-              onTap: () async {
-                final prefs = await SharedPreferences.getInstance();
-                final isFirstTime = prefs.getBool('isFirstTime') ?? true;
+            Expanded(
+              child: DashboardContainerWidget(
+                isDarkMode: isDarkMode,
+                widgetName: 'Heart',
+                widgetIcon: vitalIcon,
+                onTap: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final isFirstTime = prefs.getBool('isFirstTime') ?? true;
 
-                if (isFirstTime) {
-                  final agreed = await showStatementsOfUseBottomSheet(context);
+                  if (isFirstTime) {
+                    final agreed = await showStatementsOfUseBottomSheet(context);
 
-                  if (agreed == true) {
-                    await prefs.setBool('isFirstTime', false); // mark as seen
+                    if (agreed == true) {
+                      await prefs.setBool('isFirstTime', false);
+                      Get.to(() => VitalScreen());
+                    }
+                  } else {
                     Get.to(() => VitalScreen());
                   }
-                } else {
-                  // Not first time, go directly
-                  Get.to(() => VitalScreen());
-                }
-              },
-
-              width: width,
-              height: height,
-              valueText: Obx(() {
-                return RichText(
-                  text: TextSpan(
-                    children: [
-                      TextSpan(
-                        text: '${vitalController.bpm.value}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 10,
-                          color:
-                              Theme.of(context).textTheme.bodyMedium?.color ??
-                              Colors.black,
+                },
+                width: width,
+                height: height,
+                valueText: Obx(() {
+                  return RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '${vitalController.bpm.value}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                            color:
+                            Theme.of(context).textTheme.bodyMedium?.color ??
+                                Colors.black,
+                          ),
                         ),
-                      ),
-                      TextSpan(
-                        text: ' BPM',
-                        style: TextStyle(
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                          color:
-                              Theme.of(context).textTheme.bodyMedium?.color ??
-                              Colors.black,
+                        TextSpan(
+                          text: ' BPM',
+                          style: TextStyle(
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                            color:
+                            Theme.of(context).textTheme.bodyMedium?.color ??
+                                Colors.black,
+                          ),
                         ),
+                      ],
+                    ),
+                  );
+                }),
+                valuePraisingText: 'Normal',
+                content: Padding(
+                  padding: const EdgeInsets.only(left: 10, right: 10, bottom: 10),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 150,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Lottie.asset(
+                        'assets/Dashboard/lhWa8wKgs5.json',
+                        fit: BoxFit.contain,
                       ),
-                    ],
-                  ),
-                );
-              }),
-              valuePraisingText: 'Normal',
-              content: Padding(
-                padding: const EdgeInsets.only(left: 10, right: 10, bottom: 10),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 150,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Lottie.asset(
-                      'assets/Dashboard/lhWa8wKgs5.json',
-                      fit: BoxFit.contain,
                     ),
                   ),
                 ),
@@ -169,150 +170,78 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
         ),
         SizedBox(height: defaultSize - 10),
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            DashboardContainerWidget(
-              onTap: () async {
-                final prefs = await SharedPreferences.getInstance();
-                final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
+            Expanded(
+              child: DashboardContainerWidget(
+                onTap: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
 
-                final stepController = Get.find<StepCounterController>();
+                  final stepController = Get.find<StepCounterController>();
 
-                if (!isGoalSet) {
-                  final goal = await showStepCounterBottomSheet(
-                    context,
-                    isDarkMode,
-                  );
+                  if (!isGoalSet) {
+                    final goal = await showStepCounterBottomSheet(
+                      context,
+                      isDarkMode,
+                    );
 
-                  if (goal != null) {
-                    await prefs.setBool('isStepGoalSet', true);
-                    await prefs.setInt('stepGoalValue', goal);
+                    if (goal != null) {
+                      await prefs.setBool('isStepGoalSet', true);
+                      await prefs.setInt('stepGoalValue', goal);
+
+                      if (!context.mounted) return;
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => StepCounter(customGoal: goal),
+                        ),
+                      );
+
+                      Future.microtask(() async {
+                        await stepController.updateStepGoal(goal);
+                      });
+                    }
+                  } else {
+                    final goal = prefs.getInt('stepGoalValue') ?? 10000;
 
                     if (!context.mounted) return;
+
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => StepCounter(customGoal: goal),
                       ),
                     );
-
-                    Future.microtask(() async {
-                      await stepController.updateStepGoal(goal);
-                    });
                   }
-                } else {
-                  final goal = prefs.getInt('stepGoalValue') ?? 10000;
-
-                  if (!context.mounted) return;
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => StepCounter(customGoal: goal),
+                },
+                isDarkMode: isDarkMode,
+                widgetName: 'Steps',
+                widgetIcon: stepsTrackingIcon,
+                width: width,
+                height: height,
+                valueText: Obx(() {
+                  final steps = stepController.todaySteps.value;
+                  return RichText(
+                    text: TextSpan(
+                      text: steps > -1 ? '$steps' : 'Loading...',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color:
+                        Theme.of(context).textTheme.bodyMedium?.color ??
+                            Colors.black,
+                      ),
                     ),
                   );
-                }
-              },
-              isDarkMode: isDarkMode,
-              widgetName: 'Steps',
-              widgetIcon: stepsTrackingIcon,
-              width: width,
-              height: height,
-              valueText: Obx(() {
-                final steps = stepController.todaySteps.value;
-                return RichText(
-                  text: TextSpan(
-                    text: steps > -1 ? '$steps' : 'Loading...',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color:
-                          Theme.of(context).textTheme.bodyMedium?.color ??
-                          Colors.black,
-                    ),
-                  ),
-                );
-              }),
-              content: Stack(
-                children: [
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: Image.asset(
-                      stepsImgBottom,
-                      height: 80,
-                      width: width / 2.3,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    bottom: 10,
-                    child: Image.asset(stepImg2, height: 150, width: width / 4),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: defaultSize - 10),
-            DashboardContainerWidget(
-              onTap: () async {
-                final prefs = await SharedPreferences.getInstance();
-                final isFirstSleep =
-                    prefs.getBool('is_first_time_sleep') ?? true;
-
-                if (isFirstSleep) {
-                  final agreed = await showSleepBottomSheetModal(
-                    context,
-                    isDarkMode,
-                    height,
-                  );
-
-                  if (agreed == true) {
-                    await prefs.setBool(
-                      'is_first_time_sleep',
-                      false,
-                    ); // mark as seen
-                    Get.to(() => SleepTrackerScreen());
-                  }
-                } else {
-                  // Not first time, go directly
-                  Get.to(() => SleepTrackerScreen());
-                }
-              },
-
-              isDarkMode: isDarkMode,
-              widgetName: 'Sleep',
-              widgetIcon: sleepTrackerIcon,
-              width: width,
-              valueText: Obx(() {
-                final d = sleepController.deepSleepDuration.value;
-                return RichText(
-                  text: TextSpan(
-                    text: d == null ? "0h 00m" : fmtDuration(d),
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color:
-                          Theme.of(context).textTheme.bodyMedium?.color ??
-                          Colors.black,
-                    ),
-                  ),
-                );
-              }),
-              valuePraisingText: 'wow!',
-              height: height,
-              content: Align(
-                alignment: Alignment.bottomCenter,
-                child: Stack(
+                }),
+                content: Stack(
                   children: [
                     Positioned(
                       bottom: 0,
                       left: 0,
                       right: 0,
                       child: Image.asset(
-                        sleepEleBottom,
+                        stepsImgBottom,
                         height: 80,
                         width: width / 2.3,
                         fit: BoxFit.cover,
@@ -320,16 +249,89 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                     ),
                     Positioned(
                       top: 0,
-                      left: 0,
                       right: 0,
                       bottom: 10,
-                      child: Image.asset(
-                        sleepEle2,
-                        height: 150,
-                        width: width / 4,
-                      ),
+                      child: Image.asset(stepImg2, height: 150, width: width / 4),
                     ),
                   ],
+                ),
+              ),
+            ),
+            SizedBox(width: defaultSize - 10),
+            Expanded(
+              child: DashboardContainerWidget(
+                onTap: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final isFirstSleep =
+                      prefs.getBool('is_first_time_sleep') ?? true;
+
+                  if (isFirstSleep) {
+                    final agreed = await showSleepBottomSheetModal(
+                      context,
+                      isDarkMode,
+                      height,
+                    );
+
+                    if (agreed == true) {
+                      await prefs.setBool(
+                        'is_first_time_sleep',
+                        false,
+                      );
+                      Get.to(() => SleepTrackerScreen());
+                    }
+                  } else {
+                    Get.to(() => SleepTrackerScreen());
+                  }
+                },
+                isDarkMode: isDarkMode,
+                widgetName: 'Sleep',
+                widgetIcon: sleepTrackerIcon,
+                width: width,
+                valueText: Obx(() {
+                  final d = sleepController.deepSleepDuration.value;
+                  return RichText(
+                    text: TextSpan(
+                      text: d == null ? "0h 00m" : fmtDuration(d),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color:
+                        Theme.of(context).textTheme.bodyMedium?.color ??
+                            Colors.black,
+                      ),
+                    ),
+                  );
+                }),
+                valuePraisingText: 'wow!',
+                height: height,
+                content: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Image.asset(
+                          sleepEleBottom,
+                          height: 80,
+                          width: width / 2.3,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 10,
+                        child: Image.asset(
+                          sleepEle2,
+                          height: 150,
+                          width: width / 4,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

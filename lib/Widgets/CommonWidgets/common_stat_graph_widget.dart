@@ -97,7 +97,8 @@ class CommonStatGraphWidget extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
       child: Container(
-        height: height * 0.1,
+
+        // height: height * 0.2, // REMOVED: constraint that clips content
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           border: Border.all(color: mediumGrey, width: border04px),
@@ -144,7 +145,7 @@ class CommonStatGraphWidget extends StatelessWidget {
                 ? SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: SizedBox(
-                    height: 100,
+                    height: height * 0.25, // Updated to 0.25 for consistency
                     width: labels.length * 41, // dynamic width for scroll
                     child: LineChart(
                       LineChartData(
@@ -229,7 +230,18 @@ class CommonStatGraphWidget extends StatelessWidget {
                             isCurved: true,
                             color: AppColors.primaryColor,
                             barWidth: 2,
-                            dotData: FlDotData(show: false),
+                            dotData: FlDotData(
+                              show: true,
+                              getDotPainter: (spot, percent, barData, index) {
+                                return FlDotCirclePainter(
+                                  radius: 4,
+                                  color: AppColors.primaryColor,
+                                  strokeWidth: 2,
+                                  strokeColor: white,
+                                );
+                              },
+                            ),
+
                             belowBarData: BarAreaData(
                               show: true,
                               gradient: LinearGradient(
@@ -248,6 +260,9 @@ class CommonStatGraphWidget extends StatelessWidget {
                           touchTooltipData: LineTouchTooltipData(
                             getTooltipColor:
                                 (touchedSpot) => AppColors.primaryColor,
+                            tooltipPadding: EdgeInsets.all(8),
+                            tooltipBorderRadius: BorderRadius.circular(24),
+
 
                             getTooltipItems: (touchedSpots) {
                               return touchedSpots.map((spot) {
@@ -261,9 +276,9 @@ class CommonStatGraphWidget extends StatelessWidget {
                                 return LineTooltipItem(
                                   isSleepGraph
                                       ? formatted
-                                      : (isWaterGraph)
-                                      ? '${spot.y.round().toString()} L'
-                                      : '${(spot.y.round() * 100).toString()} Steps',
+                                      : isWaterGraph
+                                      ? '${(spot.y * 1000).round()} ml'
+                                      : '${(spot.y * 1000).round()} Steps',
                                   const TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
@@ -278,7 +293,8 @@ class CommonStatGraphWidget extends StatelessWidget {
                     ),
                   ),
                 )
-                : Expanded(
+                : SizedBox(
+                  height: height * 0.25, // Updated to 0.25 to match monthly
                   child: LineChart(
                     LineChartData(
                       minX: 0,
@@ -372,7 +388,18 @@ class CommonStatGraphWidget extends StatelessWidget {
                           isCurved: true,
                           color: AppColors.primaryColor,
                           barWidth: 2,
-                          dotData: FlDotData(show: true),
+                          dotData: FlDotData(
+                            show: true,
+                            getDotPainter: (spot, percent, barData, index) {
+                              return FlDotCirclePainter(
+                                radius: 4,
+                                color: AppColors.primaryColor,
+                                strokeWidth: 2,
+                                strokeColor: Colors.white,
+                              );
+                            },
+                          ),
+
                           belowBarData: BarAreaData(
                             show: true,
                             gradient: LinearGradient(

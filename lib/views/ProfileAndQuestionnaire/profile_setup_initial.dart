@@ -134,54 +134,54 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
       body: Align(
         alignment: Alignment.bottomCenter,
         child: Column(
+          spacing: 24,
           children: [
             // Align(
             Expanded(
               flex: 2,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Obx(
-                    () => Stack(
-                      children: [
-                        CircleAvatar(
-                          radius: 60,
-                          backgroundImage:
-                              initialProfileController.pickedImage.value != null
-                                  ? FileImage(
-                                    initialProfileController.pickedImage.value!,
-                                  )
-                                  : AssetImage(profileImg) as ImageProvider,
-                        ),
-                        Positioned(
-                          bottom: -6,
-                          right: -8,
-                          child: IconButton(
-                            onPressed: () async {
-                              await initialProfileController
-                                  .pickImageFromGallery();
-                            },
-                            icon: SizedBox(
-                              height: 32,
-                              width: 32,
-                              child: CircleAvatar(
-                                backgroundColor: AppColors.primaryColor,
-                                child: Icon(
-                                  Icons.camera_alt,
-                                  color: white,
-                                  size: 22,
-                                ),
+              child: Center(
+                // Changed from Column to Center
+                child: Obx(
+                  () => Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 60,
+                        backgroundImage:
+                            initialProfileController.pickedImage.value != null
+                                ? FileImage(
+                                  initialProfileController.pickedImage.value!,
+                                )
+                                : AssetImage(profileImg) as ImageProvider,
+                      ),
+                      Positioned(
+                        bottom: -6,
+                        right: -8,
+                        child: IconButton(
+                          onPressed: () async {
+                            await initialProfileController
+                                .pickImageFromGallery();
+                          },
+                          icon: SizedBox(
+                            height: 32,
+                            width: 32,
+                            child: CircleAvatar(
+                              backgroundColor: AppColors.primaryColor,
+                              child: Icon(
+                                Icons.camera_alt,
+                                color: white,
+                                size: 22,
                               ),
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
 
+            //const SizedBox(height: 16,),
             Expanded(
               flex: 8,
               child: Container(
@@ -420,139 +420,145 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                           ),
                           const SizedBox(height: 22),
                           Obx(
-                            () => Center(
-                              child: CustomOutlinedButton(
-                                backgroundColor: white,
-                                isWhiteReq: true,
-                                width: width,
-                                isDarkMode: isDarkMode,
-                                buttonName: "Submit",
-                                fontWeight: FontWeight.bold,
+                            () => SafeArea(
+                              child: Center(
+                                child: CustomOutlinedButton(
+                                  backgroundColor: white,
+                                  isWhiteReq: true,
+                                  width: width,
+                                  isDarkMode: isDarkMode,
+                                  buttonName: "Submit",
+                                  fontWeight: FontWeight.bold,
 
-                                onTap:
-                                    initialProfileController.isFormValid.value
-                                        ? () async {
-                                          print(
-                                            '🟢 Profile Submit TAP triggered',
-                                          );
+                                  onTap:
+                                      initialProfileController.isFormValid.value
+                                          ? () async {
+                                            print(
+                                              '🟢 Profile Submit TAP triggered',
+                                            );
 
-                                          // ================= NAME =================
-                                          final nameValue =
-                                              initialProfileController
-                                                  .userNameText
-                                                  .value;
-                                          print(
-                                            '✏️ Name raw value: "$nameValue"',
-                                          );
+                                            // ================= NAME =================
+                                            final nameValue =
+                                                initialProfileController
+                                                    .userNameText
+                                                    .value;
+                                            print(
+                                              '✏️ Name raw value: "$nameValue"',
+                                            );
 
-                                          final nameModel = StringValueVM(
-                                            value: nameValue,
-                                          );
+                                            final nameModel = StringValueVM(
+                                              value: nameValue,
+                                            );
 
-                                          // ================= GENDER =================
-                                          final genderValue =
-                                              initialProfileController
-                                                  .userGenderValue
-                                                  .value;
-                                          print(
-                                            '🚻 Gender raw value: "$genderValue"',
-                                          );
+                                            // ================= GENDER =================
+                                            final genderValue =
+                                                initialProfileController
+                                                    .userGenderValue
+                                                    .value;
+                                            print(
+                                              '🚻 Gender raw value: "$genderValue"',
+                                            );
 
-                                          final genderModel = StringValueVM(
-                                            value: genderValue,
-                                          );
+                                            final genderModel = StringValueVM(
+                                              value: genderValue,
+                                            );
 
-                                          // ================= DOB =================
-                                          final dobString =
-                                              initialProfileController
-                                                  .userDob
-                                                  .value;
-                                          print(
-                                            '📅 DOB raw string: "$dobString"',
-                                          );
+                                            // ================= DOB =================
+                                            final dobString =
+                                                initialProfileController
+                                                    .userDob
+                                                    .value;
+                                            print(
+                                              '📅 DOB raw string: "$dobString"',
+                                            );
 
-                                          final parts = dobString.split('/');
-                                          int? day, month, year;
+                                            final parts = dobString.split('/');
+                                            int? day, month, year;
 
-                                          if (parts.length >= 3) {
-                                            day = int.tryParse(parts[0]);
-                                            month = int.tryParse(parts[1]);
-                                            year = int.tryParse(parts[2]);
-                                          }
+                                            if (parts.length >= 3) {
+                                              day = int.tryParse(parts[0]);
+                                              month = int.tryParse(parts[1]);
+                                              year = int.tryParse(parts[2]);
+                                            }
 
-                                          print(
-                                            '📆 Parsed DOB → day=$day, month=$month, year=$year',
-                                          );
+                                            print(
+                                              '📆 Parsed DOB → day=$day, month=$month, year=$year',
+                                            );
 
-                                          final dobModel = DateOfBirthVM(
-                                            dayOfBirth: day,
-                                            monthOfBirth: month,
-                                            yearOfBirth: year,
-                                          );
+                                            final dobModel = DateOfBirthVM(
+                                              dayOfBirth: day,
+                                              monthOfBirth: month,
+                                              yearOfBirth: year,
+                                            );
 
-                                          // ================= OCCUPATION =================
-                                          final occupationValue =
-                                              initialProfileController
-                                                  .selectedOccupation
-                                                  .value;
+                                            // ================= OCCUPATION =================
+                                            final occupationValue =
+                                                initialProfileController
+                                                    .selectedOccupation
+                                                    .value;
 
-                                          print(
-                                            '💼 Occupation raw value: "$occupationValue"',
-                                          );
+                                            print(
+                                              '💼 Occupation raw value: "$occupationValue"',
+                                            );
 
-                                          final occupationModel = OccupationVM(
-                                            day: DateTime.now().day,
-                                            month: DateTime.now().month,
-                                            year: DateTime.now().year,
-                                            time: TimeOfDay.now().format(
-                                              context,
-                                            ),
-                                            name: occupationValue,
-                                          );
-
-                                          // ================= FINAL CHECK =================
-                                          print('📦 Models BEFORE saveData():');
-                                          print(
-                                            '   👉 NameModel.value = ${nameModel.value}',
-                                          );
-                                          print(
-                                            '   👉 GenderModel.value = ${genderModel.value}',
-                                          );
-                                          print(
-                                            '   👉 DOBModel = ${dobModel.dayOfBirth}/${dobModel.monthOfBirth}/${dobModel.yearOfBirth}',
-                                          );
-                                          print(
-                                            '   👉 OccupationModel.name = ${occupationModel.name}',
-                                          );
-
-                                          // ================= SAVE =================
-                                          print('💾 Calling saveData()...');
-                                          final bool result =
-                                              await initialProfileController
-                                                  .saveData(
-                                                    nameModel,
-                                                    genderModel,
-                                                    dobModel,
-                                                    occupationModel,
+                                            final occupationModel =
+                                                OccupationVM(
+                                                  day: DateTime.now().day,
+                                                  month: DateTime.now().month,
+                                                  year: DateTime.now().year,
+                                                  time: TimeOfDay.now().format(
                                                     context,
-                                                  );
+                                                  ),
+                                                  name: occupationValue,
+                                                );
 
-                                          //await initialProfileController.uploadProfilePicture(context);
+                                            // ================= FINAL CHECK =================
+                                            print(
+                                              '📦 Models BEFORE saveData():',
+                                            );
+                                            print(
+                                              '   👉 NameModel.value = ${nameModel.value}',
+                                            );
+                                            print(
+                                              '   👉 GenderModel.value = ${genderModel.value}',
+                                            );
+                                            print(
+                                              '   👉 DOBModel = ${dobModel.dayOfBirth}/${dobModel.monthOfBirth}/${dobModel.yearOfBirth}',
+                                            );
+                                            print(
+                                              '   👉 OccupationModel.name = ${occupationModel.name}',
+                                            );
 
-                                          if (result) {
-                                            Get.to(
-                                              HeightWeightScreen(
-                                                gender: genderValue.toString(),
-                                              ),
+                                            // ================= SAVE =================
+                                            print('💾 Calling saveData()...');
+                                            final bool result =
+                                                await initialProfileController
+                                                    .saveData(
+                                                      nameModel,
+                                                      genderModel,
+                                                      dobModel,
+                                                      occupationModel,
+                                                      context,
+                                                    );
+
+                                            //await initialProfileController.uploadProfilePicture(context);
+
+                                            if (result) {
+                                              Get.to(
+                                                HeightWeightScreen(
+                                                  gender:
+                                                      genderValue.toString(),
+                                                ),
+                                              );
+                                            }
+
+                                            print(
+                                              '➡️ Navigation → HeightWeightScreen',
                                             );
                                           }
-
-                                          print(
-                                            '➡️ Navigation → HeightWeightScreen',
-                                          );
-                                        }
-                                        : null,
-                                // disables the button
+                                          : null,
+                                  // disables the button
+                                ),
                               ),
                             ),
                           ),

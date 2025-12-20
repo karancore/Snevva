@@ -34,7 +34,7 @@ class HydrationStatController extends GetxController {
   Future<void> saveWaterIntakeLocally() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setDouble('waterIntake', waterIntake.value);
-    print(waterIntake.value);
+    print('💾 Water intake saved locally: ${waterIntake.value}');
     prefs.setString(
       'lastUpdatedDate',
       DateFormat('yyyy-MM-dd').format(DateTime.now()),

@@ -54,3 +54,4 @@ windows/flutter/generated_plugins.cmake
 
 *.env
 secrets/key.json
+

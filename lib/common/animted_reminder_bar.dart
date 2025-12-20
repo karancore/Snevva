@@ -73,7 +73,7 @@ class _AnimatedReminderBarState extends State<AnimatedReminderBar>
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      "Reminder set successfully",
+                      "Reminder has been saved and scheduled.",
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w400,

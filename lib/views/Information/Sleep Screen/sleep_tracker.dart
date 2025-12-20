@@ -448,31 +448,34 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  Row(
-                    children: [
-                      if (_isMonthlyView) ...[
-                        IconButton(
-                          icon: const Icon(Icons.chevron_left),
-                          onPressed: () => _changeMonth(-1),
-                        ),
-                        Text(
-                          DateFormat('MMMM yyyy').format(_selectedMonth),
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.chevron_right),
-                          onPressed: () => _changeMonth(1),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        if (_isMonthlyView) ...[
+                          IconButton(
+                            icon: const Icon(Icons.chevron_left),
+                            onPressed: () => _changeMonth(-1),
+                          ),
+                          Text(
+                            DateFormat('MMMM yyyy').format(_selectedMonth),
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.chevron_right),
+                            onPressed: () => _changeMonth(1),
+                          ),
+                        ],
+                        TextButton(
+                          onPressed: _toggleView,
+                          child: Text(
+                            _isMonthlyView
+                                ? "Switch to Weekly"
+                                : "Switch to Monthly",
+                          ),
                         ),
                       ],
-                      TextButton(
-                        onPressed: _toggleView,
-                        child: Text(
-                          _isMonthlyView
-                              ? "Switch to Weekly"
-                              : "Switch to Monthly",
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ],
               ),
@@ -491,7 +494,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
               // ========== SLEEP STATISTICS GRAPH ==========
               SizedBox(
-                height: height * 0.2,
+                height: height * 0.40,
                 child: Obx(() {
                   final labels =
                       _isMonthlyView
@@ -507,7 +510,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                   return CommonStatGraphWidget(
                     isDarkMode: isDarkMode,
                     yAxisInterval: 2,
-                    yAxisMaxValue: 11,
+                    yAxisMaxValue: 12,
                     isWaterGraph: false,
                     height: height,
                     graphTitle: 'Sleep Statistics',
@@ -528,39 +531,41 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
 
-        child: CustomOutlinedButton(
-          width: width,
-          isDarkMode: isDarkMode,
-          backgroundColor: AppColors.primaryColor,
-          buttonName: "Save",
-          onTap: () {
-            // Check if bedtime and wake time are selected
-            if (sleepController.bedtime.value != null &&
-                sleepController.waketime.value != null) {
-              sleepController.startMonitoring(); // START SERVICE
+        child: SafeArea(
+          child: CustomOutlinedButton(
+            width: width,
+            isDarkMode: isDarkMode,
+            backgroundColor: AppColors.primaryColor,
+            buttonName: "Save",
+            onTap: () {
+              // Check if bedtime and wake time are selected
+              if (sleepController.bedtime.value != null &&
+                  sleepController.waketime.value != null) {
+                sleepController.startMonitoring(); // START SERVICE
 
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    "Sleep Tracking Started",
-                    style: TextStyle(color: Colors.white),
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      "Sleep Tracking Started",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    backgroundColor: AppColors.primaryColor,
                   ),
-                  backgroundColor: AppColors.primaryColor,
-                ),
-              );
-              Navigator.pop(context);
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    "Missing Data : Please select bedtime & wake time.",
-                    style: TextStyle(color: Colors.white),
+                );
+                Navigator.pop(context);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      "Missing Data : Please select bedtime & wake time.",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    backgroundColor: AppColors.primaryColor,
                   ),
-                  backgroundColor: AppColors.primaryColor,
-                ),
-              );
-            }
-          },
+                );
+              }
+            },
+          ),
         ),
       ),
     );

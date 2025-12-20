@@ -1,6 +1,6 @@
 class Env {
   static const bool enableConsole = true;
-  static const bool enableSnackbar = true;
+  static const bool enableSnackbar = false;
 }
 
 // baseUrl

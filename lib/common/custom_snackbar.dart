@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:snevva/env/env.dart';
 
 import '../consts/colors.dart';
 import 'animted_reminder_bar.dart';
@@ -40,6 +41,7 @@ class CustomSnackbar {
     required String title,
     required String message,
   }) {
+    if(!Env.enableSnackbar) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
@@ -78,6 +80,7 @@ class CustomSnackbar {
     required String title,
     required String message,
   }) {
+    if(!Env.enableSnackbar) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
@@ -116,6 +119,7 @@ class CustomSnackbar {
     required String title,
     required String message,
   }) {
+    if(!Env.enableSnackbar) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,

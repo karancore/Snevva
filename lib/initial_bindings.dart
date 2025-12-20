@@ -42,7 +42,7 @@ class InitialBindings extends Bindings {
     Get.lazyPut(() => DietPlanController());
     Get.lazyPut(() => HealthTipsController());
     Get.lazyPut(() => HydrationStatController());
-    Get.lazyPut(() => MentalWellnesscontroller());
+    Get.lazyPut(() => MentalWellnessController());
     Get.lazyPut(() => MoodController());
     Get.lazyPut(() => MoodQuestionController());
     Get.lazyPut(() => LanguageController());

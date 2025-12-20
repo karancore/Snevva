@@ -169,31 +169,34 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  Row(
-                    children: [
-                      if (_isMonthlyView) ...[
-                        IconButton(
-                          icon: const Icon(Icons.chevron_left),
-                          onPressed: () => _changeMonth(-1),
-                        ),
-                        Text(
-                          DateFormat('MMMM yyyy').format(_selectedMonth),
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.chevron_right),
-                          onPressed: () => _changeMonth(1),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        if (_isMonthlyView) ...[
+                          IconButton(
+                            icon: const Icon(Icons.chevron_left),
+                            onPressed: () => _changeMonth(-1),
+                          ),
+                          Text(
+                            DateFormat('MMMM yyyy').format(_selectedMonth),
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.chevron_right),
+                            onPressed: () => _changeMonth(1),
+                          ),
+                        ],
+                        TextButton(
+                          onPressed: _toggleView,
+                          child: Text(
+                            _isMonthlyView
+                                ? "Switch to Weekly"
+                                : "Switch to Monthly",
+                          ),
                         ),
                       ],
-                      TextButton(
-                        onPressed: _toggleView,
-                        child: Text(
-                          _isMonthlyView
-                              ? "Switch to Weekly"
-                              : "Switch to Monthly",
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ],
               ),
@@ -248,7 +251,7 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                 // double interval = (maxY / 5).ceilToDouble();
 
                 return SizedBox(
-                  height: height * 0.2,
+                  height: height * 0.38,
                   child: Obx(() {
                     final labels =
                         _isMonthlyView
@@ -266,8 +269,8 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                       isDarkMode: isDarkMode,
                       height: height,
                       graphTitle: 'Hydration Statistics',
-                      yAxisInterval: 2,
-                      yAxisMaxValue: 11,
+                      yAxisInterval: 1,
+                      yAxisMaxValue: 4,
                       gridLineInterval: 2,
                       points: points,
                       weekLabels: labels,

@@ -125,7 +125,10 @@ class MoodTrackerScreen extends StatelessWidget {
 
             // Save button
             ElevatedButton(
-              onPressed: () => controller.updateMood(context),
+              onPressed: () {
+                controller.updateMood(context);
+                Navigator.of(context).pop();
+              },
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   vertical: 20,

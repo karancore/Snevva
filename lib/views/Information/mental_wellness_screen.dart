@@ -11,7 +11,7 @@ class MentalWellnessScreen extends StatefulWidget {
 }
 
 class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
-  final controller = Get.find<MentalWellnesscontroller>();
+  final controller = Get.put(MentalWellnessController());
 
   @override
   void initState() {

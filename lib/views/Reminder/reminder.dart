@@ -2,11 +2,13 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
-import 'package:snevva/common/animted_reminder_bar.dart';
+
 import 'package:snevva/common/loader.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Reminder/add_reminder.dart';
-import 'package:snevva/views/Reminder/all_reminder.dart';
+
+import '../../common/animted_reminder_bar.dart';
+import '../../common/custom_snackbar.dart';
 
 class Reminder extends StatefulWidget {
   const Reminder({super.key});
@@ -49,10 +51,10 @@ class _ReminderState extends State<Reminder> {
         },
       ),
       body: Obx(() {
-        // Show loading indicator
-        // if (controller.isLoading.value) {
-        //   return Loader();
-        // }
+        //Show loading indicator
+        if (controller.isLoading.value) {
+          return Loader();
+        }
 
         // Show empty state
         if (controller.reminders.isEmpty) {
@@ -79,7 +81,7 @@ class _ReminderState extends State<Reminder> {
         // Show reminder list
         return Column(
           children: [
-            if (showReminderBar) AnimatedReminderBar(show: false),
+            //if (showReminderBar) AnimatedReminderBar(show: true ),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _loadData,
@@ -162,21 +164,26 @@ class _ReminderState extends State<Reminder> {
           ],
         );
       }),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        child: CustomOutlinedButton(
-          width: double.infinity,
-          isDarkMode: isDarkMode,
-          buttonName: "+ Add Reminder",
-          backgroundColor: AppColors.primaryColor,
-          onTap: () async {
-            final result = await Get.to(() => AddReminder());
-            // Always reload data when returning, regardless of result
-            // The controller already handles the update, but this ensures consistency
-            if (result == true) {
-              await _loadData();
-            }
-          },
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: CustomOutlinedButton(
+            width: double.infinity,
+            isDarkMode: isDarkMode,
+            buttonName: "+ Add Reminder",
+            backgroundColor: AppColors.primaryColor,
+            onTap: () async {
+              final result = await Get.to(() => AddReminder());
+              // Always reload data when returning, regardless of result
+              // The controller already handles the update, but this ensures consistency
+              if (result == true) {
+                await _loadData();
+              }
+              if (result == "updated") {
+                CustomSnackbar().showReminderBar(context);
+              }
+            },
+          ),
         ),
       ),
     );
