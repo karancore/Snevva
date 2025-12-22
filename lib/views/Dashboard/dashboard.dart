@@ -179,86 +179,87 @@ class _DashboardState extends State<Dashboard>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (isVisible)
-                        Obx(() {
-                          bool anyEmpty =
-                              hasEmptyValue(localStorageManager.userMap) ||
-                              hasEmptyValue(
-                                localStorageManager.userGoalDataMap,
-                              );
-                          print(anyEmpty);
-
-                          return anyEmpty
-                              ? SizedBox.shrink()
-                              : Container(
-                                height: 48,
-                                margin: EdgeInsets.zero,
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: grey.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 4.0,
-                                      ),
-                                      child: InkWell(
-                                        onTap: () {
-                                          setState(() {
-                                            isVisible = !isVisible;
-                                          });
-                                        },
-                                        child: Icon(
-                                          Icons.close,
-                                          color: grey,
-                                          size: 20,
-                                        ),
-                                      ),
-                                    ),
-
-                                    // WRAP TEXT INSIDE EXPANDED
-                                    Expanded(
-                                      child: Text(
-                                        "Complete your profile to get full insights",
-                                        style: TextStyle(
-                                          color: grey,
-                                          fontSize: 12,
-                                        ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 4.0,
-                                      ),
-
-                                      child: InkWell(
-                                        onTap: () {},
-                                        child: Icon(
-                                          Icons.info,
-                                          color: grey,
-                                          size: 20,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                        })
-                      else
-                        SizedBox.shrink(),
-                      if (isVisible)
-                        SizedBox(height: 32)
-                      else
-                        SizedBox.shrink(),
+                      SizedBox(height: 32),
+                      // if (isVisible)
+                      //   Obx(() {
+                      //     bool anyEmpty =
+                      //         hasEmptyValue(localStorageManager.userMap) ||
+                      //         hasEmptyValue(
+                      //           localStorageManager.userGoalDataMap,
+                      //         );
+                      //     print(anyEmpty);
+                      //
+                      //     return anyEmpty
+                      //         ? SizedBox.shrink()
+                      //         : Container(
+                      //           height: 48,
+                      //           margin: EdgeInsets.zero,
+                      //           padding: EdgeInsets.symmetric(
+                      //             horizontal: 10,
+                      //             vertical: 4,
+                      //           ),
+                      //           decoration: BoxDecoration(
+                      //             color: grey.withOpacity(0.1),
+                      //             borderRadius: BorderRadius.circular(4),
+                      //           ),
+                      //           child: Row(
+                      //             mainAxisSize: MainAxisSize.min,
+                      //             children: [
+                      //               Padding(
+                      //                 padding: const EdgeInsets.symmetric(
+                      //                   horizontal: 4.0,
+                      //                 ),
+                      //                 child: InkWell(
+                      //                   onTap: () {
+                      //                     setState(() {
+                      //                       isVisible = !isVisible;
+                      //                     });
+                      //                   },
+                      //                   child: Icon(
+                      //                     Icons.close,
+                      //                     color: grey,
+                      //                     size: 20,
+                      //                   ),
+                      //                 ),
+                      //               ),
+                      //
+                      //               // WRAP TEXT INSIDE EXPANDED
+                      //               Expanded(
+                      //                 child: Text(
+                      //                   "Complete your profile to get full insights",
+                      //                   style: TextStyle(
+                      //                     color: grey,
+                      //                     fontSize: 12,
+                      //                   ),
+                      //                   maxLines: 2,
+                      //                   overflow: TextOverflow.ellipsis,
+                      //                 ),
+                      //               ),
+                      //
+                      //               Padding(
+                      //                 padding: const EdgeInsets.symmetric(
+                      //                   horizontal: 4.0,
+                      //                 ),
+                      //
+                      //                 child: InkWell(
+                      //                   onTap: () {},
+                      //                   child: Icon(
+                      //                     Icons.info,
+                      //                     color: grey,
+                      //                     size: 20,
+                      //                   ),
+                      //                 ),
+                      //               ),
+                      //             ],
+                      //           ),
+                      //         );
+                      //   })
+                      // else
+                      //   SizedBox.shrink(),
+                      // if (isVisible)
+                      //
+                      // else
+                      //   SizedBox.shrink(),
 
                       DashboardHeaderWidget(),
                       const SizedBox(height: 24),

@@ -110,6 +110,12 @@ abstract class AppLocalizations {
   /// **'Welcome to your app!'**
   String get welcome;
 
+  /// No description provided for @hi.
+  ///
+  /// In en, this message translates to:
+  /// **'Hi'**
+  String get hi;
+
   /// No description provided for @one.
   ///
   /// In en, this message translates to:

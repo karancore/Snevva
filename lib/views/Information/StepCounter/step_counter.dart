@@ -382,7 +382,7 @@ class _StepCounterState extends State<StepCounter> {
           
               // ===== GRAPH =====
               SizedBox(
-                height: height * 0.38,
+                height: height * 0.34,
                 child: Obx(() {
                   final labels =
                       _isMonthlyView

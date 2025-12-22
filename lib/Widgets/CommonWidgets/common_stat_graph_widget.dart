@@ -40,8 +40,7 @@ class CommonStatGraphWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stepController = Get.find<StepCounterController>();
-    final waterController = Get.find<HydrationStatController>();
+
     String formatted = '';
     final String formattedDate = DateFormat(
       'd MMM, yyyy',
@@ -97,8 +96,6 @@ class CommonStatGraphWidget extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
       child: Container(
-
-        // height: height * 0.2, // REMOVED: constraint that clips content
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           border: Border.all(color: mediumGrey, width: border04px),
@@ -144,9 +141,10 @@ class CommonStatGraphWidget extends StatelessWidget {
             isMonthlyView
                 ? SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    height: height * 0.25, // Updated to 0.25 for consistency
-                    width: labels.length * 41, // dynamic width for scroll
+                  child: Container(
+                    padding: const EdgeInsets.only(top : 52),
+                    height: height * 0.25,
+                    width: labels.length * 41,
                     child: LineChart(
                       LineChartData(
                         minX: 0,

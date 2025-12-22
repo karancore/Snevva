@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../consts/consts.dart';
 import '../views/SignUp/sign_in_screen.dart';
 
 class LocalStorageManager extends GetxController {
@@ -10,7 +11,7 @@ class LocalStorageManager extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    //checkSession();
+    checkSession();
   }
 
   Future<void> checkSession() async {
@@ -31,12 +32,14 @@ class LocalStorageManager extends GetxController {
     final userGoaldataString = prefs.getString('userGoaldata');
 
     userMap.value = _safeDecode(userdataString);
+
     userGoalDataMap.value = _safeDecode(userGoaldataString);
+
     userMap['Height'] ??= {'Value': null};
     userMap['Weight'] ??= {'Value': null};
 
-    print("✅ userMap loaded: ${userMap.value}");
-    print("✅ userGoalDataMap loaded: ${userGoalDataMap.value}");
+    debugPrint("✅ userMap loaded: ${userMap.value}");
+    debugPrint("✅ userGoalDataMap loaded: ${userGoalDataMap.value}");
   }
 
   Map<String, dynamic> _safeDecode(String? jsonStr) {

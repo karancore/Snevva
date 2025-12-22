@@ -172,7 +172,9 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
+
                         if (_isMonthlyView) ...[
                           IconButton(
                             icon: const Icon(Icons.chevron_left),
@@ -195,6 +197,7 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                                 : "Switch to Monthly",
                           ),
                         ),
+
                       ],
                     ),
                   ),
@@ -251,7 +254,7 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                 // double interval = (maxY / 5).ceilToDouble();
 
                 return SizedBox(
-                  height: height * 0.38,
+                  height: height * 0.34,
                   child: Obx(() {
                     final labels =
                         _isMonthlyView

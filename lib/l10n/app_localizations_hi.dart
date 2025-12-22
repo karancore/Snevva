@@ -15,6 +15,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get welcome => 'आपके ऐप में आपका स्वागत है!';
 
   @override
+  String get hi => 'नमस्ते';
+
+  @override
   String get one => 'Sign In and Sign Up Text';
 
   @override

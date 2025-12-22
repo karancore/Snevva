@@ -51,7 +51,7 @@ class _CelebrityDietPlanState extends State<CelebrityDietPlan> {
         child: Obx(() {
           final heading =
               dietController
-                  .dietTagResponse
+                  .categoryResponse
                   .value
                   .data?[widget.index ?? 0]
                   .heading;
@@ -79,7 +79,7 @@ class _CelebrityDietPlanState extends State<CelebrityDietPlan> {
                     child: Obx(() {
                       final imageUrl =
                           dietController
-                              .dietTagResponse
+                              .categoryResponse
                               .value
                               .data?[widget.index ?? 0]
                               .thumbnailMedia;
@@ -101,7 +101,7 @@ class _CelebrityDietPlanState extends State<CelebrityDietPlan> {
                           Obx(() {
                             final description =
                                 dietController
-                                    .dietTagResponse
+                                    .categoryResponse
                                     .value
                                     .data?[widget.index ?? 0]
                                     .shortDescription;
@@ -137,7 +137,7 @@ class _CelebrityDietPlanState extends State<CelebrityDietPlan> {
               // }
               final dataList =
                   dietController
-                      .dietTagResponse
+                      .categoryResponse
                       .value
                       .data?[widget.index ?? 0]
                       .mealPlan ??
@@ -146,7 +146,7 @@ class _CelebrityDietPlanState extends State<CelebrityDietPlan> {
               if (dataList.isEmpty) {
                 return SizedBox.shrink();
               }
-              print(dietController.dietTagResponse.value.data);
+              print(dietController.categoryResponse.value.data);
               return Column(
                 children: [
                   //Text(dietController.dietTagResponse.value.toJson().toString()) ,
@@ -181,7 +181,7 @@ class _CelebrityDietPlanState extends State<CelebrityDietPlan> {
               //   return Center(child: CircularProgressIndicator());
               // }
 
-              final plans = dietController.dietTagResponse.value.data;
+              final plans = dietController.categoryResponse.value.data;
               if (plans == null || plans.isEmpty) {
                 return Center(child: Text("No diet plans available"));
               }

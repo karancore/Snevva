@@ -2,6 +2,7 @@
   "@@locale": "en",
   "hello": "Hello",
   "welcome": "Welcome to your app!",
+  "hi": "Hi",
 
   "one" : "Sign In and Sign Up Text",
 

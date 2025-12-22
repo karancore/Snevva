@@ -140,7 +140,7 @@ class _HeightWeightScreenState extends State<HeightWeightScreen> {
                                       "${controller.correctedFeet} ft ${controller.inches} in / ${controller.heightInCm.value.toStringAsFixed(2)} cm",
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 24,
+                                        fontSize: 22,
                                       ),
                                     );
                                   }),
@@ -188,7 +188,7 @@ class _HeightWeightScreenState extends State<HeightWeightScreen> {
                                 return Text(
                                   '${controller.weightInKg.toStringAsFixed(1)} kg',
                                   style: TextStyle(
-                                    fontSize: 24,
+                                    fontSize: 22,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 );

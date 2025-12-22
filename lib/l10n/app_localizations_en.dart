@@ -15,6 +15,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get welcome => 'Welcome to your app!';
 
   @override
+  String get hi => 'Hi';
+
+  @override
   String get one => 'Sign In and Sign Up Text';
 
   @override

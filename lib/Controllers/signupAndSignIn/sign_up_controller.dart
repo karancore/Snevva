@@ -118,7 +118,7 @@ class SignUpController extends GetxController {
         final otp = data['Otp'];
         print("📲 Extracted OTP: $otp");
 
-        await notify.showOtpNotification(otp);
+        // await notify.showOtpNotification(otp);
         print("🔔 Local Notification Sent");
 
         CustomSnackbar.showSuccess(
@@ -226,7 +226,7 @@ class SignUpController extends GetxController {
         }
 
         final otp = data['Otp'];
-        await notify.showOtpNotification(otp);
+        // await notify.showOtpNotification(otp);
 
         CustomSnackbar.showSuccess(
           context: context,
@@ -351,7 +351,7 @@ class SignUpController extends GetxController {
         }
 
         final otp = data['Otp'];
-        await notify.showOtpNotification(otp);
+        // await notify.showOtpNotification(otp);
 
         CustomSnackbar.showSuccess(
           context: context,
@@ -466,7 +466,7 @@ class SignUpController extends GetxController {
 
         final data = responseData['data'];
         final otp = data['Otp'];
-        await notify.showOtpNotification(otp);
+        // await notify.showOtpNotification(otp);
 
         CustomSnackbar.showSuccess(
           context: context,

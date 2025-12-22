@@ -278,7 +278,7 @@ class EditprofileController extends GetxController {
                                     // ✅ Step 1: Call API to send OTP
                                     final result = await signupController
                                         .phoneotp(value, context);
-                                    await notify.showOtpNotification(result);
+                                    // await notify.showOtpNotification(result);
 
                                     if (result != false && result != null) {
                                       otpVerificationController.responseOtp =
@@ -355,7 +355,7 @@ class EditprofileController extends GetxController {
                                     // ✅ Step 1: Call API to send OTP
                                     final result = await signupController
                                         .gmailOtp(value, context);
-                                    await notify.showOtpNotification(result);
+                                    // await notify.showOtpNotification(result);
 
                                     if (result != false && result != null) {
                                       otpVerificationController.responseOtp =

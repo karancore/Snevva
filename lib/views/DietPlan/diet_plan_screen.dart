@@ -59,12 +59,16 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
   @override
   void initState() {
     super.initState();
-    dietController.getAllDiets(context, "Vegetarian");
+    fetchSuggestions();
 
     // // Load default/general diets when screen opens
     // WidgetsBinding.instance.addPostFrameCallback((_) {
     //
     // });
+  }
+  Future<void> fetchSuggestions() async {
+    final result = await dietController.getAllSuggestions(context);
+    debugPrint(result.toString());
   }
 
   @override
@@ -120,7 +124,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                   return Loader();
                 }
 
-                final data = dietController.dietTagResponse.value.data;
+                final data = dietController.suggestionsResponse.value.data;
                 if (data == null || data.isEmpty) {
                   return Text("No suggestions"); // prevent crash
                 }
@@ -171,21 +175,11 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                 }),
               ),
             ),
-            SizedBox(height: defaultSize - 10),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: AutoSizeText(
-                'Most Liked',
-                minFontSize: 20,
-                maxLines: 1,
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-              ),
-            ),
             SizedBox(height: defaultSize - 20),
             Obx(() {
               final categoryIndex = dietController.selectedCategoryIndex.value;
-              final list = mostLikedByCategory[categoryIndex] ?? [];
+              final list = [];
 
               if (list.isEmpty) {
                 return const Padding(
@@ -194,39 +188,32 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                 );
               }
 
-              final rowCount = (list.length / 2).ceil();
+              return SafeArea(
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: list.length,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
 
-              return Column(
-                children: List.generate(rowCount, (row) {
-                  int start = row * 2;
-
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 8,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        dietContainer(
-                          width,
-                          list[start][0],
-                          list[start][1],
-                          list[start][2],
-                          isDarkMode,
-                        ),
-                        if (start + 1 < list.length)
-                          dietContainer(
-                            width,
-                            list[start + 1][0],
-                            list[start + 1][1],
-                            list[start + 1][2],
-                            isDarkMode,
-                          ),
-                      ],
-                    ),
-                  );
-                }),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemBuilder: (context, index) {
+                    final item = list[index];
+                    return dietContainer(
+                      width,
+                      item[0],
+                      item[1],
+                      item[2],
+                      isDarkMode,
+                    );
+                  },
+                ),
               );
             }),
           ],
