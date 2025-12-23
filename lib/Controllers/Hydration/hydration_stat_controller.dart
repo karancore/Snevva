@@ -30,6 +30,17 @@ class HydrationStatController extends GetxController {
     // loadWaterIntake();
   }
 
+  String getHydrationStatus(double intakeMl) {
+    if (intakeMl <= 0) return '';
+
+    if (intakeMl < 500) return 'Very Low';
+    if (intakeMl < 1200) return 'Low';
+    if (intakeMl < 2000) return 'Okay';
+    if (intakeMl < 3000) return 'Good';
+    return 'Amazing';
+  }
+
+
   // Save water intake value locally
   Future<void> saveWaterIntakeLocally() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();

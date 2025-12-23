@@ -20,6 +20,17 @@ class VitalsController extends GetxController {
     loadVitalsFromLocalStorage(); // Load vitals when the controller is initialized
   }
 
+  String getBpmStatus(int bpm) {
+    if (bpm <= 0) return '';
+
+    if (bpm < 40) return 'Low';
+    if (bpm < 60) return 'Excellent';
+    if (bpm < 80) return 'Good';
+    if (bpm <= 100) return 'Normal';
+    return 'High';
+  }
+
+
   // Load vitals (BPM, SYS, DIA, BloodGlucose) from local storage when the app starts
   Future<void> loadVitalsFromLocalStorage() async {
     final prefs = await SharedPreferences.getInstance();

@@ -32,7 +32,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
     final stepController = Get.find<StepCounterController>();
     final waterController = Get.find<HydrationStatController>();
     final vitalController = Get.find<VitalsController>();
-    final SleepController sleepController = Get.put(SleepController());
+    final sleepController = Get.put(SleepController());
     bool _loaded = false;
 
     if (!_loaded) {
@@ -68,7 +68,10 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                     ),
                   ),
                 ),
-                valuePraisingText: 'Amazing',
+                valuePraisingText: waterController.getHydrationStatus(
+                  waterController.waterIntake.value,
+                ),
+
                 content: Stack(
                   children: [
                     Positioned(
@@ -115,10 +118,10 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
 
                     if (agreed == true) {
                       await prefs.setBool('isFirstTime', false);
-                      Get.to(() => VitalScreen());
+                      Get.to(VitalScreen());
                     }
                   } else {
-                    Get.to(() => VitalScreen());
+                    Get.to(VitalScreen());
                   }
                 },
                 width: width,
@@ -151,7 +154,10 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                     ),
                   );
                 }),
-                valuePraisingText: 'Normal',
+                valuePraisingText: vitalController.getBpmStatus(
+                  vitalController.bpm.value,
+                ),
+
                 content: Padding(
                   padding: const EdgeInsets.only(
                     left: 10,
@@ -310,7 +316,9 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                     ),
                   );
                 }),
-                valuePraisingText: 'wow!',
+                valuePraisingText: sleepController.getSleepStatus(
+                  sleepController.deepSleepDuration.value,
+                ),
                 height: height,
                 content: Align(
                   alignment: Alignment.bottomCenter,

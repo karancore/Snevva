@@ -28,9 +28,7 @@ class VerifyWithOtpScreen extends StatefulWidget {
   State<VerifyWithOtpScreen> createState() => _VerifyWithOtpScreenState();
 }
 
-class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen>
-    with CodeAutoFill {
-  final pinController = TextEditingController();
+class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
   late OTPVerificationController otpVerificationController;
   late bool otpVerificationStatus;
   bool _isLoading = false;
@@ -39,7 +37,6 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen>
   @override
   void initState() {
     super.initState();
-    listenForCode();
 
     if (Get.isRegistered<OTPVerificationController>()) {
       Get.delete<OTPVerificationController>();
@@ -56,7 +53,6 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen>
 
   @override
   void dispose() {
-    pinController.dispose();
     if (Get.isRegistered<OTPVerificationController>()) {
       Get.delete<OTPVerificationController>();
     }
@@ -67,7 +63,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen>
     setState(() {
       _isLoading = true;
     });
-    final pin = pinController.text.trim();
+    final pin = otpVerificationController.pinController.text.trim();
 
     if (pin.isEmpty) {
       CustomSnackbar.showError(
@@ -188,26 +184,38 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen>
               Image.asset(veriemail, height: 200, width: 200),
               SizedBox(height: 30),
               Text(
-                '${AppLocalizations.of(context)!.enter6DigitCodeText}\n${widget.emailOrPasswordText}',
+                '${AppLocalizations.of(context)!.enter6DigitCodeText}\n${widget
+                    .emailOrPasswordText}',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16),
               ),
               SizedBox(height: 30),
 
-              Pinput(
-                length: 6,
-                controller: pinController,
-                defaultPinTheme: defaultPinTheme,
-                focusedPinTheme: focusedPinTheme,
-
-                submittedPinTheme: submittedPinTheme,
-                followingPinTheme: followingPinTheme,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                onCompleted:
-                    (pin) =>
-                        otpVerificationStatus = otpVerificationController
-                            .verifyOtp(pin, context),
-              ),
+              Obx(() {
+                return PinFieldAutoFill(
+                  codeLength: 6,
+                  decoration: BoxLooseDecoration(
+                    textStyle: TextStyle(
+                      fontSize: 20,
+                      color: isDarkMode ? black : white,
+                    ),
+                    bgColorBuilder:
+                    isDarkMode
+                        ? FixedColorBuilder(white)
+                        : FixedColorBuilder(black),
+                    strokeColorBuilder:
+                    isDarkMode
+                        ? FixedColorBuilder(white)
+                        : FixedColorBuilder(black),
+                  ),
+                  controller: otpVerificationController.pinController,
+                  currentCode: otpVerificationController.messageOtpCode.value,
+                  textInputAction: TextInputAction.done,
+                  onCodeChanged: (code) {
+                    otpVerificationController.messageOtpCode.value = code ?? '';
+                  },
+                );
+              }),
 
               SizedBox(height: 15),
               GestureDetector(
@@ -224,7 +232,8 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen>
                 },
                 child: ShaderMask(
                   shaderCallback:
-                      (bounds) => AppColors.primaryGradient.createShader(
+                      (bounds) =>
+                      AppColors.primaryGradient.createShader(
                         Rect.fromLTWH(0, 0, bounds.width, bounds.height),
                       ),
                   child: Text(
@@ -258,9 +267,9 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen>
                     ),
                   ),
                   child:
-                      _isLoading
-                          ? const Loader()
-                          : Text(AppLocalizations.of(context)!.verify),
+                  _isLoading
+                      ? const Loader()
+                      : Text(AppLocalizations.of(context)!.verify),
                 ),
               ),
             ],
@@ -270,8 +279,4 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen>
     );
   }
 
-  @override
-  void codeUpdated() {
-    // TODO: implement codeUpdated
-  }
 }

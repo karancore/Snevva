@@ -563,7 +563,7 @@ class EditprofileController extends GetxController {
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   onCompleted: (pin) async {
                     otpVerificationStatus = await otpVerificationController
-                        .profileverifyOtp(pin, ctx);
+                        .verifyOtp(pin, ctx);
                     if (otpVerificationStatus) {
                       localStorageManager.userMap['Email'] = initialValue;
                       email = initialValue;
@@ -683,7 +683,7 @@ class EditprofileController extends GetxController {
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   onCompleted: (pin) async {
                     otpVerificationStatus = await otpVerificationController
-                        .profileverifyOtp(pin, ctx);
+                        .verifyOtp(pin, ctx);
                     if (otpVerificationStatus) {
                       localStorageManager.userMap['PhoneNumber'] = initialValue;
                       phoneNumber = initialValue;
