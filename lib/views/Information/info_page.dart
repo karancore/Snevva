@@ -1,8 +1,6 @@
-import 'package:path/path.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Chat/snevva_ai_chat_screen.dart';
 import 'package:snevva/views/DietPlan/diet_plan_screen.dart';
-import 'package:snevva/views/Doctor/doctor_screen.dart';
 import 'package:snevva/views/Information/BMI/bmi_cal.dart';
 import 'package:snevva/views/Information/HydrationScreens/hydration_screen.dart';
 import 'package:snevva/views/Information/Health%20Tips/health_tips.dart';
@@ -12,18 +10,12 @@ import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.d
 import 'package:snevva/views/Information/vitals.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
 import 'package:snevva/views/Reminder/reminder.dart';
-import 'package:snevva/views/ReportScan/scan_report_screen.dart';
-import 'package:snevva/views/Vitals/add_watch.dart';
 import 'package:snevva/views/Information/mental_wellness_screen.dart';
-import 'package:snevva/views/WomenHealth/women_health_screen.dart';
 import 'package:get/get.dart';
 import '../../Controllers/StepCounter/step_counter_controller.dart';
-import '../../Controllers/signupAndSignIn/sign_in_controller.dart';
 import '../../Widgets/CommonWidgets/custom_appbar.dart';
-import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../Widgets/menu_item_widget.dart';
 import '../../common/statement_of_use_bottom_sheet.dart';
-import '../../models/info_menu_items.dart';
 import '../WomenHealth/women_bottom_sheets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -350,9 +342,10 @@ Widget _buildMenuGrid(
 
                 if (isFirstTime) {
                   final agreed = await showSleepBottomSheetModal(
-                    context,
-                    isDarkMode,
-                    height,
+                    context: context,
+                    isDarkMode: isDarkMode,
+                    height: height,
+                    isNavigating: false,
                   );
 
                   if (agreed == true) {

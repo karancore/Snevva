@@ -28,7 +28,6 @@ class HydrationStatController extends GetxController {
   void onInit() {
     super.onInit();
     // loadWaterIntake();
-    
   }
 
   // Save water intake value locally
@@ -218,34 +217,33 @@ class HydrationStatController extends GetxController {
   }
 
   void calculateTodayIntakeFromList(List intakeList) {
-  final now = DateTime.now();
+    final now = DateTime.now();
 
-  int todayTotal = 0;
+    int todayTotal = 0;
 
-  for (var item in intakeList) {
-    if (item['Day'] == now.day &&
-        item['Month'] == now.month &&
-        item['Year'] == now.year) {
-      todayTotal += (item['Value'] as int);
+    for (var item in intakeList) {
+      if (item['Day'] == now.day &&
+          item['Month'] == now.month &&
+          item['Year'] == now.year) {
+        todayTotal += (item['Value'] as int);
+      }
     }
+
+    waterIntake.value = todayTotal.toDouble();
   }
 
-  waterIntake.value = todayTotal.toDouble();
-}
-
-
-
-  Future<void> loadWaterIntakefromAPI({required int month,
-  required int year,}) async {
+  Future<void> loadWaterIntakefromAPI({
+    required int month,
+    required int year,
+  }) async {
     try {
       isLoading.value = true;
 
-      final payload = {"Month": month,
-      "Year": year,};
+      final payload = {"Month": month, "Year": year};
 
       final response = await ApiService.post(
         waterrecords,
-        payload,  
+        payload,
         withAuth: true,
         encryptionRequired: true,
       );
@@ -286,7 +284,7 @@ class HydrationStatController extends GetxController {
       calculateTodayIntakeFromList(intakeList);
 
       await saveWaterIntakeLocally();
-      
+
       print("Fetched ${waterHistoryList.length} Water records");
       buildWaterHistoryMap();
     } catch (e) {

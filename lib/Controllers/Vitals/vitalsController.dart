@@ -52,14 +52,11 @@ class VitalsController extends GetxController {
 
   Future<void> loadvitalsfromAPI(DateTime month, DateTime year) async {
     try {
-      Map<String, dynamic> payload = {
-        'Month': month.month,
-        'Year': year.year,
-      };
+      Map<String, dynamic> payload = {'Month': month.month, 'Year': year.year};
 
       final response = await ApiService.post(
         fetchBloodPressureHistory,
-         payload,
+        payload,
         withAuth: true,
         encryptionRequired: true,
       );

@@ -1,5 +1,4 @@
 import 'package:dropdown_flutter/custom_dropdown.dart';
-import 'package:intl/intl.dart';
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/Widgets/CommonWidgets/common_date_widget.dart';
@@ -223,17 +222,15 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                 decoration: InputDecoration(
                                   filled: true,
                                   fillColor: Colors.transparent,
-                                  contentPadding:
-                                  const EdgeInsets.symmetric(
+                                  contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 12,
                                     vertical: 12,
                                   ),
                                   hintText:
-                                  AppLocalizations.of(
-                                    context,
-                                  )!.enterYourName,
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.enterYourName,
                                   hintStyle: const TextStyle(color: white),
-
 
                                   errorText:
                                       initialProfileController

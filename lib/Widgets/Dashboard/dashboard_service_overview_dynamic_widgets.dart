@@ -277,9 +277,10 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
 
                   if (isFirstSleep) {
                     final agreed = await showSleepBottomSheetModal(
-                      context,
-                      isDarkMode,
-                      height,
+                      context: context,
+                      isDarkMode: isDarkMode,
+                      height: height,
+                      isNavigating: true,
                     );
 
                     if (agreed == true) {

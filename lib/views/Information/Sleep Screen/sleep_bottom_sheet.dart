@@ -8,11 +8,13 @@ import '../../../../consts/consts.dart';
 class SleepBottomSheet extends StatefulWidget {
   final double height;
   final bool isDarkMode;
+  final bool isNavigating;
 
   const SleepBottomSheet({
     super.key,
     required this.height,
     required this.isDarkMode,
+    required this.isNavigating,
   });
 
   @override
@@ -252,23 +254,30 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
             backgroundColor: AppColors.primaryColor,
             buttonName: "Next",
             onTap: () async {
+              debugPrint("👉 Sleep/Wake onTap tapped, oyee!");
+
               // --- SLEEP TIME ---
               int sleepHour = hourController.selected + 1;
               int sleepMinute = minuteController.selected;
               int sleepPeriodIndex = periodController.selected;
 
+              debugPrint(
+                "😴 Raw Sleep -> hourIndex: ${hourController.selected}, minute: $sleepMinute, periodIndex: $sleepPeriodIndex",
+              );
+
               if (sleepPeriodIndex == 1 && sleepHour < 12) {
-                // PM, add 12 to hour
                 sleepHour += 12;
               } else if (sleepPeriodIndex == 0 && sleepHour == 12) {
-                // 12 AM should be 0
                 sleepHour = 0;
               }
+
+              debugPrint("😴 Converted Sleep Hour (24h): $sleepHour");
 
               TimeOfDay sleepTime = TimeOfDay(
                 hour: sleepHour,
                 minute: sleepMinute,
               );
+
               final now = DateTime.now();
               DateTime st = DateTime(
                 now.year,
@@ -277,6 +286,9 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
                 sleepTime.hour,
                 sleepTime.minute,
               );
+
+              debugPrint("🛏️ Final Sleep DateTime: $st");
+
               controller.setBedtime(st);
 
               // --- WAKE-UP TIME ---
@@ -284,11 +296,17 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
               int wakeMinute = wakeUpMinuteController.selected;
               int wakePeriodIndex = wakeUpPeriodController.selected;
 
+              debugPrint(
+                "⏰ Raw Wake -> hourIndex: ${wakeUpHourController.selected}, minute: $wakeMinute, periodIndex: $wakePeriodIndex",
+              );
+
               if (wakePeriodIndex == 1 && wakeHour < 12) {
                 wakeHour += 12;
               } else if (wakePeriodIndex == 0 && wakeHour == 12) {
                 wakeHour = 0;
               }
+
+              debugPrint("⏰ Converted Wake Hour (24h): $wakeHour");
 
               TimeOfDay wakeTime = TimeOfDay(
                 hour: wakeHour,
@@ -302,17 +320,28 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
                 wakeTime.hour,
                 wakeTime.minute,
               );
+
+              debugPrint("🌅 Final Wake DateTime: $wt");
+
               controller.setWakeTime(wt);
 
-              // controller.bedTime.value = sleepTime;
-              // controller.wakeupTime.value = wakeTime;
-
+              debugPrint(
+                "📡 Sending SleepTime: $sleepTime | WakeTime: $wakeTime to server",
+              );
               controller.updateSleepTimestoServer(sleepTime, wakeTime);
 
               final prefs = await SharedPreferences.getInstance();
               await prefs.setBool('is_first_time_sleep', false);
 
-              Get.to(() => SleepTrackerScreen());
+              debugPrint("💾 is_first_time_sleep set to false");
+
+              if (widget.isNavigating) {
+                debugPrint("➡️ Navigating to SleepTrackerScreen");
+                Get.to(() => SleepTrackerScreen());
+              } else {
+                debugPrint("⬅️ Going back");
+                Get.back();
+              }
             },
           ),
         ],
@@ -321,11 +350,12 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
   }
 }
 
-Future<bool?> showSleepBottomSheetModal(
-  BuildContext context,
-  bool isDarkMode,
-  double height,
-) {
+Future<bool?> showSleepBottomSheetModal({
+  required BuildContext context,
+  required bool isDarkMode,
+  required double height,
+  required bool isNavigating,
+}) {
   return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
@@ -333,6 +363,11 @@ Future<bool?> showSleepBottomSheetModal(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (_) => SleepBottomSheet(height: height, isDarkMode: isDarkMode),
+    builder:
+        (_) => SleepBottomSheet(
+          height: height,
+          isDarkMode: isDarkMode,
+          isNavigating: isNavigating,
+        ),
   );
 }

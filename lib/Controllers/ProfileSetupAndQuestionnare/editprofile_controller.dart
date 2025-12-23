@@ -11,7 +11,6 @@ import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:snevva/services/notification_service.dart';
-import '../../views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import '../local_storage_manager.dart';
 import '../signupAndSignIn/otp_verification_controller.dart';
 import '../signupAndSignIn/sign_up_controller.dart';
@@ -48,7 +47,6 @@ class EditprofileController extends GetxController {
     loadUserData();
     otpVerificationController = Get.put(OTPVerificationController());
     initialProfileController = Get.put(ProfileSetupController());
-
   }
 
   Future<void> loadUserData() async {

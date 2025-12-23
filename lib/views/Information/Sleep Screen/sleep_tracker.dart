@@ -10,6 +10,7 @@ import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/services/sleep_noticing_service.dart';
+import 'package:snevva/views/Information/Sleep%20Screen/sleep_bottom_sheet.dart';
 import '../../../Controllers/SleepScreen/sleep_controller.dart';
 import '../../../Widgets/CommonWidgets/common_stat_graph_widget.dart';
 import '../../../Widgets/CommonWidgets/custom_outlined_button.dart';
@@ -108,32 +109,32 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     return (minutes / maxDeepSleepMinutes).clamp(0.0, 1.0);
   }
 
-   void _toggleView() async {
-  setState(() => _isMonthlyView = !_isMonthlyView);
+  void _toggleView() async {
+    setState(() => _isMonthlyView = !_isMonthlyView);
 
-  if (_isMonthlyView) {
-    await sleepController.loadSleepfromAPI(
-      month: _selectedMonth.month,
-      year: _selectedMonth.year,
-    );
+    if (_isMonthlyView) {
+      await sleepController.loadSleepfromAPI(
+        month: _selectedMonth.month,
+        year: _selectedMonth.year,
+      );
+    }
   }
-}
 
   void _changeMonth(int delta) async {
-  final newMonth = DateTime(
-    _selectedMonth.year,
-    _selectedMonth.month + delta,
-    1,
-  );
+    final newMonth = DateTime(
+      _selectedMonth.year,
+      _selectedMonth.month + delta,
+      1,
+    );
 
-  setState(() => _selectedMonth = newMonth);
+    setState(() => _selectedMonth = newMonth);
 
-  // 🔥 LOAD DATA FOR SELECTED MONTH
-  await sleepController.loadSleepfromAPI(
-    month: newMonth.month,
-    year: newMonth.year,
-  );
-}
+    // 🔥 LOAD DATA FOR SELECTED MONTH
+    await sleepController.loadSleepfromAPI(
+      month: newMonth.month,
+      year: newMonth.year,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -380,7 +381,14 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                                   ),
                                 ),
                                 IconButton(
-                                  onPressed: () => _pickTime(context, true),
+                                  onPressed: () async {
+                                    await showSleepBottomSheetModal(
+                                      context: context,
+                                      isDarkMode: isDarkMode,
+                                      height: height,
+                                      isNavigating: false,
+                                    );
+                                  },
                                   icon: Icon(
                                     FontAwesomeIcons.angleRight,
                                     size: 20,
@@ -431,7 +439,14 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                                   ),
                                 ),
                                 IconButton(
-                                  onPressed: () => _pickTime(context, false),
+                                  onPressed: () async {
+                                    await showSleepBottomSheetModal(
+                                      context: context,
+                                      isDarkMode: isDarkMode,
+                                      height: height,
+                                      isNavigating: false,
+                                    );
+                                  },
                                   icon: Icon(
                                     FontAwesomeIcons.angleRight,
                                     size: 20,
@@ -506,7 +521,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
               // ========== SLEEP STATISTICS GRAPH ==========
               SizedBox(
-                height: height * 0.40,
+                height: height * 0.34,
                 child: Obx(() {
                   final labels =
                       _isMonthlyView

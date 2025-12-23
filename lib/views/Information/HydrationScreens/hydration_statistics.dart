@@ -1,4 +1,3 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
@@ -25,10 +24,10 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
   void initState() {
     super.initState();
     // controller.fetchWaterRecordsfromAPI();
-      controller.loadWaterIntakefromAPI(
-        month: DateTime.now().month,
-        year: DateTime.now().year,
-      );
+    controller.loadWaterIntakefromAPI(
+      month: DateTime.now().month,
+      year: DateTime.now().year,
+    );
     // optionally load monthly data now if needed
   }
 
@@ -126,32 +125,31 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
   // }
 
   void _toggleView() async {
-  setState(() => _isMonthlyView = !_isMonthlyView);
+    setState(() => _isMonthlyView = !_isMonthlyView);
 
-  if (_isMonthlyView) {
-    await controller.loadWaterIntakefromAPI(
-      month: _selectedMonth.month,
-      year: _selectedMonth.year,
-    );
+    if (_isMonthlyView) {
+      await controller.loadWaterIntakefromAPI(
+        month: _selectedMonth.month,
+        year: _selectedMonth.year,
+      );
+    }
   }
-}
 
   void _changeMonth(int delta) async {
-  final newMonth = DateTime(
-    _selectedMonth.year,
-    _selectedMonth.month + delta,
-    1,
-  );
+    final newMonth = DateTime(
+      _selectedMonth.year,
+      _selectedMonth.month + delta,
+      1,
+    );
 
-  setState(() => _selectedMonth = newMonth);
+    setState(() => _selectedMonth = newMonth);
 
-  // 🔥 IMPORTANT: reload data for new month
-  await controller.loadWaterIntakefromAPI(
-    month: newMonth.month,
-    year: newMonth.year,
-  );
-}
-
+    // 🔥 IMPORTANT: reload data for new month
+    await controller.loadWaterIntakefromAPI(
+      month: newMonth.month,
+      year: newMonth.year,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

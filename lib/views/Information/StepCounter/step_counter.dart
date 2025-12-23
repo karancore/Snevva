@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
@@ -57,7 +56,7 @@ class _StepCounterState extends State<StepCounter> {
     // _startAndAttachService();
     stepController.loadStepsfromAPI(
       month: DateTime.now().month,
-      year: DateTime.now().year
+      year: DateTime.now().year,
     );
   }
 
@@ -188,33 +187,31 @@ class _StepCounterState extends State<StepCounter> {
   // ===== SWITCH VIEWS =====
 
   void _toggleView() async {
-  setState(() => _isMonthlyView = !_isMonthlyView);
+    setState(() => _isMonthlyView = !_isMonthlyView);
 
-  if (_isMonthlyView) {
-    await stepController.loadStepsfromAPI(
-      month: _selectedMonth.month,
-      year: _selectedMonth.year,
-    );
+    if (_isMonthlyView) {
+      await stepController.loadStepsfromAPI(
+        month: _selectedMonth.month,
+        year: _selectedMonth.year,
+      );
+    }
   }
-}
-
 
   void _changeMonth(int delta) async {
-  final newMonth = DateTime(
-    _selectedMonth.year,
-    _selectedMonth.month + delta,
-    1,
-  );
+    final newMonth = DateTime(
+      _selectedMonth.year,
+      _selectedMonth.month + delta,
+      1,
+    );
 
-  setState(() => _selectedMonth = newMonth);
+    setState(() => _selectedMonth = newMonth);
 
-  // 🔥 LOAD DATA FOR SELECTED MONTH
-  await stepController.loadStepsfromAPI(
-    month: newMonth.month,
-    year: newMonth.year,
-  );
-}
-
+    // 🔥 LOAD DATA FOR SELECTED MONTH
+    await stepController.loadStepsfromAPI(
+      month: newMonth.month,
+      year: newMonth.year,
+    );
+  }
 
   // ===== BUILD =====
 
@@ -307,7 +304,7 @@ class _StepCounterState extends State<StepCounter> {
                                 Text('Goal: ${stepController.stepGoal.value}'),
                           ),
                           const SizedBox(width: 8),
-                          GestureDetector(
+                          InkWell(
                             onTap: () async {
                               final updated = await showStepCounterBottomSheet(
                                 context,

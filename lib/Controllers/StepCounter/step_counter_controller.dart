@@ -1,8 +1,6 @@
-import 'dart:convert';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
@@ -10,7 +8,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/env/env.dart';
-import 'package:snevva/models/sleep_entry.dart';
 
 import 'package:snevva/models/steps_model.dart';
 import 'package:snevva/models/queryParamViewModels/step_goal_vm.dart';
@@ -155,74 +152,56 @@ class StepCounterController extends GetxController {
     updateStepSpots();
   }
 
-  Future<void> loadStepsfromAPI({
-    required int month,
-  required int year,
-  }) async {
-  try {
-    final payload = {
-      "Month": month,
-      "Year": year,
-    };
+  Future<void> loadStepsfromAPI({required int month, required int year}) async {
+    try {
+      final payload = {"Month": month, "Year": year};
 
-    final response = await ApiService.post(
-      fetchStepsHistory,
-      payload,
-      withAuth: true,
-      encryptionRequired: true,
-    );
-
-    // ❌ API returned HTTP error
-    if (response is http.Response) {
-      CustomSnackbar.showError(
-        context: Get.context!,
-        title: 'Error',
-        message: 'Failed to fetch step data: ${response.statusCode}',
+      final response = await ApiService.post(
+        fetchStepsHistory,
+        payload,
+        withAuth: true,
+        encryptionRequired: true,
       );
-      return;
+
+      // ❌ API returned HTTP error
+      if (response is http.Response) {
+        CustomSnackbar.showError(
+          context: Get.context!,
+          title: 'Error',
+          message: 'Failed to fetch step data: ${response.statusCode}',
+        );
+        return;
+      }
+
+      // ✅ SUCCESS → already decrypted Map
+      final Map<String, dynamic> decoded = response as Map<String, dynamic>;
+
+      final List<dynamic> stepData = decoded['data']?['StepData'] ?? [];
+
+      print("🔄 Fetched step data from API: $stepData");
+
+      stepsHistoryList.clear();
+
+      for (final item in stepData) {
+        final date = DateTime(item['Year'], item['Month'], item['Day']);
+
+        stepsHistoryList.add(StepEntry(date: date, steps: item['Count'] ?? 0));
+      }
+
+      // ✅ Step goal
+      stepGoal.value =
+          decoded['data']?['StepGoalData']?['Count'] ?? stepGoal.value;
+
+      // ✅ Build map + graph
+      buildStepsHistoryMap();
+
+      print("📊 Map: $stepsHistoryByDate");
+      print("📈 Spots: $stepSpots");
+      print("✅ Loaded steps from API: ${stepsHistoryList.length}");
+    } catch (e) {
+      print("❌ Error loading steps from API: $e");
     }
-
-    // ✅ SUCCESS → already decrypted Map
-    final Map<String, dynamic> decoded =
-        response as Map<String, dynamic>;
-
-    final List<dynamic> stepData =
-        decoded['data']?['StepData'] ?? [];
-
-    print("🔄 Fetched step data from API: $stepData");
-
-    stepsHistoryList.clear();
-
-    for (final item in stepData) {
-      final date = DateTime(
-        item['Year'],
-        item['Month'],
-        item['Day'],
-      );
-
-      stepsHistoryList.add(
-        StepEntry(
-          date: date,
-          steps: item['Count'] ?? 0,
-        ),
-      );
-    }
-
-    // ✅ Step goal
-    stepGoal.value =
-        decoded['data']?['StepGoalData']?['Count'] ?? stepGoal.value;
-
-    // ✅ Build map + graph
-    buildStepsHistoryMap();
-
-    print("📊 Map: $stepsHistoryByDate");
-    print("📈 Spots: $stepSpots");
-    print("✅ Loaded steps from API: ${stepsHistoryList.length}");
-  } catch (e) {
-    print("❌ Error loading steps from API: $e");
   }
-}
-
 
   // =======================
   // DATE HELPERS

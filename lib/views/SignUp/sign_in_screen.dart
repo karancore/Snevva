@@ -85,8 +85,6 @@ class _SignInScreenState extends State<SignInScreen> {
       year: DateTime.now().year,
     );
 
-
-
     final userInfo = await signInController.userInfo();
     final userData = userInfo['data'];
     print(userData);
