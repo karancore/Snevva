@@ -46,34 +46,38 @@ class _StepCounterState extends State<StepCounter> {
   DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
 
   late final StreamSubscription<BoxEvent> _hiveSub;
-  final service = FlutterBackgroundService();
-  StreamSubscription? _serviceSub;
+  // final service = FlutterBackgroundService();
+  // StreamSubscription? _serviceSub;
 
   Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
-    _startAndAttachService();
+    // _startAndAttachService();
+    stepController.loadStepsfromAPI(
+      month: DateTime.now().month,
+      year: DateTime.now().year
+    );
   }
 
-  Future<void> _startAndAttachService() async {
-    final isRunning = await service.isRunning();
+  // Future<void> _startAndAttachService() async {
+  //   final isRunning = await service.isRunning();
 
-    if (!isRunning) {
-      await service.startService();
-    }
+  //   if (!isRunning) {
+  //     await service.startService();
+  //   }
 
-    /// Wait for service to be ready
-    await Future.delayed(const Duration(milliseconds: 300));
+  //   /// Wait for service to be ready
+  //   await Future.delayed(const Duration(milliseconds: 300));
 
-    // Load data - controller will handle the streaming
-    stepController.loadGoal();
-    stepController.loadTodayStepsFromHive();
+  //   // Load data - controller will handle the streaming
+  //   stepController.loadGoal();
+  //   stepController.loadTodayStepsFromHive();
 
-    _loadWeeklyData();
-  }
-  //
+  //   _loadWeeklyData();
+  // }
+
   // void _onStepsUpdated(dynamic event) {
   //   if (event == null) return;
   //
@@ -184,23 +188,33 @@ class _StepCounterState extends State<StepCounter> {
   // ===== SWITCH VIEWS =====
 
   void _toggleView() async {
-    setState(() => _isMonthlyView = !_isMonthlyView);
-    if (_isMonthlyView) {
-      await _loadMonthlyData(_selectedMonth);
-    } else {
-      await _loadWeeklyData();
-    }
+  setState(() => _isMonthlyView = !_isMonthlyView);
+
+  if (_isMonthlyView) {
+    await stepController.loadStepsfromAPI(
+      month: _selectedMonth.month,
+      year: _selectedMonth.year,
+    );
   }
+}
+
 
   void _changeMonth(int delta) async {
-    final newMonth = DateTime(
-      _selectedMonth.year,
-      _selectedMonth.month + delta,
-      1,
-    );
-    setState(() => _selectedMonth = newMonth);
-    await _loadMonthlyData(newMonth);
-  }
+  final newMonth = DateTime(
+    _selectedMonth.year,
+    _selectedMonth.month + delta,
+    1,
+  );
+
+  setState(() => _selectedMonth = newMonth);
+
+  // 🔥 LOAD DATA FOR SELECTED MONTH
+  await stepController.loadStepsfromAPI(
+    month: newMonth.month,
+    year: newMonth.year,
+  );
+}
+
 
   // ===== BUILD =====
 

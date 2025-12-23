@@ -24,7 +24,11 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
   @override
   void initState() {
     super.initState();
-    controller.fetchWaterRecords(context);
+    // controller.fetchWaterRecordsfromAPI();
+      controller.loadWaterIntakefromAPI(
+        month: DateTime.now().month,
+        year: DateTime.now().year,
+      );
     // optionally load monthly data now if needed
   }
 
@@ -121,25 +125,33 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
   //   return List.generate(daysInMonth, (i) => (i + 1).toString());
   // }
 
-  void _toggleView() {
-    setState(() {
-      _isMonthlyView = !_isMonthlyView;
-      if (_isMonthlyView) {
-        // reset selected month maybe to now
-        _selectedMonth = DateTime.now();
-      }
-    });
-  }
+  void _toggleView() async {
+  setState(() => _isMonthlyView = !_isMonthlyView);
 
-  void _changeMonth(int delta) {
-    setState(() {
-      _selectedMonth = DateTime(
-        _selectedMonth.year,
-        _selectedMonth.month + delta,
-        1,
-      );
-    });
+  if (_isMonthlyView) {
+    await controller.loadWaterIntakefromAPI(
+      month: _selectedMonth.month,
+      year: _selectedMonth.year,
+    );
   }
+}
+
+  void _changeMonth(int delta) async {
+  final newMonth = DateTime(
+    _selectedMonth.year,
+    _selectedMonth.month + delta,
+    1,
+  );
+
+  setState(() => _selectedMonth = newMonth);
+
+  // 🔥 IMPORTANT: reload data for new month
+  await controller.loadWaterIntakefromAPI(
+    month: newMonth.month,
+    year: newMonth.year,
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {

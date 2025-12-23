@@ -50,6 +50,36 @@ class VitalsController extends GetxController {
     );
   }
 
+  Future<void> loadvitalsfromAPI(DateTime month, DateTime year) async {
+    try {
+      Map<String, dynamic> payload = {
+        'Month': month.month,
+        'Year': year.year,
+      };
+
+      final response = await ApiService.post(
+        fetchBloodPressureHistory,
+         payload,
+        withAuth: true,
+        encryptionRequired: true,
+      );
+
+      if (response is http.Response) {
+        print(
+          'Error fetching vitals data: ${response.statusCode} - ${response.body}',
+        );
+        return;
+      }
+
+      final resbody = response;
+
+      // Process the response data as needed
+      print('Fetched vitals data: $resbody');
+    } catch (e) {
+      print('Error fetching vitals data: $e');
+    }
+  }
+
   // Function to update vitals and save to local storage
   Future<bool> submitVitals(
     BloodPressureData bloodPressureData,

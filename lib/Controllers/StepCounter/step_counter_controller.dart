@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -6,6 +8,7 @@ import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/models/sleep_entry.dart';
 
@@ -23,7 +26,7 @@ class StepCounterController extends GetxController {
   RxInt todaySteps = 0.obs;
   RxInt stepGoal = 8000.obs;
 
-  final FlutterBackgroundService _service = FlutterBackgroundService();
+  // final FlutterBackgroundService _service = FlutterBackgroundService();
 
   int lastSteps = 0;
   final RxList<FlSpot> stepSpots = <FlSpot>[].obs;
@@ -53,7 +56,7 @@ class StepCounterController extends GetxController {
     await loadTodayStepsFromHive();
 
     // Start listening AFTER loading initial data
-    _listenToBackgroundSteps();
+    // _listenToBackgroundSteps();
   }
 
   // =======================
@@ -77,28 +80,28 @@ class StepCounterController extends GetxController {
   // =======================
   // LISTEN TO BACKGROUND SERVICE
   // =======================
-  void _listenToBackgroundSteps() {
-    _service.on("steps_updated").listen((event) {
-      if (event == null) return;
+  // void _listenToBackgroundSteps() {
+  //   _service.on("steps_updated").listen((event) {
+  //     if (event == null) return;
 
-      final int newSteps = event["steps"] ?? 0;
+  //     final int newSteps = event["steps"] ?? 0;
 
-      // Only update if steps actually increased
-      if (newSteps <= todaySteps.value) return;
+  //     // Only update if steps actually increased
+  //     if (newSteps <= todaySteps.value) return;
 
-      // Store last value for animation
-      lastSteps = todaySteps.value;
-      lastPercent = _currentPercent;
+  //     // Store last value for animation
+  //     lastSteps = todaySteps.value;
+  //     lastPercent = _currentPercent;
 
-      // Update reactive value
-      todaySteps.value = newSteps;
+  //     // Update reactive value
+  //     todaySteps.value = newSteps;
 
-      // Trigger API sync if needed
-      _maybeSyncSteps();
+  //     // Trigger API sync if needed
+  //     _maybeSyncSteps();
 
-      print("🔄 Controller received: $newSteps steps");
-    });
-  }
+  //     print("🔄 Controller received: $newSteps steps");
+  //   });
+  // }
 
   // =======================
   // STEP UPDATES (MANUAL - if needed)
@@ -151,6 +154,75 @@ class StepCounterController extends GetxController {
     // Refresh graph with loaded data
     updateStepSpots();
   }
+
+  Future<void> loadStepsfromAPI({
+    required int month,
+  required int year,
+  }) async {
+  try {
+    final payload = {
+      "Month": month,
+      "Year": year,
+    };
+
+    final response = await ApiService.post(
+      fetchStepsHistory,
+      payload,
+      withAuth: true,
+      encryptionRequired: true,
+    );
+
+    // ❌ API returned HTTP error
+    if (response is http.Response) {
+      CustomSnackbar.showError(
+        context: Get.context!,
+        title: 'Error',
+        message: 'Failed to fetch step data: ${response.statusCode}',
+      );
+      return;
+    }
+
+    // ✅ SUCCESS → already decrypted Map
+    final Map<String, dynamic> decoded =
+        response as Map<String, dynamic>;
+
+    final List<dynamic> stepData =
+        decoded['data']?['StepData'] ?? [];
+
+    print("🔄 Fetched step data from API: $stepData");
+
+    stepsHistoryList.clear();
+
+    for (final item in stepData) {
+      final date = DateTime(
+        item['Year'],
+        item['Month'],
+        item['Day'],
+      );
+
+      stepsHistoryList.add(
+        StepEntry(
+          date: date,
+          steps: item['Count'] ?? 0,
+        ),
+      );
+    }
+
+    // ✅ Step goal
+    stepGoal.value =
+        decoded['data']?['StepGoalData']?['Count'] ?? stepGoal.value;
+
+    // ✅ Build map + graph
+    buildStepsHistoryMap();
+
+    print("📊 Map: $stepsHistoryByDate");
+    print("📈 Spots: $stepSpots");
+    print("✅ Loaded steps from API: ${stepsHistoryList.length}");
+  } catch (e) {
+    print("❌ Error loading steps from API: $e");
+  }
+}
+
 
   // =======================
   // DATE HELPERS

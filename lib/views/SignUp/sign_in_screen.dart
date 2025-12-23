@@ -1,5 +1,8 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
+import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
+import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/common/custom_snackbar.dart';
@@ -22,6 +25,9 @@ class SignInScreen extends StatefulWidget {
 final TextEditingController userEmailOrPhoneField = TextEditingController();
 final TextEditingController userPasswordField = TextEditingController();
 final signInController = Get.find<SignInController>();
+final stepController = Get.put(StepCounterController());
+final sleepController = Get.put(SleepController());
+final waterController = Get.put(HydrationStatController());
 
 final localStorageManager = Get.put(LocalStorageManager());
 
@@ -63,6 +69,23 @@ class _SignInScreenState extends State<SignInScreen> {
       prefs.setBool('remember_me', true);
       prefs.setString('user_credential', emailOrPhone);
     }
+
+    await stepController.loadStepsfromAPI(
+      month: DateTime.now().month,
+      year: DateTime.now().year,
+    );
+
+    await sleepController.loadSleepfromAPI(
+      month: DateTime.now().month,
+      year: DateTime.now().year,
+    );
+
+    await waterController.loadWaterIntakefromAPI(
+      month: DateTime.now().month,
+      year: DateTime.now().year,
+    );
+
+
 
     final userInfo = await signInController.userInfo();
     final userData = userInfo['data'];

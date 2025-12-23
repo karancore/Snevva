@@ -1,8 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get/get_connect/http/src/response/response.dart' as http;
 import 'package:get_storage/get_storage.dart';
 import 'package:hive/hive.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:snevva/common/custom_snackbar.dart';
+import 'package:snevva/env/env.dart';
+import 'package:snevva/services/api_service.dart';
 
 import '../../common/global_variables.dart';
 import '../../models/sleep_log.dart';
@@ -36,7 +42,7 @@ class SleepController extends GetxController {
   void onInit() {
     super.onInit();
     _sleepService.onPhoneUsageDetected = onPhoneUsed;
-
+  
     loadDeepSleepData();
   }
 
@@ -60,6 +66,133 @@ class SleepController extends GetxController {
   // ─────────────────────────────────────────────
   // LOAD FROM HIVE
   // ─────────────────────────────────────────────
+
+  String timeOfDayToString(TimeOfDay time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  DateTime _parseTime(
+  int year,
+  int month,
+  int day,
+  String time,
+) {
+  final parts = time.split(':');
+  return DateTime(
+    year,
+    month,
+    day,
+    int.parse(parts[0]),
+    int.parse(parts[1]),
+  );
+}
+
+
+    Future<void> loadSleepfromAPI({
+  required int month,
+  required int year,
+}) async {
+  try {
+    final payload = {
+      "Month": month,
+      "Year": year,
+    };
+
+    final response = await ApiService.post(
+      fetchSleepHistory,
+      payload,
+      withAuth: true,
+      encryptionRequired: true,
+    );
+
+    if (response is http.Response) {
+      CustomSnackbar.showError(
+        context: Get.context!,
+        title: 'Error',
+        message: 'Failed to fetch sleep data',
+      );
+      return;
+    }
+
+    final decoded = response as Map<String, dynamic>;
+    final List<dynamic> sleepData =
+        decoded['data']?['SleepData'] ?? [];
+
+    // 🔥 CLEAR OLD DATA BEFORE LOADING NEW MONTH
+    deepSleepHistory.clear();
+
+    for (final item in sleepData) {
+      final int day = item['Day'];
+      final int month = item['Month'];
+      final int year = item['Year'];
+
+      final String from = item['SleepingFrom'];
+      final String to = item['SleepingTo'];
+
+      DateTime bedTime = _parseTime(year, month, day, from);
+      DateTime wakeTime = _parseTime(year, month, day, to);
+
+      // 🌙 If wake time is next day
+      if (wakeTime.isBefore(bedTime)) {
+        wakeTime = wakeTime.add(const Duration(days: 1));
+      }
+
+      final duration = wakeTime.difference(bedTime);
+
+      final key = "$year-$month-$day";
+      deepSleepHistory[key] = duration;
+    }
+
+    // 🔁 Refresh weekly graph too
+    _updateDeepSleepSpots();
+
+    print("✅ Sleep history loaded: $deepSleepHistory");
+  } catch (e) {
+    print("❌ Error loading sleep data: $e");
+  }
+}
+
+  Future<void> updateSleepTimestoServer(
+    TimeOfDay bedTime,
+    TimeOfDay wakeTime,
+  ) async {
+    try {
+      final payload = {
+        'Day': DateTime.now().day,
+        'Month': DateTime.now().month,
+        'Year': DateTime.now().year,
+        'Time' : TimeOfDay.now().format(Get.context!),
+        'SleepingFrom': timeOfDayToString(bedTime),
+        'SleepingTo': timeOfDayToString(wakeTime),
+      };
+
+      final response = await ApiService.post(
+        sleepGoal,
+        payload,
+        withAuth: true,
+        encryptionRequired: true,
+      );
+
+      if (response is http.Response) {
+        CustomSnackbar.showError(
+          context: Get.context!,
+          title: 'Error',
+          message: 'Failed to update sleep times to server.',
+        );
+      } else {
+        print("Sleep times updated to server successfully.");
+      }
+    } catch (e) {
+      CustomSnackbar.showError(
+        context: Get.context!,
+        title: "Error",
+        message: "Failed to update sleep times to server.",
+      );
+      print("Error updating sleep times to server: $e");
+    }
+  }
 
   void loadDeepSleepData() {
     deepSleepHistory.clear();

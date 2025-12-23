@@ -35,7 +35,11 @@ class _HydrationScreenState extends State<HydrationScreen>
   @override
   void initState() {
     super.initState();
-    controller.loadWaterIntake();
+    // controller.loadWaterIntake();
+    controller.loadWaterIntakefromAPI(
+      month: DateTime.now().month,
+      year: DateTime.now().year,
+    );
 
     animationController = AnimationController(
       vsync: this,

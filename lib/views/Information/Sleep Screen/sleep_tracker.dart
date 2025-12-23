@@ -48,6 +48,11 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
       // SAFE: runs after build is finished
       sleepController.loadDeepSleepData();
     });
+
+    sleepController.loadSleepfromAPI(
+      month: DateTime.now().month,
+      year: DateTime.now().year,
+    );
   }
 
   Future<void> toggleSleepCard() async {
@@ -103,25 +108,32 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     return (minutes / maxDeepSleepMinutes).clamp(0.0, 1.0);
   }
 
-  void _toggleView() {
-    setState(() {
-      _isMonthlyView = !_isMonthlyView;
-      if (_isMonthlyView) {
-        // reset selected month maybe to now
-        _selectedMonth = DateTime.now();
-      }
-    });
-  }
+   void _toggleView() async {
+  setState(() => _isMonthlyView = !_isMonthlyView);
 
-  void _changeMonth(int delta) {
-    setState(() {
-      _selectedMonth = DateTime(
-        _selectedMonth.year,
-        _selectedMonth.month + delta,
-        1,
-      );
-    });
+  if (_isMonthlyView) {
+    await sleepController.loadSleepfromAPI(
+      month: _selectedMonth.month,
+      year: _selectedMonth.year,
+    );
   }
+}
+
+  void _changeMonth(int delta) async {
+  final newMonth = DateTime(
+    _selectedMonth.year,
+    _selectedMonth.month + delta,
+    1,
+  );
+
+  setState(() => _selectedMonth = newMonth);
+
+  // 🔥 LOAD DATA FOR SELECTED MONTH
+  await sleepController.loadSleepfromAPI(
+    month: newMonth.month,
+    year: newMonth.year,
+  );
+}
 
   @override
   Widget build(BuildContext context) {

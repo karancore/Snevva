@@ -15,7 +15,7 @@ class HydrationStatController extends GetxController {
   RxBool checkVisibility = false.obs;
   RxBool masterCheck = false.obs;
   var addWaterValue = 250.obs;
-  var waterIntake = 0.0.obs;
+  RxDouble waterIntake = 0.0.obs;
 
   RxInt waterGoal = 2000.obs;
 
@@ -27,7 +27,8 @@ class HydrationStatController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadWaterIntake();
+    // loadWaterIntake();
+    
   }
 
   // Save water intake value locally
@@ -216,23 +217,42 @@ class HydrationStatController extends GetxController {
     }
   }
 
-  Future<void> fetchWaterRecords(BuildContext context) async {
+  void calculateTodayIntakeFromList(List intakeList) {
+  final now = DateTime.now();
+
+  int todayTotal = 0;
+
+  for (var item in intakeList) {
+    if (item['Day'] == now.day &&
+        item['Month'] == now.month &&
+        item['Year'] == now.year) {
+      todayTotal += (item['Value'] as int);
+    }
+  }
+
+  waterIntake.value = todayTotal.toDouble();
+}
+
+
+
+  Future<void> loadWaterIntakefromAPI({required int month,
+  required int year,}) async {
     try {
       isLoading.value = true;
 
-      final now = DateTime.now();
-      final payload = {"Month": now.month, "Year": now.year};
+      final payload = {"Month": month,
+      "Year": year,};
 
       final response = await ApiService.post(
         waterrecords,
-        payload,
+        payload,  
         withAuth: true,
         encryptionRequired: true,
       );
 
       if (response is http.Response && response.statusCode >= 400) {
         CustomSnackbar.showError(
-          context: context,
+          context: Get.context!,
           title: 'Error',
           message: 'Failed to fetch Water records: ${response.statusCode}',
         );
@@ -263,6 +283,10 @@ class HydrationStatController extends GetxController {
         print(water.value);
       }
 
+      calculateTodayIntakeFromList(intakeList);
+
+      await saveWaterIntakeLocally();
+      
       print("Fetched ${waterHistoryList.length} Water records");
       buildWaterHistoryMap();
     } catch (e) {
