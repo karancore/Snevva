@@ -229,7 +229,7 @@ class _StepCounterState extends State<StepCounter> {
                       const SizedBox(height: 50),
                     ],
                   ),
-          
+
                   /// ✅ PROGRESS RING (smooth, no reset)
                   Obx(() {
                     final goal = stepController.stepGoal.value;
@@ -240,7 +240,7 @@ class _StepCounterState extends State<StepCounter> {
                               0.0,
                               1.0,
                             );
-          
+
                     return TweenAnimationBuilder<double>(
                       key: ValueKey(stepController.todaySteps.value),
                       tween: Tween<double>(
@@ -258,11 +258,11 @@ class _StepCounterState extends State<StepCounter> {
                           ),
                     );
                   }),
-          
+
                   Column(
                     children: [
                       const SizedBox(height: 90),
-          
+
                       /// ✅ STEP COUNTER (incremental animation)
                       Obx(() {
                         return TweenAnimationBuilder<int>(
@@ -282,14 +282,15 @@ class _StepCounterState extends State<StepCounter> {
                               ),
                         );
                       }),
-          
+
                       const Text('Steps', style: TextStyle(fontSize: 16)),
-          
+
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Obx(
-                            () => Text('Goal: ${stepController.stepGoal.value}'),
+                            () =>
+                                Text('Goal: ${stepController.stepGoal.value}'),
                           ),
                           const SizedBox(width: 8),
                           GestureDetector(
@@ -314,13 +315,13 @@ class _StepCounterState extends State<StepCounter> {
                   ),
                 ],
               ),
-          
+
               const SizedBox(height: 30),
-          
+
               // ===== STATS =====
               Obx(() {
                 final steps = stepController.todaySteps.value;
-          
+
                 return Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -330,9 +331,9 @@ class _StepCounterState extends State<StepCounter> {
                   ],
                 );
               }),
-          
+
               const SizedBox(height: 25),
-          
+
               // ===== GRAPH HEADER =====
               Column(
                 children: [
@@ -377,9 +378,9 @@ class _StepCounterState extends State<StepCounter> {
                   ),
                 ],
               ),
-          
+
               const SizedBox(height: 10),
-          
+
               // ===== GRAPH =====
               SizedBox(
                 height: height * 0.34,

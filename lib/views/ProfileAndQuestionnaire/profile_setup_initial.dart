@@ -18,13 +18,14 @@ class ProfileSetupInitial extends StatefulWidget {
   State<ProfileSetupInitial> createState() => _ProfileSetupInitialState();
 }
 
-final ProfileSetupController initialProfileController =
-    Get.find<ProfileSetupController>();
-
 class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
+  late ProfileSetupController initialProfileController;
+
   @override
   void initState() {
     super.initState();
+
+    initialProfileController = Get.put(ProfileSetupController());
 
     final localStorageManager = Get.put(LocalStorageManager());
 
@@ -215,82 +216,85 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                             color: Colors.transparent,
                             borderRadius: BorderRadius.circular(4),
                             child: Obx(
-                              () => Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  TextFormField(
-                                    controller:
-                                        initialProfileController
-                                            .userNameController,
-                                    style: const TextStyle(color: white),
-                                    decoration: InputDecoration(
-                                      filled: true,
-                                      fillColor: Colors.transparent,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 12,
-                                          ),
-                                      hintText:
-                                          AppLocalizations.of(
-                                            context,
-                                          )!.enterYourName,
-                                      hintStyle: const TextStyle(color: white),
+                              () => TextFormField(
+                                controller:
+                                    initialProfileController.userNameController,
+                                style: const TextStyle(color: white),
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: Colors.transparent,
+                                  contentPadding:
+                                  const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 12,
+                                  ),
+                                  hintText:
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.enterYourName,
+                                  hintStyle: const TextStyle(color: white),
 
-                                      // 🔴 ERROR HANDLING
-                                      errorText:
-                                          initialProfileController
+
+                                  errorText:
+                                      initialProfileController
+                                                  .hasAttemptedSubmit
+                                                  .value &&
+                                              initialProfileController
                                                   .nameError
                                                   .value
-                                                  .isEmpty
-                                              ? null
-                                              : initialProfileController
-                                                  .nameError
-                                                  .value,
-                                      errorStyle: const TextStyle(
-                                        color: Colors.redAccent,
-                                        fontSize: 12,
-                                      ),
+                                                  .isNotEmpty
+                                          ? initialProfileController
+                                              .nameError
+                                              .value
+                                          : null,
 
-                                      // 🧱 BORDERS
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(4),
-                                        borderSide: const BorderSide(
-                                          width: 1,
-                                          color: white,
-                                        ),
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(4),
-                                        borderSide: BorderSide(
-                                          width: 1,
-                                          color:
-                                              initialProfileController
-                                                      .nameError
-                                                      .value
-                                                      .isEmpty
-                                                  ? Colors.white70
-                                                  : Colors
-                                                      .redAccent, // 🔴 invalid
-                                        ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(4),
-                                        borderSide: BorderSide(
-                                          width: 1,
-                                          color:
-                                              initialProfileController
-                                                      .nameError
-                                                      .value
-                                                      .isEmpty
-                                                  ? white
-                                                  : Colors
-                                                      .redAccent, // 🔴 invalid
-                                        ),
-                                      ),
+                                  errorStyle: const TextStyle(
+                                    color: Colors.redAccent,
+                                    fontSize: 12,
+                                  ),
+
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                    borderSide: const BorderSide(
+                                      width: 1,
+                                      color: white,
                                     ),
                                   ),
-                                ],
+
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                    borderSide: BorderSide(
+                                      width: 1,
+                                      color:
+                                          initialProfileController
+                                                      .hasAttemptedSubmit
+                                                      .value &&
+                                                  initialProfileController
+                                                      .nameError
+                                                      .value
+                                                      .isNotEmpty
+                                              ? Colors.redAccent
+                                              : Colors.white70,
+                                    ),
+                                  ),
+
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                    borderSide: BorderSide(
+                                      width: 1,
+                                      color:
+                                          initialProfileController
+                                                      .hasAttemptedSubmit
+                                                      .value &&
+                                                  initialProfileController
+                                                      .nameError
+                                                      .value
+                                                      .isNotEmpty
+                                              ? Colors.redAccent
+                                              : white,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ),

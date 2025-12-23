@@ -88,6 +88,7 @@ dependencies:
 
   alarm: ^5.1.5
   get_storage: ^2.1.1
+  sms_autofill: ^2.4.1
   googleapis_auth: ^2.0.0
   flutter_dotenv: ^6.0.0
   firebase_messaging: ^15.0.0

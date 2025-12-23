@@ -55,14 +55,14 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                 width: width,
                 height: height,
                 valueText: Obx(
-                      () => RichText(
+                  () => RichText(
                     text: TextSpan(
                       text: '${waterController.waterIntake.value} ml',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 10,
                         color:
-                        Theme.of(context).textTheme.bodyMedium?.color ??
+                            Theme.of(context).textTheme.bodyMedium?.color ??
                             Colors.black,
                       ),
                     ),
@@ -109,7 +109,9 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                   final isFirstTime = prefs.getBool('isFirstTime') ?? true;
 
                   if (isFirstTime) {
-                    final agreed = await showStatementsOfUseBottomSheet(context);
+                    final agreed = await showStatementsOfUseBottomSheet(
+                      context,
+                    );
 
                     if (agreed == true) {
                       await prefs.setBool('isFirstTime', false);
@@ -131,7 +133,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                             fontSize: 10,
                             color:
-                            Theme.of(context).textTheme.bodyMedium?.color ??
+                                Theme.of(context).textTheme.bodyMedium?.color ??
                                 Colors.black,
                           ),
                         ),
@@ -141,7 +143,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                             fontSize: 8,
                             fontWeight: FontWeight.bold,
                             color:
-                            Theme.of(context).textTheme.bodyMedium?.color ??
+                                Theme.of(context).textTheme.bodyMedium?.color ??
                                 Colors.black,
                           ),
                         ),
@@ -151,7 +153,11 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                 }),
                 valuePraisingText: 'Normal',
                 content: Padding(
-                  padding: const EdgeInsets.only(left: 10, right: 10, bottom: 10),
+                  padding: const EdgeInsets.only(
+                    left: 10,
+                    right: 10,
+                    bottom: 10,
+                  ),
                   child: SizedBox(
                     width: double.infinity,
                     height: 150,
@@ -228,7 +234,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                         color:
-                        Theme.of(context).textTheme.bodyMedium?.color ??
+                            Theme.of(context).textTheme.bodyMedium?.color ??
                             Colors.black,
                       ),
                     ),
@@ -251,7 +257,11 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                       top: 0,
                       right: 0,
                       bottom: 10,
-                      child: Image.asset(stepImg2, height: 150, width: width / 4),
+                      child: Image.asset(
+                        stepImg2,
+                        height: 150,
+                        width: width / 4,
+                      ),
                     ),
                   ],
                 ),
@@ -273,10 +283,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                     );
 
                     if (agreed == true) {
-                      await prefs.setBool(
-                        'is_first_time_sleep',
-                        false,
-                      );
+                      await prefs.setBool('is_first_time_sleep', false);
                       Get.to(() => SleepTrackerScreen());
                     }
                   } else {
@@ -296,7 +303,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                         color:
-                        Theme.of(context).textTheme.bodyMedium?.color ??
+                            Theme.of(context).textTheme.bodyMedium?.color ??
                             Colors.black,
                       ),
                     ),

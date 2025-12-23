@@ -79,7 +79,7 @@ class CustomSnackbar {
     required String title,
     required String message,
   }) {
-    if(!Env.enableSnackbar) return;
+    if (!Env.enableSnackbar) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
@@ -118,7 +118,7 @@ class CustomSnackbar {
     required String title,
     required String message,
   }) {
-    if(!Env.enableSnackbar) return;
+    if (!Env.enableSnackbar) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,

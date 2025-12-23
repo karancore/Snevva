@@ -1,3 +1,4 @@
+import '../../Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
 import '../../Controllers/local_storage_manager.dart';
 import '../../consts/consts.dart';
 import '../../views/ProfileAndQuestionnaire/profile_setup_initial.dart';
@@ -7,6 +8,8 @@ class GenderRadioButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final initialProfileController = Get.put(ProfileSetupController());
+
     return RadioTheme(
       data: RadioThemeData(
         fillColor: MaterialStateProperty.resolveWith<Color>((states) {

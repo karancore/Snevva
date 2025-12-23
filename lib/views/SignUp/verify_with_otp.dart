@@ -1,3 +1,4 @@
+import 'package:sms_autofill/sms_autofill.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
 import 'package:snevva/common/custom_snackbar.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:pinput/pinput.dart';
 import 'package:snevva/views/SignUp/update_old_password.dart';
 import '../../Controllers/signupAndSignIn/otp_verification_controller.dart';
+import '../../common/loader.dart';
 import '../../consts/consts.dart';
 
 class VerifyWithOtpScreen extends StatefulWidget {
@@ -26,63 +28,19 @@ class VerifyWithOtpScreen extends StatefulWidget {
   State<VerifyWithOtpScreen> createState() => _VerifyWithOtpScreenState();
 }
 
-class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
+class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen>
+    with CodeAutoFill {
   final pinController = TextEditingController();
   late OTPVerificationController otpVerificationController;
   late bool otpVerificationStatus;
+  bool _isLoading = false;
   final localStorageManager = Get.put(LocalStorageManager());
-
-  void onButtonClick() {
-    final pin = pinController.text.trim();
-
-    if (pin.isEmpty) {
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'OTP field cannot be empty.',
-      );
-      return;
-    }
-    if (otpVerificationStatus == true &&
-        widget.isForgotPasswordScreen == false) {
-      // Store email in userMap
-      localStorageManager.userMap['Email'] = widget.emailOrPasswordText;
-      localStorageManager.userMap['PhoneNumber'] = widget.emailOrPasswordText;
-
-      print("dfdfdfdfdfdfdfdfdfdfdfdfdfdfd${localStorageManager.userMap}");
-
-      Get.to(
-        CreateNewPassword(
-          otpVerificationStatus: otpVerificationStatus,
-          otp: widget.responseOtp,
-          emailOrPhoneText: widget.emailOrPasswordText,
-        ),
-      );
-    } else if (otpVerificationStatus == true &&
-        widget.isForgotPasswordScreen == true) {
-      // Store email in userMap
-      localStorageManager.userMap['Email'] = widget.emailOrPasswordText;
-      localStorageManager.userMap['PhoneNumber'] = widget.emailOrPasswordText;
-
-      Get.to(
-        UpdateOldPasword(
-          otpVerificationStatus: true,
-          otp: widget.responseOtp,
-          emailOrPhoneText: widget.emailOrPasswordText,
-        ),
-      );
-    } else {
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'OTP Verification Failed',
-      );
-    }
-  }
 
   @override
   void initState() {
     super.initState();
+    listenForCode();
+
     if (Get.isRegistered<OTPVerificationController>()) {
       Get.delete<OTPVerificationController>();
     }
@@ -105,18 +63,81 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
     super.dispose();
   }
 
+  void onButtonClick() {
+    setState(() {
+      _isLoading = true;
+    });
+    final pin = pinController.text.trim();
+
+    if (pin.isEmpty) {
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'OTP field cannot be empty.',
+      );
+      return;
+    }
+    if (otpVerificationStatus == true &&
+        widget.isForgotPasswordScreen == false) {
+      // Store email in userMap
+      localStorageManager.userMap['Email'] = widget.emailOrPasswordText;
+      localStorageManager.userMap['PhoneNumber'] = widget.emailOrPasswordText;
+
+      print("dfdfdfdfdfdfdfdfdfdfdfdfdfdfd${localStorageManager.userMap}");
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      Get.to(
+        CreateNewPassword(
+          otpVerificationStatus: otpVerificationStatus,
+          otp: widget.responseOtp,
+          emailOrPhoneText: widget.emailOrPasswordText,
+        ),
+      );
+    } else if (otpVerificationStatus == true &&
+        widget.isForgotPasswordScreen == true) {
+      // Store email in userMap
+      localStorageManager.userMap['Email'] = widget.emailOrPasswordText;
+      localStorageManager.userMap['PhoneNumber'] = widget.emailOrPasswordText;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      Get.to(
+        UpdateOldPasword(
+          otpVerificationStatus: true,
+          otp: widget.responseOtp,
+          emailOrPhoneText: widget.emailOrPasswordText,
+        ),
+      );
+    } else {
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'OTP Verification Failed',
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
+
+    debugPrint('Response otp is ${widget.responseOtp}');
     final defaultPinTheme = PinTheme(
       width: 60,
       height: 60,
       textStyle: TextStyle(
         fontSize: 24,
-        color: Colors.black,
+        color: isDarkMode ? white : black,
         fontWeight: FontWeight.w600,
       ),
       decoration: BoxDecoration(
-        color: white,
+        color: isDarkMode ? Colors.white.withValues(alpha: 0.1) : white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.transparent),
       ),
@@ -124,7 +145,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
 
     final focusedPinTheme = defaultPinTheme.copyWith(
       decoration: BoxDecoration(
-        color: white,
+        color: isDarkMode ? Colors.white.withValues(alpha: 0.1) : white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: grey, width: 2),
       ),
@@ -132,7 +153,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
 
     final submittedPinTheme = defaultPinTheme.copyWith(
       decoration: BoxDecoration(
-        color: white,
+        color: isDarkMode ? Colors.white.withValues(alpha: 0.1) : white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: grey),
       ),
@@ -140,7 +161,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
 
     final followingPinTheme = defaultPinTheme.copyWith(
       decoration: BoxDecoration(
-        color: white,
+        color: isDarkMode ? Colors.white.withValues(alpha: 0.1) : white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.grey.shade300),
       ),
@@ -178,6 +199,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
                 controller: pinController,
                 defaultPinTheme: defaultPinTheme,
                 focusedPinTheme: focusedPinTheme,
+
                 submittedPinTheme: submittedPinTheme,
                 followingPinTheme: followingPinTheme,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -235,7 +257,10 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: Text(AppLocalizations.of(context)!.verify),
+                  child:
+                      _isLoading
+                          ? const Loader()
+                          : Text(AppLocalizations.of(context)!.verify),
                 ),
               ),
             ],
@@ -243,5 +268,10 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void codeUpdated() {
+    // TODO: implement codeUpdated
   }
 }

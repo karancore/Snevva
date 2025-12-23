@@ -138,7 +138,7 @@ class DietPlanController extends GetxController {
     return null;
   }
 
-  Future<void> getCelebrityDiet(BuildContext context , String category) async {
+  Future<void> getCelebrityDiet(BuildContext context, String category) async {
     try {
       final payload = {
         "Tags": ["General", category],

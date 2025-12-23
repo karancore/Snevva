@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:pinput/pinput.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
@@ -20,6 +21,7 @@ class EditprofileController extends GetxController {
   final localStorageManager = Get.put(LocalStorageManager());
   final signupController = Get.put(SignUpController());
   late OTPVerificationController otpVerificationController;
+  late ProfileSetupController initialProfileController;
   late bool otpVerificationStatus;
   final otp = null;
   final notify = Get.find<NotificationService>();
@@ -45,6 +47,8 @@ class EditprofileController extends GetxController {
     super.onInit();
     loadUserData();
     otpVerificationController = Get.put(OTPVerificationController());
+    initialProfileController = Get.put(ProfileSetupController());
+
   }
 
   Future<void> loadUserData() async {

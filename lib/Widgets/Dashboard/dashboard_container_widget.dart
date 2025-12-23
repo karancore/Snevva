@@ -2,6 +2,8 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../consts/colors.dart';
+
 class DashboardContainerWidget extends StatelessWidget {
   const DashboardContainerWidget({
     super.key,
@@ -35,8 +37,7 @@ class DashboardContainerWidget extends StatelessWidget {
         width: width / 2.5,
         height: width / 2.5,
         decoration: BoxDecoration(
-          color:
-              isDarkMode ? Colors.white.withValues(alpha: 0.1) : Colors.white,
+          color: isDarkMode ? Colors.white.withValues(alpha: 0.1) : white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(

@@ -66,6 +66,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     //
     // });
   }
+
   Future<void> fetchSuggestions() async {
     final result = await dietController.getAllSuggestions(context);
     debugPrint(result.toString());

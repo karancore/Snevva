@@ -40,7 +40,6 @@ class CommonStatGraphWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     String formatted = '';
     final String formattedDate = DateFormat(
       'd MMM, yyyy',
@@ -142,7 +141,7 @@ class CommonStatGraphWidget extends StatelessWidget {
                 ? SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Container(
-                    padding: const EdgeInsets.only(top : 52),
+                    padding: const EdgeInsets.only(top: 52),
                     height: height * 0.25,
                     width: labels.length * 41,
                     child: LineChart(
@@ -261,7 +260,6 @@ class CommonStatGraphWidget extends StatelessWidget {
                             tooltipPadding: EdgeInsets.all(8),
                             tooltipBorderRadius: BorderRadius.circular(24),
 
-
                             getTooltipItems: (touchedSpots) {
                               return touchedSpots.map((spot) {
                                 if (isSleepGraph) {
@@ -291,7 +289,9 @@ class CommonStatGraphWidget extends StatelessWidget {
                     ),
                   ),
                 )
-                : SizedBox(
+                : Container(
+                  padding: const EdgeInsets.only(top: 52),
+
                   height: height * 0.25, // Updated to 0.25 to match monthly
                   child: LineChart(
                     LineChartData(

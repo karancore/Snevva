@@ -148,11 +148,12 @@ class ForgotPasswordController extends GetxController {
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
-          message: response.body,
+          message: 'Phone Number Verification failed',
         );
         return false;
       }
     } catch (e) {
+      debugPrint(e.toString());
       CustomSnackbar.showError(
         context: context,
         title: 'Error',

@@ -22,6 +22,8 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final profileController = Get.put(ProfileSetupController());
   final localStorageManager = Get.put(LocalStorageManager());
+  final initialProfileController = Get.put(ProfileSetupController());
+
   final controller = Get.put(EditprofileController());
 
   @override
@@ -213,6 +215,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    const SizedBox(height: 4),
                     InkWell(
                       onTap:
                           () => controller.showEditFieldDialog(
@@ -254,9 +257,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 () => Text(
                                   localStorageManager.userMap['Name']
                                           ?.toString() ??
-                                      'Enter your Name',
+                                      'Enter your name',
                                   style: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 14,
                                     color:
                                         isDarkMode
                                             ? Colors.white60
@@ -284,6 +287,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    const SizedBox(height: 4),
 
                     // SizedBox(height: defaultSize - 20),
                     // Material(
@@ -345,7 +349,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                           ?.toString() ??
                                       'Enter your email',
                                   style: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 14,
                                     color:
                                         isDarkMode
                                             ? Colors.white60
@@ -372,6 +376,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    const SizedBox(height: 4),
                     InkWell(
                       onTap:
                           () => controller.showEditFieldDialog(
@@ -417,7 +422,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                           ?.toString() ??
                                       'Enter your phone number',
                                   style: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 14,
                                     color:
                                         isDarkMode
                                             ? Colors.white60
@@ -466,6 +471,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    const SizedBox(height: 4),
                     InkWell(
                       onTap: () {
                         controller.showDOBDialog(
@@ -484,7 +490,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       child: Material(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(4),
-
                           side: BorderSide(
                             color: isDarkMode ? Colors.white24 : Colors.black26,
                             width: 1.2, // 👈 your border width
@@ -523,7 +528,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 }(),
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.grey[700],
+                                  color:
+                                      isDarkMode
+                                          ? Colors.white60
+                                          : Colors.black54,
                                 ),
                               ),
                               Icon(
@@ -545,6 +553,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    const SizedBox(height: 4),
                     InkWell(
                       onTap:
                           () => controller.showEditFieldDialog(
@@ -620,6 +629,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    const SizedBox(height: 4),
                     InkWell(
                       onTap:
                           () => controller.showEditFieldDialog(
@@ -688,6 +698,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    const SizedBox(height: 4),
                     InkWell(
                       onTap: () {
                         controller.showGenderDialog(
@@ -749,6 +760,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    const SizedBox(height: 4),
                     InkWell(
                       onTap: () {
                         controller.showOccupationDialog(
@@ -816,6 +828,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    const SizedBox(height: 4),
 
                     InkWell(
                       onTap:
@@ -872,7 +885,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       color:
                                           isDarkMode
                                               ? Colors.white60
-                                              : Colors.black87,
+                                              : Colors.black54,
                                     ),
                                     softWrap: true,
                                   ),

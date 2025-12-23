@@ -23,6 +23,7 @@ class ProfileSetupController extends GetxController {
   var userGenderIcon = ''.obs;
   final RxString userGenderValue = ''.obs;
   var selectedOccupation = ''.obs;
+  RxBool hasAttemptedSubmit = false.obs;
 
   DateTime _selectedDate = DateTime.now();
 

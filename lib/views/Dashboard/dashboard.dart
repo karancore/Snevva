@@ -180,6 +180,7 @@ class _DashboardState extends State<Dashboard>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(height: 32),
+
                       // if (isVisible)
                       //   Obx(() {
                       //     bool anyEmpty =
@@ -260,7 +261,6 @@ class _DashboardState extends State<Dashboard>
                       //
                       // else
                       //   SizedBox.shrink(),
-
                       DashboardHeaderWidget(),
                       const SizedBox(height: 24),
                       DashboardServiceOverviewDynamicWidgets(

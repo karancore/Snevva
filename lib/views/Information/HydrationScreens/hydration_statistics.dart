@@ -174,7 +174,6 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-
                         if (_isMonthlyView) ...[
                           IconButton(
                             icon: const Icon(Icons.chevron_left),
@@ -197,7 +196,6 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                                 : "Switch to Monthly",
                           ),
                         ),
-
                       ],
                     ),
                   ),

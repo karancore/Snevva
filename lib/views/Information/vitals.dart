@@ -305,7 +305,8 @@ class _VitalsScreenState extends State<VitalsScreen> {
                               ),
                             ),
                           ),
-                          Text(' mm/Hg',
+                          Text(
+                            ' mm/Hg',
                             style: TextStyle(color: textColor, fontSize: 12),
                           ),
                         ],
@@ -344,7 +345,8 @@ class _VitalsScreenState extends State<VitalsScreen> {
                               ),
                             ),
                           ),
-                          Text(' mg/dL',
+                          Text(
+                            ' mg/dL',
                             style: TextStyle(color: textColor, fontSize: 12),
                           ),
                         ],

@@ -30,27 +30,34 @@ class UserGoalData {
   factory UserGoalData.fromJson(Map<String, dynamic> json) {
     return UserGoalData(
       patientCode: json['PatientCode'],
-      heightData: json['HeightData'] != null
-          ? HeightData.fromJson(json['HeightData'])
-          : null,
-      weightData: json['WeightData'] != null
-          ? WeightData.fromJson(json['WeightData'])
-          : null,
-      sleepGoalData: json['SleepGoalData'] != null
-          ? SleepGoalData.fromJson(json['SleepGoalData'])
-          : null,
-      stepGoalData: json['StepGoalData'] != null
-          ? StepGoalData.fromJson(json['StepGoalData'])
-          : null,
-      waterGoalData: json['WaterGoalData'] != null
-          ? WaterGoalData.fromJson(json['WaterGoalData'])
-          : null,
-      hobbiesData: json['HobbiesData'] != null
-          ? HobbiesData.fromJson(json['HobbiesData'])
-          : null,
-      usingAppData: json['UsingAppData'] != null
-          ? UsingAppData.fromJson(json['UsingAppData'])
-          : null,
+      heightData:
+          json['HeightData'] != null
+              ? HeightData.fromJson(json['HeightData'])
+              : null,
+      weightData:
+          json['WeightData'] != null
+              ? WeightData.fromJson(json['WeightData'])
+              : null,
+      sleepGoalData:
+          json['SleepGoalData'] != null
+              ? SleepGoalData.fromJson(json['SleepGoalData'])
+              : null,
+      stepGoalData:
+          json['StepGoalData'] != null
+              ? StepGoalData.fromJson(json['StepGoalData'])
+              : null,
+      waterGoalData:
+          json['WaterGoalData'] != null
+              ? WaterGoalData.fromJson(json['WaterGoalData'])
+              : null,
+      hobbiesData:
+          json['HobbiesData'] != null
+              ? HobbiesData.fromJson(json['HobbiesData'])
+              : null,
+      usingAppData:
+          json['UsingAppData'] != null
+              ? UsingAppData.fromJson(json['UsingAppData'])
+              : null,
       trackWomenData: json['TrackWomenData'],
       dietPlanData: json['DietPlanData'],
       activityLevel: json['ActivityLevel'],
@@ -75,6 +82,7 @@ class UserGoalData {
     };
   }
 }
+
 class HeightData {
   final int id;
   final int day;
@@ -142,6 +150,7 @@ class WeightData extends HeightData {
     );
   }
 }
+
 class SleepGoalData {
   final int id;
   final int day;
@@ -277,21 +286,18 @@ class WaterGoalData {
     };
   }
 }
+
 class HobbiesData {
   final List<String> hobbies;
 
   HobbiesData({required this.hobbies});
 
   factory HobbiesData.fromJson(Map<String, dynamic> json) {
-    return HobbiesData(
-      hobbies: List<String>.from(json['Hobbies']),
-    );
+    return HobbiesData(hobbies: List<String>.from(json['Hobbies']));
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      "Hobbies": hobbies,
-    };
+    return {"Hobbies": hobbies};
   }
 }
 
@@ -301,16 +307,10 @@ class UsingAppData {
   UsingAppData({required this.goals});
 
   factory UsingAppData.fromJson(Map<String, dynamic> json) {
-    return UsingAppData(
-      goals: List<String>.from(json['Goals']),
-    );
+    return UsingAppData(goals: List<String>.from(json['Goals']));
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      "Goals": goals,
-    };
+    return {"Goals": goals};
   }
 }
-
-
