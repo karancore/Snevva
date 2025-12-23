@@ -60,6 +60,23 @@ class StepCounterController extends GetxController {
     // _listenToBackgroundSteps();
   }
 
+
+  String getStepsStatus() {
+    final steps = todaySteps.value;
+    final goal = stepGoal.value;
+
+    if (steps < 0 || goal <= 0) return '--';
+
+    final progress = steps / goal;
+
+    if (progress < 0.25) return 'Very Low';
+    if (progress < 0.50) return 'Low';
+    if (progress < 0.75) return 'Good';
+    if (progress < 1.0) return 'Great';
+    return 'Amazing';
+  }
+
+
   // =======================
   // DAY RESET
   // =======================

@@ -173,7 +173,7 @@ class _ReminderState extends State<Reminder> {
             buttonName: "+ Add Reminder",
             backgroundColor: AppColors.primaryColor,
             onTap: () async {
-              final result = await Get.to(() => AddReminder());
+              final result = await Get.to(AddReminder());
               // Always reload data when returning, regardless of result
               // The controller already handles the update, but this ensures consistency
               if (result == true) {

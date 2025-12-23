@@ -2,6 +2,7 @@ import 'package:dropdown_flutter/custom_dropdown.dart';
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/Widgets/CommonWidgets/common_date_widget.dart';
+import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/models/queryParamViewModels/date_of_birth.dart';
 import 'package:snevva/models/queryParamViewModels/occupation_vm.dart';
 import 'package:snevva/models/queryParamViewModels/string_value_vm.dart';
@@ -443,9 +444,6 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                                 initialProfileController
                                                     .userNameText
                                                     .value;
-                                            print(
-                                              '✏️ Name raw value: "$nameValue"',
-                                            );
 
                                             final nameModel = StringValueVM(
                                               value: nameValue,
@@ -469,6 +467,7 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                                 initialProfileController
                                                     .userDob
                                                     .value;
+
                                             print(
                                               '📅 DOB raw string: "$dobString"',
                                             );
@@ -486,11 +485,41 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                               '📆 Parsed DOB → day=$day, month=$month, year=$year',
                                             );
 
+                                            if (day == null || month == null || year == null) {
+                                              CustomSnackbar.showError(
+                                                context: context,
+                                                title: 'Invalid Date of Birth',
+                                                message: 'Please enter a valid date of birth.',
+                                              );
+                                              return;
+                                            }
+
+                                            final today = DateTime.now();
+                                            final dob = DateTime(year, month, day);
+
+                                            int age = today.year - dob.year;
+                                            if (today.month < dob.month ||
+                                                (today.month == dob.month && today.day < dob.day)) {
+                                              age--;
+                                            }
+
+                                            print('🎂 Calculated age = $age');
+
+                                            if (age < 13) {
+                                              CustomSnackbar.showError(
+                                                context: context,
+                                                title: 'Age Restriction',
+                                                message: 'You must be at least 13 years old to create a profile.',
+                                              );
+                                              return; // ⛔ STOP profile creation
+                                            }
+
                                             final dobModel = DateOfBirthVM(
                                               dayOfBirth: day,
                                               monthOfBirth: month,
                                               yearOfBirth: year,
                                             );
+
 
                                             // ================= OCCUPATION =================
                                             final occupationValue =

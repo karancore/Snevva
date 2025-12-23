@@ -4,6 +4,7 @@ import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker.dart';
 import 'package:wheel_picker/wheel_picker.dart';
 import '../../../../consts/consts.dart';
+import '../../../common/custom_snackbar.dart';
 
 class SleepBottomSheet extends StatefulWidget {
   final double height;
@@ -291,6 +292,7 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
 
               controller.setBedtime(st);
 
+
               // --- WAKE-UP TIME ---
               int wakeHour = wakeUpHourController.selected + 1;
               int wakeMinute = wakeUpMinuteController.selected;
@@ -326,6 +328,14 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
               controller.setWakeTime(wt);
 
               debugPrint(
+                "Sleep monitoring started at sleep bottom sheet",
+              );
+              controller.startMonitoring();
+              CustomSnackbar.showSnackbar(context: context, title: "Sleep Monitoring Started", message: '');
+
+
+
+              debugPrint(
                 "📡 Sending SleepTime: $sleepTime | WakeTime: $wakeTime to server",
               );
               controller.updateSleepTimestoServer(sleepTime, wakeTime);
@@ -337,6 +347,7 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
 
               if (widget.isNavigating) {
                 debugPrint("➡️ Navigating to SleepTrackerScreen");
+                Navigator.pop(context);
                 Get.to(() => SleepTrackerScreen());
               } else {
                 debugPrint("⬅️ Going back");

@@ -8,6 +8,7 @@ import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
+import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/services/sleep_noticing_service.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_bottom_sheet.dart';
@@ -570,15 +571,8 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                   sleepController.waketime.value != null) {
                 sleepController.startMonitoring(); // START SERVICE
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      "Sleep Tracking Started",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    backgroundColor: AppColors.primaryColor,
-                  ),
-                );
+                CustomSnackbar.showSnackbar(context: context, title: "Sleep Monitoring Started", message: '');
+
                 Navigator.pop(context);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(

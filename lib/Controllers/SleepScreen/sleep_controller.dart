@@ -52,6 +52,19 @@ class SleepController extends GetxController {
     super.onClose();
   }
 
+  String getSleepStatus(Duration? duration) {
+    if (duration == null || duration.inMinutes <= 0) return '';
+
+    final hours = duration.inMinutes / 60;
+
+    if (hours < 4) return 'Very Poor';
+    if (hours < 5.5) return 'Poor';
+    if (hours < 7) return 'Okay';
+    if (hours < 8.5) return 'Good';
+    return 'Excellent';
+  }
+
+
   // ─────────────────────────────────────────────
   // HELPERS
   // ─────────────────────────────────────────────
@@ -137,10 +150,14 @@ class SleepController extends GetxController {
   }
 
   Future<void> updateSleepTimestoServer(
-    TimeOfDay bedTime,
-    TimeOfDay wakeTime,
-  ) async {
+      TimeOfDay bedTime,
+      TimeOfDay wakeTime,
+      ) async {
     try {
+      debugPrint("🟢 updateSleepTimestoServer called");
+      debugPrint("🛏️ BedTime (TimeOfDay): $bedTime");
+      debugPrint("⏰ WakeTime (TimeOfDay): $wakeTime");
+
       final payload = {
         'Day': DateTime.now().day,
         'Month': DateTime.now().month,
@@ -150,6 +167,11 @@ class SleepController extends GetxController {
         'SleepingTo': timeOfDayToString(wakeTime),
       };
 
+      debugPrint("📦 Payload being sent to server:");
+      payload.forEach((k, v) => debugPrint("   👉 $k : $v"));
+
+      debugPrint("🌍 API Endpoint: $sleepGoal");
+
       final response = await ApiService.post(
         sleepGoal,
         payload,
@@ -157,22 +179,31 @@ class SleepController extends GetxController {
         encryptionRequired: true,
       );
 
+      debugPrint("📥 Raw API Response: $response");
+
       if (response is http.Response) {
+        debugPrint("❌ Response is http.Response (failure case)");
+        debugPrint("StatusCode: ${response.statusCode}");
+        debugPrint("Body: ${response.body}");
+
         CustomSnackbar.showError(
           context: Get.context!,
           title: 'Error',
           message: 'Failed to update sleep times to server.',
         );
       } else {
-        print("Sleep times updated to server successfully.");
+        debugPrint("✅ Sleep times updated to server successfully");
       }
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint("🔥 Exception while updating sleep times");
+      debugPrint("Error: $e");
+      debugPrint("StackTrace: $stack");
+
       CustomSnackbar.showError(
         context: Get.context!,
         title: "Error",
         message: "Failed to update sleep times to server.",
       );
-      print("Error updating sleep times to server: $e");
     }
   }
 
@@ -417,6 +448,7 @@ class SleepController extends GetxController {
       correctedWake = correctedWake.add(const Duration(days: 1));
     }
 
+    //Calculating deep sleep
     final deep = correctedWake.difference(computedBedtime);
 
     deepSleepDuration.value = deep;
