@@ -15,7 +15,7 @@ class WomenHealthController extends GetxController {
   var periodDays = "5".obs;
   var periodCycleDays = "28".obs;
   var periodLastPeriodDay = "".obs;
-  RxString nextPeriodDay = "".obs;
+  RxString nextPeriodDay = "Enter data".obs;
   RxString nextFertilityDay = "".obs;
   RxString nextOvulationDay = "".obs;
   var dayLeftNextPeriod = "".obs;

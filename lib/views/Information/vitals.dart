@@ -147,12 +147,15 @@ class _VitalsScreenState extends State<VitalsScreen> {
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       bottomNavigationBar: SafeArea(
-        child: CustomOutlinedButton(
-          width: double.infinity,
-          isDarkMode: isDarkMode,
-          backgroundColor: AppColors.primaryColor,
-          buttonName: 'Save Vitals',
-          onTap: updateVitals,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: CustomOutlinedButton(
+            width: double.infinity,
+            isDarkMode: isDarkMode,
+            backgroundColor: AppColors.primaryColor,
+            buttonName: 'Save Vitals',
+            onTap: updateVitals,
+          ),
         ),
       ),
       appBar: CustomAppBar(
@@ -203,7 +206,7 @@ class _VitalsScreenState extends State<VitalsScreen> {
                             textAlign: TextAlign.center,
                             inputFormatters: [MaxValueTextInputFormatter(200)],
                             style: TextStyle(
-                              fontSize: 48,
+                              fontSize: 44,
                               color: textColor,
                               fontWeight: FontWeight.bold,
                             ),

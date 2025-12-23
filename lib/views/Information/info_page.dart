@@ -55,14 +55,10 @@ class _InfoPageState extends State<InfoPage>
 
     setState(() {
       // gender = localGender ?? 'Not Specified';
-      // gender = localGender ?? 'Not Specified';
       final signInController = Get.find<SignInController>();
       final userInfo = signInController.userProfData ?? {};
       final userData = userInfo['data'];
-      gender =
-          (userData != null && userData['Gender'] != null)
-              ? userData['Gender']
-              : '';
+      gender = (localGender != null) ? localGender : userData['Gender'];
       isLoading = false;
     });
 

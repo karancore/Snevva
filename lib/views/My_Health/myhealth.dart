@@ -63,11 +63,11 @@ class _MyHealthScreenState extends State<MyHealthScreen>
       final signInController = Get.find<SignInController>();
     final userInfo = signInController.userProfData ?? {};
     final userData = userInfo['data'];
-    gender =
-        (userData != null && userData['Gender'] != null)
-            ? userData['Gender']
-            : '';
+    gender = (localGender != null) ? localGender : userData['Gender'];
+    isLoading = false;
+    print('lkjhsaljgfhljsahnfljsdanfljasdnhfkloahnsw$gender');
     });
+
 
     _initializeVitalItems();
     _initAnimations();

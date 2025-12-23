@@ -26,24 +26,29 @@ class DashboardServicesWidget extends StatefulWidget {
 }
 
 class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
-  String? localgender;
+  String? localGender;
   bool isLoading = true;
   String? selectedGender;
-  RxString gender = ''.obs;
+  String? gender;
 
   @override
   void initState() {
     super.initState();
-    // _loadGenderFromPreferences();
+    _loadGenderFromPreferences();
   }
 
   Future<void> _loadGenderFromPreferences() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
+    final localGender = prefs.getString('user_gender');
+
     setState(() {
-      localgender = prefs.getString('user_gender');
-      isLoading = false; // Set loading to false once data is loaded
-      selectedGender = localStorageManager.userMap['Gender'];
-      gender.value = selectedGender ?? localgender ?? 'Unknown';
+      // gender = localGender ?? 'Not Specified';
+      final signInController = Get.find<SignInController>();
+      final userInfo = signInController.userProfData ?? {};
+      final userData = userInfo['data'];
+      gender = (localGender != null) ? localGender : userData['Gender'];
+      print("jjjjjjjjjj$gender");
+      isLoading = false;
     });
   }
 
@@ -60,11 +65,7 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
 
     // Safe check for userData and gender
     // final gender = selectedGender ?? localgender ?? 'Unknown';
-
-    final String gender =
-        (userData != null && userData['Gender'] != null)
-            ? userData['Gender']
-            : '';
+    // gender = (localGender != null) ? localGender : userData['Gender'];
 
     print('User Gender: $gender');
     // print(userInfo);
