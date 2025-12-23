@@ -100,8 +100,10 @@ class SleepController extends GetxController {
       final decoded = response as Map<String, dynamic>;
       final List<dynamic> sleepData = decoded['data']?['SleepData'] ?? [];
 
-      // 🔥 CLEAR OLD DATA BEFORE LOADING NEW MONTH
-      deepSleepHistory.clear();
+    // 🔥 CLEAR OLD DATA BEFORE LOADING NEW MONTH
+    deepSleepHistory.clear();
+
+    
 
       for (final item in sleepData) {
         final int day = item['Day'];
@@ -173,6 +175,47 @@ class SleepController extends GetxController {
       print("Error updating sleep times to server: $e");
     }
   }
+
+  Future<void> uploadsleepdatatoServer(
+    TimeOfDay bedTime,
+    TimeOfDay wakeTime,
+  ) async {
+    try {
+      final payload = {
+        'Day': DateTime.now().day,
+        'Month': DateTime.now().month,
+        'Year': DateTime.now().year,
+        'Time' : TimeOfDay.now().format(Get.context!),
+        'SleepingFrom': timeOfDayToString(bedTime),
+        'SleepingTo': timeOfDayToString(wakeTime),
+      };
+
+      final response = await ApiService.post(
+        sleepGoal,
+        payload,
+        withAuth: true,
+        encryptionRequired: true,
+      );
+
+      if (response is http.Response) {
+        CustomSnackbar.showError(
+          context: Get.context!,
+          title: 'Error',
+          message: 'Failed to upload sleep data to server.',
+        );
+      } else {
+        print("Upload updated to server successfully.");
+      }
+    } catch (e) {
+      CustomSnackbar.showError(
+        context: Get.context!,
+        title: "Error",
+        message: "Failed to upload data to server.",
+      );
+      print("Error upload sleep data to server: $e");
+    }
+  }
+
 
   void loadDeepSleepData() {
     deepSleepHistory.clear();

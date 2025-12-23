@@ -52,7 +52,15 @@ class _InfoPageState extends State<InfoPage>
     final localGender = prefs.getString('user_gender');
 
     setState(() {
-      gender = localGender ?? 'Not Specified';
+      // gender = localGender ?? 'Not Specified';
+      // gender = localGender ?? 'Not Specified';
+      final signInController = Get.find<SignInController>();
+      final userInfo = signInController.userProfData ?? {};
+      final userData = userInfo['data'];
+      gender =
+          (userData != null && userData['Gender'] != null)
+              ? userData['Gender']
+              : '';
       isLoading = false;
     });
 
@@ -387,7 +395,29 @@ Widget _buildMenuGrid(
               }
               // Handle Women's Health
               else if (item.title == "Women's Health") {
-                showWomenBottomSheetsModal(context, isDarkMode, width, height);
+                final prefs = await SharedPreferences.getInstance();
+                final isFirstWomen =
+                    prefs.getBool('is_first_time_women') ?? true;
+
+                if (isFirstWomen) {
+                  final agreed = await showWomenBottomSheetsModal(
+                    context,
+                    isDarkMode,
+                    width,
+                    height,
+                  );
+
+                  if (agreed == true) {
+                    await prefs.setBool(
+                      'is_first_time_women',
+                      false,
+                    ); // mark as seen
+                    Get.to(() => WomenHealthScreen());
+                  }
+                } else {
+                  // Not first time, go directly
+                  Get.to(() => WomenHealthScreen());
+                }
               }
               // Handle Calorie Counter
               else if (item.title == "Calorie Counter") {

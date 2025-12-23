@@ -34,7 +34,7 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
   @override
   void initState() {
     super.initState();
-    _loadGenderFromPreferences();
+    // _loadGenderFromPreferences();
   }
 
   Future<void> _loadGenderFromPreferences() async {
@@ -61,149 +61,153 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
     // Safe check for userData and gender
     // final gender = selectedGender ?? localgender ?? 'Unknown';
 
+    final String gender =
+        (userData != null && userData['Gender'] != null)
+            ? userData['Gender']
+            : '';
+
     print('User Gender: $gender');
     // print(userInfo);
 
-    return Obx(
-      () => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'My Health',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              // DashboardServiceWidgetItems(
-              //   widgetText: 'AI Chat',
-              //   widgetImg: aiChatIcon,
-              //   onTap: () {
-              //     Get.to(() => SnevvaAIChatScreen());
-              //   },
-              // ),
-              // DashboardServiceWidgetItems(
-              //   widgetText: 'Report Scan',
-              //   widgetImg: aiSymptomIcon,
-              //   onTap: () {
-              //     Get.to(() => ScanReportScreen());
-              //   },
-              // ),
-              DashboardServiceWidgetItems(
-                widgetText: 'Steps Count',
-                widgetImg: stepsTrackingIcon,
-                onTap: () async {
-                  final prefs = await SharedPreferences.getInstance();
-                  final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'My Health',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            // DashboardServiceWidgetItems(
+            //   widgetText: 'AI Chat',
+            //   widgetImg: aiChatIcon,
+            //   onTap: () {
+            //     Get.to(() => SnevvaAIChatScreen());
+            //   },
+            // ),
+            // DashboardServiceWidgetItems(
+            //   widgetText: 'Report Scan',
+            //   widgetImg: aiSymptomIcon,
+            //   onTap: () {
+            //     Get.to(() => ScanReportScreen());
+            //   },
+            // ),
+            DashboardServiceWidgetItems(
+              widgetText: 'Steps Count',
+              widgetImg: stepsTrackingIcon,
+              onTap: () async {
+                final prefs = await SharedPreferences.getInstance();
+                final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
 
-                  final stepController = Get.find<StepCounterController>();
+                final stepController = Get.find<StepCounterController>();
 
-                  if (!isGoalSet) {
-                    final goal = await showStepCounterBottomSheet(
-                      context,
-                      isDarkMode,
-                    );
+                if (!isGoalSet) {
+                  final goal = await showStepCounterBottomSheet(
+                    context,
+                    isDarkMode,
+                  );
 
-                    if (goal != null) {
-                      await prefs.setBool('isStepGoalSet', true);
-                      await prefs.setInt('stepGoalValue', goal);
-
-                      if (!context.mounted) return;
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => StepCounter(customGoal: goal),
-                        ),
-                      );
-
-                      Future.microtask(() async {
-                        await stepController.updateStepGoal(goal);
-                      });
-                    }
-                  } else {
-                    final goal = prefs.getInt('stepGoalValue') ?? 10000;
+                  if (goal != null) {
+                    await prefs.setBool('isStepGoalSet', true);
+                    await prefs.setInt('stepGoalValue', goal);
 
                     if (!context.mounted) return;
-
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => StepCounter(customGoal: goal),
                       ),
                     );
-                  }
-                },
-              ),
 
-              // DashboardServiceWidgetItems(
-              //   widgetText: 'Steps Count',
-              //   widgetImg: stepsTrackingIcon,
-              //   onTap: () {
-              //     showStepCounterBottomSheet(context, isDarkMode,);
-              //   },
-              // ),
-              DashboardServiceWidgetItems(
-                widgetText: 'Hydration',
-                widgetImg: waterTrackingIcon,
-                onTap: () {
-                  Get.to(() => HydrationScreen());
-                },
-              ),
-              DashboardServiceWidgetItems(
-                widgetText: 'Diet Plan',
-                widgetImg: dietPlanIcon,
-                onTap: () {
-                  Get.to(() => DietPlanScreen());
-                },
-              ),
-              // DashboardServiceWidgetItems(
-              //   widgetText: 'Add Reminder',
-              //   widgetImg: reminderIcon,
-              //   onTap: () {
-              //     Get.to(() => Reminder());
-              //   },
-              // ),
-              DashboardServiceWidgetItems(
-                widgetText: 'Mood Tracker',
-                widgetImg: moodIcon,
-                onTap: () {
-                  Get.to(() => MoodTrackerScreen());
-                },
-              ),
-            ],
-          ),
-          // SizedBox(height: 20),
-          // Row(
-          //   mainAxisAlignment: MainAxisAlignment.spaceAround,
-          //   children: [
-          //
-          //     // DashboardServiceWidgetItems(
-          //     //   widgetText: 'Vital Tracker',
-          //     //   widgetImg: vitalIcon,
-          //     //   onTap: () {},
-          //     // ),
-          //
-          //     // DashboardServiceWidgetItems(
-          //     //   widgetText: 'Book Doctor',
-          //     //   widgetImg: bookDocIcon,
-          //     //   onTap: () {
-          //     //     Get.to(() => DoctorScreen());
-          //     //   },
-          //     // ),
-          //   ],
-          // ),
-          SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              DashboardServiceWidgetItems(
-                widgetText: 'Sleep Tracker',
-                widgetImg: sleepTrackerIcon,
-                onTap: () async {
-                  final prefs = await SharedPreferences.getInstance();
-                  final isFirstSleep =
-                      prefs.getBool('is_first_time_sleep') ?? false;
+                    Future.microtask(() async {
+                      await stepController.updateStepGoal(goal);
+                    });
+                  }
+                } else {
+                  final goal = prefs.getInt('stepGoalValue') ?? 10000;
+
+                  if (!context.mounted) return;
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => StepCounter(customGoal: goal),
+                    ),
+                  );
+                }
+              },
+            ),
+
+            // DashboardServiceWidgetItems(
+            //   widgetText: 'Steps Count',
+            //   widgetImg: stepsTrackingIcon,
+            //   onTap: () {
+            //     showStepCounterBottomSheet(context, isDarkMode,);
+            //   },
+            // ),
+            DashboardServiceWidgetItems(
+              widgetText: 'Hydration',
+              widgetImg: waterTrackingIcon,
+              onTap: () {
+                Get.to(() => HydrationScreen());
+              },
+            ),
+            DashboardServiceWidgetItems(
+              widgetText: 'Diet Plan',
+              widgetImg: dietPlanIcon,
+              onTap: () {
+                Get.to(() => DietPlanScreen());
+              },
+            ),
+            // DashboardServiceWidgetItems(
+            //   widgetText: 'Add Reminder',
+            //   widgetImg: reminderIcon,
+            //   onTap: () {
+            //     Get.to(() => Reminder());
+            //   },
+            // ),
+            DashboardServiceWidgetItems(
+              widgetText: 'Mood Tracker',
+              widgetImg: moodIcon,
+              onTap: () {
+                Get.to(() => MoodTrackerScreen());
+              },
+            ),
+          ],
+        ),
+        // SizedBox(height: 20),
+        // Row(
+        //   mainAxisAlignment: MainAxisAlignment.spaceAround,
+        //   children: [
+        //
+        //     // DashboardServiceWidgetItems(
+        //     //   widgetText: 'Vital Tracker',
+        //     //   widgetImg: vitalIcon,
+        //     //   onTap: () {},
+        //     // ),
+        //
+        //     // DashboardServiceWidgetItems(
+        //     //   widgetText: 'Book Doctor',
+        //     //   widgetImg: bookDocIcon,
+        //     //   onTap: () {
+        //     //     Get.to(() => DoctorScreen());
+        //     //   },
+        //     // ),
+        //   ],
+        // ),
+        SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            DashboardServiceWidgetItems(
+              widgetText: 'Sleep Tracker',
+              widgetImg: sleepTrackerIcon,
+              onTap: () async {
+                final prefs = await SharedPreferences.getInstance();
+                final isFirstSleep =
+                    prefs.getBool('is_first_time_sleep') ?? false;
 
                   if (isFirstSleep) {
                     final agreed = await showSleepBottomSheetModal(
@@ -213,93 +217,92 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
                       isNavigating: true,
                     );
 
+                  if (agreed == true) {
+                    await prefs.setBool(
+                      'is_first_time_sleep',
+                      false,
+                    ); // mark as seen
+                    Get.to(() => SleepTrackerScreen());
+                  }
+                } else {
+                  // Not first time, go directly
+                  Get.to(() => SleepTrackerScreen());
+                }
+              },
+            ),
+            DashboardServiceWidgetItems(
+              widgetText: 'Mental Wellness',
+              widgetImg: mentalWellIcon,
+              onTap: () {
+                Get.to(() => MentalWellnessScreen());
+              },
+            ),
+            DashboardServiceWidgetItems(
+              widgetText: 'Health Tips',
+              widgetImg: tipsIcon,
+              onTap: () {
+                Get.to(() => HealthTipsScreen());
+              },
+            ),
+            if (gender == 'Female')
+              DashboardServiceWidgetItems(
+                widgetText: 'Women Health',
+                widgetImg: womenIcon,
+                onTap: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final isFirstWomen =
+                      prefs.getBool('is_first_time_women') ?? true;
+
+                  if (isFirstWomen) {
+                    final agreed = await showWomenBottomSheetsModal(
+                      context,
+                      isDarkMode,
+                      width,
+                      height,
+                    );
+
                     if (agreed == true) {
-                      await prefs.setBool(
-                        'is_first_time_sleep',
-                        false,
-                      ); // mark as seen
-                      Get.to(() => SleepTrackerScreen());
+                      await prefs.setBool('is_first_time_women', false);
+                      Get.to(() => WomenHealthScreen());
                     }
                   } else {
-                    // Not first time, go directly
-                    Get.to(() => SleepTrackerScreen());
+                    Get.to(() => WomenHealthScreen());
                   }
                 },
               ),
+
+            if (gender != 'Female')
               DashboardServiceWidgetItems(
-                widgetText: 'Mental Wellness',
-                widgetImg: mentalWellIcon,
+                widgetText: 'BMI Calculator',
+                widgetImg: bmiIcon,
                 onTap: () {
-                  Get.to(() => MentalWellnessScreen());
+                  Get.to(() => BmiCal());
                 },
               ),
-              DashboardServiceWidgetItems(
-                widgetText: 'Health Tips',
-                widgetImg: tipsIcon,
-                onTap: () {
-                  Get.to(() => HealthTipsScreen());
-                },
-              ),
-              if (gender == 'Female')
-                DashboardServiceWidgetItems(
-                  widgetText: 'Women Health',
-                  widgetImg: womenIcon,
-                  onTap: () async {
-                    final prefs = await SharedPreferences.getInstance();
-                    final isFirstWomen =
-                        prefs.getBool('is_first_time_women') ?? true;
+          ],
+        ),
+        SizedBox(height: 30),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            // DashboardServiceWidgetItems(
+            //   widgetText: 'Calorie Counter',
+            //   widgetImg: calorieIcon,
+            //   onTap: () {},
+            // ),
+            // DashboardServiceWidgetItems(
+            //   widgetText: 'Check BMI',
+            //   widgetImg: bmiIcon,
+            //   onTap: () {
+            //     Get.to(() => BmiCal());
+            //   },
+            // ),
 
-                    if (isFirstWomen) {
-                      final agreed = await showWomenBottomSheetsModal(
-                        context,
-                        isDarkMode,
-                        width,
-                        height,
-                      );
-
-                      if (agreed == true) {
-                        await prefs.setBool('is_first_time_women', false);
-                        Get.to(() => WomenHealthScreen());
-                      }
-                    } else {
-                      Get.to(() => WomenHealthScreen());
-                    }
-                  },
-                ),
-
-              if (gender != 'Female')
-                DashboardServiceWidgetItems(
-                  widgetText: 'BMI Calculator',
-                  widgetImg: bmiIcon,
-                  onTap: () {
-                    Get.to(() => BmiCal());
-                  },
-                ),
-            ],
-          ),
-          SizedBox(height: 30),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              // DashboardServiceWidgetItems(
-              //   widgetText: 'Calorie Counter',
-              //   widgetImg: calorieIcon,
-              //   onTap: () {},
-              // ),
-              // DashboardServiceWidgetItems(
-              //   widgetText: 'Check BMI',
-              //   widgetImg: bmiIcon,
-              //   onTap: () {
-              //     Get.to(() => BmiCal());
-              //   },
-              // ),
-
-              //SizedBox(height: 80, width: 55),
-            ],
-          ),
-          //   SizedBox(height: 20),
-        ],
-      ),
+            //SizedBox(height: 80, width: 55),
+          ],
+        ),
+        //   SizedBox(height: 20),
+      ],
     );
   }
 }

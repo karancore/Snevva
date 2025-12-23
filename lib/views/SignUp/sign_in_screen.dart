@@ -3,10 +3,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
 import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
+import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
+import 'package:snevva/initial_bindings.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/height_and_weight_screen.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/questionnaire_screen.dart';
@@ -28,6 +30,7 @@ final signInController = Get.find<SignInController>();
 final stepController = Get.put(StepCounterController());
 final sleepController = Get.put(SleepController());
 final waterController = Get.put(HydrationStatController());
+final vitalsController = Get.put(VitalsController());
 
 final localStorageManager = Get.put(LocalStorageManager());
 
@@ -85,6 +88,11 @@ class _SignInScreenState extends State<SignInScreen> {
       year: DateTime.now().year,
     );
 
+    await vitalsController.loadvitalsfromAPI(
+      month: DateTime.now().month,
+      year: DateTime.now().year,
+    );
+
     final userInfo = await signInController.userInfo();
     final userData = userInfo['data'];
     print(userData);
@@ -110,7 +118,7 @@ class _SignInScreenState extends State<SignInScreen> {
         // 🚀 Final check 1 → All goals set → go home
         if (userActiveData['ActivityLevel'] != null &&
             userActiveData['HealthGoal'] != null) {
-          Get.offAll(() => HomeWrapper());
+          Get.offAll(() => HomeWrapper(),binding: InitialBindings(),);
           return; // <<< CRITICAL
         }
 
@@ -128,7 +136,7 @@ class _SignInScreenState extends State<SignInScreen> {
       }
 
       // If userActiveData invalid
-      Get.offAll(() => HomeWrapper());
+      Get.offAll(() => HomeWrapper(),binding: InitialBindings(),);
       return;
     }
 

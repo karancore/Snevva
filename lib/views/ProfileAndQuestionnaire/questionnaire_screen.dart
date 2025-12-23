@@ -5,6 +5,7 @@ import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/question_screen_controller.dart';
 import 'package:snevva/Widgets/home_wrapper.dart';
 import 'package:snevva/common/custom_snackbar.dart';
+import 'package:snevva/initial_bindings.dart';
 import '../../Widgets/ProfileSetupAndQuestionnaire/answer_selection_widget.dart';
 import '../../Widgets/ProfileSetupAndQuestionnaire/custom_dialog.dart';
 import '../../consts/consts.dart';
@@ -285,7 +286,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                         curve: Curves.ease,
                       );
 
-                      Get.offAll(HomeWrapper());
+                      Get.offAll(HomeWrapper(),binding: InitialBindings(),);
                     } else {
                       await questionScreenController.saveAnswer(
                         _currentIndex,

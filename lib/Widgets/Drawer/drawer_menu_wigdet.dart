@@ -1,13 +1,26 @@
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/AuthBinding.dart';
+import 'package:snevva/Controllers/DietPlan/diet_plan_controller.dart';
+import 'package:snevva/Controllers/HealthTips/healthtips_controller.dart';
+import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
+import 'package:snevva/Controllers/MentalWellness/mentalwellnesscontroller.dart';
+import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
+import 'package:snevva/Controllers/MoodTracker/mood_questions_controller.dart';
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
+import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
+import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
+import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
+import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
+import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
 import 'package:snevva/Widgets/home_wrapper.dart';
-import 'package:snevva/views/EmergencyContact/emergency_contact.dart';
+import 'package:snevva/initial_bindings.dart';
+import 'package:snevva/models/steps_model.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
-import 'package:snevva/views/ProfileAndQuestionnaire/profile_screen.dart';
-import 'package:snevva/views/ReportScan/scan_report_screen.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import '../../consts/consts.dart';
@@ -22,6 +35,35 @@ class DrawerMenuWidget extends StatelessWidget {
 
   final double height;
   final double width;
+
+  Future<void> performLogout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    await Hive.box<StepEntry>('step_history').clear();
+
+    localStorageManager.userMap.value = {};
+    localStorageManager.userMap.refresh();
+
+    localStorageManager.userGoalDataMap.value = {};
+    localStorageManager.userGoalDataMap.refresh();
+
+    // ❌ REMOVE THIS
+    // Get.deleteAll(force: true);
+
+    // ✅ Delete only app controllers
+    Get.delete<DietPlanController>();
+    Get.delete<HealthTipsController>();
+    Get.delete<HydrationStatController>();
+    Get.delete<MentalWellnessController>();
+    Get.delete<MoodController>();
+    Get.delete<MoodQuestionController>();
+    Get.delete<SleepController>();
+    Get.delete<StepCounterController>();
+    Get.delete<VitalsController>();
+
+    Get.offAll(() => SignInScreen(), binding: AuthBinding());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +127,13 @@ class DrawerMenuWidget extends StatelessWidget {
                           menuIcon: homeIcon,
                           itemName: 'Home',
                           onWidgetTap:
-                              () => {Get.back(), Get.to(() => HomeWrapper())},
+                              () => {
+                                Get.back(),
+                                Get.to(
+                                  () => HomeWrapper(),
+                                  binding: InitialBindings(),
+                                ),
+                              },
                         ),
 
                         DrawerMenuItem(
@@ -160,21 +208,7 @@ class DrawerMenuWidget extends StatelessWidget {
                     ),
                     child: OutlinedButton(
                       onPressed: () async {
-                        final prefs = await SharedPreferences.getInstance();
-                        await prefs.setBool('is_first_time_sleep', true);
-                        await prefs.setBool('isStepGoalSet', true);
-
-                        await prefs.clear();
-
-                        localStorageManager.userMap.value = {};
-                        localStorageManager.userMap.refresh();
-
-                        localStorageManager.userGoalDataMap.value = {};
-                        localStorageManager.userGoalDataMap.refresh();
-
-                        // Get.reset();
-                        // Clear all navigation history and go to SignInScreen
-                        Get.offAll(() => SignInScreen());
+                        await performLogout();
                       },
                       style: OutlinedButton.styleFrom(
                         backgroundColor: Color(0xFFF0E5FF),

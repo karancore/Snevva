@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -50,32 +52,64 @@ class VitalsController extends GetxController {
     );
   }
 
-  Future<void> loadvitalsfromAPI(DateTime month, DateTime year) async {
-    try {
-      Map<String, dynamic> payload = {'Month': month.month, 'Year': year.year};
+  Future<void> loadvitalsfromAPI({required int month, required int year}) async {
+  try {
+    final payload = {
+      "Month": month,
+      "Year": year,
+    };
 
-      final response = await ApiService.post(
-        fetchBloodPressureHistory,
-        payload,
-        withAuth: true,
-        encryptionRequired: true,
+    final response = await ApiService.post(
+      fetchBloodPressureHistory,
+      payload,
+      withAuth: true,
+      encryptionRequired: true,
+    );
+
+    if (response is http.Response) {
+      print(
+        'Error fetching vitals data: ${response.statusCode} - ${response.body}',
       );
-
-      if (response is http.Response) {
-        print(
-          'Error fetching vitals data: ${response.statusCode} - ${response.body}',
-        );
-        return;
-      }
-
-      final resbody = response;
-
-      // Process the response data as needed
-      print('Fetched vitals data: $resbody');
-    } catch (e) {
-      print('Error fetching vitals data: $e');
+      return;
     }
+
+    final resbody = jsonDecode(jsonEncode(response));
+
+    print('Vitals data fetched: $resbody');
+
+    // Assuming the response structure is:
+    // { "status": true, "statusType": "success", "message": "Create Success", "data": { "BloodPressureData": [...] } }
+
+    if (resbody['status'] == true) {
+      List bloodPressureData = resbody['data']['BloodPressureData'];
+
+      int n = bloodPressureData.length;
+
+      // Get the first blood pressure data item or any specific logic you need
+      var latestRecord = bloodPressureData.isNotEmpty ? bloodPressureData[n-1] : null;
+
+      if (latestRecord != null) {
+        // Map the response to your reactive variables
+        bpm.value = latestRecord['HeartRate'] ?? 0;
+        sys.value = latestRecord['SYS'] ?? 0;
+        dia.value = latestRecord['DIA'] ?? 0;
+        bloodGlucose.value = latestRecord['BloodGlucose'] ?? 0;
+
+        // Optional: You could also save these values to local storage here
+        saveVitalsToLocalStorage();
+
+        print(
+          'Fetched and updated BPM: ${bpm.value}, SYS: ${sys.value}, DIA: ${dia.value}, BloodGlucose: ${bloodGlucose.value}',
+        );
+      }
+    } else {
+      print('Error: ${resbody['message']}');
+    }
+  } catch (e) {
+    print('Error fetching vitals data: $e');
   }
+}
+
 
   // Function to update vitals and save to local storage
   Future<bool> submitVitals(

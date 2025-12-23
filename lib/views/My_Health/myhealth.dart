@@ -5,6 +5,7 @@ import 'package:snevva/Controllers/BMI/bmicontroller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
+import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/views/Information/BMI/bmi_result.dart';
 import 'package:snevva/views/Information/HydrationScreens/hydration_screen.dart';
@@ -35,6 +36,9 @@ class _MyHealthScreenState extends State<MyHealthScreen>
   final vitalcontroller = Get.find<VitalsController>();
   final bmiController = Get.put(Bmicontroller());
   final womenController = Get.put(WomenHealthController());
+  final localStorageManager = Get.put(LocalStorageManager());
+
+  final HydrationStatController c = Get.find();
 
   late AnimationController _listAnimationController;
   late final List<TrackerHealthCard> vitalItems;
@@ -47,6 +51,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
     _loadMoodFromPrefs();
     bmiController.loadUserBMI();
     _loadGenderAndInit();
+
   }
 
   Future<void> _loadGenderAndInit() async {
@@ -54,7 +59,14 @@ class _MyHealthScreenState extends State<MyHealthScreen>
     final localGender = prefs.getString('user_gender');
 
     setState(() {
-      gender = localGender ?? 'Not Specified';
+      // gender = localGender ?? 'Not Specified';
+      final signInController = Get.find<SignInController>();
+    final userInfo = signInController.userProfData ?? {};
+    final userData = userInfo['data'];
+    gender =
+        (userData != null && userData['Gender'] != null)
+            ? userData['Gender']
+            : '';
     });
 
     _initializeVitalItems();
@@ -145,7 +157,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
           '/bpm',
           style: TextStyle(fontSize: 14, color: Colors.grey),
         ),
-        buttonText: 'Add heart rate',
+        buttonText: 'Add BPM',
         onPressed: () => Get.to(() => VitalScreen()),
       ),
       TrackerHealthCard(
@@ -195,7 +207,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
           ),
         ),
-        buttonText: 'Add data',
+        buttonText: 'Add Data',
         onPressed: () => Get.to(WomenHealthScreen()),
       ),
     ];
@@ -203,7 +215,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
     // Filter items based on gender
     filteredVitalItems =
         vitalItems.where((item) {
-          if (item.buttonText == "Add data" &&
+          if (item.buttonText == "Add Data" &&
               item.cardType == "women" &&
               gender != 'Female')
             return false;
@@ -263,10 +275,10 @@ class _MyHealthScreenState extends State<MyHealthScreen>
           filteredVitalItems
               .where(
                 (item) => [
-                  "Add heart rate",
+                  "Add BPM",
                   "BMI Result",
                   "Add Vitals",
-                  "Add data",
+                  "Add Data",
                 ].contains(item.buttonText),
               )
               .toList(),

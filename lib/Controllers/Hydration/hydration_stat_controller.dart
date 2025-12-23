@@ -27,7 +27,8 @@ class HydrationStatController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // loadWaterIntake();
+    loadWaterIntake();
+    
   }
 
   // Save water intake value locally
@@ -229,8 +230,10 @@ class HydrationStatController extends GetxController {
       }
     }
 
-    waterIntake.value = todayTotal.toDouble();
-  }
+  waterIntake.value = todayTotal.toDouble();
+
+  print("Calculated today's water intake: ${waterIntake.value} ml");
+}
 
   Future<void> loadWaterIntakefromAPI({
     required int month,
@@ -304,7 +307,7 @@ class HydrationStatController extends GetxController {
         ifAbsent: () => item.value ?? 0,
       );
     }
-    syncTodayIntakeFromMap();
+    // syncTodayIntakeFromMap();
     updateWaterSpots();
   }
 

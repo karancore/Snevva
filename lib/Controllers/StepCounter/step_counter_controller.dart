@@ -34,6 +34,9 @@ class StepCounterController extends GetxController {
   late Box<StepEntry> _stepBox;
   late SharedPreferences _prefs;
 
+  static const Duration _syncInterval = Duration(hours: 4);
+  static const String _lastSyncKey = "last_step_sync_time";
+
   // =======================
   // INIT
   // =======================
@@ -41,6 +44,7 @@ class StepCounterController extends GetxController {
   void onInit() {
     super.onInit();
     _init();
+    // _listenToBackgroundSteps();
   }
 
   Future<void> _init() async {
@@ -71,13 +75,15 @@ class StepCounterController extends GetxController {
 
       _prefs.setString("last_step_date", todayKey);
       _saveToHive(0);
+
+      _prefs.remove(_lastSyncKey); // optional
     }
   }
 
   // =======================
   // LISTEN TO BACKGROUND SERVICE
   // =======================
-  // void _listenToBackgroundSteps() {
+  // void _listenToBackgroundSteps() async{
   //   _service.on("steps_updated").listen((event) {
   //     if (event == null) return;
 
@@ -94,7 +100,7 @@ class StepCounterController extends GetxController {
   //     todaySteps.value = newSteps;
 
   //     // Trigger API sync if needed
-  //     _maybeSyncSteps();
+  //     await _maybeSyncSteps();
 
   //     print("🔄 Controller received: $newSteps steps");
   //   });
@@ -105,7 +111,7 @@ class StepCounterController extends GetxController {
   // =======================
 
   /// Manual update (use only if you have direct step data, not from service)
-  void updateSteps(int newSteps) {
+  void updateSteps(int newSteps) async{
     if (newSteps <= todaySteps.value) return;
 
     lastSteps = todaySteps.value;
@@ -114,7 +120,7 @@ class StepCounterController extends GetxController {
     todaySteps.value = newSteps;
 
     _saveToHive(todaySteps.value);
-    _maybeSyncSteps();
+    await _maybeSyncSteps();
   }
 
   double get _currentPercent =>
@@ -127,7 +133,7 @@ class StepCounterController extends GetxController {
     final today = DateTime.now();
     final key = _dayKey(today);
 
-    todaySteps.value = steps; // Ensure reactive variable is up to date
+    // todaySteps.value = steps; // Ensure reactive variable is up to date
     // If not updating directly via binding
 
     _stepBox.put(key, StepEntry(date: _startOfDay(today), steps: steps));
@@ -151,6 +157,22 @@ class StepCounterController extends GetxController {
     // Refresh graph with loaded data
     updateStepSpots();
   }
+
+  void calculateTodayStepsFromList(List stepsList) {
+  final now = DateTime.now();
+
+  int todayTotal = 0;
+
+  for (var item in stepsList) {
+    if (item['Day'] == now.day &&
+        item['Month'] == now.month &&
+        item['Year'] == now.year) {
+      todayTotal += (item['Count'] as int);
+    }
+  }
+
+  todaySteps.value = todayTotal;
+}
 
   Future<void> loadStepsfromAPI({required int month, required int year}) async {
     try {
@@ -187,6 +209,8 @@ class StepCounterController extends GetxController {
 
         stepsHistoryList.add(StepEntry(date: date, steps: item['Count'] ?? 0));
       }
+
+      calculateTodayStepsFromList(stepData);
 
       // ✅ Step goal
       stepGoal.value =
@@ -276,9 +300,23 @@ class StepCounterController extends GetxController {
   }
 
   /// 🔁 Sync every 500 steps (LIVE)
-  void _maybeSyncSteps() {
-    if (todaySteps.value % 500 == 0 && todaySteps.value > 0) {
-      saveStepRecordToServer();
+  Future<void> _maybeSyncSteps() async {
+    if (todaySteps.value <= 0) return;
+
+    final now = DateTime.now();
+
+    final lastSyncMillis = _prefs.getInt(_lastSyncKey);
+    final lastSyncTime =
+        lastSyncMillis != null
+            ? DateTime.fromMillisecondsSinceEpoch(lastSyncMillis)
+            : null;
+
+    // ⏳ First ever sync OR 4 hours passed
+    if (lastSyncTime == null || now.difference(lastSyncTime) >= _syncInterval) {
+      await saveStepRecordToServer();
+
+      // 🔐 Save sync time
+      await _prefs.setInt(_lastSyncKey, now.millisecondsSinceEpoch);
     }
   }
 

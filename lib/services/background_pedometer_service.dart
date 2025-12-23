@@ -98,38 +98,38 @@ Future<bool> backgroundEntry(ServiceInstance service) async {
   }
 }
 
-/// Initialize the background service
-Future<void> initBackgroundService() async {
-  final service = FlutterBackgroundService();
+// /// Initialize the background service
+// Future<void> initBackgroundService() async {
+//   final service = FlutterBackgroundService();
 
-  // Check if service is already running
-  final isRunning = await service.isRunning();
-  if (isRunning) {
-    print("⚠️ Background service already running, skipping initialization");
-    return;
-  }
+//   // Check if service is already running
+//   final isRunning = await service.isRunning();
+//   if (isRunning) {
+//     print("⚠️ Background service already running, skipping initialization");
+//     return;
+//   }
 
-  await service.configure(
-    androidConfiguration: AndroidConfiguration(
-      onStart: backgroundEntry,
-      isForegroundMode: true,
-      autoStart: true,
-      autoStartOnBoot: true,
-      notificationChannelId: "flutter_background_service",
-      initialNotificationTitle: "Step Tracking",
-      initialNotificationContent: "Tracking steps in background...",
-    ),
-    iosConfiguration: IosConfiguration(
-      autoStart: true,
-      onForeground: backgroundEntry,
-      onBackground: backgroundEntry,
-    ),
-  );
+//   await service.configure(
+//     androidConfiguration: AndroidConfiguration(
+//       onStart: backgroundEntry,
+//       isForegroundMode: true,
+//       autoStart: true,
+//       autoStartOnBoot: true,
+//       notificationChannelId: "flutter_background_service",
+//       initialNotificationTitle: "Step Tracking",
+//       initialNotificationContent: "Tracking steps in background...",
+//     ),
+//     iosConfiguration: IosConfiguration(
+//       autoStart: true,
+//       onForeground: backgroundEntry,
+//       onBackground: backgroundEntry,
+//     ),
+//   );
 
-  try {
-    await service.startService();
-    print("✅ Background service started successfully");
-  } catch (e) {
-    print("❌ Failed to start background service: $e");
-  }
-}
+//   try {
+//     await service.startService();
+//     print("✅ Background service started successfully");
+//   } catch (e) {
+//     print("❌ Failed to start background service: $e");
+//   }
+// }
