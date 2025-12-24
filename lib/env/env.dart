@@ -4,8 +4,8 @@ class Env {
 }
 
 // baseUrl
-//const String baseUrl = "https://localhost:7238";
-const String baseUrl = "https://abdmstg.coretegra.com";
+const String baseUrl = "https://localhost:7238";
+// const String baseUrl = "https://abdmstg.coretegra.com";
 
 // send otp api
 const String senOtpEmailEndpoint =
@@ -91,3 +91,4 @@ const String fetchStepsHistory = '/api/fetchinfo/stepsData';
 const String fetchSleepHistory = '/api/fetchinfo/sleepData';
 const String waterrecords = '/api/fetchinfo/waterintakeData';
 const String fetchBloodPressureHistory = '/api/fetchinfo/bloodpressureData';
+const String fetchWomenhealthHistory = '/api/fetchinfo/womenhealthdata';
