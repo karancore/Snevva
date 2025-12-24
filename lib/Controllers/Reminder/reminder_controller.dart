@@ -360,6 +360,14 @@ class ReminderController extends GetxController {
           alarm: alarmSettings,
         ),
       );
+
+      final payload = buildReminderPayload(
+        category: "Medicine",
+        id: alarmSettings.id,
+      );
+
+      await addRemindertoAPI(payload, context);
+
       titleController.clear();
       notesController.clear();
       medicineController.clear();
@@ -735,6 +743,14 @@ class ReminderController extends GetxController {
     // 2. Update the List in Hive
     medicineList.value = await loadMedicineReminderList("medicine_list");
 
+    await updateReminder(
+  buildReminderPayload(
+    category: selectedCategory.value,
+    id: editingId.value,
+  ),
+  context,
+);
+
     // Create updated model
     final newModel = MedicineReminderModel(
       title: titleController.text.trim(),
@@ -1030,7 +1046,7 @@ class ReminderController extends GetxController {
   void addMedicine() {
     if (medicineController.text.isNotEmpty) {
       medicineNames.add(medicineController.text);
-      //medicineController.clear();
+      medicineController.clear();
     }
   }
 
@@ -1362,7 +1378,37 @@ class ReminderController extends GetxController {
     }
   }
 
-  Future<void> addReminder(
+  Map<String, dynamic> buildReminderPayload({
+    required String category,
+    required int id,
+  }) {
+    final DateTime start = startDate.value ?? DateTime.now();
+
+    return {
+      "Id": id,
+      "Title": titleController.text.trim(),
+      "Description": notesController.text.trim(),
+      "Category": category,
+
+      "MedicineName":
+          category == "Medicine" ? List<String>.from(medicineNames) : [],
+
+      "StartDay": start.day,
+      "StartMonth": start.month,
+      "StartYear": start.year,
+
+      "RemindTime": List<String>.from(remindTimes),
+
+      "RemindFrequencyHour": int.tryParse(everyHourController.text) ?? 0,
+
+      "RemindFrequencyCount": int.tryParse(timesPerDayController.text) ?? 0,
+
+      "EnablePushNotification": enableNotifications.value,
+      "IsActive": true,
+    };
+  }
+
+  Future<void> addRemindertoAPI(
     Map<String, dynamic> reminderData,
     BuildContext context,
   ) async {

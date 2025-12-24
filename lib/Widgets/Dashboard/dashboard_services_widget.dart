@@ -246,31 +246,32 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
               },
             ),
             if (gender == 'Female')
-              DashboardServiceWidgetItems(
-                widgetText: 'Women Health',
-                widgetImg: womenIcon,
-                onTap: () async {
-                  final prefs = await SharedPreferences.getInstance();
-                  final isFirstWomen =
-                      prefs.getBool('is_first_time_women') ?? true;
+  DashboardServiceWidgetItems(
+    widgetText: 'Women Health',
+    widgetImg: womenIcon,
+    onTap: () async {
+      final prefs = await SharedPreferences.getInstance();
+      final isFirstWomen =
+          prefs.getBool('is_first_time_women') ?? true;
 
-                  if (isFirstWomen) {
-                    final agreed = await showWomenBottomSheetsModal(
-                      context,
-                      isDarkMode,
-                      width,
-                      height,
-                    );
+      if (isFirstWomen) {
+        final agreed = await showWomenBottomSheetsModal(
+          context,
+          isDarkMode,
+          width,
+          height,
+        );
 
-                    if (agreed == true) {
-                      await prefs.setBool('is_first_time_women', false);
-                      Get.to(() => WomenHealthScreen());
-                    }
-                  } else {
-                    Get.to(() => WomenHealthScreen());
-                  }
-                },
-              ),
+        if (agreed == true) {
+          // 🚫 DO NOT change flag here
+          Get.to(() => WomenHealthScreen());
+        }
+      } else {
+        Get.to(() => WomenHealthScreen());
+      }
+    },
+  ),
+
 
             if (gender != 'Female')
               DashboardServiceWidgetItems(

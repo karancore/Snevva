@@ -4,6 +4,7 @@ import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
 import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
+import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/common/custom_snackbar.dart';
@@ -31,6 +32,7 @@ final stepController = Get.put(StepCounterController());
 final sleepController = Get.put(SleepController());
 final waterController = Get.put(HydrationStatController());
 final vitalsController = Get.put(VitalsController());
+final womenhealthController = Get.put(WomenHealthController());
 
 final localStorageManager = Get.put(LocalStorageManager());
 
@@ -92,6 +94,8 @@ class _SignInScreenState extends State<SignInScreen> {
       month: DateTime.now().month,
       year: DateTime.now().year,
     );
+
+    await womenhealthController.loaddatafromAPI();
 
     final userInfo = await signInController.userInfo();
     final userData = userInfo['data'];
