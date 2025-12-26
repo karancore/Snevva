@@ -64,6 +64,11 @@
                 android:name="flutterEmbedding"
                 android:value="2" />
 
+            <!-- 🔥 Small icon for foreground service notification (CRITICAL for Android 12+) -->
+            <meta-data
+                android:name="flutterBackgroundServiceNotificationIcon"
+                android:resource="@mipmap/ic_launcher" />
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

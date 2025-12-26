@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,6 +23,28 @@ import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
+
+// ====================================================================
+// 0️⃣ NOTIFICATION CHANNEL SETUP (CRITICAL FOR ANDROID 12+)
+// ====================================================================
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+Future<void> createServiceNotificationChannel() async {
+  const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    'flutter_background_service',
+    'Background Service',
+    description: 'Health tracking service (steps & sleep)',
+    importance: Importance.low,
+  );
+  
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
+  
+  print("✅ Notification channel created for foreground service");
+}
 
 // ====================================================================
 // 1️⃣ APP PERMISSIONS
@@ -92,8 +115,12 @@ Future<void> initBackgroundService() async {
   );
 
   try {
-    await service.startService();
-    print("✅ Unified background service (steps + sleep) started successfully");
+    if (!await service.isRunning()) {
+      await service.startService();
+      print("✅ Unified background service (steps + sleep) started successfully");
+    } else {
+      print("⚠️ Service already running, skipping start");
+    }
   } catch (e) {
     print("❌ Failed to start background service: $e");
   }
@@ -115,11 +142,14 @@ Future<bool> initializeApp() async {
   // ✅ Register StepCounterController EARLY & PERMANENT
   Get.put(StepCounterController(), permanent: true);
 
-  // Start pedometer background service
-  await initBackgroundService();
+  // 🔥 Create notification channel BEFORE starting service (Android 8+)
+  await createServiceNotificationChannel();
 
-  // Runtime permissions
-  // await requestAllPermissions();
+  // 🔥 Request permissions BEFORE service (Android 13+)
+  await requestAllPermissions();
+
+  // Start pedometer + sleep background service
+  await initBackgroundService();
 
   // Notifications
   final notifService = Get.put(NotificationService());
