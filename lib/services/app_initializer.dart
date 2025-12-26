@@ -11,7 +11,7 @@ import 'package:timezone/timezone.dart';
 
 import 'package:snevva/models/steps_model.dart';
 import 'package:snevva/models/sleep_log.dart';
-import 'package:snevva/services/background_pedometer_service.dart';
+import 'package:snevva/services/unified_background_service.dart';
 import 'package:snevva/services/notification_service.dart';
 
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
@@ -62,22 +62,41 @@ Future<void> setupHive() async {
 }
 
 // ====================================================================
-// 3️⃣ BACKGROUND SERVICE ENTRYPOINT
+// 3️⃣ BACKGROUND SERVICE INITIALIZATION (UNIFIED: STEPS + SLEEP)
 // ====================================================================
-bool onIosBackground(ServiceInstance service) => true;
+Future<void> initBackgroundService() async {
+  final service = FlutterBackgroundService();
 
-@pragma('vm:entry-point')
-void onBackgroundStart(ServiceInstance service) async {
-  DartPluginRegistrant.ensureInitialized();
-
-  // Android foreground requirement
-  if (service is AndroidServiceInstance) {
-    service.setAsForegroundService();
+  // Check if service is already running
+  final isRunning = await service.isRunning();
+  if (isRunning) {
+    print("⚠️ Background service already running, skipping initialization");
+    return;
   }
 
-  // ❌ BNO SharedPreferences
-  // ✅ Background pedometer must write to Hive
-  // StepCounterController.incrementSteps(delta);
+  await service.configure(
+    androidConfiguration: AndroidConfiguration(
+      onStart: unifiedBackgroundEntry,
+      isForegroundMode: true,
+      autoStart: false, // 🔥 Critical: prevent double-start
+      autoStartOnBoot: false, // 🔥 Prevent auto-restart issues
+      notificationChannelId: "flutter_background_service",
+      initialNotificationTitle: "Health Tracking",
+      initialNotificationContent: "Monitoring steps & sleep...",
+    ),
+    iosConfiguration: IosConfiguration(
+      autoStart: false,
+      onForeground: unifiedBackgroundEntry,
+      onBackground: unifiedBackgroundEntry,
+    ),
+  );
+
+  try {
+    await service.startService();
+    print("✅ Unified background service (steps + sleep) started successfully");
+  } catch (e) {
+    print("❌ Failed to start background service: $e");
+  }
 }
 
 // ====================================================================
@@ -97,7 +116,7 @@ Future<bool> initializeApp() async {
   Get.put(StepCounterController(), permanent: true);
 
   // Start pedometer background service
-  // await initBackgroundService();
+  await initBackgroundService();
 
   // Runtime permissions
   // await requestAllPermissions();

@@ -22,11 +22,7 @@
 
     <!-- ⚙️ Foreground service types -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
 
 
     <!-- 🔋 Battery optimization ignore -->
@@ -95,21 +91,12 @@
             android:exported="false"
             android:name="com.dexterous.flutterlocalnotifications.FlutterLocalNotificationsReceiver" />
 
-        <!-- 🦶 Native Step Counter Background Service -->
-        <service
-            android:name="com.tekartik.sqflite.SqfliteService"
-            android:exported="false" />
-
+        <!-- 🦶 Step Tracking Background Service -->
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"
-            android:exported="true"
-            android:foregroundServiceType="location|connectedDevice|dataSync|mediaPlayback"
-            tools:replace="android:exported,android:foregroundServiceType"/>
-
-        <service
-            android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
+            android:exported="false"
             android:foregroundServiceType="dataSync"
-            android:stopWithTask="false" />
+            tools:replace="android:foregroundServiceType"/>
 
         <!-- Your custom receiver -->
 

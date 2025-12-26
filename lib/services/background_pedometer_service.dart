@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:pedometer/pedometer.dart';
@@ -5,6 +6,9 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/steps_model.dart';
+
+// Global reference to the pedometer stream subscription
+StreamSubscription<StepCount>? _pedometerSubscription;
 
 @pragma("vm:entry-point")
 Future<bool> backgroundEntry(ServiceInstance service) async {
@@ -45,8 +49,11 @@ Future<bool> backgroundEntry(ServiceInstance service) async {
       service.invoke("steps_updated", {"steps": 0});
     }
 
+    // Cancel any existing pedometer subscription before starting a new one
+    await _pedometerSubscription?.cancel();
+
     // Listen to pedometer
-    Pedometer.stepCountStream.listen(
+    _pedometerSubscription = Pedometer.stepCountStream.listen(
       (StepCount event) async {
         final now = DateTime.now();
         final todayKey = "${now.year}-${now.month}-${now.day}";
@@ -90,6 +97,13 @@ Future<bool> backgroundEntry(ServiceInstance service) async {
         print("❌ Pedometer error: $error");
       },
     );
+
+    // Listen for service stop and cancel pedometer stream
+    service.on('stopService').listen((_) {
+      print("🛑 Stopping background service...");
+      _pedometerSubscription?.cancel();
+      service.stopSelf();
+    });
 
     return true;
   } catch (e) {
