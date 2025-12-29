@@ -374,18 +374,28 @@ class StepCounterController extends GetxController {
   }
 
   List<FlSpot> getMonthlyStepsSpots(DateTime month) {
-    int totalDays = daysInMonth(month.year, month.month);
-    List<FlSpot> spots = [];
+  final days = DateTime(month.year, month.month + 1, 0).day;
+  final spots = <FlSpot>[];
 
-    for (int day = 1; day <= totalDays; day++) {
-      final key = "${month.year}-${month.month}-$day";
-      final steps = stepsHistoryByDate[key] ?? _safeGetSteps(key);
+  // Build a lookup map from API data
+  final Map<int, int> dayToSteps = {};
 
-      spots.add(FlSpot((day - 1).toDouble(), double.parse(steps.toString())));
+  for (final entry in stepsHistoryList) {
+    if (entry.date.year == month.year &&
+        entry.date.month == month.month) {
+      dayToSteps[entry.date.day] =
+          (dayToSteps[entry.date.day] ?? 0) + entry.steps;
     }
-
-    return spots;
   }
+
+  for (int day = 1; day <= days; day++) {
+    final steps = dayToSteps[day] ?? 0;
+    spots.add(FlSpot((day - 1).toDouble(), steps.toDouble()));
+  }
+
+  return spots;
+}
+
 
   Future<void> updateStepGoal(int goal) async {
     await saveGoal(goal);
@@ -524,33 +534,34 @@ class StepCounterController extends GetxController {
   }
 
   void syncTodayIntakeFromMap() {
-    // Use same key format as other functions
-    final key = _dayKey(DateTime.now());
-    todaySteps.value = (stepsHistoryByDate[key] ?? 0).toInt();
-  }
+  final now = DateTime.now();
+  final key = _dayKey(now);
+
+  todaySteps.value = stepsHistoryByDate[key] ?? todaySteps.value;
+}
+
 
   void updateStepSpots() {
-    stepSpots.clear();
-    DateTime now = DateTime.now();
-    // Monday = 1, Sunday = 7. Find Monday of current week.
-    DateTime monday = now.subtract(Duration(days: now.weekday - 1));
+  stepSpots.clear();
 
-    for (int i = 0; i < 7; i++) {
-      DateTime date = monday.add(Duration(days: i));
-      String key = _dayKey(date);
+  DateTime now = DateTime.now();
+  DateTime monday = now.subtract(Duration(days: now.weekday - 1));
 
-      // Use map value if present, otherwise fallback to Hive (local source of truth)
-      // This ensures if map is empty (app restart), we still get data for graph
-      int steps = stepsHistoryByDate[key] ?? _safeGetSteps(key);
+  for (int i = 0; i < 7; i++) {
+    DateTime date = monday.add(Duration(days: i));
+    String key = _dayKey(date);
 
-      // Update map to keep it in sync for other usages
-      stepsHistoryByDate[key] = steps;
+    // Read-only access
+    int steps = stepsHistoryByDate[key] ?? _safeGetSteps(key);
 
-      stepSpots.add(FlSpot(i.toDouble(), steps / 1000.0));
-    }
-    // Force notify observers
-    stepSpots.refresh();
+    stepSpots.add(
+      FlSpot(i.toDouble(), steps.toDouble()),
+    );
   }
+
+  stepSpots.refresh();
+}
+
 
   void scheduleStepPush() {
     Timer.periodic(Duration(hours: 4), (timer) {

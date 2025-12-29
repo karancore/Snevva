@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
+import 'package:snevva/Widgets/CommonWidgets/step_stat_graph_widget.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/Widgets/CommonWidgets/common_stat_graph_widget.dart';
 import 'package:snevva/Widgets/semi_circular_progress.dart';
@@ -213,15 +214,20 @@ class _StepCounterState extends State<StepCounter> {
   }
 
   void _changeMonth(int delta) async {
-    final newMonth = DateTime(
-      _selectedMonth.year,
-      _selectedMonth.month + delta,
-      1,
-    );
+  final newMonth = DateTime(
+    _selectedMonth.year,
+    _selectedMonth.month + delta,
+    1,
+  );
 
-    setState(() => _selectedMonth = newMonth);
+  setState(() => _selectedMonth = newMonth);
 
-  }
+  await stepController.loadStepsfromAPI(
+    month: newMonth.month,
+    year: newMonth.year,
+  );
+}
+
 
   // ===== BUILD =====
 
@@ -417,20 +423,15 @@ class _StepCounterState extends State<StepCounter> {
 
                    print("📈 Rendering graph with points: $points");
 
-                   return CommonStatGraphWidget(
-                     isDarkMode: isDarkMode,
-                     height: height,
-                     isWaterGraph: false,
-                     graphTitle: '',
-                     isSleepGraph: false,
-                     yAxisInterval: 2,
-                     yAxisMaxValue: 11,
-                     gridLineInterval: 2,
-                     measureUnit: 'K',
-                     points: points,
-                     weekLabels: labels,
-                     isMonthlyView: _isMonthlyView,
-                   );
+                   return StepStatGraphWidget(
+  isDarkMode: isDarkMode,
+  height: height,
+  points: points,
+  weekLabels: labels,
+  isMonthlyView: _isMonthlyView,
+  graphTitle: 'Steps',
+)
+;
                  }),
                ),
             ],

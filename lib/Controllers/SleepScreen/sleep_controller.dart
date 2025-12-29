@@ -209,14 +209,47 @@ class SleepController extends GetxController {
     TimeOfDay wakeTime,
   ) async {
     try {
+      // Normalize to a single sleep cycle and send the correct date parts (bed date)
+      final now = DateTime.now();
+      // Reconstruct DateTimes on the assumed bed date (y/m/d from now by default)
+      DateTime bedDt = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        bedTime.hour,
+        bedTime.minute,
+      );
+      DateTime wakeDt = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        wakeTime.hour,
+        wakeTime.minute,
+      );
+      if (wakeDt.isBefore(bedDt) || wakeDt.isAtSameMomentAs(bedDt)) {
+        wakeDt = wakeDt.add(const Duration(days: 1));
+      }
+
+      final duration = wakeDt.difference(bedDt);
+      // Filter out spurious durations
+      if (duration.inMinutes < 10) {
+        debugPrint('⛔ Skipping upload: duration too small (${duration.inMinutes}m)');
+        return;
+      }
+
+      // Use the bed date as the record date for server consistency
+      final recordDate = DateTime(bedDt.year, bedDt.month, bedDt.day);
+
       final payload = {
-        'Day': DateTime.now().day,
-        'Month': DateTime.now().month,
-        'Year': DateTime.now().year,
-        'Time': TimeOfDay.now().format(Get.context!),
-        'SleepingFrom': timeOfDayToString(bedTime),
-        'SleepingTo': timeOfDayToString(wakeTime),
+        'Day': recordDate.day,
+        'Month': recordDate.month,
+        'Year': recordDate.year,
+        'Time': TimeOfDay.fromDateTime(wakeDt).format(Get.context!), // when pushing (after wake)
+        'SleepingFrom': timeOfDayToString(TimeOfDay.fromDateTime(bedDt)),
+        'SleepingTo': timeOfDayToString(TimeOfDay.fromDateTime(wakeDt)),
       };
+
+      debugPrint("🛰️ Uploading sleep record: ${payload.toString()}");
 
       final response = await ApiService.post(
         sleepGoal,
@@ -231,8 +264,9 @@ class SleepController extends GetxController {
           title: 'Error',
           message: 'Failed to upload sleep data to server.',
         );
+        debugPrint("❌ Upload failed: ${response.statusCode} ${response.body}");
       } else {
-        print("Upload updated to server successfully.");
+        debugPrint("✅ Sleep record uploaded successfully.");
       }
     } catch (e) {
       CustomSnackbar.showError(
@@ -240,7 +274,7 @@ class SleepController extends GetxController {
         title: "Error",
         message: "Failed to upload data to server.",
       );
-      print("Error upload sleep data to server: $e");
+      debugPrint("🔥 Error upload sleep data to server: $e");
     }
   }
 
@@ -391,33 +425,36 @@ class SleepController extends GetxController {
   // ─────────────────────────────────────────────
 
   Future<void> _handleSleepWithoutPhoneUsage() async {
-    final today = DateTime.now();
-
-    if (hasSleepDataForDate(today)) {
-      print("⛔ Sleep already saved today");
+    // Compute a robust duration using tonight's configured bed/wake, normalize across midnight.
+    if (bedtime.value == null || waketime.value == null) {
+      debugPrint('⚠️ Bed/Wake not set, skipping autosave');
       return;
     }
 
+    // Build the bed/wake for the intended cycle relative to bed date
     DateTime bt = bedtime.value!;
-    DateTime wt = waketime.value!;
-
-    if (wt.isBefore(bt)) {
+    DateTime wt = DateTime(bt.year, bt.month, bt.day, waketime.value!.hour, waketime.value!.minute);
+    if (wt.isBefore(bt) || wt.isAtSameMomentAs(bt)) {
       wt = wt.add(const Duration(days: 1));
     }
 
     final deep = wt.difference(bt);
+    if (deep.inMinutes < 10) {
+      debugPrint('⛔ Skipping save: calculated duration too small (${deep.inMinutes}m)');
+      return;
+    }
 
     deepSleepDuration.value = deep;
     newBedtime.value = bt;
 
-    await saveDeepSleepData(today, deep);
+    // Save against bed date for consistent history keys
+    await saveDeepSleepData(bt, deep);
 
-    // Trigger upload (best-effort) after saving — await to reduce race
-    if (bedtime.value != null && waketime.value != null) {
-      final TimeOfDay btTo = TimeOfDay.fromDateTime(newBedtime.value ?? bedtime.value!);
-      final TimeOfDay wtTo = TimeOfDay.fromDateTime(waketime.value!);
-      await uploadsleepdatatoServer(btTo, wtTo);
-    }
+    // Push correct normalized times to server
+    await uploadsleepdatatoServer(
+      TimeOfDay.fromDateTime(bt),
+      TimeOfDay.fromDateTime(wt),
+    );
   }
 
   // ─────────────────────────────────────────────
@@ -425,13 +462,6 @@ class SleepController extends GetxController {
   // ─────────────────────────────────────────────
 
   void onPhoneUsed(DateTime phoneUsageStart, DateTime phoneUsageEnd) async {
-    final today = DateTime.now();
-
-    if (hasSleepDataForDate(today)) {
-      print("⛔ Sleep already saved today (phone)");
-      return;
-    }
-
     _didPhoneUsageOccur = true;
 
     if (bedtime.value == null || waketime.value == null) return;
@@ -446,24 +476,35 @@ class SleepController extends GetxController {
 
     newBedtime.value = computedBedtime;
 
-    DateTime correctedWake = waketime.value!;
-    if (correctedWake.isBefore(computedBedtime)) {
+    // Normalize wake to the bed date of computedBedtime
+    DateTime correctedWake = DateTime(
+      computedBedtime.year,
+      computedBedtime.month,
+      computedBedtime.day,
+      waketime.value!.hour,
+      waketime.value!.minute,
+    );
+    if (correctedWake.isBefore(computedBedtime) || correctedWake.isAtSameMomentAs(computedBedtime)) {
       correctedWake = correctedWake.add(const Duration(days: 1));
     }
 
     //Calculating deep sleep
     final deep = correctedWake.difference(computedBedtime);
+    if (deep.inMinutes < 10) {
+      debugPrint('⛔ Skipping save/upload (phone usage): duration too small (${deep.inMinutes}m)');
+      return;
+    }
 
     deepSleepDuration.value = deep;
 
-    await saveDeepSleepData(today, deep);
+    // Save against bed date of the cycle
+    await saveDeepSleepData(computedBedtime, deep);
 
-    // Trigger upload after phone-based calculation
-    if (newBedtime.value != null && waketime.value != null) {
-      final TimeOfDay btTo = TimeOfDay.fromDateTime(newBedtime.value!);
-      final TimeOfDay wtTo = TimeOfDay.fromDateTime(waketime.value!);
-      await uploadsleepdatatoServer(btTo, wtTo);
-    }
+    // Upload normalized values
+    await uploadsleepdatatoServer(
+      TimeOfDay.fromDateTime(computedBedtime),
+      TimeOfDay.fromDateTime(correctedWake),
+    );
   }
 
   // ─────────────────────────────────────────────
