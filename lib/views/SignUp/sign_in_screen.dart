@@ -29,7 +29,7 @@ final TextEditingController userEmailOrPhoneField = TextEditingController();
 final TextEditingController userPasswordField = TextEditingController();
 final signInController = Get.find<SignInController>();
 final stepController = Get.put(StepCounterController());
-final sleepController = Get.put(SleepController());
+final sleepController = Get.find<SleepController>();
 final waterController = Get.put(HydrationStatController());
 final vitalsController = Get.put(VitalsController());
 final womenhealthController = Get.put(WomenHealthController());
@@ -122,7 +122,7 @@ class _SignInScreenState extends State<SignInScreen> {
         // 🚀 Final check 1 → All goals set → go home
         if (userActiveData['ActivityLevel'] != null &&
             userActiveData['HealthGoal'] != null) {
-          Get.offAll(() => HomeWrapper(),binding: InitialBindings(),);
+          Get.offAll(() => HomeWrapper(), binding: InitialBindings());
           return; // <<< CRITICAL
         }
 
@@ -140,7 +140,7 @@ class _SignInScreenState extends State<SignInScreen> {
       }
 
       // If userActiveData invalid
-      Get.offAll(() => HomeWrapper(),binding: InitialBindings(),);
+      Get.offAll(() => HomeWrapper(), binding: InitialBindings());
       return;
     }
 

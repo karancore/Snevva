@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:snevva/Controllers/BMI/bmicontroller.dart';
+import 'package:snevva/Controllers/BMI/bmi_controller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
@@ -34,7 +34,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
   String? gender;
   bool isLoading = true;
   final vitalcontroller = Get.find<VitalsController>();
-  final bmiController = Get.put(Bmicontroller());
+  final bmiController = Get.put(BmiController());
   final womenController = Get.put(WomenHealthController());
   final localStorageManager = Get.put(LocalStorageManager());
 
@@ -51,7 +51,6 @@ class _MyHealthScreenState extends State<MyHealthScreen>
     _loadMoodFromPrefs();
     bmiController.loadUserBMI();
     _loadGenderAndInit();
-
   }
 
   Future<void> _loadGenderAndInit() async {
@@ -61,13 +60,12 @@ class _MyHealthScreenState extends State<MyHealthScreen>
     setState(() {
       // gender = localGender ?? 'Not Specified';
       final signInController = Get.find<SignInController>();
-    final userInfo = signInController.userProfData ?? {};
-    final userData = userInfo['data'];
-    gender = (localGender != null) ? localGender : userData['Gender'];
-    isLoading = false;
-    print('lkjhsaljgfhljsahnfljsdanfljasdnhfkloahnsw$gender');
+      final userInfo = signInController.userProfData ?? {};
+      final userData = userInfo['data'];
+      gender = (localGender != null) ? localGender : userData['Gender'];
+      isLoading = false;
+      print('lkjhsaljgfhljsahnfljsdanfljasdnhfkloahnsw$gender');
     });
-
 
     _initializeVitalItems();
     _initAnimations();

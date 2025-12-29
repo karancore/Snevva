@@ -1,4 +1,3 @@
-import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:share_plus/share_plus.dart';
@@ -40,8 +39,21 @@ class DrawerMenuWidget extends StatelessWidget {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
 
-    await Hive.box<StepEntry>('step_history').clear();
+    try {
+      if (!Hive.isBoxOpen('step_history')) await Hive.openBox<StepEntry>('step_history');
+      await Hive.box<StepEntry>('step_history').clear();
+    } catch (e) {
+      print('❌ Failed to clear step_history on logout: $e');
+      // attempt reopen once
+      try {
+        await Hive.openBox<StepEntry>('step_history');
+        await Hive.box<StepEntry>('step_history').clear();
+      } catch (e2) {
+        print('❌ Second attempt to clear step_history failed: $e2');
+      }
+    }
 
+    final localStorageManager = Get.find<LocalStorageManager>();
     localStorageManager.userMap.value = {};
     localStorageManager.userMap.refresh();
 

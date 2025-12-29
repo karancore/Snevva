@@ -17,7 +17,7 @@ class SleepNoticingService {
 
   void startMonitoring() {
     try {
-      _subscription = _screen.screenStateStream!.listen((event) {
+      _subscription = _screen.screenStateStream?.listen((event) {
         if (event == ScreenStateEvent.SCREEN_ON) {
           _onScreenTurnedOn();
         } else if (event == ScreenStateEvent.SCREEN_OFF) {
@@ -96,20 +96,21 @@ class SleepNoticingService {
     required DateTime phoneUsageStart,
     required Duration phoneUsageDuration,
   }) {
-    final DateTime safeLimit = bedtime.add(const Duration(seconds: 5));
+    // Use a 15-minute grace period (was incorrectly 5 seconds before)
+    final Duration gracePeriod = const Duration(minutes: 15);
+    final DateTime safeLimit = bedtime.add(gracePeriod);
 
     // CONDITION 1: Phone used within first 15 minutes -> Ignore
     if (phoneUsageStart.isBefore(safeLimit)) {
-      print('⏭️ [SleepService] Usage within 15min grace period - IGNORED');
+      print('⏭️ [SleepService] Usage within ${gracePeriod.inMinutes}min grace period - IGNORED');
       return bedtime;
     }
 
     // CONDITION 2: Phone used after safe window
     // New Bedtime = (Usage End Time - 15 mins)
     // Usage End Time = Start + Duration
-    final DateTime sleepAfterUsage =
-        phoneUsageStart.add(phoneUsageDuration).toLocal();
-    final DateTime adjustedBedtime = sleepAfterUsage.subtract(
+    final DateTime usageEnd = phoneUsageStart.add(phoneUsageDuration).toLocal();
+    final DateTime adjustedBedtime = usageEnd.subtract(
       const Duration(minutes: 15),
     );
 

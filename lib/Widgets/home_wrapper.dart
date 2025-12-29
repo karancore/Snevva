@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/instance_manager.dart';
-import 'package:snevva/Controllers/BMI/bmicontroller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
-import 'package:snevva/views/Alerts/alerts.dart';
 import 'package:snevva/views/Dashboard/dashboard.dart';
 import 'package:snevva/views/Information/info_page.dart';
-import 'package:snevva/views/My_Health/myhealth.dart';
-import 'package:snevva/views/Reminder/all_reminder.dart';
 import 'package:snevva/views/Reminder/reminder.dart';
 import 'package:snevva/widgets/navbar.dart';
-import 'package:snevva/widgets/Drawer/drawer_menu_wigdet.dart';
+
+import '../Controllers/BMI/bmi_controller.dart';
+import '../views/My_Health/myhealth.dart';
+import 'Drawer/drawer_menu_wigdet.dart';
 
 // 👈 make sure you have this
 
@@ -24,7 +23,7 @@ class _HomeWrapperState extends State<HomeWrapper> {
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final localStorageManager = Get.put(LocalStorageManager());
-  final bmiController = Get.put(Bmicontroller());
+  final bmiController = Get.put(BmiController());
 
   void onTabSelected(int index) {
     setState(() {

@@ -42,8 +42,8 @@ class Navbar extends StatelessWidget {
         decoration: BoxDecoration(
           color:
               isDarkMode
-                  ? scaffoldColorDark.withValues(alpha: 0.6)
-                  : scaffoldColorLight.withValues(alpha: 0.6),
+                  ? black
+                  : white,
           boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
         ),
         padding: const EdgeInsets.symmetric(vertical: 10),

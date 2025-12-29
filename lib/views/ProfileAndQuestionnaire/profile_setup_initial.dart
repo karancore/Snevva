@@ -485,21 +485,29 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                               '📆 Parsed DOB → day=$day, month=$month, year=$year',
                                             );
 
-                                            if (day == null || month == null || year == null) {
+                                            if (day == null ||
+                                                month == null ||
+                                                year == null) {
                                               CustomSnackbar.showError(
                                                 context: context,
                                                 title: 'Invalid Date of Birth',
-                                                message: 'Please enter a valid date of birth.',
+                                                message:
+                                                    'Please enter a valid date of birth.',
                                               );
                                               return;
                                             }
 
                                             final today = DateTime.now();
-                                            final dob = DateTime(year, month, day);
+                                            final dob = DateTime(
+                                              year,
+                                              month,
+                                              day,
+                                            );
 
                                             int age = today.year - dob.year;
                                             if (today.month < dob.month ||
-                                                (today.month == dob.month && today.day < dob.day)) {
+                                                (today.month == dob.month &&
+                                                    today.day < dob.day)) {
                                               age--;
                                             }
 
@@ -509,7 +517,8 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                               CustomSnackbar.showError(
                                                 context: context,
                                                 title: 'Age Restriction',
-                                                message: 'You must be at least 13 years old to create a profile.',
+                                                message:
+                                                    'You must be at least 13 years old to create a profile.',
                                               );
                                               return; // ⛔ STOP profile creation
                                             }
@@ -519,7 +528,6 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                               monthOfBirth: month,
                                               yearOfBirth: year,
                                             );
-
 
                                             // ================= OCCUPATION =================
                                             final occupationValue =

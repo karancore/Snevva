@@ -575,7 +575,7 @@ class EditprofileController extends GetxController {
 
                 const SizedBox(height: 15),
                 Obx(
-                  () => GestureDetector(
+                  () => InkWell(
                     onTap:
                         isResendEnabled.value
                             ? () async {
@@ -695,7 +695,7 @@ class EditprofileController extends GetxController {
 
                 const SizedBox(height: 15),
                 Obx(
-                  () => GestureDetector(
+                  () => InkWell(
                     onTap:
                         isResendEnabled.value
                             ? () async {

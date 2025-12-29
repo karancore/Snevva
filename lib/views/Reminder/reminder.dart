@@ -239,7 +239,7 @@ class _ReminderState extends State<Reminder> {
                   style: TextStyle(fontSize: 12, color: Color(0xff878787)),
                 ),
                 Spacer(),
-                GestureDetector(
+                InkWell(
                   onTap: () {
                     print("$reminder tapped");
                     Get.to(AddReminder(reminder: reminder));
@@ -252,7 +252,7 @@ class _ReminderState extends State<Reminder> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                GestureDetector(
+                InkWell(
                   onTap: () => _showDeleteConfirmation(reminder),
                   child: Padding(
                     padding: const EdgeInsets.only(right: 14.0),
@@ -285,7 +285,7 @@ class _ReminderState extends State<Reminder> {
                     ),
                   ),
                 Spacer(flex: 30),
-                GestureDetector(
+                InkWell(
                   onTap: () {
                     print("$reminder tapped");
                     Get.to(AddReminder(reminder: reminder));
@@ -298,7 +298,7 @@ class _ReminderState extends State<Reminder> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                GestureDetector(
+                InkWell(
                   onTap: () => _showDeleteConfirmation(reminder),
                   child: Padding(
                     padding: const EdgeInsets.only(right: 14.0),
@@ -332,7 +332,7 @@ class _ReminderState extends State<Reminder> {
               style: TextStyle(fontSize: 12, color: Color(0xff878787)),
             ),
             Spacer(),
-            GestureDetector(
+            InkWell(
               onTap: () {
                 print("$reminder tapped");
                 Get.to(AddReminder(reminder: reminder));
@@ -345,7 +345,7 @@ class _ReminderState extends State<Reminder> {
               ),
             ),
             const SizedBox(width: 16),
-            GestureDetector(
+            InkWell(
               onTap: () => _showDeleteConfirmation(reminder),
               child: Padding(
                 padding: const EdgeInsets.only(right: 14.0),
@@ -377,7 +377,7 @@ class _ReminderState extends State<Reminder> {
                   style: TextStyle(fontSize: 12, color: Color(0xff878787)),
                 ),
                 Spacer(),
-                GestureDetector(
+                InkWell(
                   onTap: () {
                     print("$reminder tapped");
                     Get.to(AddReminder(reminder: reminder));
@@ -390,7 +390,7 @@ class _ReminderState extends State<Reminder> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                GestureDetector(
+                InkWell(
                   onTap: () => _showDeleteConfirmation(reminder),
                   child: Padding(
                     padding: const EdgeInsets.only(right: 14.0),

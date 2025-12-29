@@ -86,6 +86,8 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
         final newSteps = currentSteps + diff;
 
         await stepBox.put(todayKey, StepEntry(date: now, steps: newSteps));
+        // Also persist a simple shared preference value so main isolate can detect updates
+        await prefs.setInt('today_steps', newSteps);
         await prefs.setInt('lastRawSteps', event.steps);
 
         service.invoke("steps_updated", {"steps": newSteps});

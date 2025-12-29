@@ -6,8 +6,6 @@ import 'Controllers/Hydration/hydration_stat_controller.dart';
 import 'Controllers/MentalWellness/mentalwellnesscontroller.dart';
 import 'Controllers/MoodTracker/mood_controller.dart';
 import 'Controllers/MoodTracker/mood_questions_controller.dart';
-import 'Controllers/SleepScreen/sleep_controller.dart';
-import 'Controllers/StepCounter/step_counter_controller.dart';
 import 'Controllers/Vitals/vitalsController.dart';
 import 'Controllers/language/language_controller.dart';
 import 'package:get/get.dart';
@@ -24,8 +22,12 @@ class InitialBindings extends Bindings {
     Get.lazyPut(() => MentalWellnessController(), fenix: true);
     Get.lazyPut(() => MoodController(), fenix: true);
     Get.lazyPut(() => MoodQuestionController(), fenix: true);
-    Get.lazyPut(() => SleepController(), fenix: true);
-    Get.lazyPut(() => StepCounterController(), fenix: true);
+    // SleepController is registered at app initialization (app_initializer)
+    // to ensure a single permanent instance is used application-wide.
+    // Get.lazyPut(() => SleepController(), fenix: true);
+    // StepCounterController is registered early in app initializer to ensure
+    // the same permanent instance is used across the app. Avoid duplicate
+    // registrations here.
     Get.lazyPut(() => VitalsController(), fenix: true);
   }
 }

@@ -39,7 +39,8 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
   bool _loaded = false;
 
-  final SleepController sleepController = Get.put(SleepController());
+  // Reuse existing SleepController instead of creating a new one.
+  final SleepController sleepController = Get.find<SleepController>();
 
   @override
   void initState() {
@@ -51,10 +52,10 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
       sleepController.loadDeepSleepData();
     });
 
-    sleepController.loadSleepfromAPI(
-      month: DateTime.now().month,
-      year: DateTime.now().year,
-    );
+    // sleepController.loadSleepfromAPI(
+    //   month: DateTime.now().month,
+    //   year: DateTime.now().year,
+    // );
   }
 
   Future<void> toggleSleepCard() async {
@@ -571,7 +572,11 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                   sleepController.waketime.value != null) {
                 sleepController.startMonitoring(); // START SERVICE
 
-                CustomSnackbar.showSnackbar(context: context, title: "Sleep Monitoring Started", message: '');
+                CustomSnackbar.showSnackbar(
+                  context: context,
+                  title: "Sleep Monitoring Started",
+                  message: '',
+                );
 
                 Navigator.pop(context);
               } else {

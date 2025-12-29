@@ -237,7 +237,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     return Obx(() {
       final isSelected = dietController.selectedCategoryIndex.value == index;
 
-      return GestureDetector(
+      return InkWell(
         onTap: () {
           dietController.changeCategory(index);
           fetchCategoryReponse(categoryText);
@@ -278,7 +278,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
       color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
       elevation: 1,
       borderRadius: BorderRadius.circular(4),
-      child: GestureDetector(
+      child: InkWell(
         onTap:
             () => Get.to(
               CelebrityDietPlan(title: heading, img: dietImg, index: index),
@@ -350,7 +350,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
       color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
       elevation: 1,
       borderRadius: BorderRadius.circular(4),
-      child: GestureDetector(
+      child: InkWell(
         onTap: () => Get.to(CelebrityDietPlan(title: heading, img: dietImg)),
         child: Container(
           width: width * 0.43,

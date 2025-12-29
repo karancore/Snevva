@@ -53,11 +53,23 @@ class _StepCounterState extends State<StepCounter> {
   @override
   void initState() {
     super.initState();
-    // _startAndAttachService();
-    stepController.loadStepsfromAPI(
-      month: DateTime.now().month,
-      year: DateTime.now().year,
-    );
+
+    // Ensure controller's Hive data is loaded so weekly graph can render immediately
+    stepController.loadTodayStepsFromHive();
+
+    // Watch stepSpots so UI updates when controller updates the weekly points
+    ever(stepController.stepSpots, (val) {
+      print("📈 stepSpots updated: ${stepController.stepSpots}");
+      if (!mounted) return;
+      setState(() {});
+    });
+
+    // Also listen to changes in todaySteps for the counter updates
+    stepController.todaySteps.listen((steps) {
+      print("👣 Reactive update: todaySteps = $steps");
+      if (!mounted) return;
+      setState(() {});
+    });
   }
 
   // Future<void> _startAndAttachService() async {
@@ -72,7 +84,7 @@ class _StepCounterState extends State<StepCounter> {
 
   //   // Load data - controller will handle the streaming
   //   stepController.loadGoal();
-  //   stepController.loadTodayStepsFromHive();
+  //   stepController.loadTodayStepsFromHive(); // Ensure steps are loaded from Hive
 
   //   _loadWeeklyData();
   // }
@@ -110,6 +122,7 @@ class _StepCounterState extends State<StepCounter> {
       final day = start.add(Duration(days: i));
       final key = _dayKey(day);
       final steps = _box.get(key)?.steps ?? 0;
+
       if (steps > maxSteps) maxSteps = steps;
       pts.add(FlSpot(i.toDouble(), steps / 1000.0));
     }
@@ -119,6 +132,8 @@ class _StepCounterState extends State<StepCounter> {
       _points = pts;
       _graphMaxY = ((maxSteps / 1000).ceil() + 2).toDouble();
     });
+
+    print("📈 Weekly data loaded: $_points");
   }
 
   Future<void> _loadMonthlyData(DateTime month) async {
@@ -206,11 +221,6 @@ class _StepCounterState extends State<StepCounter> {
 
     setState(() => _selectedMonth = newMonth);
 
-    // 🔥 LOAD DATA FOR SELECTED MONTH
-    await stepController.loadStepsfromAPI(
-      month: newMonth.month,
-      year: newMonth.year,
-    );
   }
 
   // ===== BUILD =====
@@ -276,21 +286,23 @@ class _StepCounterState extends State<StepCounter> {
 
                       /// ✅ STEP COUNTER (incremental animation)
                       Obx(() {
+                        // Use reactive lastStepsRx so this Obx rebuilds when the
+                        // starting value for the animation changes (enables smooth
+                        // animation when steps update from background/Hive).
+                        final begin = stepController.lastStepsRx.value;
+                        final end = stepController.todaySteps.value;
+
                         return TweenAnimationBuilder<int>(
-                          key: ValueKey(stepController.todaySteps.value),
-                          tween: IntTween(
-                            begin: stepController.lastSteps,
-                            end: stepController.todaySteps.value,
-                          ),
+                          key: ValueKey(end),
+                          tween: IntTween(begin: begin, end: end),
                           duration: const Duration(milliseconds: 400),
-                          builder:
-                              (_, val, __) => Text(
-                                "$val",
-                                style: const TextStyle(
-                                  fontSize: 38,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                          builder: (_, val, __) => Text(
+                            "$val",
+                            style: const TextStyle(
+                              fontSize: 38,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         );
                       }),
 
@@ -396,30 +408,31 @@ class _StepCounterState extends State<StepCounter> {
               SizedBox(
                 height: height * 0.34,
                 child: Obx(() {
-                  final labels =
-                      _isMonthlyView
-                          ? generateMonthLabels(_selectedMonth)
-                          : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-                  final points =
-                      _isMonthlyView
-                          ? stepController.getMonthlyStepsSpots(_selectedMonth)
-                          : stepController.stepSpots.toList();
-                  return CommonStatGraphWidget(
-                    isDarkMode: isDarkMode,
-                    height: height,
-                    isWaterGraph: false,
-                    graphTitle: '',
-                    isSleepGraph: false,
-                    yAxisInterval: 2,
-                    yAxisMaxValue: 11,
-                    gridLineInterval: 2,
-                    measureUnit: 'K',
-                    points: points,
-                    weekLabels: labels,
-                    isMonthlyView: _isMonthlyView,
-                  );
-                }),
-              ),
+                  final labels = _isMonthlyView
+                      ? generateMonthLabels(_selectedMonth)
+                      : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+                  final points = _isMonthlyView
+                      ? stepController.getMonthlyStepsSpots(_selectedMonth)
+                      : stepController.stepSpots.toList();
+
+                   print("📈 Rendering graph with points: $points");
+
+                   return CommonStatGraphWidget(
+                     isDarkMode: isDarkMode,
+                     height: height,
+                     isWaterGraph: false,
+                     graphTitle: '',
+                     isSleepGraph: false,
+                     yAxisInterval: 2,
+                     yAxisMaxValue: 11,
+                     gridLineInterval: 2,
+                     measureUnit: 'K',
+                     points: points,
+                     weekLabels: labels,
+                     isMonthlyView: _isMonthlyView,
+                   );
+                 }),
+               ),
             ],
           ),
         ),

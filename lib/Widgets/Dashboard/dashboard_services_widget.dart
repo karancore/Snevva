@@ -210,13 +210,13 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
                 final isFirstSleep =
                     prefs.getBool('is_first_time_sleep') ?? false;
 
-                  if (isFirstSleep) {
-                    final agreed = await showSleepBottomSheetModal(
-                      context: context,
-                      isDarkMode: isDarkMode,
-                      height: height,
-                      isNavigating: true,
-                    );
+                if (isFirstSleep) {
+                  final agreed = await showSleepBottomSheetModal(
+                    context: context,
+                    isDarkMode: isDarkMode,
+                    height: height,
+                    isNavigating: true,
+                  );
 
                   if (agreed == true) {
                     await prefs.setBool(

@@ -309,7 +309,7 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
                                       top: 8.0,
                                       left: 60,
                                     ), // Indent to align right
-                                    child: GestureDetector(
+                                    child: InkWell(
                                       onTap: () => _handleOptionSelected(opt),
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(

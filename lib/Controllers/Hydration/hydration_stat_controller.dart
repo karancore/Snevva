@@ -28,7 +28,6 @@ class HydrationStatController extends GetxController {
   void onInit() {
     super.onInit();
     loadWaterIntake();
-    
   }
 
   String getHydrationStatus(double intakeMl) {
@@ -40,7 +39,6 @@ class HydrationStatController extends GetxController {
     if (intakeMl < 3000) return 'Good';
     return 'Amazing';
   }
-
 
   // Save water intake value locally
   Future<void> saveWaterIntakeLocally() async {
@@ -241,10 +239,10 @@ class HydrationStatController extends GetxController {
       }
     }
 
-  waterIntake.value = todayTotal.toDouble();
+    waterIntake.value = todayTotal.toDouble();
 
-  print("Calculated today's water intake: ${waterIntake.value} ml");
-}
+    print("Calculated today's water intake: ${waterIntake.value} ml");
+  }
 
   Future<void> loadWaterIntakefromAPI({
     required int month,

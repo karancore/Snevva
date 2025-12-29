@@ -1,9 +1,11 @@
+import 'dart:async';
+import 'dart:io';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
-import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:snevva/common/custom_snackbar.dart';
@@ -23,16 +25,67 @@ class StepCounterController extends GetxController {
   RxInt todaySteps = 0.obs;
   RxInt stepGoal = 8000.obs;
 
-  // final FlutterBackgroundService _service = FlutterBackgroundService();
+  final FlutterBackgroundService _service = FlutterBackgroundService();
 
   int lastSteps = 0;
+  RxInt lastStepsRx = 0.obs;
   final RxList<FlSpot> stepSpots = <FlSpot>[].obs;
   final RxMap<String, int> stepsHistoryByDate = <String, int>{}.obs;
   RxList<StepEntry> stepsHistoryList = <StepEntry>[].obs;
   double lastPercent = 0.0;
 
+  // Current percent of goal (used by UI animations)
+  double get _currentPercent =>
+      stepGoal.value == 0 ? 0.0 : todaySteps.value / stepGoal.value;
+
   late Box<StepEntry> _stepBox;
+  // Helper to avoid crashes when underlying Hive file gets closed by another isolate.
+  // If a FileSystemException occurs, we attempt to reopen the box asynchronously
+  // and return a safe fallback value.
+  Future<void> _reopenStepBox() async {
+    try {
+      if (!Hive.isBoxOpen('step_history')) {
+        await Hive.openBox<StepEntry>('step_history');
+      }
+      _stepBox = Hive.box<StepEntry>('step_history');
+      print('🔁 Reopened step_history box');
+    } catch (e) {
+      print('❌ Failed to reopen step_history box: $e');
+    }
+  }
+
+  int _safeGetSteps(String key) {
+    try {
+      return _stepBox.get(key)?.steps ?? 0;
+    } catch (e) {
+      if (e is FileSystemException) {
+        // Reopen in background and return 0 for this tick
+        _reopenStepBox();
+        return 0;
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> _safePutSteps(String key, StepEntry entry) async {
+    try {
+      await _stepBox.put(key, entry);
+    } catch (e) {
+      if (e is FileSystemException) {
+        await _reopenStepBox();
+        try {
+          await _stepBox.put(key, entry);
+        } catch (e2) {
+          print('❌ Failed to put after reopen: $e2');
+        }
+      } else {
+        rethrow;
+      }
+    }
+  }
+
   late SharedPreferences _prefs;
+  Timer? _hivePoller;
 
   static const Duration _syncInterval = Duration(hours: 4);
   static const String _lastSyncKey = "last_step_sync_time";
@@ -41,10 +94,20 @@ class StepCounterController extends GetxController {
   // INIT
   // =======================
   @override
-  void onInit() {
+  Future<void> onInit() async {
     super.onInit();
-    _init();
-    // _listenToBackgroundSteps();
+
+    // Initialize prefs and Hive box
+    await _init();
+
+    // Load today's steps from Hive first
+    await loadTodayStepsFromHive();
+
+    // Start listening to background service events
+    _listenToBackgroundSteps();
+
+    // Start a lightweight poller to detect background-isolate Hive writes
+    _hivePoller = Timer.periodic(const Duration(seconds: 1), (_) => _pollHiveToday());
   }
 
   Future<void> _init() async {
@@ -54,28 +117,8 @@ class StepCounterController extends GetxController {
     _checkDayReset();
 
     await loadGoal();
-    await loadTodayStepsFromHive();
-
-    // Start listening AFTER loading initial data
-    // _listenToBackgroundSteps();
+    // Removed duplicate call to loadTodayStepsFromHive
   }
-
-
-  String getStepsStatus() {
-    final steps = todaySteps.value;
-    final goal = stepGoal.value;
-
-    if (steps < 0 || goal <= 0) return '--';
-
-    final progress = steps / goal;
-
-    if (progress < 0.25) return 'Very Low';
-    if (progress < 0.50) return 'Low';
-    if (progress < 0.75) return 'Good';
-    if (progress < 1.0) return 'Great';
-    return 'Amazing';
-  }
-
 
   // =======================
   // DAY RESET
@@ -100,38 +143,41 @@ class StepCounterController extends GetxController {
   // =======================
   // LISTEN TO BACKGROUND SERVICE
   // =======================
-  // void _listenToBackgroundSteps() async{
-  //   _service.on("steps_updated").listen((event) {
-  //     if (event == null) return;
+  void _listenToBackgroundSteps() async {
+    _service.on("steps_updated").listen((event) async {
+      print("🔔 Background service event received: $event");
+      if (event == null) return;
 
-  //     final int newSteps = event["steps"] ?? 0;
+      final int newSteps = event["steps"] ?? 0;
 
-  //     // Only update if steps actually increased
-  //     if (newSteps <= todaySteps.value) return;
+      // Store last value for animation
+      lastSteps = todaySteps.value;
+      lastStepsRx.value = lastSteps;
+      lastPercent = _currentPercent;
 
-  //     // Store last value for animation
-  //     lastSteps = todaySteps.value;
-  //     lastPercent = _currentPercent;
+      // Update reactive value regardless (we'll persist to Hive afterwards)
+      todaySteps.value = newSteps;
 
-  //     // Update reactive value
-  //     todaySteps.value = newSteps;
+      // Persist to Hive
+      _saveToHive(todaySteps.value);
 
-  //     // Trigger API sync if needed
-  //     await _maybeSyncSteps();
+      // Trigger API sync if needed
+      await _maybeSyncSteps();
 
-  //     print("🔄 Controller received: $newSteps steps");
-  //   });
-  // }
+      print("🔄 Controller received (from service): $newSteps steps");
+    });
+  }
 
   // =======================
   // STEP UPDATES (MANUAL - if needed)
   // =======================
 
   /// Manual update (use only if you have direct step data, not from service)
-  void updateSteps(int newSteps) async{
+  void updateSteps(int newSteps) async {
     if (newSteps <= todaySteps.value) return;
 
     lastSteps = todaySteps.value;
+    lastStepsRx.value = lastSteps;
     lastPercent = _currentPercent;
 
     todaySteps.value = newSteps;
@@ -140,56 +186,109 @@ class StepCounterController extends GetxController {
     await _maybeSyncSteps();
   }
 
-  double get _currentPercent =>
-      stepGoal.value == 0 ? 0.0 : todaySteps.value / stepGoal.value;
-
   // =======================
   // HIVE
   // =======================
-  void _saveToHive(int steps) {
+  Future<void> _pollHiveToday() async {
+    try {
+      final todayKey = _dayKey(DateTime.now());
+      final steps = _safeGetSteps(todayKey);
+
+      // Also check shared prefs fallback written by background isolate
+      final prefSteps = _prefs.getInt('today_steps');
+      final effective = (prefSteps != null && prefSteps > steps) ? prefSteps : steps;
+
+      if (effective != todaySteps.value) {
+        // Update reactive values and graph
+        lastSteps = todaySteps.value;
+        lastStepsRx.value = lastSteps;
+        lastPercent = _currentPercent;
+        todaySteps.value = effective;
+        todaySteps.refresh();
+        updateStepSpots();
+        stepSpots.refresh();
+        print("🔎 Hive poll detected change: todaySteps = $effective (hive=$steps pref=$prefSteps)");
+      }
+    } catch (e) {
+      // ignore polling errors
+      print('❌ Poll hive error: $e');
+      // attempt reopen if filesystem issue
+      if (e is FileSystemException) await _reopenStepBox();
+    }
+  }
+
+  Future<void> _saveToHive(int steps) async {
     final today = DateTime.now();
     final key = _dayKey(today);
 
-    // todaySteps.value = steps; // Ensure reactive variable is up to date
-    // If not updating directly via binding
+    // Persist safely
+    await _safePutSteps(key, StepEntry(date: _startOfDay(today), steps: steps));
 
-    _stepBox.put(key, StepEntry(date: _startOfDay(today), steps: steps));
-
-    // Update graph immediately
+    // Update graph immediately and notify observers
     updateStepSpots();
+    stepSpots.refresh();
   }
 
   Future<void> loadTodayStepsFromHive() async {
     final todayKey = _dayKey(DateTime.now());
-    final entry = _stepBox.get(todayKey);
+    final steps = _safeGetSteps(todayKey);
 
-    final steps = entry?.steps ?? 0;
+    // Preserve previous value so animations can interpolate from the
+    // former step count to the new one. If this is the initial load
+    // (todaySteps.value == 0 and lastSteps == 0) this will be harmless.
+    final prev = todaySteps.value;
 
-    todaySteps.value = steps;
-    lastSteps = steps;
-    lastPercent = _currentPercent;
+    if (prev != steps) {
+      // Set lastSteps to previous value to enable smooth animation
+      lastSteps = prev;
+      lastStepsRx.value = lastSteps;
+      lastPercent = (stepGoal.value == 0) ? 0.0 : lastSteps / stepGoal.value;
 
-    print("📊 Loaded from Hive: $steps steps");
+      todaySteps.value = steps;
+      todaySteps.refresh();
 
-    // Refresh graph with loaded data
-    updateStepSpots();
-  }
+      print("📊 Loaded from Hive (changed): $steps steps (prev=$prev)");
 
-  void calculateTodayStepsFromList(List stepsList) {
-  final now = DateTime.now();
-
-  int todayTotal = 0;
-
-  for (var item in stepsList) {
-    if (item['Day'] == now.day &&
-        item['Month'] == now.month &&
-        item['Year'] == now.year) {
-      todayTotal += (item['Count'] as int);
+      // Refresh graph with loaded data and notify observers
+      updateStepSpots();
+      stepSpots.refresh();
+    } else {
+      // No change; just ensure graph is in sync
+      print("📊 Loaded from Hive: $steps steps (no change)");
+      updateStepSpots();
     }
   }
 
-  todaySteps.value = todayTotal;
-}
+  void calculateTodayStepsFromList(List stepsList) {
+    final now = DateTime.now();
+
+    int todayTotal = 0;
+
+    for (var item in stepsList) {
+      if (item['Day'] == now.day &&
+          item['Month'] == now.month &&
+          item['Year'] == now.year) {
+        todayTotal += (item['Count'] as int);
+      }
+    }
+
+    print("🔢 Calculated today steps from list: $todayTotal");
+
+    // Only update if API data is greater than Hive data
+    if (todayTotal > todaySteps.value) {
+      // preserve previous value for smooth animation
+      lastSteps = todaySteps.value;
+      lastStepsRx.value = lastSteps;
+      lastPercent = _currentPercent;
+
+      todaySteps.value = todayTotal;
+      todaySteps.refresh();
+
+      // Persist and refresh graph
+      _saveToHive(todayTotal); // Save updated steps to Hive
+      stepSpots.refresh();
+    }
+  }
 
   Future<void> loadStepsfromAPI({required int month, required int year}) async {
     try {
@@ -221,10 +320,22 @@ class StepCounterController extends GetxController {
 
       stepsHistoryList.clear();
 
+      // Merge API data with Hive: prefer the larger value for each day and persist if API is larger
       for (final item in stepData) {
         final date = DateTime(item['Year'], item['Month'], item['Day']);
+        final apiCount = (item['Count'] ?? 0) as int;
+        final key = _dayKey(date);
 
-        stepsHistoryList.add(StepEntry(date: date, steps: item['Count'] ?? 0));
+        final hiveCount = _safeGetSteps(key);
+
+        final merged = apiCount > hiveCount ? apiCount : hiveCount;
+
+        // If API has higher value, persist merged value to Hive
+        if (apiCount > hiveCount) {
+          await _safePutSteps(key, StepEntry(date: _startOfDay(date), steps: merged));
+        }
+
+        stepsHistoryList.add(StepEntry(date: date, steps: merged));
       }
 
       calculateTodayStepsFromList(stepData);
@@ -233,8 +344,8 @@ class StepCounterController extends GetxController {
       stepGoal.value =
           decoded['data']?['StepGoalData']?['Count'] ?? stepGoal.value;
 
-      // ✅ Build map + graph
-      buildStepsHistoryMap();
+      // ✅ Build map + graph (will merge with Hive inside)
+      await buildStepsHistoryMap();
 
       print("📊 Map: $stepsHistoryByDate");
       print("📈 Spots: $stepSpots");
@@ -268,7 +379,7 @@ class StepCounterController extends GetxController {
 
     for (int day = 1; day <= totalDays; day++) {
       final key = "${month.year}-${month.month}-$day";
-      final steps = stepsHistoryByDate[key] ?? 0;
+      final steps = stepsHistoryByDate[key] ?? _safeGetSteps(key);
 
       spots.add(FlSpot((day - 1).toDouble(), double.parse(steps.toString())));
     }
@@ -341,18 +452,19 @@ class StepCounterController extends GetxController {
     try {
       final now = DateTime.now();
       final date = DateUtils.dateOnly(DateTime.now());
+      final steps = todaySteps.value;
 
       final payload = {
         "Day": now.day,
         "Month": now.month,
         "Year": now.year,
         "Time": TimeOfDay.now().format(Get.context!),
-        "Count": todaySteps.value,
+        "Count": steps,
       };
 
       final newRecord = StepEntry(date: date, steps: todaySteps.value);
       stepsHistoryList.add(newRecord);
-      buildStepsHistoryMap();
+      await buildStepsHistoryMap();
 
       await ApiService.post(
         stepRecord,
@@ -367,22 +479,53 @@ class StepCounterController extends GetxController {
     }
   }
 
-  void buildStepsHistoryMap() {
+  Future<void> buildStepsHistoryMap() async {
+    // Start by populating map from local Hive (local source of truth when API is not called)
     stepsHistoryByDate.clear();
+
+    try {
+      for (final key in _stepBox.keys) {
+        try {
+          final entry = _stepBox.get(key);
+          if (entry == null) continue;
+          final k = _dayKey(entry.date);
+          stepsHistoryByDate[k] = entry.steps;
+        } catch (e) {
+          if (e is FileSystemException) {
+            _reopenStepBox();
+            // skip this entry; it'll be picked up on next build
+            continue;
+          }
+        }
+      }
+    } catch (e) {
+      // If iterating keys fails due to filesystem, attempt reopen and continue
+      if (e is FileSystemException) {
+        _reopenStepBox();
+      }
+    }
+
+    // Merge API-provided entries (stepsHistoryList) on top, preferring the larger value
     for (final item in stepsHistoryList) {
       final key = "${item.date.year}-${item.date.month}-${item.date.day}";
-      stepsHistoryByDate.update(
-        key,
-        (v) => v + item.steps,
-        ifAbsent: () => item.steps ?? 0,
-      );
+      final existing = stepsHistoryByDate[key] ?? 0;
+      final merged = item.steps > existing ? item.steps : existing;
+      stepsHistoryByDate[key] = merged;
+
+      // Ensure Hive also reflects merged result
+      final hiveCount = _safeGetSteps(key);
+      if (merged > hiveCount) {
+        await _safePutSteps(key, StepEntry(date: _startOfDay(item.date), steps: merged));
+      }
     }
+
     syncTodayIntakeFromMap();
     updateStepSpots();
   }
 
   void syncTodayIntakeFromMap() {
-    final key = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    // Use same key format as other functions
+    final key = _dayKey(DateTime.now());
     todaySteps.value = (stepsHistoryByDate[key] ?? 0).toInt();
   }
 
@@ -398,12 +541,25 @@ class StepCounterController extends GetxController {
 
       // Use map value if present, otherwise fallback to Hive (local source of truth)
       // This ensures if map is empty (app restart), we still get data for graph
-      int steps = stepsHistoryByDate[key] ?? _stepBox.get(key)?.steps ?? 0;
+      int steps = stepsHistoryByDate[key] ?? _safeGetSteps(key);
 
       // Update map to keep it in sync for other usages
       stepsHistoryByDate[key] = steps;
 
       stepSpots.add(FlSpot(i.toDouble(), steps / 1000.0));
     }
+    // Force notify observers
+    stepSpots.refresh();
   }
+
+  void scheduleStepPush() {
+    Timer.periodic(Duration(hours: 4), (timer) {
+      saveStepRecordToServer();
+    });
+  }
+
+  // Public safe accessors so other parts of the app can read/write safely.
+  int getStepsForKey(String key) => _safeGetSteps(key);
+
+  Future<void> putStepsForKey(String key, StepEntry entry) async => _safePutSteps(key, entry);
 }

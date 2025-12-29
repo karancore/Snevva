@@ -22,10 +22,14 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     final mediaQuery = MediaQuery.of(context);
     final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
 
+    // 🔍 DEBUG
+    debugPrint('CustomAppBar build → showDrawerIcon: $showDrawerIcon');
+
     return SafeArea(
       child: AppBar(
         backgroundColor: isDarkMode ? black : white,
         centerTitle: true,
+
         title: Text(
           appbarText,
           style: TextStyle(
@@ -35,59 +39,63 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ),
 
-        // Conditionally show leading drawer icon
-        leading:
-            showDrawerIcon
-                ? Builder(
-                  builder:
-                      (context) => IconButton(
-                        icon: SvgPicture.asset(
-                          isWhiteRequired! ? drawerIconWhite : drawerIcon,
-                        ),
-                        onPressed: () => Scaffold.of(context).openDrawer(),
-                      ),
-                )
-                : null,
+        leading: showDrawerIcon
+            ? Builder(
+          builder: (context) {
+            debugPrint('Drawer Icon Builder created');
 
-        // Conditionally show close (cross) icon
-        actions:
-            showCloseButton
-                ? [
-                  Padding(
-                    padding: const EdgeInsets.only(right: 20),
-                    child: InkWell(
-                      onTap:
-                          onClose != null
-                              ? onClose!
-                              : () => Navigator.pop(context),
-                      child:
-                          isWhiteRequired!
-                              ? SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: Icon(
-                                  Icons.clear,
-                                  size: 21,
-                                  color:
-                                      white, // Keep white if explicitly required
-                                ),
-                              )
-                              : SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: Icon(
-                                  Icons.clear,
-                                  size: 21,
-                                  color:
-                                      isDarkMode
-                                          ? white
-                                          : black, // Adapt to theme
-                                ),
-                              ),
-                    ),
-                  ),
-                ]
-                : [],
+            return IconButton(
+              icon: SvgPicture.asset(
+                isWhiteRequired! ? drawerIconWhite : drawerIcon,
+              ),
+              onPressed: () {
+                debugPrint('Drawer Icon tapped');
+
+                // 🔍 Check if Scaffold exists
+                final scaffold = Scaffold.maybeOf(context);
+                debugPrint(
+                  'Scaffold found: ${scaffold != null}',
+                );
+
+                if (scaffold != null) {
+                  scaffold.openDrawer();
+                } else {
+                  debugPrint(
+                    '❌ ERROR: No Scaffold found above CustomAppBar',
+                  );
+                }
+              },
+            );
+          },
+        )
+            : null,
+
+        actions: showCloseButton
+            ? [
+          Padding(
+            padding: const EdgeInsets.only(right: 20),
+            child: InkWell(
+              onTap: () {
+                debugPrint('Close button tapped');
+                onClose != null
+                    ? onClose!()
+                    : Navigator.pop(context);
+              },
+              child: SizedBox(
+                height: 24,
+                width: 24,
+                child: Icon(
+                  Icons.clear,
+                  size: 21,
+                  color: isWhiteRequired!
+                      ? white
+                      : (isDarkMode ? white : black),
+                ),
+              ),
+            ),
+          ),
+        ]
+            : [],
       ),
     );
   }
@@ -95,3 +103,4 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
+

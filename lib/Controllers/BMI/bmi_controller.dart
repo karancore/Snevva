@@ -1,16 +1,12 @@
 import 'dart:convert';
-import 'dart:math';
-
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/consts/consts.dart';
-import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import '../../common/custom_snackbar.dart';
 import '../../env/env.dart';
 import '../../services/api_service.dart';
 import '../local_storage_manager.dart';
 
-class Bmicontroller extends GetxController {
+class BmiController extends GetxController {
   RxInt age = 0.obs;
   RxString bmi_text = "normal".obs;
   var customTips = <dynamic>[].obs;

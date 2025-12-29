@@ -23,7 +23,8 @@ class SleepBottomSheet extends StatefulWidget {
 }
 
 class _SleepBottomSheetState extends State<SleepBottomSheet> {
-  final SleepController controller = Get.put(SleepController());
+  // Reuse the existing SleepController instead of creating a new one.
+  final SleepController controller = Get.find<SleepController>();
 
   final WheelPickerController hourController = WheelPickerController(
     itemCount: 12,
@@ -48,8 +49,7 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
   final WheelPickerController wakeUpPeriodController = WheelPickerController(
     itemCount: 2,
   );
-
-  WheelPickerStyle defaultWheelPickerStyle = WheelPickerStyle(
+  final WheelPickerStyle defaultWheelPickerStyle = WheelPickerStyle(
     itemExtent: 30,
     squeeze: 1.2,
     diameterRatio: 0.9,
@@ -292,7 +292,6 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
 
               controller.setBedtime(st);
 
-
               // --- WAKE-UP TIME ---
               int wakeHour = wakeUpHourController.selected + 1;
               int wakeMinute = wakeUpMinuteController.selected;
@@ -327,13 +326,13 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
 
               controller.setWakeTime(wt);
 
-              debugPrint(
-                "Sleep monitoring started at sleep bottom sheet",
-              );
+              debugPrint("Sleep monitoring started at sleep bottom sheet");
               controller.startMonitoring();
-              CustomSnackbar.showSnackbar(context: context, title: "Sleep Monitoring Started", message: '');
-
-
+              CustomSnackbar.showSnackbar(
+                context: context,
+                title: "Sleep Monitoring Started",
+                message: '',
+              );
 
               debugPrint(
                 "📡 Sending SleepTime: $sleepTime | WakeTime: $wakeTime to server",

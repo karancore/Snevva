@@ -32,7 +32,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
     final stepController = Get.find<StepCounterController>();
     final waterController = Get.find<HydrationStatController>();
     final vitalController = Get.find<VitalsController>();
-    final sleepController = Get.put(SleepController());
+    final sleepController = Get.find<SleepController>();
     bool _loaded = false;
 
     if (!_loaded) {

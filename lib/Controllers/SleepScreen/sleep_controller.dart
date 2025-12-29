@@ -64,7 +64,6 @@ class SleepController extends GetxController {
     return 'Excellent';
   }
 
-
   // ─────────────────────────────────────────────
   // HELPERS
   // ─────────────────────────────────────────────
@@ -113,10 +112,8 @@ class SleepController extends GetxController {
       final decoded = response as Map<String, dynamic>;
       final List<dynamic> sleepData = decoded['data']?['SleepData'] ?? [];
 
-    // 🔥 CLEAR OLD DATA BEFORE LOADING NEW MONTH
-    deepSleepHistory.clear();
-
-    
+      // 🔥 CLEAR OLD DATA BEFORE LOADING NEW MONTH
+      deepSleepHistory.clear();
 
       for (final item in sleepData) {
         final int day = item['Day'];
@@ -150,9 +147,9 @@ class SleepController extends GetxController {
   }
 
   Future<void> updateSleepTimestoServer(
-      TimeOfDay bedTime,
-      TimeOfDay wakeTime,
-      ) async {
+    TimeOfDay bedTime,
+    TimeOfDay wakeTime,
+  ) async {
     try {
       debugPrint("🟢 updateSleepTimestoServer called");
       debugPrint("🛏️ BedTime (TimeOfDay): $bedTime");
@@ -216,7 +213,7 @@ class SleepController extends GetxController {
         'Day': DateTime.now().day,
         'Month': DateTime.now().month,
         'Year': DateTime.now().year,
-        'Time' : TimeOfDay.now().format(Get.context!),
+        'Time': TimeOfDay.now().format(Get.context!),
         'SleepingFrom': timeOfDayToString(bedTime),
         'SleepingTo': timeOfDayToString(wakeTime),
       };
@@ -246,7 +243,6 @@ class SleepController extends GetxController {
       print("Error upload sleep data to server: $e");
     }
   }
-
 
   void loadDeepSleepData() {
     deepSleepHistory.clear();
@@ -394,7 +390,7 @@ class SleepController extends GetxController {
   // AUTO SLEEP (NO PHONE)
   // ─────────────────────────────────────────────
 
-  void _handleSleepWithoutPhoneUsage() {
+  Future<void> _handleSleepWithoutPhoneUsage() async {
     final today = DateTime.now();
 
     if (hasSleepDataForDate(today)) {
@@ -414,7 +410,14 @@ class SleepController extends GetxController {
     deepSleepDuration.value = deep;
     newBedtime.value = bt;
 
-    saveDeepSleepData(today, deep);
+    await saveDeepSleepData(today, deep);
+
+    // Trigger upload (best-effort) after saving — await to reduce race
+    if (bedtime.value != null && waketime.value != null) {
+      final TimeOfDay btTo = TimeOfDay.fromDateTime(newBedtime.value ?? bedtime.value!);
+      final TimeOfDay wtTo = TimeOfDay.fromDateTime(waketime.value!);
+      await uploadsleepdatatoServer(btTo, wtTo);
+    }
   }
 
   // ─────────────────────────────────────────────
@@ -454,6 +457,13 @@ class SleepController extends GetxController {
     deepSleepDuration.value = deep;
 
     await saveDeepSleepData(today, deep);
+
+    // Trigger upload after phone-based calculation
+    if (newBedtime.value != null && waketime.value != null) {
+      final TimeOfDay btTo = TimeOfDay.fromDateTime(newBedtime.value!);
+      final TimeOfDay wtTo = TimeOfDay.fromDateTime(waketime.value!);
+      await uploadsleepdatatoServer(btTo, wtTo);
+    }
   }
 
   // ─────────────────────────────────────────────

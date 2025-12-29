@@ -286,7 +286,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                         curve: Curves.ease,
                       );
 
-                      Get.offAll(HomeWrapper(),binding: InitialBindings(),);
+                      Get.offAll(HomeWrapper(), binding: InitialBindings());
                     } else {
                       await questionScreenController.saveAnswer(
                         _currentIndex,

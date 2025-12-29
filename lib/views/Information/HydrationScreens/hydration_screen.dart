@@ -169,9 +169,7 @@ class _HydrationScreenState extends State<HydrationScreen>
               child: IntrinsicHeight(
                 child: Column(
                   children: [
-                    SizedBox(
-                      height: hp(context, 0.08),
-                    ), // responsive top space
+                    SizedBox(height: hp(context, 0.08)), // responsive top space
                     /// Animated Number + Goal Row
                     Column(
                       children: [

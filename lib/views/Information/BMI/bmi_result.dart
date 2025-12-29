@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:snevva/Controllers/BMI/bmicontroller.dart';
+import 'package:snevva/Controllers/BMI/bmi_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
-import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/colors.dart';
 import 'package:snevva/consts/images.dart';
-
-import '../../../Controllers/HealthTips/healthtips_controller.dart';
+import '../../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../Health Tips/Nutrition_tips.dart/nutrition_tips.dart';
 
 class BmiResultPage extends StatelessWidget {
@@ -48,7 +45,7 @@ class BmiResultPage extends StatelessWidget {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
-    final controller = Get.put(Bmicontroller());
+    final controller = Get.put(BmiController());
     controller.age.value = age;
     controller.bmi_text.value = getStatus(bmi);
 

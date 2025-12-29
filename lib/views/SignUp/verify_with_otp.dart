@@ -9,6 +9,7 @@ import 'package:snevva/views/SignUp/update_old_password.dart';
 import '../../Controllers/signupAndSignIn/otp_verification_controller.dart';
 import '../../common/loader.dart';
 import '../../consts/consts.dart';
+import 'dart:io' show Platform;
 
 class VerifyWithOtpScreen extends StatefulWidget {
   final String emailOrPasswordText;
@@ -59,57 +60,27 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
     super.dispose();
   }
 
-  void onButtonClick() {
-    setState(() {
-      _isLoading = true;
-    });
+  void onButtonClick() async {
+    setState(() => _isLoading = true);
+
     final pin = otpVerificationController.pinController.text.trim();
 
-    if (pin.isEmpty) {
+    if (pin.length != 6) {
       CustomSnackbar.showError(
         context: context,
         title: 'Error',
-        message: 'OTP field cannot be empty.',
+        message: 'Please enter valid 6 digit OTP',
       );
+      setState(() => _isLoading = false);
       return;
     }
-    if (otpVerificationStatus == true &&
-        widget.isForgotPasswordScreen == false) {
-      // Store email in userMap
-      localStorageManager.userMap['Email'] = widget.emailOrPasswordText;
-      localStorageManager.userMap['PhoneNumber'] = widget.emailOrPasswordText;
 
-      print("dfdfdfdfdfdfdfdfdfdfdfdfdfdfd${localStorageManager.userMap}");
+    final result =
+        otpVerificationController.verifyOtp(pin, context);
 
-      setState(() {
-        _isLoading = false;
-      });
+    setState(() => _isLoading = false);
 
-      Get.to(
-        CreateNewPassword(
-          otpVerificationStatus: otpVerificationStatus,
-          otp: widget.responseOtp,
-          emailOrPhoneText: widget.emailOrPasswordText,
-        ),
-      );
-    } else if (otpVerificationStatus == true &&
-        widget.isForgotPasswordScreen == true) {
-      // Store email in userMap
-      localStorageManager.userMap['Email'] = widget.emailOrPasswordText;
-      localStorageManager.userMap['PhoneNumber'] = widget.emailOrPasswordText;
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      Get.to(
-        UpdateOldPasword(
-          otpVerificationStatus: true,
-          otp: widget.responseOtp,
-          emailOrPhoneText: widget.emailOrPasswordText,
-        ),
-      );
-    } else {
+    if (!result) {
       CustomSnackbar.showError(
         context: context,
         title: 'Error',
@@ -117,6 +88,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -184,8 +156,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
               Image.asset(veriemail, height: 200, width: 200),
               SizedBox(height: 30),
               Text(
-                '${AppLocalizations.of(context)!.enter6DigitCodeText}\n${widget
-                    .emailOrPasswordText}',
+                '${AppLocalizations.of(context)!.enter6DigitCodeText}\n${widget.emailOrPasswordText}',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16),
               ),
@@ -200,13 +171,13 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
                       color: isDarkMode ? black : white,
                     ),
                     bgColorBuilder:
-                    isDarkMode
-                        ? FixedColorBuilder(white)
-                        : FixedColorBuilder(black),
+                        isDarkMode
+                            ? FixedColorBuilder(white)
+                            : FixedColorBuilder(black),
                     strokeColorBuilder:
-                    isDarkMode
-                        ? FixedColorBuilder(white)
-                        : FixedColorBuilder(black),
+                        isDarkMode
+                            ? FixedColorBuilder(white)
+                            : FixedColorBuilder(black),
                   ),
                   controller: otpVerificationController.pinController,
                   currentCode: otpVerificationController.messageOtpCode.value,
@@ -218,7 +189,15 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
               }),
 
               SizedBox(height: 15),
-              GestureDetector(
+              if (Platform.isAndroid) ...[
+                SizedBox(height: 8),
+                Text(
+                  'You may be prompted to allow one-tap to paste the OTP from your SMS. Tap Allow to autofill.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: grey),
+                ),
+              ],
+              InkWell(
                 onTap: () async {
                   final result = await SignUpController().signUpUsingGmail(
                     widget.emailOrPasswordText,
@@ -232,8 +211,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
                 },
                 child: ShaderMask(
                   shaderCallback:
-                      (bounds) =>
-                      AppColors.primaryGradient.createShader(
+                      (bounds) => AppColors.primaryGradient.createShader(
                         Rect.fromLTWH(0, 0, bounds.width, bounds.height),
                       ),
                   child: Text(
@@ -267,9 +245,9 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
                     ),
                   ),
                   child:
-                  _isLoading
-                      ? const Loader()
-                      : Text(AppLocalizations.of(context)!.verify),
+                      _isLoading
+                          ? const Loader()
+                          : Text(AppLocalizations.of(context)!.verify),
                 ),
               ),
             ],
@@ -278,5 +256,4 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
       ),
     );
   }
-
 }
