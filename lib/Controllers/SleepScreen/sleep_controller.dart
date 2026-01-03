@@ -91,81 +91,87 @@ class SleepController extends GetxController {
   }
 
   Future<void> loadSleepfromAPI({required int month, required int year}) async {
-    try {
-      final payload = {"Month": month, "Year": year};
+  try {
+    final payload = {"Month": month, "Year": year};
 
-      final response = await ApiService.post(
-        fetchSleepHistory,
-        payload,
-        withAuth: true,
-        encryptionRequired: true,
+    final response = await ApiService.post(
+      fetchSleepHistory,
+      payload,
+      withAuth: true,
+      encryptionRequired: true,
+    );
+
+    if (response is http.Response) {
+      CustomSnackbar.showError(
+        context: Get.context!,
+        title: 'Error',
+        message: 'Failed to fetch sleep data',
       );
-
-      if (response is http.Response) {
-        CustomSnackbar.showError(
-          context: Get.context!,
-          title: 'Error',
-          message: 'Failed to fetch sleep data',
-        );
-        return;
-      }
-
-      final decoded = response as Map<String, dynamic>;
-      final sleepData = decoded['data']?['SleepData'] ?? [];
-
-      // 🔥 CLEAR OLD DATA BEFORE LOADING NEW MONTH
-      deepSleepHistory.clear();
-
-      for (final item in sleepData) {
-        final int day = item['Day'];
-        final int month = item['Month'];
-        final int year = item['Year'];
-
-        final String from = item['SleepingFrom'];
-        final String to = item['SleepingTo'];
-
-        DateTime bedTime = _parseTime(year, month, day, from);
-        DateTime wakeTime = _parseTime(year, month, day, to);
-
-        // 🌙 If wake time is next day
-        if (wakeTime.isBefore(bedTime)) {
-          wakeTime = wakeTime.add(const Duration(days: 1));
-        }
-
-        final duration = wakeTime.difference(bedTime);
-
-        final key = "$year-$month-$day";
-        deepSleepHistory[key] = duration;
-      }
-      
-      if(sleepData['SleepData'] != null){
-        bedtime.value = sleepData['SleepData']['SleepingFrom'] != null
-            ? _parseTime(
-                year,
-                month,
-                sleepData['SleepData']['Day'],
-                sleepData['SleepData']['SleepingFrom'],
-              )
-            : null;
-        waketime.value = sleepData['SleepData']['SleepingTo'] != null
-            ? _parseTime(
-                year,
-                month,
-                sleepData['SleepData']['Day'],
-                sleepData['SleepData']['SleepingTo'],
-              )
-            : null;
-      }
-
-      // 🔁 Refresh weekly graph too
-      _updateDeepSleepSpots();
-      saveVitalsToLocalStorage();
-
-      print("✅ Sleep history loaded: $deepSleepHistory");
-    } catch (e) {
-      print("❌ Error loading sleep data: $e");
+      return;
     }
+
+    final decoded = response as Map<String, dynamic>;
+    print('decoded response: $decoded');
+    
+    final sleepData = decoded['data']?['SleepData'] ?? [];
+
+    print("🛌 Fetched sleep data for $month/$year: $sleepData");
+
+    // 🔥 CLEAR OLD DATA BEFORE LOADING NEW MONTH
+    deepSleepHistory.clear();
+
+    for (final item in sleepData) {
+      // Ensure values are integers
+      final int day = int.tryParse(item['Day'].toString()) ?? 0; // Convert to int
+      final int month = int.tryParse(item['Month'].toString()) ?? 0; // Convert to int
+      final int year = int.tryParse(item['Year'].toString()) ?? 0; // Convert to int
+
+      final String from = item['SleepingFrom'];
+      final String to = item['SleepingTo'];
+
+      DateTime bedTime = _parseTime(year, month, day, from);
+      DateTime wakeTime = _parseTime(year, month, day, to);
+
+      // 🌙 If wake time is next day
+      if (wakeTime.isBefore(bedTime)) {
+        wakeTime = wakeTime.add(const Duration(days: 1));
+      }
+
+      final duration = wakeTime.difference(bedTime);
+
+      final key = "$year-$month-$day";
+      deepSleepHistory[key] = duration;
+    }
+
+    if (sleepData.isNotEmpty && sleepData[0]['SleepData'] != null) {
+      final latestSleep = sleepData[0]['SleepData'];
+      bedtime.value = latestSleep['SleepingFrom'] != null
+          ? _parseTime(
+              year,
+              month,
+              latestSleep['Day'],
+              latestSleep['SleepingFrom'],
+            )
+          : null;
+      waketime.value = latestSleep['SleepingTo'] != null
+          ? _parseTime(
+              year,
+              month,
+              latestSleep['Day'],
+              latestSleep['SleepingTo'],
+            )
+          : null;
+    }
+
+    // 🔁 Refresh weekly graph too
+    _updateDeepSleepSpots();
+    saveVitalsToLocalStorage();
+
+    print("✅ Sleep history loaded: $deepSleepHistory");
+  } catch (e) {
+    print("❌ Error loading sleep data: $e");
   }
+}
 
   Future<void> saveVitalsToLocalStorage() async {
 
