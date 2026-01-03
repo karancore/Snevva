@@ -75,8 +75,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
       return;
     }
 
-    final result =
-        otpVerificationController.verifyOtp(pin, context);
+    final result = otpVerificationController.verifyOtp(pin, context);
 
     setState(() => _isLoading = false);
 
@@ -89,12 +88,10 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
-
+    // ✅ Listens to the app's current theme command
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     debugPrint('Response otp is ${widget.responseOtp}');
     final defaultPinTheme = PinTheme(
       width: 60,
@@ -162,31 +159,29 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
               ),
               SizedBox(height: 30),
 
-              Obx(() {
-                return PinFieldAutoFill(
-                  codeLength: 6,
-                  decoration: BoxLooseDecoration(
-                    textStyle: TextStyle(
-                      fontSize: 20,
-                      color: isDarkMode ? black : white,
-                    ),
-                    bgColorBuilder:
-                        isDarkMode
-                            ? FixedColorBuilder(white)
-                            : FixedColorBuilder(black),
-                    strokeColorBuilder:
-                        isDarkMode
-                            ? FixedColorBuilder(white)
-                            : FixedColorBuilder(black),
+              PinFieldAutoFill(
+                codeLength: 6,
+                decoration: BoxLooseDecoration(
+                  textStyle: TextStyle(
+                    fontSize: 20,
+                    color: isDarkMode ? black : white,
                   ),
-                  controller: otpVerificationController.pinController,
-                  currentCode: otpVerificationController.messageOtpCode.value,
-                  textInputAction: TextInputAction.done,
-                  onCodeChanged: (code) {
-                    otpVerificationController.messageOtpCode.value = code ?? '';
-                  },
-                );
-              }),
+                  bgColorBuilder:
+                      isDarkMode
+                          ? FixedColorBuilder(white)
+                          : FixedColorBuilder(black),
+                  strokeColorBuilder:
+                      isDarkMode
+                          ? FixedColorBuilder(white)
+                          : FixedColorBuilder(black),
+                ),
+                controller: otpVerificationController.pinController,
+                currentCode: otpVerificationController.messageOtpCode.value,
+                textInputAction: TextInputAction.done,
+                onCodeChanged: (code) {
+                  otpVerificationController.messageOtpCode.value = code ?? '';
+                },
+              ),
 
               SizedBox(height: 15),
               if (Platform.isAndroid) ...[

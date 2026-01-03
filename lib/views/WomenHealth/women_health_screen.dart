@@ -11,7 +11,7 @@ import '../../Widgets/WomenHealth/period_cycle_phase_cont.dart';
 import '../../Widgets/WomenHealth/women_health_quotes_widget.dart';
 import '../../Widgets/WomenHealth/women_health_top_cont.dart';
 import '../../consts/consts.dart';
-import '../Reminder/reminder.dart';
+import '../Reminder/reminder_screen.dart';
 
 class WomenHealthScreen extends StatefulWidget {
   const WomenHealthScreen({super.key});
@@ -45,8 +45,8 @@ class _WomenHealthScreenState extends State<WomenHealthScreen> {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
-    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
-
+    // ✅ Listens to the app's current theme command
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: CustomAppBar(appbarText: 'Women Health'),
@@ -239,7 +239,7 @@ class _WomenHealthScreenState extends State<WomenHealthScreen> {
                 child: FloatingButtonBar(
                   onStatBtnTap: () => Get.to(() => WomenHealthHistory()),
                   onReminderBtnTap: () {
-                    Get.to(() => Reminder());
+                    Get.to(() => ReminderScreen());
                   },
                   onAddBtnTap: () async {
                     DateTime now = DateTime.now();

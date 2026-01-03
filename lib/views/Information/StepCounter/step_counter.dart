@@ -214,27 +214,26 @@ class _StepCounterState extends State<StepCounter> {
   }
 
   void _changeMonth(int delta) async {
-  final newMonth = DateTime(
-    _selectedMonth.year,
-    _selectedMonth.month + delta,
-    1,
-  );
+    final newMonth = DateTime(
+      _selectedMonth.year,
+      _selectedMonth.month + delta,
+      1,
+    );
 
-  setState(() => _selectedMonth = newMonth);
+    setState(() => _selectedMonth = newMonth);
 
-  await stepController.loadStepsfromAPI(
-    month: newMonth.month,
-    year: newMonth.year,
-  );
-}
-
+    await stepController.loadStepsfromAPI(
+      month: newMonth.month,
+      year: newMonth.year,
+    );
+  }
 
   // ===== BUILD =====
 
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    final isDarkMode = media.platformBrightness == Brightness.dark;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final height = media.size.height;
     final width = media.size.width;
 
@@ -302,13 +301,14 @@ class _StepCounterState extends State<StepCounter> {
                           key: ValueKey(end),
                           tween: IntTween(begin: begin, end: end),
                           duration: const Duration(milliseconds: 400),
-                          builder: (_, val, __) => Text(
-                            "$val",
-                            style: const TextStyle(
-                              fontSize: 38,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          builder:
+                              (_, val, __) => Text(
+                                "$val",
+                                style: const TextStyle(
+                                  fontSize: 38,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                         );
                       }),
 
@@ -414,26 +414,27 @@ class _StepCounterState extends State<StepCounter> {
               SizedBox(
                 height: height * 0.34,
                 child: Obx(() {
-                  final labels = _isMonthlyView
-                      ? generateMonthLabels(_selectedMonth)
-                      : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-                  final points = _isMonthlyView
-                      ? stepController.getMonthlyStepsSpots(_selectedMonth)
-                      : stepController.stepSpots.toList();
+                  final labels =
+                      _isMonthlyView
+                          ? generateMonthLabels(_selectedMonth)
+                          : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+                  final points =
+                      _isMonthlyView
+                          ? stepController.getMonthlyStepsSpots(_selectedMonth)
+                          : stepController.stepSpots.toList();
 
-                   print("📈 Rendering graph with points: $points");
+                  print("📈 Rendering graph with points: $points");
 
-                   return StepStatGraphWidget(
-  isDarkMode: isDarkMode,
-  height: height,
-  points: points,
-  weekLabels: labels,
-  isMonthlyView: _isMonthlyView,
-  graphTitle: 'Steps',
-)
-;
-                 }),
-               ),
+                  return StepStatGraphWidget(
+                    isDarkMode: isDarkMode,
+                    height: height,
+                    points: points,
+                    weekLabels: labels,
+                    isMonthlyView: _isMonthlyView,
+                    graphTitle: 'Steps',
+                  );
+                }),
+              ),
             ],
           ),
         ),

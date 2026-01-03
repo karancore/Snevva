@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart'
     show CustomAppBar;
 import 'package:snevva/Widgets/home_wrapper.dart';
+import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/queryParamViewModels/bloodpressure.dart';
 
@@ -46,83 +47,74 @@ class _VitalsScreenState extends State<VitalsScreen> {
 
   final _controller = Get.find<VitalsController>();
 
-  Future<void> toggleVitalsCard() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isFirstTime', false);
-  }
-
-  Future<void> updateVitals() async {
-    int? newBPM = int.tryParse(bpmController.text);
-    int? newSystolic = int.tryParse(systolicController.text);
-    int? newDiastolic = int.tryParse(diastolicController.text);
-    int? newGlucose = int.tryParse(glucoseController.text);
-
-    if (vitalsKey.currentState!.validate()) {
-      if (newBPM != 0 &&
-          newSystolic != null &&
-          newDiastolic != null &&
-          newGlucose != null) {
-        setState(() {
-          heartRate = newBPM ?? 0;
-          systolic = newSystolic;
-          diastolic = newDiastolic;
-          bloodGlucose = newGlucose;
-        });
-
-        final res = _controller.submitVitals(
-          BloodPressureData(
-            heartRate: heartRate.toDouble(),
-            sys: systolic.toDouble(),
-            dia: diastolic.toDouble(),
-            bloodGlucose: bloodGlucose.toDouble(),
-            day: DateTime.now().day,
-            month: DateTime.now().month,
-            year: DateTime.now().year,
-            time: TimeOfDay.now().format(context),
-          ),
-          context,
-        );
-
-        if (await res) {
-          bpmController.clear();
-          systolicController.clear();
-          diastolicController.clear();
-          glucoseController.clear();
-          Get.to(() => HomeWrapper(key: UniqueKey()));
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Please enter valid numeric values")),
-        );
-      }
-    }
-  }
-
   @override
   void initState() {
     super.initState();
     toggleVitalsCard();
-    bpmController.text = heartRate.toString();
-    systolicController.text = systolic.toString();
-    diastolicController.text = diastolic.toString();
-    glucoseController.text = bloodGlucose.toString();
+
+    if (_controller.bpm.value > 0) {
+      bpmController.text = _controller.bpm.value.toString();
+    }
+    if (_controller.sys.value > 0) {
+      systolicController.text = _controller.sys.value.toString();
+    }
+
+    if (_controller.dia.value > 0) {
+      diastolicController.text = _controller.dia.value.toString();
+    }
+
+    if (_controller.bloodGlucose.value > 0) {
+      glucoseController.text = _controller.bloodGlucose.value.toString();
+    }
+
+    //bpmController.text = heartRate.toString();
+    // systolicController.text = systolic.toString();
+    // diastolicController.text = diastolic.toString();
+    // glucoseController.text = bloodGlucose.toString();
 
     _controller.loadVitalsFromLocalStorage().then((_) {
       setState(() {
-        bpmController.text = _controller.bpm.value.toString();
-        systolicController.text = _controller.sys.value.toString();
-        diastolicController.text = _controller.dia.value.toString();
-        glucoseController.text = _controller.bloodGlucose.value.toString();
+        //bpmController.text = _controller.bpm.value.toString();
+        if (_controller.bpm.value > 0) {
+          bpmController.text = _controller.bpm.value.toString();
+        }
+
+        if (_controller.sys.value > 0) {
+          systolicController.text = _controller.sys.value.toString();
+        }
+
+        if (_controller.dia.value > 0) {
+          diastolicController.text = _controller.dia.value.toString();
+        }
+        if (_controller.bloodGlucose.value > 0) {
+          glucoseController.text = _controller.bloodGlucose.value.toString();
+        }
         heartRate = _controller.bpm.value;
       });
     });
 
     bpmController.addListener(() {
       setState(() {
-        heartRate = int.tryParse(bpmController.text) ?? 0;
-        systolic = int.tryParse(systolicController.text) ?? 0;
-        diastolic = int.tryParse(diastolicController.text) ?? 0;
-        bloodGlucose = int.tryParse(glucoseController.text) ?? 0;
+        final parsed = int.tryParse(bpmController.text);
+        if (parsed != null) {
+          heartRate = parsed;
+        }
+        // heartRate = int.tryParse(bpmController.text) ?? 0;
+        // systolic = int.tryParse(systolicController.text) ?? 0;
+        // diastolic = int.tryParse(diastolicController.text) ?? 0;
+        // bloodGlucose = int.tryParse(glucoseController.text) ?? 0;
+
+        if (_controller.sys.value > 0) {
+          systolicController.text = _controller.sys.value.toString();
+        }
+
+        if (_controller.dia.value > 0) {
+          diastolicController.text = _controller.dia.value.toString();
+        }
+
+        if (_controller.bloodGlucose.value > 0) {
+          glucoseController.text = _controller.bloodGlucose.value.toString();
+        }
       });
     });
   }
@@ -134,6 +126,156 @@ class _VitalsScreenState extends State<VitalsScreen> {
     diastolicController.dispose();
     glucoseController.dispose();
     super.dispose();
+  }
+
+  Future<void> toggleVitalsCard() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isFirstTime', false);
+  }
+
+  void updateVitals() {
+    List<String> missingFields = [];
+
+    int bpm = int.tryParse(bpmController.text.trim()) ?? 0;
+    int sys = int.tryParse(systolicController.text.trim()) ?? 0;
+    int dia = int.tryParse(diastolicController.text.trim()) ?? 0;
+    int glucose = int.tryParse(glucoseController.text.trim()) ?? 0;
+
+    if (bpm <= 0) missingFields.add("Heart Rate (BPM)");
+    if (sys <= 0) missingFields.add("Systolic (SYS)");
+    if (dia <= 0) missingFields.add("Diastolic (DIA)");
+    if (glucose <= 0) missingFields.add("Blood Glucose");
+
+    if (missingFields.isNotEmpty) {
+      CustomSnackbar.showError(
+        context: context,
+        title: "Missing Information",
+        message: "Please enter:\n• ${missingFields.join("\n• ")}",
+      );
+      return;
+    }
+
+    final result = _controller.submitVitals(
+      BloodPressureData(
+        heartRate: bpm!.toDouble(),
+        sys: sys!.toDouble(),
+        dia: dia!.toDouble(),
+        bloodGlucose: glucose!.toDouble(),
+        day: DateTime.now().day,
+        month: DateTime.now().month,
+        year: DateTime.now().year,
+        time: DateTime.now().toIso8601String(),
+      ),
+      context,
+    );
+
+    if (result != null) {
+      result.then((success) {
+        if (success) {
+          bpmController.clear();
+          systolicController.clear();
+          diastolicController.clear();
+          glucoseController.clear();
+          Get.to(() => HomeWrapper(key: UniqueKey()));
+        }
+      });
+    }
+  }
+
+  // Future<void> updateVitals() async {
+  //   int? newBPM = int.tryParse(bpmController.text);
+  //   int? newSystolic = int.tryParse(systolicController.text);
+  //   int? newDiastolic = int.tryParse(diastolicController.text);
+  //   int? newGlucose = int.tryParse(glucoseController.text);
+  //
+  //   showMissingFieldsSnackbar(context);
+  //
+  //   if (vitalsKey.currentState!.validate()) {
+  //     if (newBPM != 0 &&
+  //         newSystolic != null &&
+  //         newDiastolic != null &&
+  //         newGlucose != null) {
+  //       setState(() {
+  //         heartRate = newBPM ?? 72;
+  //         systolic = newSystolic;
+  //         diastolic = newDiastolic;
+  //         bloodGlucose = newGlucose;
+  //       });
+  //
+  //       if (isValidVitals(
+  //         bpm: newBPM!,
+  //         sys: newSystolic!,
+  //         dia: newDiastolic!,
+  //         glucose: newGlucose!,
+  //       )) {
+  //         final res = _controller.submitVitals(
+  //           BloodPressureData(
+  //             heartRate: heartRate.toDouble(),
+  //             sys: systolic.toDouble(),
+  //             dia: diastolic.toDouble(),
+  //             bloodGlucose: bloodGlucose.toDouble(),
+  //             day: DateTime.now().day,
+  //             month: DateTime.now().month,
+  //             year: DateTime.now().year,
+  //             time: TimeOfDay.now().format(context),
+  //           ),
+  //           context,
+  //         );
+  //         if (await res) {
+  //           bpmController.clear();
+  //           systolicController.clear();
+  //           diastolicController.clear();
+  //           glucoseController.clear();
+  //           Get.to(() => HomeWrapper(key: UniqueKey()));
+  //         }
+  //       }
+  //     } else {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text("Please enter valid numeric values")),
+  //       );
+  //     }
+  //   }
+  // }
+
+  void showMissingFieldsSnackbar(BuildContext context) {
+    List<String> missingFields = [];
+
+    if (bpmController.text.trim().isEmpty) {
+      missingFields.add("Heart Rate (BPM)");
+    }
+
+    if (systolicController.text.trim().isEmpty ||
+        diastolicController.text.trim().isEmpty) {
+      missingFields.add("Blood Pressure");
+    }
+
+    if (glucoseController.text.trim().isEmpty) {
+      missingFields.add("Blood Glucose");
+    }
+
+    if (missingFields.isEmpty) return;
+
+    CustomSnackbar.showError(
+      context: context,
+      title: "Missing Information",
+      message: "Please enter:\n• ${missingFields.join("\n• ")}",
+    );
+  }
+
+  bool isValidVitals({
+    required int bpm,
+    required int sys,
+    required int dia,
+    required int glucose,
+  }) {
+    return bpm >= 40 &&
+        bpm <= 200 &&
+        sys >= 90 &&
+        sys <= 200 &&
+        dia >= 60 &&
+        dia <= 120 &&
+        glucose >= 70 &&
+        glucose <= 300;
   }
 
   @override
@@ -200,18 +342,18 @@ class _VitalsScreenState extends State<VitalsScreen> {
                       children: [
                         SizedBox(
                           width: 80,
-                          child: TextField(
+                          child: TextFormField(
                             controller: bpmController,
                             keyboardType: TextInputType.number,
                             textAlign: TextAlign.center,
-                            inputFormatters: [MaxValueTextInputFormatter(200)],
+                            inputFormatters: [MaxValueTextInputFormatter(120)],
                             style: TextStyle(
                               fontSize: 44,
                               color: textColor,
                               fontWeight: FontWeight.bold,
                             ),
                             decoration: InputDecoration(
-                              hintText: '$heartRate',
+                              hintText: heartRate > 0 ? '$heartRate' : '72',
                               hintStyle: TextStyle(
                                 color: textColor.withOpacity(0.5),
                               ),
@@ -269,7 +411,7 @@ class _VitalsScreenState extends State<VitalsScreen> {
                           ),
                           SizedBox(
                             width: 45,
-                            child: TextField(
+                            child: TextFormField(
                               controller: systolicController,
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
@@ -291,7 +433,7 @@ class _VitalsScreenState extends State<VitalsScreen> {
                           Text('/', style: TextStyle(color: textColor)),
                           SizedBox(
                             width: 45,
-                            child: TextField(
+                            child: TextFormField(
                               controller: diastolicController,
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
@@ -329,7 +471,7 @@ class _VitalsScreenState extends State<VitalsScreen> {
                           ),
                           SizedBox(
                             width: 70,
-                            child: TextField(
+                            child: TextFormField(
                               controller: glucoseController,
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,

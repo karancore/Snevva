@@ -23,6 +23,8 @@ import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
+import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
+import 'package:snevva/Controllers/Reminder/water_controller.dart';
 
 // ====================================================================
 // 0️⃣ NOTIFICATION CHANNEL SETUP (CRITICAL FOR ANDROID 12+)
@@ -37,12 +39,13 @@ Future<void> createServiceNotificationChannel() async {
     description: 'Health tracking service (steps & sleep)',
     importance: Importance.low,
   );
-  
+
   await flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
+        AndroidFlutterLocalNotificationsPlugin
+      >()
       ?.createNotificationChannel(channel);
-  
+
   print("✅ Notification channel created for foreground service");
 }
 
@@ -117,7 +120,9 @@ Future<void> initBackgroundService() async {
   try {
     if (!await service.isRunning()) {
       await service.startService();
-      print("✅ Unified background service (steps + sleep) started successfully");
+      print(
+        "✅ Unified background service (steps + sleep) started successfully",
+      );
     } else {
       print("⚠️ Service already running, skipping start");
     }
@@ -167,7 +172,6 @@ Future<bool> initializeApp() async {
   Get.put(MoodController());
   Get.put(SignInController());
   Get.put(VitalsController());
-  Get.put(LocalStorageManager());
   Get.put(WomenHealthController());
 
   // Login status

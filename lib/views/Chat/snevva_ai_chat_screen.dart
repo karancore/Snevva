@@ -241,7 +241,7 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
-    final bool isDark = mediaQuery.platformBrightness == Brightness.dark;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     final node = decisionTree[currentNodeKey];
 

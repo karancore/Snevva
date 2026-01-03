@@ -10,12 +10,13 @@ import 'package:snevva/views/Information/StepCounter/step_counter.dart';
 import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.dart';
 import 'package:snevva/views/Information/vitals.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
-import 'package:snevva/views/Reminder/reminder.dart';
+import 'package:snevva/views/Reminder/reminder_screen.dart';
 import 'package:snevva/views/Information/mental_wellness_screen.dart';
 import 'package:get/get.dart';
 import 'package:snevva/views/WomenHealth/women_health_screen.dart';
 import '../../Controllers/StepCounter/step_counter_controller.dart';
 import '../../Widgets/CommonWidgets/custom_appbar.dart';
+import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../Widgets/menu_item_widget.dart';
 import '../../common/statement_of_use_bottom_sheet.dart';
 import '../WomenHealth/women_bottom_sheets.dart';
@@ -89,7 +90,7 @@ class _InfoPageState extends State<InfoPage>
         title: "Add A Reminder",
         subtitle: "Medication, meal, hydration alert",
         imagePath: reminderIcon,
-        navigateTo: Reminder(),
+        navigateTo: ReminderScreen(),
       ),
       MenuItem(
         title: "Steps Tracker",
@@ -198,8 +199,10 @@ class _InfoPageState extends State<InfoPage>
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final mediaQuery = MediaQuery.of(context);
-    final isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
+    final mediaQuery = MediaQuery.of(
+      context,
+    ); // ✅ Listens to the app's current theme command
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
 
@@ -251,11 +254,11 @@ class _InfoPageState extends State<InfoPage>
     };
 
     return Scaffold(
+      drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: CustomAppBar(
         appbarText: "Services",
 
         showCloseButton: false,
-        showDrawerIcon: false,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),

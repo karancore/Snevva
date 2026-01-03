@@ -21,9 +21,9 @@ class WomenBottomSheets extends StatefulWidget {
   State<WomenBottomSheets> createState() => _WomenBottomSheetsState();
 }
 
-
 class _WomenBottomSheetsState extends State<WomenBottomSheets> {
-  final WomenHealthController womenController = Get.find<WomenHealthController>();
+  final WomenHealthController womenController =
+      Get.find<WomenHealthController>();
 
   final PageController _pageController = PageController();
   final WheelPickerController _wheelController = WheelPickerController(

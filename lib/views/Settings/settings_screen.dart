@@ -24,10 +24,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
-    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
-
+    // ✅ Listens to the app's current theme command
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      appBar: CustomAppBar(appbarText: "Settings", showCloseButton: false ),
+      appBar: CustomAppBar(appbarText: "Settings", showCloseButton: true),
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -38,7 +38,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Text(
               "Theme",
               style: TextStyle(
-                color: grey,
+                color: Theme.of(context).hintColor,
                 fontWeight: FontWeight.w400,
                 fontSize: 14,
               ),
@@ -57,42 +57,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     themeController.toggleTheme(value);
                     setState(() {});
                   },
-                )
+                ),
               ],
             ),
             SizedBox(height: height * 0.0188),
-            Divider(thickness: 1.5, color: mediumGrey),
+            Divider(thickness: 1.5, color: Theme.of(context).dividerColor),
             SizedBox(height: height * 0.0188),
-            Text(
-              "Volume & Access",
-              style: TextStyle(
-                color: grey,
-                fontWeight: FontWeight.w400,
-                fontSize: 14,
-              ),
-            ),
-            SizedBox(height: height * 0.0117),
-            Text(
-              "Media",
-              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
-            ),
-            SizedBox(height: height * 0.004),
-            Slider(
-              value: _volume,
-
-              thumbColor: AppColors.primaryColor,
-              activeColor: AppColors.primaryColor,
-              inactiveColor: AppColors.primaryColor.withOpacity(0.3),
-
-              padding: EdgeInsets.zero,
-              onChanged: (double value) {
-                setState(() {
-                  _volume = value;
-                });
-              },
-            ),
-
-            SizedBox(height: height * 0.0188),
+            // Text(
+            //   "Volume & Access",
+            //   style: TextStyle(
+            //     color: Theme.of(context).hintColor,
+            //     fontWeight: FontWeight.w400,
+            //     fontSize: 14,
+            //   ),
+            // ),
+            // SizedBox(height: height * 0.0117),
+            // Text(
+            //   "Media",
+            //   style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+            // ),
+            // SizedBox(height: height * 0.004),
+            // Slider(
+            //   value: _volume,
+            //
+            //   thumbColor: AppColors.primaryColor,
+            //   activeColor: AppColors.primaryColor,
+            //   inactiveColor: AppColors.primaryColor.withOpacity(0.3),
+            //
+            //   padding: EdgeInsets.zero,
+            //   onChanged: (double value) {
+            //     setState(() {
+            //       _volume = value;
+            //     });
+            //   },
+            // ),
+            //
+            // SizedBox(height: height * 0.0188),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -112,13 +112,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
             SizedBox(height: height * 0.0188),
-            Divider(thickness: 1.0, color: mediumGrey),
+            Divider(thickness: 1.0, color: Theme.of(context).dividerColor),
             // Divider(thickness: 1.0, color: mediumGrey),
             SizedBox(height: height * 0.0188),
             Text(
               "About",
               style: TextStyle(
-                color: grey,
+                color: Theme.of(context).hintColor,
                 fontWeight: FontWeight.w400,
                 fontSize: 14,
               ),
@@ -126,10 +126,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SizedBox(height: height * 0.0117),
             Text(
               "About app",
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 16,
-              ),
+              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
             ),
             SizedBox(height: height * 0.0164),
 
@@ -165,7 +162,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           subheading,
           maxFontSize: 14,
           minFontSize: 8,
-          style: TextStyle(fontWeight: FontWeight.w400, color: mediumGrey),
+          style: TextStyle(
+            fontWeight: FontWeight.w400,
+            color: Theme.of(context).hintColor,
+          ),
           overflow: TextOverflow.ellipsis,
           maxLines: 2,
         ),

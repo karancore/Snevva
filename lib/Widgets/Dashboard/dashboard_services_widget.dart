@@ -58,7 +58,7 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
-    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     // final signInController = Get.find<SignInController>();
     // final userInfo = signInController.userProfData ?? {};
@@ -76,7 +76,7 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
     final womentracking = useracivedata['TrackWomenData'];
     final stepgoal = useracivedata['StepGoalData']?['Count'];
     final SleepGoalData = useracivedata['SleepGoalData'];
-    
+
     print('useracivedata: $useracivedata');
     // Safe check for userData and gender
     // final gender = selectedGender ?? localgender ?? 'Unknown';

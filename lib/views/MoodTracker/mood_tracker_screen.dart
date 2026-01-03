@@ -3,6 +3,7 @@ import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../consts/consts.dart';
 import '../../Widgets/MoodTracker/animated_circle_widget.dart';
+import 'mood_questionnaire.dart';
 
 class MoodTrackerScreen extends StatelessWidget {
   const MoodTrackerScreen({super.key});
@@ -127,7 +128,7 @@ class MoodTrackerScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 controller.updateMood(context);
-                Navigator.of(context).pop();
+                Get.to(() => const MoodQuestionnaire());
               },
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(

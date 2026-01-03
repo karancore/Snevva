@@ -62,7 +62,8 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
     final mediaQuery = MediaQuery.of(context);
     final width = mediaQuery.size.width;
     // final height = mediaQuery.size.height;
-    final isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
+    // ✅ Listens to the app's current theme command
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: Column(

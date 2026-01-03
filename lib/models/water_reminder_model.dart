@@ -6,6 +6,7 @@ class WaterReminderModel {
   final String category;
   final List<AlarmSettings> alarms;
   final String timesPerDay;
+  final String? interval;
 
   WaterReminderModel({
     required this.id,
@@ -13,6 +14,7 @@ class WaterReminderModel {
     required this.category,
     required this.alarms,
     required this.timesPerDay,
+    this.interval,
   });
 
   Map<String, dynamic> toJson() {
@@ -22,6 +24,7 @@ class WaterReminderModel {
       "Category": category,
       'alarms': alarms.map((a) => a.toJson()).toList(),
       'timesPerDay': timesPerDay,
+      'interval': interval,
     };
   }
 
@@ -35,6 +38,7 @@ class WaterReminderModel {
               .map((a) => AlarmSettings.fromJson(a))
               .toList(),
       timesPerDay: json['timesPerDay'],
+      interval: json['interval'],
     );
   }
 }

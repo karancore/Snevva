@@ -15,8 +15,7 @@ class Navbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode =
-        MediaQuery.of(context).platformBrightness == Brightness.dark;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
 
     final List<IconData> androidIcons = [
@@ -40,10 +39,7 @@ class Navbar extends StatelessWidget {
     return SafeArea(
       child: Container(
         decoration: BoxDecoration(
-          color:
-              isDarkMode
-                  ? black
-                  : white,
+          color: Theme.of(context).scaffoldBackgroundColor,
           boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
         ),
         padding: const EdgeInsets.symmetric(vertical: 10),
@@ -91,9 +87,9 @@ class Navbar extends StatelessWidget {
                           color:
                               isSelected
                                   ? AppColors.primaryColor
-                                  : isDarkMode
-                                  ? white
-                                  : black,
+                                  : Theme.of(
+                                    context,
+                                  ).textTheme.bodySmall?.color,
                           fontSize: screenWidth * 0.03,
                           fontWeight:
                               isSelected ? FontWeight.w600 : FontWeight.normal,

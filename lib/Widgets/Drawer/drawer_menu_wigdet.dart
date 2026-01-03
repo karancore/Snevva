@@ -40,7 +40,8 @@ class DrawerMenuWidget extends StatelessWidget {
     await prefs.clear();
 
     try {
-      if (!Hive.isBoxOpen('step_history')) await Hive.openBox<StepEntry>('step_history');
+      if (!Hive.isBoxOpen('step_history'))
+        await Hive.openBox<StepEntry>('step_history');
       await Hive.box<StepEntry>('step_history').clear();
     } catch (e) {
       print('❌ Failed to clear step_history on logout: $e');
@@ -179,7 +180,7 @@ class DrawerMenuWidget extends StatelessWidget {
                         // ),
                         DrawerMenuItem(
                           menuIcon: gearIcon,
-                          itemName: 'Setting',
+                          itemName: 'Settings',
                           onWidgetTap:
                               () => {
                                 Get.back(),

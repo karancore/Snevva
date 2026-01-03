@@ -44,8 +44,7 @@ class _AnimatedReminderBarState extends State<AnimatedReminderBar>
 
   @override
   Widget build(BuildContext context) {
-    final bool isDarkMode =
-        MediaQuery.of(context).platformBrightness == Brightness.dark;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     if (!_showBar) return const SizedBox.shrink(); // 🔥 Hide widget
 
@@ -77,7 +76,7 @@ class _AnimatedReminderBarState extends State<AnimatedReminderBar>
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
-                        color: isDarkMode ? white : black,
+                        color: black,
                       ),
                     ),
                   ),

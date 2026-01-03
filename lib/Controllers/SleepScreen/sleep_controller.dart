@@ -263,7 +263,9 @@ class SleepController extends GetxController {
       final duration = wakeDt.difference(bedDt);
       // Filter out spurious durations
       if (duration.inMinutes < 10) {
-        debugPrint('⛔ Skipping upload: duration too small (${duration.inMinutes}m)');
+        debugPrint(
+          '⛔ Skipping upload: duration too small (${duration.inMinutes}m)',
+        );
         return;
       }
 
@@ -274,7 +276,9 @@ class SleepController extends GetxController {
         'Day': recordDate.day,
         'Month': recordDate.month,
         'Year': recordDate.year,
-        'Time': TimeOfDay.fromDateTime(wakeDt).format(Get.context!), // when pushing (after wake)
+        'Time': TimeOfDay.fromDateTime(
+          wakeDt,
+        ).format(Get.context!), // when pushing (after wake)
         'SleepingFrom': timeOfDayToString(TimeOfDay.fromDateTime(bedDt)),
         'SleepingTo': timeOfDayToString(TimeOfDay.fromDateTime(wakeDt)),
       };
@@ -463,14 +467,22 @@ class SleepController extends GetxController {
 
     // Build the bed/wake for the intended cycle relative to bed date
     DateTime bt = bedtime.value!;
-    DateTime wt = DateTime(bt.year, bt.month, bt.day, waketime.value!.hour, waketime.value!.minute);
+    DateTime wt = DateTime(
+      bt.year,
+      bt.month,
+      bt.day,
+      waketime.value!.hour,
+      waketime.value!.minute,
+    );
     if (wt.isBefore(bt) || wt.isAtSameMomentAs(bt)) {
       wt = wt.add(const Duration(days: 1));
     }
 
     final deep = wt.difference(bt);
     if (deep.inMinutes < 10) {
-      debugPrint('⛔ Skipping save: calculated duration too small (${deep.inMinutes}m)');
+      debugPrint(
+        '⛔ Skipping save: calculated duration too small (${deep.inMinutes}m)',
+      );
       return;
     }
 
@@ -514,14 +526,17 @@ class SleepController extends GetxController {
       waketime.value!.hour,
       waketime.value!.minute,
     );
-    if (correctedWake.isBefore(computedBedtime) || correctedWake.isAtSameMomentAs(computedBedtime)) {
+    if (correctedWake.isBefore(computedBedtime) ||
+        correctedWake.isAtSameMomentAs(computedBedtime)) {
       correctedWake = correctedWake.add(const Duration(days: 1));
     }
 
     //Calculating deep sleep
     final deep = correctedWake.difference(computedBedtime);
     if (deep.inMinutes < 10) {
-      debugPrint('⛔ Skipping save/upload (phone usage): duration too small (${deep.inMinutes}m)');
+      debugPrint(
+        '⛔ Skipping save/upload (phone usage): duration too small (${deep.inMinutes}m)',
+      );
       return;
     }
 

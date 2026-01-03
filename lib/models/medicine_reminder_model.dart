@@ -2,11 +2,13 @@ import 'package:alarm/model/alarm_settings.dart';
 
 class MedicineReminderModel {
   final String title;
+  final String note;
   final List<String> medicines;
   final AlarmSettings alarm;
 
   MedicineReminderModel({
     required this.title,
+    required this.note,
     required this.medicines,
     required this.alarm,
   });
@@ -15,6 +17,7 @@ class MedicineReminderModel {
   Map<String, dynamic> toJson() => {
     'title': title,
     'medicines': medicines,
+    'note': note,
     'alarm': alarm.toJson(),
   };
 
@@ -22,6 +25,7 @@ class MedicineReminderModel {
   factory MedicineReminderModel.fromJson(Map<String, dynamic> json) {
     return MedicineReminderModel(
       title: json['title'],
+      note: json['note'],
       medicines: List<String>.from(json['medicines']),
       alarm: AlarmSettings.fromJson(json['alarm']),
     );

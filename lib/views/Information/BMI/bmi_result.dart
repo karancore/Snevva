@@ -51,7 +51,8 @@ class BmiResultPage extends StatelessWidget {
 
     controller.loadAllHealthTips(context);
 
-    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
+    // ✅ Listens to the app's current theme command
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final status = getStatus(bmi);
     final statusColor = getStatusColor(bmi);
     final imagePath = getImg(bmi);

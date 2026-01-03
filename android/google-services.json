@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "760082000923",
+    "project_id": "snevva-aef81",
+    "storage_bucket": "snevva-aef81.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:760082000923:android:d64810cdaedd774da3dcbe",
+        "android_client_info": {
+          "package_name": "com.coretegra.snevva"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "760082000923-v6lm2bqqroimspg8f1am01ntbio5mbn0.apps.googleusercontent.com",
+
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.coretegra.snevva",
+            "certificate_hash": "7f4758a3570a0250efc23071be4546f89a1e340d"
+          }
+        },
+        {
+          "client_id": "760082000923-v6lm2bqqroimspg8f1am01ntbio5mbn0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCUAz5H5yHgpZl8DHnEScp_O3weEXndQIE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "760082000923-v6lm2bqqroimspg8f1am01ntbio5mbn0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

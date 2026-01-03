@@ -143,7 +143,8 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     final mediaQuery = MediaQuery.of(context);
     final width = mediaQuery.size.width;
     final height = mediaQuery.size.height;
-    final isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
+    // ✅ Listens to the app's current theme command
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final double size = 210;
     final double center = size / 2;
     final double radius = center - 20;

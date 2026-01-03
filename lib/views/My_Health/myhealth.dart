@@ -16,6 +16,7 @@ import 'package:snevva/views/WomenHealth/women_health_screen.dart';
 import '../../Controllers/Hydration/hydration_stat_controller.dart';
 import '../../Controllers/StepCounter/step_counter_controller.dart';
 import '../../Controllers/signupAndSignIn/sign_in_controller.dart';
+import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 
 class MyHealthScreen extends StatefulWidget {
   const MyHealthScreen({super.key});
@@ -258,6 +259,12 @@ class _MyHealthScreenState extends State<MyHealthScreen>
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(
+      context,
+    ); // ✅ Listens to the app's current theme command
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final height = mediaQuery.size.height;
+    final width = mediaQuery.size.width;
     final sections = <String, List<TrackerHealthCard>>{
       "Tracker":
           filteredVitalItems
@@ -284,15 +291,15 @@ class _MyHealthScreenState extends State<MyHealthScreen>
     };
 
     return Scaffold(
+      drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       extendBodyBehindAppBar: true,
       appBar: const CustomAppBar(
         appbarText: 'My Health',
         showCloseButton: false,
-        showDrawerIcon: false,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children:
@@ -310,7 +317,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 24),
 
                           // Cards inside the section
                           ...List.generate(
@@ -372,9 +379,8 @@ class TrackerHealthCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode =
-        MediaQuery.of(context).platformBrightness == Brightness.dark;
-
+    // ✅ Listens to the app's current theme command
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
         color: isDarkMode ? Colors.white.withValues(alpha: 0.1) : Colors.white,

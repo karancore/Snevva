@@ -97,6 +97,9 @@ class _SignInScreenState extends State<SignInScreen> {
       year: DateTime.now().year,
     );
 
+    await localStorageManager.getFCMToken();
+
+    await womenhealthController.loaddatafromAPI();
     await womenhealthController.lastPeriodDatafromAPI();
 
     await moodcontroller.loadmoodfromAPI(
@@ -200,6 +203,7 @@ class _SignInScreenState extends State<SignInScreen> {
           context,
         );
       } else {
+        print("Invalid input format");
         // 🔹 Invalid input
         _handleSignInError();
         return;
@@ -208,10 +212,13 @@ class _SignInScreenState extends State<SignInScreen> {
       // 🔹 Handle result
       if (success) {
         await _handleSuccessfulSignIn(input, prefs);
+        print("Sign-in successful");
       } else {
+        print("Sign-in failed");
         _handleSignInError();
       }
     } catch (e) {
+      print("Exception during sign-in: $e");
       _handleSignInError();
     } finally {
       setState(() => isLoading = false);
@@ -223,8 +230,8 @@ class _SignInScreenState extends State<SignInScreen> {
     final mediaQuery = MediaQuery.of(context);
     // final height = mediaQuery.size.height;
     // final width = mediaQuery.size.width;
-    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
-
+    // ✅ Listens to the app's current theme command
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: Center(

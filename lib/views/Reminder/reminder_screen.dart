@@ -5,19 +5,21 @@ import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 
 import 'package:snevva/common/loader.dart';
 import 'package:snevva/consts/consts.dart';
-import 'package:snevva/views/Reminder/add_reminder.dart';
+import 'package:snevva/views/Reminder/add_reminder_screen.dart';
 
+import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../common/animted_reminder_bar.dart';
 import '../../common/custom_snackbar.dart';
+import '../../common/global_variables.dart';
 
-class Reminder extends StatefulWidget {
-  const Reminder({super.key});
+class ReminderScreen extends StatefulWidget {
+  const ReminderScreen({super.key});
 
   @override
-  State<Reminder> createState() => _ReminderState();
+  State<ReminderScreen> createState() => _ReminderScreenState();
 }
 
-class _ReminderState extends State<Reminder> {
+class _ReminderScreenState extends State<ReminderScreen> {
   final ReminderController controller = Get.put(ReminderController());
   bool showReminderBar = true;
 
@@ -39,13 +41,13 @@ class _ReminderState extends State<Reminder> {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
-    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
-
+    // ✅ Listens to the app's current theme command
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
+      drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: CustomAppBar(
         appbarText: "Reminder",
         showCloseButton: false,
-        showDrawerIcon: false,
         onClose: () {
           Navigator.of(context).pop();
         },
@@ -118,10 +120,27 @@ class _ReminderState extends State<Reminder> {
                                   SizedBox(width: 10),
                                   Expanded(
                                     child: Text(
-                                      reminder['Title'] ?? 'No title',
+                                      reminder['Title'] != null &&
+                                              reminder['Title']
+                                                  .toString()
+                                                  .isNotEmpty
+                                          ? reminder['Title']
+                                          : 'No Title',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w500,
                                         fontSize: 18,
+                                        color:
+                                            reminder['Title'] != null &&
+                                                    reminder['Title']
+                                                        .toString()
+                                                        .isNotEmpty
+                                                ? (Theme.of(
+                                                          context,
+                                                        ).brightness ==
+                                                        Brightness.dark
+                                                    ? white
+                                                    : black)
+                                                : grey,
                                       ),
                                     ),
                                   ),
@@ -133,7 +152,9 @@ class _ReminderState extends State<Reminder> {
                                     ),
                                     onPressed: () async {
                                       final result = await Get.to(
-                                        () => AddReminder(reminder: reminder),
+                                        () => AddReminderScreen(
+                                          reminder: reminder,
+                                        ),
                                       );
                                       if (result == true) {
                                         await _loadData();
@@ -173,7 +194,7 @@ class _ReminderState extends State<Reminder> {
             buttonName: "+ Add Reminder",
             backgroundColor: AppColors.primaryColor,
             onTap: () async {
-              final result = await Get.to(AddReminder());
+              final result = await Get.to(AddReminderScreen());
               // Always reload data when returning, regardless of result
               // The controller already handles the update, but this ensures consistency
               if (result == true) {
@@ -206,6 +227,16 @@ class _ReminderState extends State<Reminder> {
   }
 
   Widget _buildCategoryContent(Map<String, dynamic> reminder, String category) {
+    final int frequencyHour =
+        int.tryParse(reminder['RemindFrequencyHour']?.toString() ?? '0') ?? 0;
+    final int freqHour =
+        reminder['RemindFrequencyHour'] is int
+            ? reminder['RemindFrequencyHour']
+            : int.tryParse(
+                  reminder['RemindFrequencyHour']?.toString() ?? '0',
+                ) ??
+                0;
+
     print(reminder.toString());
     print(reminder);
     switch (category) {
@@ -215,14 +246,17 @@ class _ReminderState extends State<Reminder> {
           children: [
             if (reminder['MedicineName'] != null)
               Text(
-                (reminder['MedicineName'] as List).join(', '),
+                'Medicine : ${(reminder['MedicineName'] as List).join(', ')}',
                 style: TextStyle(fontSize: 12, color: Color(0xff878787)),
               ),
-
-            Text(
-              "Notes: ${reminder['Description'] ?? 'N/A'}",
-              style: TextStyle(fontSize: 12, color: Color(0xff878787)),
-            ),
+            if (reminder['Description'] != null &&
+                reminder['Description'].toString().isNotEmpty)
+              Text(
+                "Note : ${reminder['Description']}",
+                style: TextStyle(fontSize: 12, color: Color(0xff878787)),
+              )
+            else
+              SizedBox.shrink(),
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.start,
@@ -235,14 +269,14 @@ class _ReminderState extends State<Reminder> {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  controller.formatReminderTime(reminder['RemindTime'] ?? []),
+                  formatReminderTime(reminder['RemindTime'] ?? []),
                   style: TextStyle(fontSize: 12, color: Color(0xff878787)),
                 ),
                 Spacer(),
                 InkWell(
                   onTap: () {
                     print("$reminder tapped");
-                    Get.to(AddReminder(reminder: reminder));
+                    Get.to(AddReminderScreen(reminder: reminder));
                   },
                   child: SvgPicture.asset(
                     pen,
@@ -269,47 +303,46 @@ class _ReminderState extends State<Reminder> {
         );
 
       case 'Water':
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (reminder['RemindFrequencyCount'] != null &&
-                    reminder['RemindFrequencyCount'] > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 2.0),
-                    child: Text(
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (reminder['RemindFrequencyCount'] != null &&
+                      reminder['RemindFrequencyCount'] > 0)
+                    Text(
                       "Times per day: ${reminder['RemindFrequencyCount']}",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 12, color: Color(0xff878787)),
                     ),
-                  ),
-                Spacer(flex: 30),
-                InkWell(
-                  onTap: () {
-                    print("$reminder tapped");
-                    Get.to(AddReminder(reminder: reminder));
-                  },
-                  child: SvgPicture.asset(
-                    pen,
-                    width: 18,
-                    height: 18,
-                    color: Color(0xff878787),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                InkWell(
-                  onTap: () => _showDeleteConfirmation(reminder),
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 14.0),
-                    child: Icon(
-                      Icons.delete,
-                      size: 18,
-                      color: Color(0xff878787),
+
+                  if (freqHour > 0)
+                    Text(
+                      "Reminder will ring after every $frequencyHour ${pluralizeHour(frequencyHour)}",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: Color(0xff878787)),
                     ),
-                  ),
-                ),
-              ],
+                ],
+              ),
+            ),
+
+            InkWell(
+              onTap: () => Get.to(AddReminderScreen(reminder: reminder)),
+              child: SvgPicture.asset(
+                pen,
+                width: 18,
+                height: 18,
+                color: Color(0xff878787),
+              ),
+            ),
+            const SizedBox(width: 16),
+            InkWell(
+              onTap: () => _showDeleteConfirmation(reminder),
+              child: Icon(Icons.delete, size: 18, color: Color(0xff878787)),
             ),
           ],
         );
@@ -328,14 +361,14 @@ class _ReminderState extends State<Reminder> {
             const SizedBox(width: 4),
 
             Text(
-              controller.formatReminderTime(reminder['RemindTime'] ?? []),
+              formatReminderTime(reminder['RemindTime'] ?? []),
               style: TextStyle(fontSize: 12, color: Color(0xff878787)),
             ),
             Spacer(),
             InkWell(
               onTap: () {
                 print("$reminder tapped");
-                Get.to(AddReminder(reminder: reminder));
+                Get.to(AddReminderScreen(reminder: reminder));
               },
               child: SvgPicture.asset(
                 pen,
@@ -373,14 +406,14 @@ class _ReminderState extends State<Reminder> {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  controller.formatReminderTime(reminder['RemindTime'] ?? []),
+                  formatReminderTime(reminder['RemindTime'] ?? []),
                   style: TextStyle(fontSize: 12, color: Color(0xff878787)),
                 ),
                 Spacer(),
                 InkWell(
                   onTap: () {
                     print("$reminder tapped");
-                    Get.to(AddReminder(reminder: reminder));
+                    Get.to(AddReminderScreen(reminder: reminder));
                   },
                   child: SvgPicture.asset(
                     pen,
@@ -403,17 +436,17 @@ class _ReminderState extends State<Reminder> {
                 ),
               ],
             ),
-            Text(
-              "Title: ${reminder['Title'] ?? 'N/A'}",
-              style: TextStyle(fontSize: 12, color: Color(0xff878787)),
-            ),
-            if (controller.notesController.text.isEmpty)
-              SizedBox.shrink()
-            else
-              Text(
-                "Notes: ${reminder['Description'] ?? 'N/A'}",
-                style: TextStyle(fontSize: 12, color: Color(0xff878787)),
-              ),
+            // Text(
+            //   "Title: ${reminder['Title'] ?? 'N/A'}",
+            //   style: TextStyle(fontSize: 12, color: Color(0xff878787)),
+            // ),
+            // if (controller.notesController.text.isEmpty)
+            //   SizedBox.shrink()
+            // else
+            //   Text(
+            //     "Notes: ${reminder['Description'] ?? 'N/A'}",
+            //     style: TextStyle(fontSize: 12, color: Color(0xff878787)),
+            //   ),
           ],
         );
 

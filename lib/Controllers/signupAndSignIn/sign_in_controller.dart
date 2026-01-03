@@ -38,6 +38,7 @@ class SignInController extends GetxController {
 
     try {
       final uri = Uri.parse("$baseUrl$signInEmailEndpoint");
+      print("URI: $uri");
       final encryptedEmail = EncryptionService.encryptData(plainEmail);
 
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);

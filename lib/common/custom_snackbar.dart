@@ -8,8 +8,7 @@ class CustomSnackbar {
   OverlayEntry? overlay;
 
   void showReminderBar(BuildContext context) {
-    final bool isDarkMode =
-        MediaQuery.of(context).platformBrightness == Brightness.dark;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     final double topPadding =
         MediaQuery.of(context).padding.top + 10; // 👈 safe area + 10

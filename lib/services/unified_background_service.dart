@@ -155,9 +155,7 @@ void _handleScreenStateChange(
     // CASE 1: Waking from sleep
     if (_sleepStartTime != null && !_isUserUsingPhone) {
       final sleepDuration = now.difference(_sleepStartTime!);
-      print(
-        "😴 [BG] Woke up! Sleep duration: ${sleepDuration.inMinutes} mins",
-      );
+      print("😴 [BG] Woke up! Sleep duration: ${sleepDuration.inMinutes} mins");
 
       // Save sleep log to Hive
       final todayKey = "${now.year}-${now.month}-${now.day}";

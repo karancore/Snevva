@@ -1,7 +1,7 @@
 import 'package:snevva/views/Information/HydrationScreens/hydration_bottom_sheet.dart';
 import 'package:snevva/views/Information/HydrationScreens/water_bottom_sheet.dart';
 import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.dart';
-import 'package:snevva/views/Reminder/reminder.dart';
+import 'package:snevva/views/Reminder/reminder_screen.dart';
 import 'package:wheel_picker/wheel_picker.dart';
 import '../../../../Widgets/CommonWidgets/custom_appbar.dart';
 import '../../../../Widgets/Drawer/drawer_menu_wigdet.dart';
@@ -124,9 +124,8 @@ class _HydrationScreenState extends State<HydrationScreen>
   @override
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height;
-    final bool isDarkMode =
-        MediaQuery.of(context).platformBrightness == Brightness.dark;
-
+    // ✅ Listens to the app's current theme command
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       drawer: Drawer(
         child: DrawerMenuWidget(height: height, width: wp(context, 1)),
@@ -140,7 +139,7 @@ class _HydrationScreenState extends State<HydrationScreen>
         child: Obx(
           () => FloatingButtonBar(
             onStatBtnTap: () => Get.to(() => const HydrationStatistics()),
-            onReminderBtnTap: () => Get.to(() => const Reminder()),
+            onReminderBtnTap: () => Get.to(() => const ReminderScreen()),
             onAddBtnTap: _onAddButtonPressed,
             onAddBtnLongTap: () async {
               final result = await showHydrationBottomSheetModal(

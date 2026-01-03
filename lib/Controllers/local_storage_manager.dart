@@ -1,8 +1,14 @@
 import 'dart:convert';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:get/get.dart';
+import 'package:get/get_connect/http/src/response/response.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../common/custom_snackbar.dart';
 import '../consts/consts.dart';
+import '../env/env.dart';
+import '../services/api_service.dart';
 import '../views/SignUp/sign_in_screen.dart';
+import 'package:http/http.dart';
 
 class LocalStorageManager extends GetxController {
   RxMap<String, dynamic> userMap = <String, dynamic>{}.obs;
@@ -14,13 +20,84 @@ class LocalStorageManager extends GetxController {
     checkSession();
   }
 
+  Future<void> getFCMToken() async {
+    debugPrint('🔔 getFCMToken() called');
+
+    try {
+      String? token = await FirebaseMessaging.instance.getToken();
+
+      debugPrint('📱 Raw FCM Token: $token');
+
+      if (token != null && token.isNotEmpty) {
+        debugPrint('✅ FCM token is valid, sending to server...');
+        await sendFCMTokenToServer(token);
+      } else {
+        debugPrint('⚠️ FCM token is null or empty');
+      }
+
+      return;
+    } catch (e, stack) {
+      debugPrint('❌ Error while fetching FCM token');
+      debugPrint('Error: $e');
+      debugPrint('StackTrace: $stack');
+      return;
+    }
+  }
+
+  Future<void> sendFCMTokenToServer(String token) async {
+    debugPrint('🚀 sendFCMTokenToServer() called');
+    debugPrint('📦 Token being sent: $token');
+
+    try {
+      final payload = {'Value': token};
+
+      debugPrint('📤 Request payload: $payload');
+      debugPrint('🌐 API endpoint: $fcmTokenApi');
+
+      final response = await ApiService.post(
+        fcmTokenApi,
+        payload,
+        withAuth: true,
+        encryptionRequired: true,
+      );
+
+      debugPrint('📥 Raw API response: $response');
+
+      if (response is http.Response) {
+        debugPrint('❌ HTTP error response');
+        debugPrint('Status code: ${response.statusCode}');
+        debugPrint('Body: ${response.body}');
+
+        CustomSnackbar.showError(
+          context: Get.context!,
+          title: 'Error',
+          message: 'Failed to send token: ${response.statusCode}',
+        );
+        return;
+      }
+
+      final responseData = jsonDecode(jsonEncode(response));
+      debugPrint('✅ Parsed API response: $responseData');
+    } catch (e, stack) {
+      debugPrint('❌ Exception while sending FCM token');
+      debugPrint('Error: $e');
+      debugPrint('StackTrace: $stack');
+
+      CustomSnackbar.showError(
+        context: Get.context!,
+        title: 'Error',
+        message: 'Failed to send token: $e',
+      );
+    }
+  }
+
   Future<void> checkSession() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
 
-    Future.delayed(Duration.zero, () {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (token == null) {
-        Get.offAll(SignInScreen());
+        Get.offAll(() => SignInScreen());
       }
     });
     await reloadUserMap();

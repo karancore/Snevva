@@ -9,6 +9,7 @@ class MoodAnswerSelectionWidget extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     required this.isDarkMode,
+    required this.index,
   });
 
   final double height;
@@ -17,10 +18,13 @@ class MoodAnswerSelectionWidget extends StatelessWidget {
   final bool isSelected;
   final bool isDarkMode;
   final VoidCallback onTap;
+  final int index;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return (index == 3)
+        ? SizedBox.shrink()
+        : InkWell(
       onTap: onTap,
       child: Container(
         width: double.infinity,
@@ -39,11 +43,11 @@ class MoodAnswerSelectionWidget extends StatelessWidget {
                 fontWeight: FontWeight.w500,
                 fontSize: 18,
                 color:
-                    isSelected
-                        ? white
-                        : isDarkMode
-                        ? white
-                        : black,
+                isSelected
+                    ? white
+                    : isDarkMode
+                    ? white
+                    : black,
               ),
             ),
             AutoSizeText(

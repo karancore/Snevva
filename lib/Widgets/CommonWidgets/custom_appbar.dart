@@ -20,7 +20,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
-    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     // 🔍 DEBUG
     debugPrint('CustomAppBar build → showDrawerIcon: $showDrawerIcon');
@@ -39,63 +39,62 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ),
 
-        leading: showDrawerIcon
-            ? Builder(
-          builder: (context) {
-            debugPrint('Drawer Icon Builder created');
+        leading:
+            showDrawerIcon
+                ? Builder(
+                  builder: (context) {
+                    debugPrint('Drawer Icon Builder created');
 
-            return IconButton(
-              icon: SvgPicture.asset(
-                isWhiteRequired! ? drawerIconWhite : drawerIcon,
-              ),
-              onPressed: () {
-                debugPrint('Drawer Icon tapped');
+                    return IconButton(
+                      icon: SvgPicture.asset(
+                        isWhiteRequired! ? drawerIconWhite : drawerIcon,
+                      ),
+                      onPressed: () {
+                        debugPrint('Drawer Icon tapped');
 
-                // 🔍 Check if Scaffold exists
-                final scaffold = Scaffold.maybeOf(context);
-                debugPrint(
-                  'Scaffold found: ${scaffold != null}',
-                );
+                        // 🔍 Check if Scaffold exists
+                        final scaffold = Scaffold.maybeOf(context);
+                        debugPrint('Scaffold found: ${scaffold != null}');
 
-                if (scaffold != null) {
-                  scaffold.openDrawer();
-                } else {
-                  debugPrint(
-                    '❌ ERROR: No Scaffold found above CustomAppBar',
-                  );
-                }
-              },
-            );
-          },
-        )
-            : null,
+                        if (scaffold != null) {
+                          scaffold.openDrawer();
+                        } else {
+                          debugPrint(
+                            '❌ ERROR: No Scaffold found above CustomAppBar',
+                          );
+                        }
+                      },
+                    );
+                  },
+                )
+                : null,
 
-        actions: showCloseButton
-            ? [
-          Padding(
-            padding: const EdgeInsets.only(right: 20),
-            child: InkWell(
-              onTap: () {
-                debugPrint('Close button tapped');
-                onClose != null
-                    ? onClose!()
-                    : Navigator.pop(context);
-              },
-              child: SizedBox(
-                height: 24,
-                width: 24,
-                child: Icon(
-                  Icons.clear,
-                  size: 21,
-                  color: isWhiteRequired!
-                      ? white
-                      : (isDarkMode ? white : black),
-                ),
-              ),
-            ),
-          ),
-        ]
-            : [],
+        actions:
+            showCloseButton
+                ? [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 20),
+                    child: InkWell(
+                      onTap: () {
+                        debugPrint('Close button tapped');
+                        onClose != null ? onClose!() : Navigator.pop(context);
+                      },
+                      child: SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: Icon(
+                          Icons.clear,
+                          size: 21,
+                          color:
+                              isWhiteRequired!
+                                  ? white
+                                  : (isDarkMode ? white : black),
+                        ),
+                      ),
+                    ),
+                  ),
+                ]
+                : [],
       ),
     );
   }
@@ -103,4 +102,3 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
-

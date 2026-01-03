@@ -102,7 +102,9 @@ class SleepNoticingService {
 
     // CONDITION 1: Phone used within first 15 minutes -> Ignore
     if (phoneUsageStart.isBefore(safeLimit)) {
-      print('⏭️ [SleepService] Usage within ${gracePeriod.inMinutes}min grace period - IGNORED');
+      print(
+        '⏭️ [SleepService] Usage within ${gracePeriod.inMinutes}min grace period - IGNORED',
+      );
       return bedtime;
     }
 

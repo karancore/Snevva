@@ -1,9 +1,10 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/instance_manager.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/views/Dashboard/dashboard.dart';
 import 'package:snevva/views/Information/info_page.dart';
-import 'package:snevva/views/Reminder/reminder.dart';
+import 'package:snevva/views/Reminder/reminder_screen.dart';
 import 'package:snevva/widgets/navbar.dart';
 
 import '../Controllers/BMI/bmi_controller.dart';
@@ -35,6 +36,7 @@ class _HomeWrapperState extends State<HomeWrapper> {
   void initState() {
     super.initState();
     bmiController.loadUserBMI();
+    //fetchFCMToken();
     // checksession();
     // localStorageManager.checksession();
   }
@@ -57,12 +59,12 @@ class _HomeWrapperState extends State<HomeWrapper> {
     List<Widget> pages = [
       Dashboard(onTabSelected: onTabSelected),
       MyHealthScreen(),
-      Reminder(),
+      ReminderScreen(),
       InfoPage(),
     ];
 
     return Scaffold(
-      key: _scaffoldKey,
+      key: scaffoldKey,
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       body: GestureDetector(
         onHorizontalDragUpdate: (details) {

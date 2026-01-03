@@ -107,7 +107,10 @@ class StepCounterController extends GetxController {
     _listenToBackgroundSteps();
 
     // Start a lightweight poller to detect background-isolate Hive writes
-    _hivePoller = Timer.periodic(const Duration(seconds: 1), (_) => _pollHiveToday());
+    _hivePoller = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _pollHiveToday(),
+    );
   }
 
   Future<void> _init() async {
@@ -196,7 +199,8 @@ class StepCounterController extends GetxController {
 
       // Also check shared prefs fallback written by background isolate
       final prefSteps = _prefs.getInt('today_steps');
-      final effective = (prefSteps != null && prefSteps > steps) ? prefSteps : steps;
+      final effective =
+          (prefSteps != null && prefSteps > steps) ? prefSteps : steps;
 
       if (effective != todaySteps.value) {
         // Update reactive values and graph
@@ -207,7 +211,9 @@ class StepCounterController extends GetxController {
         todaySteps.refresh();
         updateStepSpots();
         stepSpots.refresh();
-        print("🔎 Hive poll detected change: todaySteps = $effective (hive=$steps pref=$prefSteps)");
+        print(
+          "🔎 Hive poll detected change: todaySteps = $effective (hive=$steps pref=$prefSteps)",
+        );
       }
     } catch (e) {
       // ignore polling errors
@@ -332,7 +338,10 @@ class StepCounterController extends GetxController {
 
         // If API has higher value, persist merged value to Hive
         if (apiCount > hiveCount) {
-          await _safePutSteps(key, StepEntry(date: _startOfDay(date), steps: merged));
+          await _safePutSteps(
+            key,
+            StepEntry(date: _startOfDay(date), steps: merged),
+          );
         }
 
         stepsHistoryList.add(StepEntry(date: date, steps: merged));
@@ -377,28 +386,26 @@ class StepCounterController extends GetxController {
   }
 
   List<FlSpot> getMonthlyStepsSpots(DateTime month) {
-  final days = DateTime(month.year, month.month + 1, 0).day;
-  final spots = <FlSpot>[];
+    final days = DateTime(month.year, month.month + 1, 0).day;
+    final spots = <FlSpot>[];
 
-  // Build a lookup map from API data
-  final Map<int, int> dayToSteps = {};
+    // Build a lookup map from API data
+    final Map<int, int> dayToSteps = {};
 
-  for (final entry in stepsHistoryList) {
-    if (entry.date.year == month.year &&
-        entry.date.month == month.month) {
-      dayToSteps[entry.date.day] =
-          (dayToSteps[entry.date.day] ?? 0) + entry.steps;
+    for (final entry in stepsHistoryList) {
+      if (entry.date.year == month.year && entry.date.month == month.month) {
+        dayToSteps[entry.date.day] =
+            (dayToSteps[entry.date.day] ?? 0) + entry.steps;
+      }
     }
+
+    for (int day = 1; day <= days; day++) {
+      final steps = dayToSteps[day] ?? 0;
+      spots.add(FlSpot((day - 1).toDouble(), steps.toDouble()));
+    }
+
+    return spots;
   }
-
-  for (int day = 1; day <= days; day++) {
-    final steps = dayToSteps[day] ?? 0;
-    spots.add(FlSpot((day - 1).toDouble(), steps.toDouble()));
-  }
-
-  return spots;
-}
-
 
   Future<void> updateStepGoal(int goal) async {
     await saveGoal(goal);
@@ -528,7 +535,10 @@ class StepCounterController extends GetxController {
       // Ensure Hive also reflects merged result
       final hiveCount = _safeGetSteps(key);
       if (merged > hiveCount) {
-        await _safePutSteps(key, StepEntry(date: _startOfDay(item.date), steps: merged));
+        await _safePutSteps(
+          key,
+          StepEntry(date: _startOfDay(item.date), steps: merged),
+        );
       }
     }
 
@@ -537,34 +547,30 @@ class StepCounterController extends GetxController {
   }
 
   void syncTodayIntakeFromMap() {
-  final now = DateTime.now();
-  final key = _dayKey(now);
+    final now = DateTime.now();
+    final key = _dayKey(now);
 
-  todaySteps.value = stepsHistoryByDate[key] ?? todaySteps.value;
-}
-
-
-  void updateStepSpots() {
-  stepSpots.clear();
-
-  DateTime now = DateTime.now();
-  DateTime monday = now.subtract(Duration(days: now.weekday - 1));
-
-  for (int i = 0; i < 7; i++) {
-    DateTime date = monday.add(Duration(days: i));
-    String key = _dayKey(date);
-
-    // Read-only access
-    int steps = stepsHistoryByDate[key] ?? _safeGetSteps(key);
-
-    stepSpots.add(
-      FlSpot(i.toDouble(), steps.toDouble()),
-    );
+    todaySteps.value = stepsHistoryByDate[key] ?? todaySteps.value;
   }
 
-  stepSpots.refresh();
-}
+  void updateStepSpots() {
+    stepSpots.clear();
 
+    DateTime now = DateTime.now();
+    DateTime monday = now.subtract(Duration(days: now.weekday - 1));
+
+    for (int i = 0; i < 7; i++) {
+      DateTime date = monday.add(Duration(days: i));
+      String key = _dayKey(date);
+
+      // Read-only access
+      int steps = stepsHistoryByDate[key] ?? _safeGetSteps(key);
+
+      stepSpots.add(FlSpot(i.toDouble(), steps.toDouble()));
+    }
+
+    stepSpots.refresh();
+  }
 
   void scheduleStepPush() {
     Timer.periodic(Duration(hours: 4), (timer) {
@@ -575,5 +581,6 @@ class StepCounterController extends GetxController {
   // Public safe accessors so other parts of the app can read/write safely.
   int getStepsForKey(String key) => _safeGetSteps(key);
 
-  Future<void> putStepsForKey(String key, StepEntry entry) async => _safePutSteps(key, entry);
+  Future<void> putStepsForKey(String key, StepEntry entry) async =>
+      _safePutSteps(key, entry);
 }

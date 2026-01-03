@@ -40,8 +40,8 @@ class StepCounterBottomSheet extends StatelessWidget {
 
     final mediaQuery = MediaQuery.of(context);
     final width = mediaQuery.size.width;
-    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
-
+    // ✅ Listens to the app's current theme command
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return CommonQuestionBottomSheet(
       img: image,
       wheel: wheel,

@@ -31,8 +31,9 @@ class StepStatGraphWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String formattedDate =
-        DateFormat('d MMM, yyyy').format(DateTime.now());
+    final String formattedDate = DateFormat(
+      'd MMM, yyyy',
+    ).format(DateTime.now());
 
     final List<String> fixedWeekLabels = const [
       "Mon",
@@ -53,10 +54,11 @@ class StepStatGraphWidget extends StatelessWidget {
     }
 
     // Clamp Y values safely
-    final clampedPoints = points.map((p) {
-      final y = p.y > _yMax ? _yMax : p.y;
-      return FlSpot(p.x, y);
-    }).toList();
+    final clampedPoints =
+        points.map((p) {
+          final y = p.y > _yMax ? _yMax : p.y;
+          return FlSpot(p.x, y);
+        }).toList();
 
     return Material(
       elevation: 3,
@@ -86,8 +88,10 @@ class StepStatGraphWidget extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     border: Border.all(color: mediumGrey, width: border04px),
                     borderRadius: BorderRadius.circular(4),
@@ -105,20 +109,20 @@ class StepStatGraphWidget extends StatelessWidget {
             // ===== GRAPH =====
             isMonthlyView
                 ? SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: _buildChart(
-                      labels: labels,
-                      points: clampedPoints,
-                      isMonthly: true,
-                      todayIndex: todayIndex,
-                    ),
-                  )
-                : _buildChart(
+                  scrollDirection: Axis.horizontal,
+                  child: _buildChart(
                     labels: labels,
                     points: clampedPoints,
-                    isMonthly: false,
+                    isMonthly: true,
                     todayIndex: todayIndex,
                   ),
+                )
+                : _buildChart(
+                  labels: labels,
+                  points: clampedPoints,
+                  isMonthly: false,
+                  todayIndex: todayIndex,
+                ),
           ],
         ),
       ),
@@ -161,9 +165,10 @@ class StepStatGraphWidget extends StatelessWidget {
                           fontSize: 9,
                           fontWeight:
                               isToday ? FontWeight.bold : FontWeight.normal,
-                          color: isToday
-                              ? AppColors.primaryColor
-                              : Colors.grey.shade600,
+                          color:
+                              isToday
+                                  ? AppColors.primaryColor
+                                  : Colors.grey.shade600,
                         ),
                       ),
                     );
@@ -176,16 +181,19 @@ class StepStatGraphWidget extends StatelessWidget {
               sideTitles: SideTitles(
                 showTitles: true,
                 interval: _yInterval,
-                getTitlesWidget: (value, _) => Text(
-                  '${(value / 1000).round()}',
-                  style: const TextStyle(fontSize: 9),
-                ),
+                getTitlesWidget:
+                    (value, _) => Text(
+                      '${(value / 1000).round()}',
+                      style: const TextStyle(fontSize: 9),
+                    ),
               ),
             ),
-            rightTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
           ),
 
           // ===== GRID =====
@@ -193,8 +201,8 @@ class StepStatGraphWidget extends StatelessWidget {
             show: true,
             horizontalInterval: _gridInterval,
             drawVerticalLine: false,
-            getDrawingHorizontalLine: (_) =>
-                const FlLine(color: mediumGrey, strokeWidth: 0.8),
+            getDrawingHorizontalLine:
+                (_) => const FlLine(color: mediumGrey, strokeWidth: 0.8),
           ),
 
           borderData: FlBorderData(
@@ -216,13 +224,13 @@ class StepStatGraphWidget extends StatelessWidget {
               barWidth: 2,
               dotData: FlDotData(
                 show: true,
-                getDotPainter: (_, __, ___, ____) =>
-                    FlDotCirclePainter(
-                  radius: 4,
-                  color: AppColors.primaryColor,
-                  strokeWidth: 2,
-                  strokeColor: Colors.white,
-                ),
+                getDotPainter:
+                    (_, __, ___, ____) => FlDotCirclePainter(
+                      radius: 4,
+                      color: AppColors.primaryColor,
+                      strokeWidth: 2,
+                      strokeColor: Colors.white,
+                    ),
               ),
               belowBarData: BarAreaData(
                 show: true,

@@ -128,9 +128,8 @@ class EditprofileController extends GetxController {
     final TextEditingController controller = TextEditingController(
       text: initialValue,
     );
-    final isDarkMode =
-        MediaQuery.of(context).platformBrightness == Brightness.dark;
 
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (dialogCtx) {
@@ -524,9 +523,8 @@ class EditprofileController extends GetxController {
     );
     final pinController = TextEditingController();
     final value = controller.text.trim();
-    final isDarkMode =
-        MediaQuery.of(context).platformBrightness == Brightness.dark;
-
+    // ✅ Listens to the app's current theme command
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (ctx) {
@@ -644,9 +642,8 @@ class EditprofileController extends GetxController {
     );
     final pinController = TextEditingController();
     final value = controller.text.trim();
-    final isDarkMode =
-        MediaQuery.of(context).platformBrightness == Brightness.dark;
 
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (ctx) {
@@ -756,8 +753,8 @@ class EditprofileController extends GetxController {
     final String? selectedGender = localStorageManager.userMap['Gender'];
 
     final mediaQuery = MediaQuery.of(context);
-    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
-
+    // ✅ Listens to the app's current theme command
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     void selectGender(String Usergender) async {
       localStorageManager.userMap['Gender'] = Usergender;
       gender.value = Usergender;
@@ -842,8 +839,8 @@ class EditprofileController extends GetxController {
         localStorageManager.userMap['Occupation']?.toString();
     String? selectedOccupation = initialOccupation;
     final mediaQuery = MediaQuery.of(context);
-    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
-
+    // ✅ Listens to the app's current theme command
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (ctx) {
@@ -930,8 +927,8 @@ class EditprofileController extends GetxController {
 
   void showDOBDialog(BuildContext context, {VoidCallback? onUpdated}) {
     final mediaQuery = MediaQuery.of(context);
-    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
-
+    // ✅ Listens to the app's current theme command
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     DateTime? selectedDate;
     final day = localStorageManager.userMap['DayOfBirth'];
     final month = localStorageManager.userMap['MonthOfBirth'];

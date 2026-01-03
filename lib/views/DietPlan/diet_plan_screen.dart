@@ -78,7 +78,8 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
 
     height = mediaQuery.size.height;
     width = mediaQuery.size.width;
-    isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
+
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: CustomAppBar(appbarText: "Diet Plan"),

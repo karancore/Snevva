@@ -26,8 +26,8 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
-    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
-
+    // ✅ Listens to the app's current theme command
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     void onCreatePasswordButtonClick() {
       if (controller.password.value.isEmpty ||
           controller.confirmPassword.value.isEmpty) {

@@ -87,15 +87,15 @@ class OTPVerificationController extends GetxController with CodeAutoFill {
     Get.to(
       isForgotPasswordScreen
           ? UpdateOldPasword(
-              otpVerificationStatus: true,
-              otp: responseOtp,
-              emailOrPhoneText: emailOrPasswordText,
-            )
+            otpVerificationStatus: true,
+            otp: responseOtp,
+            emailOrPhoneText: emailOrPasswordText,
+          )
           : CreateNewPassword(
-              otpVerificationStatus: true,
-              otp: responseOtp,
-              emailOrPhoneText: emailOrPasswordText,
-            ),
+            otpVerificationStatus: true,
+            otp: responseOtp,
+            emailOrPhoneText: emailOrPasswordText,
+          ),
     );
 
     return true;

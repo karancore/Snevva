@@ -23,7 +23,8 @@ class _BmiCalState extends State<BmiCal> {
     final mediaQuery = MediaQuery.of(context);
     final heightDevice = mediaQuery.size.height;
     final width = mediaQuery.size.width;
-    final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
+    // ✅ Listens to the app's current theme command
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final bottomButtonHeight = 80.0;
 
     return Scaffold(

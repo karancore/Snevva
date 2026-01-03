@@ -44,6 +44,19 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
 
+<!--        &lt;!&ndash; ⚙️ Google Sign-In / Credential Manager disables &ndash;&gt;-->
+<!--        <meta-data-->
+<!--            android:name="com.google.android.gms.credentials.API_ENABLED"-->
+<!--            android:value="false" />-->
+
+<!--        <meta-data-->
+<!--            android:name="com.google.android.gms.credentials.CredentialPickerConfig"-->
+<!--            android:value="false" />-->
+
+<!--        <meta-data-->
+<!--            android:name="androidx.credentials.CREDENTIAL_SERVICE_ENABLED"-->
+<!--            android:value="false" />-->
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -95,6 +108,12 @@
         <receiver
             android:exported="false"
             android:name="com.dexterous.flutterlocalnotifications.FlutterLocalNotificationsReceiver" />
+
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="high_importance_channel" />
+
+
 
         <!-- 🦶 Step Tracking Background Service -->
         <service

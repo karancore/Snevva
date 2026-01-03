@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import '../Controllers/signupAndSignIn/sign_in_controller.dart';
 import '../consts/consts.dart';
 
+enum Option { times, interval }
+
 class MaxValueTextInputFormatter extends TextInputFormatter {
   final int max;
 
@@ -109,6 +111,89 @@ List<String> generateMonthLabels(DateTime month) {
   final total = daysInMonth(month.year, month.month);
   return List.generate(total, (i) => '${i + 1}');
 }
+
+int alarmsId() {
+  return DateTime.now().millisecondsSinceEpoch % 2147483647;
+}
+
+DateTime combineWithToday(TimeOfDay time) {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, now.day, time.hour, time.minute);
+}
+
+DateTime toDateTimeToday(TimeOfDay time) {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, now.day, time.hour, time.minute);
+}
+
+DateTimeRange buildTimeWindow(TimeOfDay start, TimeOfDay end) {
+  final startDT = toDateTimeToday(start);
+  var endDT = toDateTimeToday(end);
+
+  // Handles overnight range (e.g. 10 PM → 6 AM)
+  if (endDT.isBefore(startDT)) {
+    endDT = endDT.add(const Duration(days: 1));
+  }
+
+  return DateTimeRange(start: startDT, end: endDT);
+}
+
+TimeOfDay stringToTimeOfDay(String time) {
+  final format = DateFormat('hh:mm a'); // 09:30 AM
+  final dateTime = format.parse(time);
+  return TimeOfDay.fromDateTime(dateTime);
+}
+
+String formatReminderTime(List remindTimes) {
+  if (remindTimes.isEmpty) return 'N/A';
+
+  List<String> formattedTimes = [];
+  for (var time in remindTimes) {
+    try {
+      if (time is String) {
+        try {
+          DateTime dateTime = DateTime.parse(time);
+          formattedTimes.add(DateFormat('hh:mm a').format(dateTime));
+        } catch (e) {
+          formattedTimes.add(time);
+        }
+      } else if (time is DateTime) {
+        formattedTimes.add(DateFormat('hh:mm a').format(time));
+      }
+    } catch (e) {
+      print('Error formatting time: $e');
+      formattedTimes.add(time.toString());
+    }
+  }
+
+  return formattedTimes.join(', ');
+}
+
+String formatDate(int? day, int? month, int? year) {
+  if (day == null || month == null || year == null) return 'N/A';
+  return '$day/$month/$year';
+}
+
+double getListHeight(int itemCount, double itemHeight, double maxHeight) {
+  return (itemCount * itemHeight).clamp(0, maxHeight);
+}
+
+String formatTimeFromHourMinute(int hour, int minute) {
+  try {
+    final now = DateTime.now();
+    final dateTime = DateTime(now.year, now.month, now.day, hour, minute);
+    return DateFormat('hh:mm a').format(dateTime);
+  } catch (e) {
+    return '$hour:$minute';
+  }
+}
+
+TimeOfDay parseTime(String timeString) {
+  final format = DateFormat("hh:mm a");
+  return TimeOfDay.fromDateTime(format.parse(timeString));
+}
+
+String pluralizeHour(int value) => value > 1 ? 'hours' : 'hour';
 
 const String dietPlaceholder =
     "https://community.softr.io/uploads/db9110/original/2X/7/74e6e7e382d0ff5d7773ca9a87e6f6f8817a68a6.jpeg";

@@ -156,8 +156,8 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
     final media = MediaQuery.of(context);
     final height = media.size.height;
     final width = media.size.width;
-    final bool isDarkMode = media.platformBrightness == Brightness.dark;
 
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: const CustomAppBar(appbarText: 'Hydration Statistics'),
