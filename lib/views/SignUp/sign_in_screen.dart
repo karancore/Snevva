@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
+import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
@@ -33,6 +34,7 @@ final sleepController = Get.put(SleepController());
 final waterController = Get.put(HydrationStatController());
 final vitalsController = Get.put(VitalsController());
 final womenhealthController = Get.put(WomenHealthController());
+final moodcontroller = Get.put(MoodController());
 
 final localStorageManager = Get.put(LocalStorageManager());
 
@@ -95,7 +97,12 @@ class _SignInScreenState extends State<SignInScreen> {
       year: DateTime.now().year,
     );
 
-    await womenhealthController.loaddatafromAPI();
+    await womenhealthController.lastPeriodDatafromAPI();
+
+    await moodcontroller.loadmoodfromAPI(
+      month: DateTime.now().month,
+      year: DateTime.now().year,
+    );
 
     final userInfo = await signInController.userInfo();
     final userData = userInfo['data'];

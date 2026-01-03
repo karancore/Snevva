@@ -340,6 +340,9 @@ class StepCounterController extends GetxController {
 
       calculateTodayStepsFromList(stepData);
 
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isStepGoalSet', true);
+
       // ✅ Step goal
       stepGoal.value =
           decoded['data']?['StepGoalData']?['Count'] ?? stepGoal.value;

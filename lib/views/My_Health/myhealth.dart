@@ -130,12 +130,13 @@ class _MyHealthScreenState extends State<MyHealthScreen>
         iconColor: Colors.redAccent,
         title: Obx(
           () => Text(
-            moodController.selectedMoodIndex.value == -1
-                ? 'Happy'
-                : moodController.moods[moodController.selectedMoodIndex.value],
+            moodController.selectedMood.value.isEmpty
+                ? 'All Good?'
+                : moodController.selectedMood.value,
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
         ),
+
         buttonText: 'Track mood',
         onPressed: () => Get.to(() => const MoodTrackerScreen()),
       ),

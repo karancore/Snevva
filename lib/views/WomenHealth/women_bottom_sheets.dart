@@ -45,7 +45,7 @@ class _WomenBottomSheetsState extends State<WomenBottomSheets> {
   @override
   void initState() {
     super.initState();
-    toggleWomenBottomCard();
+    // toggleWomenBottomCard();
 
     _pages = [
       CommonQuestionBottomSheet(
@@ -116,6 +116,8 @@ class _WomenBottomSheetsState extends State<WomenBottomSheets> {
         SharedPreferences.getInstance().then((prefs) {
           prefs.setBool('women_health_questions_completed', true);
         });
+
+        toggleWomenBottomCard();
 
         Navigator.pop(context, true);
       }

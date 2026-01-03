@@ -1,4 +1,5 @@
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
+import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/Widgets/Dashboard/dashboard_service_widget_items.dart';
 import 'package:snevva/views/DietPlan/diet_plan_screen.dart';
@@ -59,10 +60,24 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
     final width = mediaQuery.size.width;
     final bool isDarkMode = mediaQuery.platformBrightness == Brightness.dark;
 
-    final signInController = Get.find<SignInController>();
-    final userInfo = signInController.userProfData ?? {};
-    final userData = userInfo['data'];
+    // final signInController = Get.find<SignInController>();
+    // final userInfo = signInController.userProfData ?? {};
+    // final userData = userInfo['data'];
 
+    final localstorage = Get.find<LocalStorageManager>();
+    final userInfo = localstorage.userMap;
+    print('userInfo: $userInfo');
+
+
+    // final useracivedata = signInController.userGoalData ?? {};
+
+    final useracivedata = localstorage.userGoalDataMap;
+    print('useracivedata: $useracivedata');
+    final womentracking = useracivedata['TrackWomenData'];
+    final stepgoal = useracivedata['StepGoalData']?['Count'];
+    final SleepGoalData = useracivedata['SleepGoalData'];
+    
+    print('useracivedata: $useracivedata');
     // Safe check for userData and gender
     // final gender = selectedGender ?? localgender ?? 'Unknown';
     // gender = (localGender != null) ? localGender : userData['Gender'];
@@ -102,9 +117,9 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
                 final prefs = await SharedPreferences.getInstance();
                 final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
 
-                final stepController = Get.find<StepCounterController>();
 
-                if (!isGoalSet) {
+
+                if (stepgoal == null || !isGoalSet) {
                   final goal = await showStepCounterBottomSheet(
                     context,
                     isDarkMode,
@@ -210,7 +225,7 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
                 final isFirstSleep =
                     prefs.getBool('is_first_time_sleep') ?? false;
 
-                if (isFirstSleep) {
+                if (isFirstSleep || SleepGoalData == null) {
                   final agreed = await showSleepBottomSheetModal(
                     context: context,
                     isDarkMode: isDarkMode,
@@ -219,10 +234,6 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
                   );
 
                   if (agreed == true) {
-                    await prefs.setBool(
-                      'is_first_time_sleep',
-                      false,
-                    ); // mark as seen
                     Get.to(() => SleepTrackerScreen());
                   }
                 } else {
@@ -254,7 +265,7 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
       final isFirstWomen =
           prefs.getBool('is_first_time_women') ?? true;
 
-      if (isFirstWomen) {
+      if (womentracking == false || womentracking == null || isFirstWomen) {
         final agreed = await showWomenBottomSheetsModal(
           context,
           isDarkMode,

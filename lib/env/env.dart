@@ -4,8 +4,8 @@ class Env {
 }
 
 // baseUrl
-// const String baseUrl = "https://localhost:7238";
-const String baseUrl = "https://abdmstg.coretegra.com";
+const String baseUrl = "https://localhost:7238";
+// const String baseUrl = "https://abdmstg.coretegra.com";
 
 // send otp api
 const String senOtpEmailEndpoint =
@@ -73,6 +73,7 @@ const String sleepRecord = "/api/upsert/addsleeprecord";
 const String bloodpressure = '/api/upsert/addbloodpressurerecord';
 const String logmood = '/api/upsert/logmood';
 const String womenhealth = '/api/upsert/womenhealthquestionnaire';
+const String editperioddata = '/api/upsert/editperioddata';
 
 const String addreminderApi = '/api/upsert/addreminder';
 const String editreminderApi = '/api/upsert/editreminder';
@@ -92,3 +93,7 @@ const String fetchSleepHistory = '/api/fetchinfo/sleepData';
 const String waterrecords = '/api/fetchinfo/waterintakeData';
 const String fetchBloodPressureHistory = '/api/fetchinfo/bloodpressureData';
 const String fetchWomenhealthHistory = '/api/fetchinfo/womenhealthdata';
+const String lastPeriodData = '/api/fetchinfo/lastperioddata';
+const String addperioddata = '/api/upsert/addperioddata';
+const String addsymptomdata = '/api/upsert/addsymptomdata';
+const String moodTrackData = '/api/fetchinfo/moodTrackData';

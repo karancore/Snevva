@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -23,7 +24,7 @@ class WomenHealthController extends GetxController {
   var dayLeftNextPeriod = "".obs;
   var formattedCurrentDate = "".obs;
   RxBool isFirstTimeWomen = true.obs;
-
+  Timer? _apiDebounce;
 
   var womenHealthTips = <TipData>[].obs;
   dynamic randomTip;
@@ -56,29 +57,34 @@ class WomenHealthController extends GetxController {
     int year = newDate.year;
     int month = newDate.month;
     int day = newDate.day;
-    int lastDay = DateTime(year, month + 1, 0).day;
 
     periodDay = day;
     periodMonth = month;
     periodYear = year;
 
-    if (day > lastDay) {
-      newDate = DateTime(year, month, lastDay);
-    }
+    final formattedDate =
+        "${day.toString().padLeft(2, '0')}/"
+        "${month.toString().padLeft(2, '0')}/"
+        "$year";
 
-    if (_selectedDate != newDate) {
-      _selectedDate = newDate;
+    periodLastPeriodDay.value = formattedDate;
 
-      final formattedDate =
-          "${day.toString().padLeft(2, '0')}/"
-          "${month.toString().padLeft(2, '0')}/"
-          "$year";
+    _calculateNextDates();
+    saveWomenHealthToLocalStorage();
+    final lastPeriodDate = DateTime(periodYear, periodMonth, periodDay);
 
-      periodLastPeriodDay.value = formattedDate;
+    final cycleLength = int.parse(periodCycleDays.value);
+    final predictedDate = lastPeriodDate.add(Duration(days: cycleLength));
 
-      _calculateNextDates();
-      saveWomenHealthToLocalStorage(); // Auto-save on date change
-    }
+    _apiDebounce?.cancel();
+    _apiDebounce = Timer(const Duration(seconds: 1), () {
+      editperioddatatoAPI(
+        startDate: lastPeriodDate,
+        predictedDate: predictedDate,
+        isMatched: false,
+        context: Get.context!,
+      );
+    });
   }
 
   void getPeriodDays(String day) {
@@ -94,113 +100,168 @@ class WomenHealthController extends GetxController {
   }
 
   void _calculateNextDates() {
-  if (periodLastPeriodDay.value.isEmpty ||
-      periodCycleDays.value.isEmpty ||
-      periodDays.value.isEmpty) {
-    return;
-  }
-
-  try {
-    final lastPeriodDate = DateFormat(
-      "dd/MM/yyyy",
-    ).parse(periodLastPeriodDay.value);
-    final cycleLength = int.tryParse(periodCycleDays.value) ?? 28;
-
-    final nextPeriod = lastPeriodDate.add(Duration(days: cycleLength));
-    final ovulationDay = nextPeriod.subtract(const Duration(days: 14));
-    final fertilityStart = ovulationDay.subtract(const Duration(days: 5));
-
-    final format = DateFormat("d MMM");
-
-    nextPeriodDay.value = format.format(nextPeriod);
-    nextOvulationDay.value = format.format(ovulationDay);
-    nextFertilityDay.value = format.format(fertilityStart);
-    dayLeftNextPeriod.value =
-        _currentDate.difference(nextPeriod).inDays.abs().toString();
-  } catch (e) {
-    // parsing failed
-  }
-}
-
-
-  Future<void> saveWomenHealthToLocalStorage() async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-
-    await prefs.setString('periodDays', periodDays.value);
-    await prefs.setString('periodCycleDays', periodCycleDays.value);
-    await prefs.setString('periodLastPeriodDay', periodLastPeriodDay.value);
-    await prefs.setString('nextPeriodDay', nextPeriodDay.value);
-    await prefs.setString('nextFertilityDay', nextFertilityDay.value);
-    await prefs.setString('nextOvulationDay', nextOvulationDay.value);
-    await prefs.setString('dayLeftNextPeriod', dayLeftNextPeriod.value);
-
-    // 🔥 NEW
-    await prefs.setBool('is_first_time_women', isFirstTimeWomen.value);
-
-    print('✅ Women Health Data saved successfully!');
-  } catch (e) {
-    print('❌ Error saving Women Health Data: $e');
-  }
-}
-
-
-  Future<void> loadWomenHealthFromLocalStorage() async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-
-    periodDays.value = prefs.getString('periodDays') ?? '5';
-    periodCycleDays.value = prefs.getString('periodCycleDays') ?? '28';
-    periodLastPeriodDay.value = prefs.getString('periodLastPeriodDay') ?? '';
-    nextPeriodDay.value = prefs.getString('nextPeriodDay') ?? 'Enter data';
-    nextFertilityDay.value = prefs.getString('nextFertilityDay') ?? '';
-    nextOvulationDay.value = prefs.getString('nextOvulationDay') ?? '';
-    dayLeftNextPeriod.value = prefs.getString('dayLeftNextPeriod') ?? '0';
-
-    // 🔥 NEW
-    isFirstTimeWomen.value =
-        prefs.getBool('is_first_time_women') ?? true;
-
-    if (periodLastPeriodDay.value.isNotEmpty) {
-      final date = DateFormat("dd/MM/yyyy").parse(periodLastPeriodDay.value);
-      periodDay = date.day;
-      periodMonth = date.month;
-      periodYear = date.year;
-      _calculateNextDates();
+    if (periodLastPeriodDay.value.isEmpty ||
+        periodCycleDays.value.isEmpty ||
+        periodDays.value.isEmpty) {
+      return;
     }
 
-    print('🟢 isFirstTimeWomen = ${isFirstTimeWomen.value}');
-  } catch (e) {
-    print('❌ Error loading Women Health Data: $e');
-  }
-}
+    try {
+      final lastPeriodDate = DateFormat(
+        "dd/MM/yyyy",
+      ).parse(periodLastPeriodDay.value);
+      final cycleLength = int.tryParse(periodCycleDays.value) ?? 28;
 
+      final nextPeriod = lastPeriodDate.add(Duration(days: cycleLength));
+      final ovulationDay = nextPeriod.subtract(const Duration(days: 14));
+      final fertilityStart = ovulationDay.subtract(const Duration(days: 5));
+
+      final format = DateFormat("d MMM");
+
+      nextPeriodDay.value = format.format(nextPeriod);
+      nextOvulationDay.value = format.format(ovulationDay);
+      nextFertilityDay.value = format.format(fertilityStart);
+      dayLeftNextPeriod.value =
+          _currentDate.difference(nextPeriod).inDays.abs().toString();
+    } catch (e) {
+      // parsing failed
+    }
+  }
+
+  Future<void> saveWomenHealthToLocalStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      await prefs.setString('periodDays', periodDays.value);
+      await prefs.setString('periodCycleDays', periodCycleDays.value);
+      await prefs.setString('periodLastPeriodDay', periodLastPeriodDay.value);
+      await prefs.setString('nextPeriodDay', nextPeriodDay.value);
+      await prefs.setString('nextFertilityDay', nextFertilityDay.value);
+      await prefs.setString('nextOvulationDay', nextOvulationDay.value);
+      await prefs.setString('dayLeftNextPeriod', dayLeftNextPeriod.value);
+
+      // 🔥 NEW
+      await prefs.setBool('is_first_time_women', isFirstTimeWomen.value);
+
+      print('✅ Women Health Data saved successfully!');
+    } catch (e) {
+      print('❌ Error saving Women Health Data: $e');
+    }
+  }
+
+  Future<void> loadWomenHealthFromLocalStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      periodDays.value = prefs.getString('periodDays') ?? '5';
+      periodCycleDays.value = prefs.getString('periodCycleDays') ?? '28';
+      periodLastPeriodDay.value = prefs.getString('periodLastPeriodDay') ?? '';
+      nextPeriodDay.value = prefs.getString('nextPeriodDay') ?? 'Enter data';
+      nextFertilityDay.value = prefs.getString('nextFertilityDay') ?? '';
+      nextOvulationDay.value = prefs.getString('nextOvulationDay') ?? '';
+      dayLeftNextPeriod.value = prefs.getString('dayLeftNextPeriod') ?? '0';
+
+      // 🔥 NEW
+      isFirstTimeWomen.value = prefs.getBool('is_first_time_women') ?? true;
+
+      if (periodLastPeriodDay.value.isNotEmpty) {
+        final date = DateFormat("dd/MM/yyyy").parse(periodLastPeriodDay.value);
+        periodDay = date.day;
+        periodMonth = date.month;
+        periodYear = date.year;
+        _calculateNextDates();
+      }
+
+      print('🟢 isFirstTimeWomen = ${isFirstTimeWomen.value}');
+    } catch (e) {
+      print('❌ Error loading Women Health Data: $e');
+    }
+  }
 
   Future<void> loaddatafromAPI() async {
+    try {
+      final payload = {};
+      final response = await ApiService.post(
+        fetchWomenhealthHistory,
+        null,
+        withAuth: true,
+        encryptionRequired: true,
+      );
+
+      if (response is http.Response) {
+        CustomSnackbar.showError(
+          context: Get.context!,
+          title: 'Error',
+          message: 'Failed to save Women Health Data: ${response.statusCode}',
+        );
+        return;
+      }
+
+      final parsedData = jsonDecode(jsonEncode(response));
+      print("women health data from api : $parsedData");
+
+      // Extract values from the API response
+      final data = parsedData['data'];
+      final womenHealthData = data['WomenHealthData'];
+
+      print("women health data extracted : $womenHealthData");
+
+      if (womenHealthData != null) {
+        // ✅ API has data → not first time
+        isFirstTimeWomen.value = false;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('is_first_time_women', false);
+
+        // Extract individual data values
+        String periodDaysFromAPI =
+            womenHealthData['PeroidsDuration']?.toString() ?? '5';
+        String periodCycleDaysFromAPI =
+            womenHealthData['PeroidsCycleCount']?.toString() ?? '28';
+        int periodDayFromAPI = womenHealthData['PeriodDay'] ?? 1;
+        int periodMonthFromAPI = womenHealthData['PeriodMonth'] ?? 12;
+        int periodYearFromAPI = womenHealthData['PeriodYear'] ?? 2025;
+
+        // Update the local state with API data
+        periodDays.value = periodDaysFromAPI;
+        periodCycleDays.value = periodCycleDaysFromAPI;
+        periodLastPeriodDay.value =
+            "$periodDayFromAPI/${periodMonthFromAPI.toString().padLeft(2, '0')}/$periodYearFromAPI";
+
+        // Call _calculateNextDates to update next period, ovulation day, and fertility window
+        _calculateNextDates();
+
+        await saveWomenHealthToLocalStorage();
+      } else {
+        // ❌ No data → first time user
+        isFirstTimeWomen.value = true;
+      }
+
+      print("✅ Women Health Data loaded successfully: $response");
+    } catch (e) {
+      print(e);
+      CustomSnackbar.showError(
+        context: Get.context!,
+        title: 'Error',
+        message: 'Failed loading Women Health Data',
+      );
+    }
+  }
+
+  Future<void> lastPeriodDatafromAPI() async {
   try {
-    final payload = {};
     final response = await ApiService.post(
-      fetchWomenhealthHistory,
+      lastPeriodData,
       null,
       withAuth: true,
       encryptionRequired: true,
     );
 
-    if (response is http.Response) {
-      CustomSnackbar.showError(
-        context: Get.context!,
-        title: 'Error',
-        message: 'Failed to save Women Health Data: ${response.statusCode}',
-      );
-      return;
-    }
-
     final parsedData = jsonDecode(jsonEncode(response));
-    print("women health data from api : $parsedData");
+    print("parsed last period data from api : $parsedData");
 
-    // Extract values from the API response
-    final data = parsedData['data'];
-    final womenHealthData = data['WomenHealthData'];
+    final womenHealthData = parsedData['data']['WomenHealthData']['PeriodsData'] != null
+        ? parsedData['data']['WomenHealthData']['PeriodsData']
+        : parsedData['data']['WomenHealthData'];
 
     print("women health data extracted : $womenHealthData");
 
@@ -210,42 +271,82 @@ class WomenHealthController extends GetxController {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('is_first_time_women', false);
 
+      // Extract individual data values
+      String periodDaysFromAPI =
+          womenHealthData['PeroidsDuration']?.toString() ?? '5';
+      String periodCycleDaysFromAPI =
+          womenHealthData['PeroidsCycleCount']?.toString() ?? '28';
+      int periodDayFromAPI = womenHealthData['PeriodDay'] ?? 1;
+      int periodMonthFromAPI = womenHealthData['PeriodMonth'] ?? 12;
+      int periodYearFromAPI = womenHealthData['PeriodYear'] ?? 2025;
 
-    // Extract individual data values
-    String periodDaysFromAPI = womenHealthData['PeroidsDuration']?.toString() ?? '5';
-    String periodCycleDaysFromAPI = womenHealthData['PeroidsCycleCount']?.toString() ?? '28';
-    int periodDayFromAPI = womenHealthData['PeriodDay'] ?? 1;
-    int periodMonthFromAPI = womenHealthData['PeriodMonth'] ?? 12;
-    int periodYearFromAPI = womenHealthData['PeriodYear'] ?? 2025;
+      // Update the local state with API data
+      periodDays.value = periodDaysFromAPI;
+      periodCycleDays.value = periodCycleDaysFromAPI;
+      periodLastPeriodDay.value =
+          "$periodDayFromAPI/${periodMonthFromAPI.toString().padLeft(2, '0')}/$periodYearFromAPI";
 
-    // Update the local state with API data
-    periodDays.value = periodDaysFromAPI;
-    periodCycleDays.value = periodCycleDaysFromAPI;
-    periodLastPeriodDay.value = "$periodDayFromAPI/${periodMonthFromAPI.toString().padLeft(2, '0')}/$periodYearFromAPI";
+      // Call _calculateNextDates to update next period, ovulation day, and fertility window
+      _calculateNextDates();
 
-    // Call _calculateNextDates to update next period, ovulation day, and fertility window
-    _calculateNextDates();
-
-    await saveWomenHealthToLocalStorage();
+      await saveWomenHealthToLocalStorage();
     } else {
       // ❌ No data → first time user
       isFirstTimeWomen.value = true;
     }
-
-    print("✅ Women Health Data loaded successfully: $response");
-
   } catch (e) {
-    print(e);
-    CustomSnackbar.showError(
-      context: Get.context!,
-      title: 'Error',
-      message: 'Failed loading Women Health Data',
-    );
+    print("Error: $e");
   }
 }
 
+  Future<void> editperioddatatoAPI({
+    required DateTime startDate,
+    required DateTime predictedDate,
+    required bool isMatched,
+    required BuildContext context,
+  }) async {
+    try {
+      final payload = {
+        "StartDay": startDate.day,
+        "StartMonth": startDate.month,
+        "StartYear": startDate.year,
+        "PredictedDay": predictedDate.day,
+        "PredictedMonth": predictedDate.month,
+        "PredictedYear": predictedDate.year,
+        "IsMatched": isMatched,
+      };
 
-   Future<void> saveWomenHealthDatatoAPI(
+      final response = await ApiService.post(
+        addperioddata,
+        payload,
+        withAuth: true,
+        encryptionRequired: true,
+      );
+
+      if (response is http.Response) {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Failed to update period data',
+        );
+        return;
+      }
+
+      CustomSnackbar.showSuccess(
+        context: context,
+        title: 'Success',
+        message: 'Period data updated successfully!',
+      );
+    } catch (e) {
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Something went wrong',
+      );
+    }
+  }
+
+  Future<void> saveWomenHealthDatatoAPI(
     int periodDays,
     int periodCycleDays,
     int periodDay,
@@ -284,8 +385,8 @@ class WomenHealthController extends GetxController {
         message: 'Women Health Data saved successfully!',
       );
       final prefs = await SharedPreferences.getInstance();
-  await prefs.setBool('is_first_time_women', false);
-  isFirstTimeWomen.value = false;
+      await prefs.setBool('is_first_time_women', false);
+      isFirstTimeWomen.value = false;
 
       print("✅ Women Health Data saved successfully: $response");
     } catch (e) {

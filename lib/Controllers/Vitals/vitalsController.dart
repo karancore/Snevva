@@ -56,6 +56,7 @@ class VitalsController extends GetxController {
     await prefs.setInt('sys', sys.value); // Save SYS
     await prefs.setInt('dia', dia.value); // Save DIA
     await prefs.setInt('bloodGlucose', bloodGlucose.value); // Save BloodGlucose
+    await prefs.setBool('isFirstTime', false);
 
     print(
       'Vitals saved: BPM: ${bpm.value}, SYS: ${sys.value}, DIA: ${dia.value}, BloodGlucose: ${bloodGlucose.value}',

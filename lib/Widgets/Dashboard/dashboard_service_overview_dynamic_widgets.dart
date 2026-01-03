@@ -279,7 +279,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                 onTap: () async {
                   final prefs = await SharedPreferences.getInstance();
                   final isFirstSleep =
-                      prefs.getBool('is_first_time_sleep') ?? true;
+                      prefs.getBool('is_first_time_sleep') ?? false;
 
                   if (isFirstSleep) {
                     final agreed = await showSleepBottomSheetModal(

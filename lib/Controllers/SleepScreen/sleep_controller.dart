@@ -5,6 +5,7 @@ import 'package:get/get_connect/http/src/response/response.dart' as http;
 import 'package:get_storage/get_storage.dart';
 import 'package:hive/hive.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
@@ -110,7 +111,7 @@ class SleepController extends GetxController {
       }
 
       final decoded = response as Map<String, dynamic>;
-      final List<dynamic> sleepData = decoded['data']?['SleepData'] ?? [];
+      final sleepData = decoded['data']?['SleepData'] ?? [];
 
       // 🔥 CLEAR OLD DATA BEFORE LOADING NEW MONTH
       deepSleepHistory.clear();
@@ -136,14 +137,43 @@ class SleepController extends GetxController {
         final key = "$year-$month-$day";
         deepSleepHistory[key] = duration;
       }
+      
+      if(sleepData['SleepData'] != null){
+        bedtime.value = sleepData['SleepData']['SleepingFrom'] != null
+            ? _parseTime(
+                year,
+                month,
+                sleepData['SleepData']['Day'],
+                sleepData['SleepData']['SleepingFrom'],
+              )
+            : null;
+        waketime.value = sleepData['SleepData']['SleepingTo'] != null
+            ? _parseTime(
+                year,
+                month,
+                sleepData['SleepData']['Day'],
+                sleepData['SleepData']['SleepingTo'],
+              )
+            : null;
+      }
 
       // 🔁 Refresh weekly graph too
       _updateDeepSleepSpots();
+      saveVitalsToLocalStorage();
 
       print("✅ Sleep history loaded: $deepSleepHistory");
     } catch (e) {
       print("❌ Error loading sleep data: $e");
     }
+  }
+
+  Future<void> saveVitalsToLocalStorage() async {
+
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setInt('bedtime', bedtime.value?.millisecondsSinceEpoch ?? 0);
+    await prefs.setInt('waketime', waketime.value?.millisecondsSinceEpoch ?? 0);
+    await prefs.setBool('is_first_time_sleep', false);
   }
 
   Future<void> updateSleepTimestoServer(
