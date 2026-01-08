@@ -111,8 +111,9 @@ class HealthTipsController extends GetxController {
       // if (bmitext != null && bmitext.isNotEmpty) tags.add(bmitext);
       // if (activitylevel != null && activitylevel.isNotEmpty) tags.add(activitylevel);
       // if (healthgoal != null && healthgoal.isNotEmpty) tags.add(healthgoal);
-      if (storedGender != null && storedGender.toString().isNotEmpty)
+      if (storedGender != null && storedGender.toString().isNotEmpty) {
         tags.add(storedGender);
+      }
 
       if (day != null && month != null && year != null) {
         DateTime today = DateTime.now();

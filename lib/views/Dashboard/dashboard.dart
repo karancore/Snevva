@@ -10,7 +10,7 @@ import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Widgets/Dashboard/dashboard_services_widget.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
-import 'package:snevva/views/Alerts/alerts.dart';
+import 'package:snevva/views/Alerts/alerts_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import '../../Controllers/Hydration/hydration_stat_controller.dart';
 import '../../Widgets/Dashboard/dashboard_ads_carousel_slider.dart';
@@ -121,7 +121,7 @@ class _DashboardState extends State<Dashboard>
                         color: AppColors.primaryColor,
                       ),
                       onPressed: () {
-                        Get.to(() => Alerts());
+                        Get.to(() => AlertsScreen());
                         notificationController.hasNewNotification.value = false;
                       },
                     ),

@@ -524,7 +524,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
               // ========== SLEEP STATISTICS GRAPH ==========
               SizedBox(
-                height: height * 0.34,
+                height: height * 0.41,
                 child: Obx(() {
                   final labels =
                       _isMonthlyView

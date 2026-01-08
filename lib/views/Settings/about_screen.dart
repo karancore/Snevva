@@ -2,8 +2,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../../consts/consts.dart';
 
-class About extends StatelessWidget {
-  const About({super.key});
+class AboutScreen extends StatelessWidget {
+  const AboutScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -16,63 +16,20 @@ class About extends StatelessWidget {
       appBar: AppBar(
         centerTitle: true,
         title: AutoSizeText('About'),
-        leading: IconButton(
-          onPressed: () {
-            Get.back();
-          },
-          icon: Icon(
-            FontAwesomeIcons.arrowLeft,
-            color:
-                isDarkMode
-                    ? white.withValues(alpha: 0.7)
-                    : black.withValues(alpha: 0.8),
-          ),
-        ),
+        iconTheme: IconThemeData(color: isDarkMode ? white : black, size: 20),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                buildTile('Version', 'Tap to check for updates'),
-                Spacer(),
-                AutoSizeText(
-                  'v1.0.0',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-            buildTile('Share App', 'Tap to share app'),
-            buildTile('Contact Us', 'Feedbacks Appreciated!'),
-          ],
+        child: Text(
+          "Snevva summary for the about section: SNEVVA is an AI-powered health companion offering symptom guidance, lab report insights, medicine reminders, period tracking, and expert consultations to support informed health decisions anytime, anywhere.",
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+            color:
+                isDarkMode ? white.withValues(alpha: 0.9) : Color(0xff878787),
+          ),
         ),
       ),
-    );
-  }
-
-  Column buildTile(String heading, String subheading) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AutoSizeText(
-          heading,
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-        ),
-
-        AutoSizeText(
-          subheading,
-          maxFontSize: 14,
-          minFontSize: 8,
-          style: TextStyle(fontWeight: FontWeight.w400, color: mediumGrey),
-          overflow: TextOverflow.ellipsis,
-          maxLines: 2,
-        ),
-        SizedBox(height: 20),
-      ],
     );
   }
 }

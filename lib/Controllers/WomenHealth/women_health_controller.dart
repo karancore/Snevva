@@ -248,56 +248,57 @@ class WomenHealthController extends GetxController {
   }
 
   Future<void> lastPeriodDatafromAPI() async {
-  try {
-    final response = await ApiService.post(
-      lastPeriodData,
-      null,
-      withAuth: true,
-      encryptionRequired: true,
-    );
+    try {
+      final response = await ApiService.post(
+        lastPeriodData,
+        null,
+        withAuth: true,
+        encryptionRequired: true,
+      );
 
-    final parsedData = jsonDecode(jsonEncode(response));
-    print("parsed last period data from api : $parsedData");
+      final parsedData = jsonDecode(jsonEncode(response));
+      print("parsed last period data from api : $parsedData");
 
-    final womenHealthData = parsedData['data']['WomenHealthData']['PeriodsData'] != null
-        ? parsedData['data']['WomenHealthData']['PeriodsData']
-        : parsedData['data']['WomenHealthData'];
+      final womenHealthData =
+          parsedData['data']['WomenHealthData']['PeriodsData'] != null
+              ? parsedData['data']['WomenHealthData']['PeriodsData']
+              : parsedData['data']['WomenHealthData'];
 
-    print("women health data extracted : $womenHealthData");
+      print("women health data extracted : $womenHealthData");
 
-    if (womenHealthData != null) {
-      // ✅ API has data → not first time
-      isFirstTimeWomen.value = false;
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('is_first_time_women', false);
+      if (womenHealthData != null) {
+        // ✅ API has data → not first time
+        isFirstTimeWomen.value = false;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('is_first_time_women', false);
 
-      // Extract individual data values
-      String periodDaysFromAPI =
-          womenHealthData['PeroidsDuration']?.toString() ?? '5';
-      String periodCycleDaysFromAPI =
-          womenHealthData['PeroidsCycleCount']?.toString() ?? '28';
-      int periodDayFromAPI = womenHealthData['PeriodDay'] ?? 1;
-      int periodMonthFromAPI = womenHealthData['PeriodMonth'] ?? 12;
-      int periodYearFromAPI = womenHealthData['PeriodYear'] ?? 2025;
+        // Extract individual data values
+        String periodDaysFromAPI =
+            womenHealthData['PeroidsDuration']?.toString() ?? '5';
+        String periodCycleDaysFromAPI =
+            womenHealthData['PeroidsCycleCount']?.toString() ?? '28';
+        int periodDayFromAPI = womenHealthData['PeriodDay'] ?? 1;
+        int periodMonthFromAPI = womenHealthData['PeriodMonth'] ?? 12;
+        int periodYearFromAPI = womenHealthData['PeriodYear'] ?? 2025;
 
-      // Update the local state with API data
-      periodDays.value = periodDaysFromAPI;
-      periodCycleDays.value = periodCycleDaysFromAPI;
-      periodLastPeriodDay.value =
-          "$periodDayFromAPI/${periodMonthFromAPI.toString().padLeft(2, '0')}/$periodYearFromAPI";
+        // Update the local state with API data
+        periodDays.value = periodDaysFromAPI;
+        periodCycleDays.value = periodCycleDaysFromAPI;
+        periodLastPeriodDay.value =
+            "$periodDayFromAPI/${periodMonthFromAPI.toString().padLeft(2, '0')}/$periodYearFromAPI";
 
-      // Call _calculateNextDates to update next period, ovulation day, and fertility window
-      _calculateNextDates();
+        // Call _calculateNextDates to update next period, ovulation day, and fertility window
+        _calculateNextDates();
 
-      await saveWomenHealthToLocalStorage();
-    } else {
-      // ❌ No data → first time user
-      isFirstTimeWomen.value = true;
+        await saveWomenHealthToLocalStorage();
+      } else {
+        // ❌ No data → first time user
+        isFirstTimeWomen.value = true;
+      }
+    } catch (e) {
+      print("Error: $e");
     }
-  } catch (e) {
-    print("Error: $e");
   }
-}
 
   Future<void> editperioddatatoAPI({
     required DateTime startDate,

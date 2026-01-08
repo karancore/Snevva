@@ -107,28 +107,29 @@ class MoodTrackerScreen extends StatelessWidget {
                 },
               ),
             ),
-
-            // Selected mood info
-            Obx(
-              () => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                child: Text(
-                  controller.selectedMoodIndex.value == -1
-                      ? "No mood selected. Swipe or tap to choose."
-                      : "Selected mood: ${controller.moods[controller.selectedMoodIndex.value]}",
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
+            //
+            // // Selected mood info
+            // Obx(
+            //   () => Padding(
+            //     padding: const EdgeInsets.symmetric(vertical: 20),
+            //     child: Text(
+            //       controller.selectedMoodIndex.value == -1
+            //           ? "No mood selected. Swipe or tap to choose."
+            //           : "Selected mood: ${controller.moods[controller.selectedMoodIndex.value]}",
+            //       style: const TextStyle(
+            //         fontSize: 18,
+            //         fontWeight: FontWeight.w500,
+            //       ),
+            //     ),
+            //   ),
+            // ),
 
             // Save button
             ElevatedButton(
               onPressed: () {
                 controller.updateMood(context);
-                Get.to(() => const MoodQuestionnaire());
+
+                Get.to(() => MoodQuestionnaire());
               },
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(

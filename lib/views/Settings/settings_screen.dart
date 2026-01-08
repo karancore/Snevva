@@ -2,9 +2,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/utils/theme_controller.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../Widgets/Setting/setting_item_widget.dart';
 import '../../consts/consts.dart';
+import 'about_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -18,6 +20,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsToggle = false;
   bool _themeToggle = false;
   double _volume = 0.5;
+
+  Future<void> launchEmail() async {
+    final Uri emailUri = Uri(
+      scheme: 'mailto',
+      path: 'snevvaofficial@gmail.com',
+      queryParameters: {'subject': 'Subject', 'body': 'Body'},
+    );
+
+    if (!await canLaunchUrl(emailUri)) {
+      throw 'No email app found on this device';
+    }
+
+    await launchUrl(emailUri, mode: LaunchMode.externalApplication);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +77,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
             SizedBox(height: height * 0.0188),
-            Divider(thickness: 1.5, color: Theme.of(context).dividerColor),
+            const Divider(thickness: border04px, color: mediumGrey),
             SizedBox(height: height * 0.0188),
             // Text(
             //   "Volume & Access",
@@ -112,7 +128,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
             SizedBox(height: height * 0.0188),
-            Divider(thickness: 1.0, color: Theme.of(context).dividerColor),
+            const Divider(thickness: border04px, color: mediumGrey),
             // Divider(thickness: 1.0, color: mediumGrey),
             SizedBox(height: height * 0.0188),
             Text(
@@ -124,9 +140,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             SizedBox(height: height * 0.0117),
-            Text(
-              "About app",
-              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+            InkWell(
+              onTap: () {
+                Get.to(() => AboutScreen());
+              },
+              child: Text(
+                "About app",
+                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+              ),
             ),
             SizedBox(height: height * 0.0164),
 
@@ -142,7 +163,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
             buildTile('Rate App', 'Tap to rate app'),
-            buildTile('Contact Us', 'Feedbacks Appreciated!'),
+            InkWell(
+              onTap: launchEmail,
+              child: buildTile('Contact Us', 'Feedbacks Appreciated!'),
+            ),
           ],
         ),
       ),

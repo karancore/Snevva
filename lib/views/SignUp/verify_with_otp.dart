@@ -1,4 +1,6 @@
+import 'package:smart_auth/smart_auth.dart';
 import 'package:sms_autofill/sms_autofill.dart';
+
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
 import 'package:snevva/common/custom_snackbar.dart';
@@ -32,16 +34,22 @@ class VerifyWithOtpScreen extends StatefulWidget {
 class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
   late OTPVerificationController otpVerificationController;
   late bool otpVerificationStatus;
+  String? appSignature;
+  final smartAuth = SmartAuth.instance;
   bool _isLoading = false;
+  // late SmsUserConsent smsUserConsent;
   final localStorageManager = Get.put(LocalStorageManager());
 
   @override
   void initState() {
     super.initState();
+    userConsent();
 
     if (Get.isRegistered<OTPVerificationController>()) {
       Get.delete<OTPVerificationController>();
     }
+
+    //if (Platform.isAndroid) onSmsReceived();
 
     otpVerificationController = Get.put(
       OTPVerificationController(
@@ -51,17 +59,100 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
       ),
     );
   }
+  // Future<void> onSmsReceived() async {
+  //   smsUserConsent = SmsUserConsent(
+  //       phoneNumberListener: () => setState(() {}),
+  //       smsListener: () => setState(() {}));
+
+  // }
 
   @override
   void dispose() {
+    /// Removes the listeners if the SMS code is not received yet
+    smartAuth.removeSmsRetrieverApiListener();
+
+    /// Removes the listeners if the SMS code is not received yet
+    smartAuth.removeUserConsentApiListener();
+
     if (Get.isRegistered<OTPVerificationController>()) {
       Get.delete<OTPVerificationController>();
     }
     super.dispose();
   }
 
-  void onButtonClick() async {
+  Future<void> getAppSignature() async {
+    final res = await smartAuth.getAppSignature();
+    setState(() => appSignature = res.data);
+    debugPrint('Signature: $res');
+  }
+
+  Future<void> userConsent() async {
+    final res = await smartAuth.getSmsWithUserConsentApi();
+    if (res.hasData) {
+      debugPrint('userConsent: $res');
+      final code = res.requireData.code;
+
+      /// The code can be null if the SMS was received but
+      /// the code was not extracted from it
+      if (code == null) return;
+      otpVerificationController.pinController.text = code;
+      if (otpVerificationController.pinController.text == widget.responseOtp) {
+        otpVerificationController.verifyOtp(
+          otpVerificationController.pinController.text,
+          context,
+        );
+      }
+      otpVerificationController
+          .pinController
+          .selection = TextSelection.fromPosition(
+        TextPosition(
+          offset: otpVerificationController.pinController.text.length,
+        ),
+      );
+    } else if (res.isCanceled) {
+      debugPrint('userConsent canceled');
+    } else {
+      debugPrint('userConsent failed: $res');
+    }
+  }
+
+  Future<void> smsRetriever() async {
+    final res = await smartAuth.getSmsWithRetrieverApi();
+    if (res.hasData) {
+      debugPrint('smsRetriever: $res');
+      final code = res.requireData.code;
+
+      /// The code can be null if the SMS was received but
+      /// the code was not extracted from it
+      if (code == null) return;
+      otpVerificationController.pinController.text = code;
+      otpVerificationController
+          .pinController
+          .selection = TextSelection.fromPosition(
+        TextPosition(
+          offset: otpVerificationController.pinController.text.length,
+        ),
+      );
+    } else {
+      debugPrint('smsRetriever failed: $res');
+    }
+  }
+
+  Future<void> requestPhoneNumberHint() async {
+    final res = await smartAuth.requestPhoneNumberHint();
+    if (res.hasData) {
+      // Use the phone number
+    } else {
+      // Handle error
+    }
+    debugPrint('requestHint: $res');
+  }
+
+  Future<void> onButtonClick() async {
     setState(() => _isLoading = true);
+
+    // smsRetriever();
+    // getAppSignature();
 
     final pin = otpVerificationController.pinController.text.trim();
 
@@ -131,6 +222,13 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
         border: Border.all(color: Colors.grey.shade300),
       ),
     );
+    // if (Platform.isAndroid) {
+    //   var receivedSms = smsUserConsent.receivedSms ?? '';
+    //   var smsOTP = receivedSms.replaceAll(RegExp(r'[^0-9]'), '');
+    //   if (smsOTP.isNotEmpty) {
+    //     otpVerificationController.pinController.text = smsOTP;
+    //   }
+    // }
 
     return Scaffold(
       appBar: AppBar(
@@ -164,22 +262,35 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
                 decoration: BoxLooseDecoration(
                   textStyle: TextStyle(
                     fontSize: 20,
-                    color: isDarkMode ? black : white,
+                    color:
+                        isDarkMode
+                            ? Colors.white
+                            : Colors.black, // text visible
                   ),
                   bgColorBuilder:
                       isDarkMode
-                          ? FixedColorBuilder(white)
-                          : FixedColorBuilder(black),
+                          ? FixedColorBuilder(Colors.black) // box background
+                          : FixedColorBuilder(Colors.white),
                   strokeColorBuilder:
                       isDarkMode
-                          ? FixedColorBuilder(white)
-                          : FixedColorBuilder(black),
+                          ? FixedColorBuilder(Colors.grey) // border color
+                          : FixedColorBuilder(Colors.grey[300]!),
+                  radius: Radius.circular(8),
+                  gapSpace: 10,
                 ),
+
                 controller: otpVerificationController.pinController,
                 currentCode: otpVerificationController.messageOtpCode.value,
                 textInputAction: TextInputAction.done,
                 onCodeChanged: (code) {
-                  otpVerificationController.messageOtpCode.value = code ?? '';
+                  if (code != null) {
+                    otpVerificationController.messageOtpCode.value = code;
+                    print(
+                      'Code changed: ${otpVerificationController.messageOtpCode.value}',
+                    );
+                    // otpVerificationController
+                    //     .tryVerify(code, context, widget.responseOtp);
+                  }
                 },
               ),
 

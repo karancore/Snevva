@@ -14,26 +14,13 @@ import '../../Widgets/CommonWidgets/custom_outlined_button.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../common/global_variables.dart';
 
-class VitalScreen extends StatelessWidget {
+class VitalScreen extends StatefulWidget {
+  const VitalScreen({super.key});
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Vitals App',
-      themeMode: ThemeMode.system,
-      theme: ThemeData.light(),
-      darkTheme: ThemeData.dark(),
-      home: VitalsScreen(),
-      debugShowCheckedModeBanner: false,
-    );
-  }
+  State<VitalScreen> createState() => _VitalScreenState();
 }
 
-class VitalsScreen extends StatefulWidget {
-  @override
-  _VitalsScreenState createState() => _VitalsScreenState();
-}
-
-class _VitalsScreenState extends State<VitalsScreen> {
+class _VitalScreenState extends State<VitalScreen> {
   int heartRate = 73;
   int systolic = 120;
   int diastolic = 80;
@@ -358,6 +345,12 @@ class _VitalsScreenState extends State<VitalsScreen> {
                                 color: textColor.withOpacity(0.5),
                               ),
                               border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                              errorBorder: InputBorder.none,
+                              focusedErrorBorder: InputBorder.none,
+
                               isDense: true,
                             ),
                           ),
@@ -425,7 +418,12 @@ class _VitalsScreenState extends State<VitalsScreen> {
                                   color: textColor.withOpacity(0.5),
                                   fontSize: 14,
                                 ),
-                                border: const UnderlineInputBorder(),
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                disabledBorder: InputBorder.none,
+                                errorBorder: InputBorder.none,
+                                focusedErrorBorder: InputBorder.none,
                                 contentPadding: EdgeInsets.zero,
                               ),
                             ),
@@ -445,7 +443,12 @@ class _VitalsScreenState extends State<VitalsScreen> {
                                   color: textColor.withOpacity(0.5),
                                   fontSize: 14,
                                 ),
-                                border: const UnderlineInputBorder(),
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                disabledBorder: InputBorder.none,
+                                errorBorder: InputBorder.none,
+                                focusedErrorBorder: InputBorder.none,
                                 contentPadding: EdgeInsets.zero,
                               ),
                             ),
@@ -485,7 +488,12 @@ class _VitalsScreenState extends State<VitalsScreen> {
                                   color: textColor.withOpacity(0.5),
                                   fontSize: 14,
                                 ),
-                                border: const UnderlineInputBorder(),
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                disabledBorder: InputBorder.none,
+                                errorBorder: InputBorder.none,
+                                focusedErrorBorder: InputBorder.none,
                                 contentPadding: EdgeInsets.zero,
                               ),
                             ),

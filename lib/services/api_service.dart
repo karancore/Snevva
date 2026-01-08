@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:snevva/services/encryption_service.dart';
+import '../consts/consts.dart';
 import '../env/env.dart';
 import 'auth_header_helper.dart';
 
@@ -16,13 +17,13 @@ class ApiService {
     final headers = await AuthHeaderHelper.getHeaders(withAuth: withAuth);
     final uri = Uri.parse("$_baseUrl$endpoint");
 
-    // print(uri);
+    // debugPrint(uri);
 
     if (encryptionRequired && plainBody != null) {
       // 🔐 Step 1: Encode Map to JSON string
       final jsonString = jsonEncode(plainBody);
 
-      // print(jsonString);
+      // debugPrint(jsonString);
 
       // 🔐 Step 2: Encrypt JSON string
       final encrypted = EncryptionService.encryptData(jsonString);
@@ -39,15 +40,15 @@ class ApiService {
         headers: headers,
         body: encryptedBody,
       );
-      print(response.body);
+      debugPrint(response.body);
       _handleErrors(response);
 
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         final encryptedBody = responseBody['data'];
-        print(encryptedBody);
+        debugPrint(encryptedBody);
         final responseHash = response.headers['x-data-hash'];
-        print(responseHash);
+        debugPrint(responseHash);
 
         // 🔐 Step 6: Decrypt response
         final decrypted = EncryptionService.decryptData(
@@ -56,7 +57,7 @@ class ApiService {
         );
         final Map<String, dynamic> responseData = jsonDecode(decrypted!);
 
-        // print(responseData);
+        // debugPrint(responseData);
 
         return responseData;
       } else {
@@ -77,7 +78,7 @@ class ApiService {
 
       _handleErrors(response);
       if (response.statusCode == 200) {
-        // print("👉1");
+        // debugPrint("👉1");
 
         final responseBody = jsonDecode(response.body);
         final encryptedBody = responseBody['data'];
@@ -88,9 +89,9 @@ class ApiService {
           encryptedBody,
           responseHash!,
         );
-        // print("$decrypted");
+        // debugPrint("$decrypted");
         final Map<String, dynamic> responseData = jsonDecode(decrypted!);
-        // print("$responseData");
+        // debugPrint("$responseData");
 
         return responseData;
       }
@@ -99,8 +100,46 @@ class ApiService {
   }
 
   static void _handleErrors(http.Response response) {
+    debugPrint('🔍 _handleErrors called');
+    debugPrint('➡️ Status code: ${response.statusCode}');
+    debugPrint('➡️ Headers: ${response.headers}');
+    debugPrint('➡️ Raw body: ${response.body}');
+
     if (response.statusCode >= 400) {
-      throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      debugPrint('⚠️ Error response detected');
+
+      try {
+        debugPrint('🧩 Attempting JSON decode...');
+        final body = jsonDecode(response.body);
+        debugPrint('✅ JSON decoded: $body');
+
+        if (body['data'] != null) {
+          debugPrint('🔐 Encrypted data found');
+          debugPrint('➡️ Encrypted payload: ${body['data']}');
+          debugPrint(
+            '➡️ x-data-hash header: ${response.headers['x-data-hash']}',
+          );
+
+          final decrypted = EncryptionService.decryptData(
+            body['data'],
+            response.headers['x-data-hash']!,
+          );
+
+          debugPrint('✅ Decrypted error message: $decrypted');
+
+          throw Exception('HTTP ${response.statusCode}: $decrypted');
+        } else {
+          debugPrint('ℹ️ No "data" field in response body');
+        }
+      } catch (e, stack) {
+        debugPrint('❌ Error while handling HTTP error');
+        debugPrint('➡️ Exception: $e');
+        debugPrint('➡️ StackTrace: $stack');
+
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      }
+    } else {
+      debugPrint('✅ Response OK, no error handling needed');
     }
   }
 }

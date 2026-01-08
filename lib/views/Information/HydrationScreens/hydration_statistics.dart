@@ -262,7 +262,7 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                 // double interval = (maxY / 5).ceilToDouble();
 
                 return SizedBox(
-                  height: height * 0.34,
+                  height: height * 0.41,
                   child: Obx(() {
                     final labels =
                         _isMonthlyView

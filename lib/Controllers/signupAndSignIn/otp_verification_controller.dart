@@ -12,6 +12,7 @@ class OTPVerificationController extends GetxController with CodeAutoFill {
   String responseOtp;
   final pinController = TextEditingController();
   final String emailOrPasswordText;
+
   final bool isForgotPasswordScreen;
 
   var messageOtpCode = ''.obs;
@@ -23,11 +24,27 @@ class OTPVerificationController extends GetxController with CodeAutoFill {
     this.isForgotPasswordScreen = false,
   ]);
 
+  static const int otpLength = 6;
+
+  void tryVerify(String code, BuildContext context, String responseOtp) {
+    if (code.length == otpLength && !isVerifying.value && code == responseOtp) {
+      isVerifying.value = true;
+      verifyOtp(code, context);
+    }
+  }
+
   @override
   void onInit() {
     super.onInit();
     SmsAutoFill().getAppSignature.then((signature) {
       print("App Signature is $signature");
+    });
+
+    pinController.addListener(() {
+      final text = pinController.text;
+      if (Get.context != null) {
+        tryVerify(text, Get.context!, pinController.text);
+      }
     });
 
     // Start sms_autofill listener. For iOS this triggers the keyboard

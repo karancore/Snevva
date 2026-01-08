@@ -22,7 +22,7 @@ class AppColors {
   static const Color primaryColor = Color(0xFFA95BFF);
   static const Color primaryLight4PercentOpacity = Color(0x0A62FF0A);
 
-  static const Color activeSwitch = Color(0xFF34C759);
+  static const Color activeSwitch = Color(0xFFA95BFF);
 
   // Primary gradient
   static const Gradient primaryGradient = LinearGradient(

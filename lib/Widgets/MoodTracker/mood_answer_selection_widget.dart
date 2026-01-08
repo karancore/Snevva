@@ -25,42 +25,42 @@ class MoodAnswerSelectionWidget extends StatelessWidget {
     return (index == 3)
         ? SizedBox.shrink()
         : InkWell(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        height: height * 0.1,
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: mediumGrey, width: border04px),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AutoSizeText(
-              heading,
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 18,
-                color:
-                isSelected
-                    ? white
-                    : isDarkMode
-                    ? white
-                    : black,
-              ),
+          onTap: onTap,
+          child: Container(
+            width: double.infinity,
+            height: height * 0.1,
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.primaryColor : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: mediumGrey, width: border04px),
             ),
-            AutoSizeText(
-              subHeading,
-              style: TextStyle(
-                fontWeight: FontWeight.w400,
-                color: isSelected ? white : mediumGrey,
-                fontSize: 14,
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AutoSizeText(
+                  heading,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 18,
+                    color:
+                        isSelected
+                            ? white
+                            : isDarkMode
+                            ? white
+                            : black,
+                  ),
+                ),
+                AutoSizeText(
+                  subHeading,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w400,
+                    color: isSelected ? white : mediumGrey,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-    );
+          ),
+        );
   }
 }

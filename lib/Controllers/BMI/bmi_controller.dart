@@ -8,7 +8,7 @@ import '../local_storage_manager.dart';
 
 class BmiController extends GetxController {
   RxInt age = 0.obs;
-  RxString bmi_text = "normal".obs;
+  RxString bmi_text = "Great-Shape".obs;
   var customTips = <dynamic>[].obs;
   var randomTips = <dynamic>[].obs;
 
@@ -54,13 +54,13 @@ class BmiController extends GetxController {
       );
 
       if (bmi.value < 18.5) {
-        bmi_text.value = "underweight";
+        bmi_text.value = "Underweight";
       } else if (bmi.value >= 18.5 && bmi.value < 24.9) {
-        bmi_text.value = "normal";
+        bmi_text.value = "Great-Shape";
       } else if (bmi.value >= 25 && bmi.value < 29.9) {
-        bmi_text.value = "overweight";
+        bmi_text.value = "Overweight";
       } else {
-        bmi_text.value = "obese";
+        bmi_text.value = "Obese";
       }
     }
 

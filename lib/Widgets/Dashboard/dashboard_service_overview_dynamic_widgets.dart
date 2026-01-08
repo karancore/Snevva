@@ -231,6 +231,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                 widgetIcon: stepsTrackingIcon,
                 width: width,
                 height: height,
+                valuePraisingText: '',
                 valueText: Obx(() {
                   final steps = stepController.todaySteps.value;
                   return RichText(

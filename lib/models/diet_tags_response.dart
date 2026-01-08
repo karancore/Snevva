@@ -37,7 +37,9 @@ class DietTagData {
   final String? heading;
   final String? title;
   final String? shortDescription;
-  final List<MealPlanItem>? mealPlan;
+  final List<MealPlanItem> mealPlan;
+  final List<String> tags;
+  final bool? isActive;
 
   DietTagData({
     this.id,
@@ -46,7 +48,9 @@ class DietTagData {
     this.heading,
     this.title,
     this.shortDescription,
-    this.mealPlan,
+    required this.mealPlan,
+    required this.tags,
+    this.isActive,
   });
 
   factory DietTagData.fromJson(Map<String, dynamic> json) {
@@ -57,12 +61,11 @@ class DietTagData {
       heading: json['Heading'],
       title: json['Title'],
       shortDescription: json['ShortDescription'],
-      mealPlan:
-          json['MealPlan'] != null
-              ? List<MealPlanItem>.from(
-                json['MealPlan'].map((x) => MealPlanItem.fromJson(x)),
-              )
-              : null,
+      mealPlan: List<MealPlanItem>.from(
+        json['MealPlan'].map((x) => MealPlanItem.fromJson(x)),
+      ),
+      tags: List<String>.from(json['Tags']),
+      isActive: json['IsActive'],
     );
   }
 
@@ -74,31 +77,33 @@ class DietTagData {
       "Heading": heading,
       "Title": title,
       "ShortDescription": shortDescription,
-      "MealPlan": mealPlan?.map((x) => x.toJson()).toList(),
+      "MealPlan": mealPlan.map((x) => x.toJson()).toList(),
+      "Tags": tags,
+      "IsActive": isActive,
     };
   }
 }
 
 class MealPlanItem {
-  final int? day;
-  final String? breakFast;
+  final int day;
+  final String breakFast;
   final String? breakFastMedia;
-  final String? lunch;
+  final String lunch;
   final String? lunchMedia;
-  final String? evening;
+  final String evening;
   final String? eveningMedia;
-  final String? dinner;
+  final String dinner;
   final String? dinnerMedia;
 
   MealPlanItem({
-    this.day,
-    this.breakFast,
+    required this.day,
+    required this.breakFast,
     this.breakFastMedia,
-    this.lunch,
+    required this.lunch,
     this.lunchMedia,
-    this.evening,
+    required this.evening,
     this.eveningMedia,
-    this.dinner,
+    required this.dinner,
     this.dinnerMedia,
   });
 

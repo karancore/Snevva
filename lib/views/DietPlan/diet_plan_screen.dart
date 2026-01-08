@@ -2,12 +2,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:snevva/Controllers/DietPlan/diet_plan_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
-import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/common/global_variables.dart';
+import 'package:snevva/models/diet_tags_response.dart';
 import 'package:snevva/views/DietPlan/celebrity_diet_plan.dart';
 
 import '../../common/loader.dart';
 import '../../consts/consts.dart';
+import '../../env/env.dart';
 
 class DietPlanScreen extends StatefulWidget {
   const DietPlanScreen({super.key});
@@ -123,36 +124,44 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Obx(() {
                 if (dietController.isLoading.value) {
-                  return Loader();
+                  return const Loader();
                 }
 
                 final data = dietController.suggestionsResponse.value.data;
-                if (data == null || data.isEmpty) {
-                  return Text("No suggestions"); // prevent crash
-                }
 
-                if (data.length < 2) {
-                  return Text("Not enough suggestions");
+                if (data == null || data.isEmpty) {
+                  return const Text("No suggestions");
                 }
-                if (data.length >= 2) {
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: List.generate(2, (i) {
-                      return suggestedItem(
-                        width,
-                        data[i].title ?? "",
-                        data[i].heading ?? "",
-                        data[i].thumbnailMedia ?? dietPlaceholder,
-                        isDarkMode,
-                        i,
+                return SizedBox(
+                  height: 165,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: data.length,
+                    separatorBuilder: (_, __) => SizedBox(width: defaultSize),
+                    itemBuilder: (context, index) {
+                      final item = data[index];
+                      logLong("Meals Item is ", item.toJson().toString());
+                      print(
+                        "Runtime Type of meal plan is: ${item.runtimeType}",
                       );
-                    }),
-                  );
-                } else {
-                  return Text("Not enough suggestions");
-                }
+
+                      return KeyedSubtree(
+                        key: ValueKey(item.id ?? index), // if id exists, use it
+                        child: suggestedItem(
+                          item: item,
+                          width: width,
+                          heading: item.heading ?? "",
+                          subHeading: item.title ?? "",
+                          dietImg: item.thumbnailMedia ?? dietPlaceholder,
+                          isDarkMode: isDarkMode,
+                        ),
+                      );
+                    },
+                  ),
+                );
               }),
             ),
+
             SizedBox(height: defaultSize - 10),
 
             Padding(
@@ -213,6 +222,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                       item[1],
                       item[2],
                       isDarkMode,
+                      index,
                     );
                   },
                 ),
@@ -267,23 +277,23 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     });
   }
 
-  Material suggestedItem(
-    double width,
-    String heading,
-    String subHeading,
-    String dietImg,
-    bool isDarkMode,
-    int index,
-  ) {
+  Widget suggestedItem({
+    required DietTagData item,
+    required double width,
+    required String heading,
+    required String subHeading,
+    required String dietImg,
+    required bool isDarkMode,
+  }) {
+    dietController.dietTagsDataResponse.value = item;
     return Material(
       color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
       elevation: 1,
       borderRadius: BorderRadius.circular(4),
       child: InkWell(
-        onTap:
-            () => Get.to(
-              CelebrityDietPlan(title: heading, img: dietImg, index: index),
-            ),
+        onTap: () {
+          Get.to(CelebrityDietPlan(diet: item));
+        },
         child: Container(
           width: width * 0.43,
           decoration: BoxDecoration(
@@ -346,13 +356,23 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     String subHeading,
     String dietImg,
     bool isDarkMode,
+    int index,
   ) {
     return Material(
       color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
       elevation: 1,
       borderRadius: BorderRadius.circular(4),
       child: InkWell(
-        onTap: () => Get.to(CelebrityDietPlan(title: heading, img: dietImg)),
+        onTap: () {
+          final diet = DietTagData(
+            heading: heading,
+            title: subHeading,
+            thumbnailMedia: dietImg,
+            mealPlan: [],
+            tags: [],
+          );
+          Get.to(CelebrityDietPlan(diet: diet));
+        },
         child: Container(
           width: width * 0.43,
           decoration: BoxDecoration(

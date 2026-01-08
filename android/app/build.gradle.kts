@@ -7,14 +7,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
     id("com.google.gms.google-services") version "4.4.4" apply false
 }
-
-// Load keystore properties
 val keystorePropertiesFile = rootProject.file("key.properties")
 val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {
     FileInputStream(keystorePropertiesFile).use { keystoreProperties.load(it) }
 }
-
 android {
     namespace = "com.coretegra.snevva"
     compileSdk = flutter.compileSdkVersion
@@ -33,10 +30,16 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = keystoreProperties.getProperty("keyAlias")
-            keyPassword = keystoreProperties.getProperty("keyPassword")
-            storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) }
-            storePassword = keystoreProperties.getProperty("storePassword")
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
+            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+            storePassword = keystoreProperties["storePassword"] as String
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -51,24 +54,25 @@ android {
         jvmTarget = "17"
     }
 
-    buildTypes {
-        getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = false
-            isShrinkResources = false
-        }
-    }
 
 }
+val multiDexVersion by extra("2.0.1")
 
 dependencies {
-    implementation(platform("com.google.firebase:firebase-bom:34.4.0"))
+    // Firebase
+    implementation(platform("com.google.firebase:firebase-bom:34.7.0"))
     implementation("com.google.firebase:firebase-analytics")
-    implementation("androidx.multidex:multidex:2.0.1")
 
-    // Kotlin DSL syntax for core library desugaring
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // MultiDex
+    implementation("androidx.multidex:multidex:$multiDexVersion")
+
+    // Google Play Services Auth (REQUIRED for Google Sign-In)
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
+
+    // Core library desugaring
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }
+
 
 flutter {
     source = "../.."

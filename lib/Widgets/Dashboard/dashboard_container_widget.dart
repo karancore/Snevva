@@ -16,7 +16,7 @@ class DashboardContainerWidget extends StatelessWidget {
 
     required this.content,
     required this.valueText,
-    this.valuePraisingText,
+    required this.valuePraisingText,
   });
 
   final double width;
@@ -26,7 +26,7 @@ class DashboardContainerWidget extends StatelessWidget {
   final VoidCallback? onTap;
   final bool isDarkMode;
   final Widget valueText;
-  final String? valuePraisingText;
+  final String valuePraisingText;
   final Widget content;
 
   @override
@@ -70,18 +70,20 @@ class DashboardContainerWidget extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      valueText,
-                      if (valuePraisingText != null)
+                  if (valuePraisingText.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        valueText,
                         AutoSizeText(
-                          valuePraisingText!,
+                          valuePraisingText,
                           minFontSize: 8,
                           style: const TextStyle(fontSize: 8),
                         ),
-                    ],
-                  ),
+                      ],
+                    )
+                  else
+                    valueText,
                 ],
               ),
             ),

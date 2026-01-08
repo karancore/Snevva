@@ -1,8 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+
+
+
+
     <!-- 🌐 Internet & basic -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -44,6 +52,10 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
 
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+
 <!--        &lt;!&ndash; ⚙️ Google Sign-In / Credential Manager disables &ndash;&gt;-->
 <!--        <meta-data-->
 <!--            android:name="com.google.android.gms.credentials.API_ENABLED"-->
@@ -67,6 +79,18 @@
             android:enableOnBackInvokedCallback="true"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
+
+            <meta-data
+                android:name="com.google.android.gms.credentials.API_ENABLED"
+                android:value="true" />
+
+            <meta-data
+                android:name="com.google.android.gms.credentials.CredentialPickerConfig"
+                android:value="true" />
+
+            <meta-data
+                android:name="androidx.credentials.CREDENTIAL_SERVICE_ENABLED"
+                android:value="true" />
 
             <!-- Theme shown before Flutter UI renders -->
             <meta-data
@@ -129,6 +153,10 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT" />
             <data android:mimeType="text/plain" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="mailto" />
         </intent>
     </queries>
 </manifest>

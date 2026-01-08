@@ -44,11 +44,11 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
 
     setState(() {
       // gender = localGender ?? 'Not Specified';
-      final signInController = Get.find<SignInController>();
+      final signInController = Get.put(SignInController());
       final userInfo = signInController.userProfData ?? {};
       final userData = userInfo['data'];
       gender = (localGender != null) ? localGender : userData['Gender'];
-      print("jjjjjjjjjj$gender");
+      print("Gender $gender");
       isLoading = false;
     });
   }
@@ -67,7 +67,6 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
     final localstorage = Get.find<LocalStorageManager>();
     final userInfo = localstorage.userMap;
     print('userInfo: $userInfo');
-
 
     // final useracivedata = signInController.userGoalData ?? {};
 
@@ -116,8 +115,6 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
               onTap: () async {
                 final prefs = await SharedPreferences.getInstance();
                 final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
-
-
 
                 if (stepgoal == null || !isGoalSet) {
                   final goal = await showStepCounterBottomSheet(
@@ -257,32 +254,33 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
               },
             ),
             if (gender == 'Female')
-  DashboardServiceWidgetItems(
-    widgetText: 'Women Health',
-    widgetImg: womenIcon,
-    onTap: () async {
-      final prefs = await SharedPreferences.getInstance();
-      final isFirstWomen =
-          prefs.getBool('is_first_time_women') ?? true;
+              DashboardServiceWidgetItems(
+                widgetText: 'Women Health',
+                widgetImg: womenIcon,
+                onTap: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final isFirstWomen =
+                      prefs.getBool('is_first_time_women') ?? true;
 
-      if (womentracking == false || womentracking == null || isFirstWomen) {
-        final agreed = await showWomenBottomSheetsModal(
-          context,
-          isDarkMode,
-          width,
-          height,
-        );
+                  if (womentracking == false ||
+                      womentracking == null ||
+                      isFirstWomen) {
+                    final agreed = await showWomenBottomSheetsModal(
+                      context,
+                      isDarkMode,
+                      width,
+                      height,
+                    );
 
-        if (agreed == true) {
-          // 🚫 DO NOT change flag here
-          Get.to(() => WomenHealthScreen());
-        }
-      } else {
-        Get.to(() => WomenHealthScreen());
-      }
-    },
-  ),
-
+                    if (agreed == true) {
+                      // 🚫 DO NOT change flag here
+                      Get.to(() => WomenHealthScreen());
+                    }
+                  } else {
+                    Get.to(() => WomenHealthScreen());
+                  }
+                },
+              ),
 
             if (gender != 'Female')
               DashboardServiceWidgetItems(

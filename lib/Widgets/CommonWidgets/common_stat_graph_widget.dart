@@ -141,8 +141,8 @@ class CommonStatGraphWidget extends StatelessWidget {
                 ? SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Container(
-                    padding: const EdgeInsets.only(top: 52),
-                    height: height * 0.25,
+                    padding: const EdgeInsets.only(top: 12),
+                    height: height * 0.28,
                     width: labels.length * 41,
                     child: LineChart(
                       LineChartData(
@@ -290,9 +290,9 @@ class CommonStatGraphWidget extends StatelessWidget {
                   ),
                 )
                 : Container(
-                  padding: const EdgeInsets.only(top: 52),
+                  padding: const EdgeInsets.only(top: 12),
 
-                  height: height * 0.25, // Updated to 0.25 to match monthly
+                  height: height * 0.28, // Updated to 0.25 to match monthly
                   child: LineChart(
                     LineChartData(
                       minX: 0,

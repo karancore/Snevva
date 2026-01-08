@@ -7,7 +7,7 @@ import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'Controllers/DietPlan/diet_plan_controller.dart';
 import 'Controllers/HealthTips/healthtips_controller.dart';
 import 'Controllers/Hydration/hydration_stat_controller.dart';
-import 'Controllers/MentalWellness/mentalwellnesscontroller.dart';
+import 'Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'Controllers/MoodTracker/mood_controller.dart';
 import 'Controllers/MoodTracker/mood_questions_controller.dart';
 import 'Controllers/Reminder/reminder_controller.dart';

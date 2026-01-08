@@ -29,6 +29,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       child: AppBar(
         backgroundColor: isDarkMode ? black : white,
         centerTitle: true,
+        scrolledUnderElevation: 0.0,
+        surfaceTintColor: isDarkMode ? black : white,
 
         title: Text(
           appbarText,
@@ -45,25 +47,29 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   builder: (context) {
                     debugPrint('Drawer Icon Builder created');
 
-                    return IconButton(
-                      icon: SvgPicture.asset(
-                        isWhiteRequired! ? drawerIconWhite : drawerIcon,
+                    return Padding(
+                      padding: const EdgeInsets.only(left: 12),
+                      child: IconButton(
+                        iconSize: 200.0,
+                        icon: SvgPicture.asset(
+                          isWhiteRequired! ? drawerIconWhite : drawerIcon,
+                        ),
+                        onPressed: () {
+                          debugPrint('Drawer Icon tapped');
+
+                          // 🔍 Check if Scaffold exists
+                          final scaffold = Scaffold.maybeOf(context);
+                          debugPrint('Scaffold found: ${scaffold != null}');
+
+                          if (scaffold != null) {
+                            scaffold.openDrawer();
+                          } else {
+                            debugPrint(
+                              '❌ ERROR: No Scaffold found above CustomAppBar',
+                            );
+                          }
+                        },
                       ),
-                      onPressed: () {
-                        debugPrint('Drawer Icon tapped');
-
-                        // 🔍 Check if Scaffold exists
-                        final scaffold = Scaffold.maybeOf(context);
-                        debugPrint('Scaffold found: ${scaffold != null}');
-
-                        if (scaffold != null) {
-                          scaffold.openDrawer();
-                        } else {
-                          debugPrint(
-                            '❌ ERROR: No Scaffold found above CustomAppBar',
-                          );
-                        }
-                      },
                     );
                   },
                 )

@@ -255,13 +255,9 @@ class _InfoPageState extends State<InfoPage>
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
-      appBar: CustomAppBar(
-        appbarText: "Services",
-
-        showCloseButton: false,
-      ),
+      appBar: CustomAppBar(appbarText: "Services", showCloseButton: false),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 1),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children:

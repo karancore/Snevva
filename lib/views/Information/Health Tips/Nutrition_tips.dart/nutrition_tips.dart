@@ -151,7 +151,7 @@ class NutritionTipsPage extends StatelessWidget {
                     // Steps Heading
                     if (steps.isNotEmpty)
                       const Text(
-                        "Steps",
+                        "Tips",
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,

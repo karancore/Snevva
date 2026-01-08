@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/models/diet_tags_response.dart';
 import 'package:snevva/services/api_service.dart';
 
@@ -8,6 +9,8 @@ import '../../consts/consts.dart';
 import 'package:http/http.dart' as http;
 
 import '../../env/env.dart';
+import '../BMI/bmi_controller.dart';
+import '../local_storage_manager.dart';
 
 // To send - gender , age , bmi labels - obese etc
 class DietPlanController extends GetxController {
@@ -15,8 +18,9 @@ class DietPlanController extends GetxController {
   final selectedCategoryIndex = 0.obs;
 
   var isLoading = true.obs;
-  var categoryResponse = DietTagsResponse().obs;
-  var suggestionsResponse = DietTagsResponse().obs;
+  var categoryResponse = DietTagsResponse(data: []).obs;
+  var suggestionsResponse = DietTagsResponse(data: []).obs;
+  var dietTagsDataResponse = DietTagData(mealPlan: [], tags: []).obs;
   var celebrityResponse = {}.obs;
 
   late PageController celebrityPageController;
@@ -59,6 +63,7 @@ class DietPlanController extends GetxController {
     BuildContext context,
     String categoryText,
   ) async {
+    print("get all diets called with category: $categoryText");
     try {
       final payload = {
         "Tags": ["General", categoryText.isEmpty ? "Vegetarian" : categoryText],
@@ -84,7 +89,7 @@ class DietPlanController extends GetxController {
         response as Map,
       );
       categoryResponse.value = DietTagsResponse.fromJson(parsed);
-      print("diet controller ${categoryResponse.value.toJson()}");
+      logLong("diet controller", categoryResponse.value.toJson().toString());
     } catch (e) {
       CustomSnackbar.showError(
         context: context,
@@ -97,13 +102,66 @@ class DietPlanController extends GetxController {
   }
 
   Future<DietTagsResponse?> getAllSuggestions(BuildContext context) async {
+    print("get all suggestions called");
     try {
       isLoading.value = true;
+      List<String> tags = ['Health Tips'];
+
+      final localStorageManager = Get.put(LocalStorageManager());
+      final bmiController = Get.put(BmiController());
+      final day = localStorageManager.userMap['DayOfBirth'];
+      final month = localStorageManager.userMap['MonthOfBirth'];
+      final year = localStorageManager.userMap['YearOfBirth'];
+      tags.add(bmiController.bmi_text.value);
+      print("bmi text added to tags: ${bmiController.bmi_text.value}");
+
+      // final bmitext = prefs.getString('bmi_text');
+      // final activitylevel = prefs.getString('ActivityLevel');
+      // final healthgoal = prefs.getString('HealthGoal');
+      final storedGender = localStorageManager.userMap['Gender'];
+
+      final activityLevel =
+          localStorageManager.userGoalDataMap["ActivityLevel"] ?? "";
+      final healthGoal =
+          localStorageManager.userGoalDataMap["HealthGoal"] ?? "";
+      tags.add(activityLevel);
+      tags.add(healthGoal);
+
+      // if (bmitext != null && bmitext.isNotEmpty) tags.add(bmitext);
+      // if (activitylevel != null && activitylevel.isNotEmpty) tags.add(activitylevel);
+      // if (healthgoal != null && healthgoal.isNotEmpty) tags.add(healthgoal);
+      if (storedGender != null && storedGender.toString().isNotEmpty) {
+        print("gender is $storedGender");
+        tags.add(storedGender);
+      }
+
+      if (day != null && month != null && year != null) {
+        DateTime today = DateTime.now();
+        DateTime birthDate = DateTime(year, month, day);
+        int age = today.year - birthDate.year;
+        if (today.month < birthDate.month ||
+            (today.month == birthDate.month && today.day < birthDate.day)) {
+          age--;
+        }
+        if (age >= 13 && age <= 18) {
+          print("age group is 13 to 18");
+          tags.add("Age 13 to 18");
+        } else if (age >= 19 && age <= 25) {
+          print("age group is 19 to 25");
+          tags.add("Age 19 to 25");
+        } else if (age > 25 && age <= 60) {
+          print("age group is 25 to 60");
+          tags.add("Age 25 to 60");
+        }
+      }
 
       final payload = {
-        "Tags": ["General", "Vegetarian"],
+        //"Tags": ["General", "Vegetarian"],
+        //
+        "Tags": tags,
         "FetchAll": true,
       };
+      print("Tags for suggestions: $payload");
 
       final response = await ApiService.post(
         getDietByTags,
@@ -113,7 +171,7 @@ class DietPlanController extends GetxController {
       );
 
       if (response is http.Response) {
-        CustomSnackbar.showError(
+        CustomSnackbar.showSnackbar(
           context: context,
           title: 'Error',
           message: 'Failed to load diets (${response.statusCode})',
@@ -123,8 +181,9 @@ class DietPlanController extends GetxController {
       final Map<String, dynamic> parsed = Map<String, dynamic>.from(
         response as Map,
       );
+      logLong("Response from getAllSuggestions: ", parsed.toString());
       suggestionsResponse.value = DietTagsResponse.fromJson(parsed);
-      print("diet controller ${suggestionsResponse.value.toJson()}");
+      logLong("diet controller", suggestionsResponse.value.toJson().toString());
     } catch (e) {
       CustomSnackbar.showError(
         context: context,
@@ -139,6 +198,7 @@ class DietPlanController extends GetxController {
   }
 
   Future<void> getCelebrityDiet(BuildContext context, String category) async {
+    print("get celebrity diet called with category: $category");
     try {
       final payload = {
         "Tags": ["General", category],
@@ -162,9 +222,12 @@ class DietPlanController extends GetxController {
         response as Map,
       );
       celebrityResponse.value = jsonDecode(jsonEncode(parsed));
-      print("diet controller ${suggestionsResponse.value.toJson()}");
+      logLong(
+        "diet controller ",
+        suggestionsResponse.value.toJson().toString(),
+      );
     } catch (e) {
-      debugPrint(e.toString());
+      logLong(" Catch block ", e.toString());
     }
   }
 

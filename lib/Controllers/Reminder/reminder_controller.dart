@@ -22,7 +22,6 @@ import '../../models/medicine_reminder_model.dart';
 import '../../models/water_reminder_model.dart';
 
 class ReminderController extends GetxController {
-
   final titleController = TextEditingController();
   final timeController = TextEditingController();
   final notesController = TextEditingController();
@@ -783,8 +782,7 @@ class ReminderController extends GetxController {
       }
 
       return true;
-    }
-    else if (selectedCategory.value == "Water") {
+    } else if (selectedCategory.value == "Water") {
       if (waterController.validateAndSaveWaterReminder(context) == true) {
         return true;
       }

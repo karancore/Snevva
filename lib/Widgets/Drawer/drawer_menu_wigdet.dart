@@ -6,7 +6,7 @@ import 'package:snevva/AuthBinding.dart';
 import 'package:snevva/Controllers/DietPlan/diet_plan_controller.dart';
 import 'package:snevva/Controllers/HealthTips/healthtips_controller.dart';
 import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
-import 'package:snevva/Controllers/MentalWellness/mentalwellnesscontroller.dart';
+import 'package:snevva/Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_questions_controller.dart';
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
@@ -86,15 +86,14 @@ class DrawerMenuWidget extends StatelessWidget {
     return Column(
       children: [
         Container(
-          padding: EdgeInsets.only(left: 20),
-          height: height / 4,
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
           width: double.infinity,
           decoration: BoxDecoration(gradient: AppColors.primaryGradient),
           child: Padding(
             padding: const EdgeInsets.only(top: 50),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Obx(() {
                   final pickedFile = initialProfileController.pickedImage.value;

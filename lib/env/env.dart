@@ -99,3 +99,11 @@ const String addsymptomdata = '/api/upsert/addsymptomdata';
 const String moodTrackData = '/api/fetchinfo/moodTrackData';
 
 const String fcmTokenApi = '/api/registration/userdevicetoken';
+const String musicPlaceHolder =
+    "https://gdevelop.io/_next/static/media/audio-placeholder.22bf16ce.jpg";
+const String meditationMusicPlaceHolder =
+    "https://i.pinimg.com/1200x/e9/93/ec/e993ec4d2956fbae938515d91d0b0434.jpg";
+const String natureMusicPlaceHolder =
+    "https://i.pinimg.com/1200x/24/c3/e5/24c3e56de64a8eb45ea1db23c8712e7e.jpg";
+const String dietPlaceholder =
+    "https://community.softr.io/uploads/db9110/original/2X/7/74e6e7e382d0ff5d7773ca9a87e6f6f8817a68a6.jpeg";

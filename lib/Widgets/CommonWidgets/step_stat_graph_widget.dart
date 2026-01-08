@@ -137,7 +137,7 @@ class StepStatGraphWidget extends StatelessWidget {
   }) {
     return Container(
       padding: const EdgeInsets.only(top: 52),
-      height: height * 0.25,
+      height: height * 0.28,
       width: isMonthly ? labels.length * 41 : null,
       child: LineChart(
         LineChartData(

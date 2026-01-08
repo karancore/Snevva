@@ -10,11 +10,13 @@ import 'package:snevva/services/api_service.dart';
 import '../../common/custom_snackbar.dart';
 
 class MoodController extends GetxController {
-  List<String> moods = ['Pleasent', 'Unpleasent', 'Good'];
+  List<String> moods = ['Pleasant', 'Unpleasant', 'Good'];
 
   // 0 = Happy, 1 = Neutral, 2 = Sad
   var selectedMoodIndex = (-1).obs;
   RxString selectedMood = ''.obs;
+
+  String get selectedUserMood => moods[selectedMoodIndex.value];
 
   void selectMood(int index) {
     selectedMoodIndex.value = index;
@@ -33,67 +35,64 @@ class MoodController extends GetxController {
   }
 
   Future<void> loadmoodfromAPI({required int month, required int year}) async {
-  try {
-    final payload = {"Month": month, "Year": year};
+    try {
+      final payload = {"Month": month, "Year": year};
 
-    final response = await ApiService.post(
-      moodTrackData,
-      payload,
-      withAuth: true,
-      encryptionRequired: true,
-    );
-
-    if (response is http.Response) {
-      CustomSnackbar.showError(
-        context: Get.context!,
-        title: 'Error',
-        message: 'Failed to load mood data',
+      final response = await ApiService.post(
+        moodTrackData,
+        payload,
+        withAuth: true,
+        encryptionRequired: true,
       );
-      return;
-    }
 
-    final resbody = jsonDecode(jsonEncode(response));
-    debugPrint('✅ Mood data loaded: $resbody');
+      if (response is http.Response) {
+        CustomSnackbar.showError(
+          context: Get.context!,
+          title: 'Error',
+          message: 'Failed to load mood data',
+        );
+        return;
+      }
 
-    final List moodList =
-        resbody['data']?['MoodTrackerData'] ?? [];
+      final resbody = jsonDecode(jsonEncode(response));
+      debugPrint('✅ Mood data loaded: $resbody');
 
-    // ✅ NO DATA → DEFAULT MOOD
-    if (moodList.isEmpty) {
-      selectedMood.value = 'All Good?'; // or "All Good"
-      selectedMoodIndex.value = moods.indexOf('Good');
+      final List moodList = resbody['data']?['MoodTrackerData'] ?? [];
 
-      debugPrint('🙂 No mood data → Default set to Good');
-      return;
-    }
+      // ✅ NO DATA → DEFAULT MOOD
+      if (moodList.isEmpty) {
+        selectedMood.value = 'All Good?'; // or "All Good"
+        selectedMoodIndex.value = moods.indexOf('Good');
 
-    // ✅ DATA EXISTS → TAKE LATEST ENTRY
-    final latestMood = moodList.last['Mood'];
-    print('Latest mood from API: $latestMood');
+        debugPrint('🙂 No mood data → Default set to Good');
+        return;
+      }
 
+      // ✅ DATA EXISTS → TAKE LATEST ENTRY
+      final latestMood = moodList.last['Mood'];
+      print('Latest mood from API: $latestMood');
 
-    if (moods.contains(latestMood)) {
-      selectedMood.value = latestMood;
-      selectedMoodIndex.value = moods.indexOf(latestMood);
+      if (moods.contains(latestMood)) {
+        selectedMood.value = latestMood;
+        selectedMoodIndex.value = moods.indexOf(latestMood);
 
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      prefs.setString('selectedMood', selectedMood.value);
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        prefs.setString('selectedMood', selectedMood.value);
 
-      debugPrint('😄 Mood mapped from API → $latestMood');
-    } else {
-      // Safety fallback
+        debugPrint('😄 Mood mapped from API → $latestMood');
+      } else {
+        // Safety fallback
+        selectedMood.value = 'Good';
+        selectedMoodIndex.value = moods.indexOf('Good');
+      }
+    } catch (e) {
+      debugPrint('❌ Exception while loading mood data: $e');
+
+      // Fail-safe default
       selectedMood.value = 'Good';
       selectedMoodIndex.value = moods.indexOf('Good');
     }
-  } catch (e) {
-    debugPrint('❌ Exception while loading mood data: $e');
-
-    // Fail-safe default
-    selectedMood.value = 'Good';
-    selectedMoodIndex.value = moods.indexOf('Good');
   }
-}
-
 
   Future<bool> updateMood(BuildContext context) async {
     if (selectedMoodIndex.value == -1) {

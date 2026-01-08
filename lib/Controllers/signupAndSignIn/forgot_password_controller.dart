@@ -13,6 +13,8 @@ class ForgotPasswordController extends GetxController {
     String email,
     BuildContext context,
   ) async {
+    debugPrint('📩 [ForgotPassword][GMAIL] Email received: $email');
+
     if (email.isEmpty) {
       CustomSnackbar.showError(
         context: context,
@@ -21,51 +23,74 @@ class ForgotPasswordController extends GetxController {
       );
       return false;
     }
+
     final plainEmail = jsonEncode({'Gmail': email});
+    debugPrint('📝 Plain Email Payload: $plainEmail');
 
     isLoading.value = true;
 
     try {
       final uri = Uri.parse("$baseUrl$forgotEmailOtpEndpoint");
-      final encryptedEmail = EncryptionService.encryptData(plainEmail);
-      final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
+      debugPrint('🌐 API URL: $uri');
 
+      final encryptedEmail = EncryptionService.encryptData(plainEmail);
+      debugPrint('🔐 Encrypted Email Hash: ${encryptedEmail['hash']}');
+      debugPrint(
+        '🔐 Encrypted Email Data Length: ${encryptedEmail['encryptedData']?.length}',
+      );
+
+      final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
       headers['X-Data-Hash'] = encryptedEmail['hash']!;
+      debugPrint('📦 Request Headers: $headers');
 
       final encryptedBody = jsonEncode({
         'data': encryptedEmail['encryptedData'],
       });
+      debugPrint('📤 Encrypted Request Body Length: ${encryptedBody.length}');
 
       final response = await http.post(
         uri,
         headers: headers,
         body: encryptedBody,
       );
+
+      debugPrint('📥 Response Status Code: ${response.statusCode}');
+      debugPrint('📥 Raw Response Body: ${response.body}');
+      debugPrint('📥 Response Headers: ${response.headers}');
+
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         final encryptedBody = responseBody['data'];
         final responseHash = response.headers['x-data-hash'];
+
+        debugPrint(
+          '🔓 Encrypted Response Data Length: ${encryptedBody?.length}',
+        );
+        debugPrint('🔓 Response Hash: $responseHash');
+
         final decrypted = EncryptionService.decryptData(
           encryptedBody,
           responseHash!,
         );
 
+        debugPrint('✅ Decrypted Response: $decrypted');
+
         if (decrypted == null) {
+          debugPrint('❌ Decryption failed');
           return false;
         }
 
         final Map<String, dynamic> responseData = jsonDecode(decrypted);
+        debugPrint('📊 Parsed Response JSON: $responseData');
 
         final data = responseData['data'];
         final otp = data['Otp'];
 
-        // CustomSnackbar.showSuccess(
-        //   context: context,
-        //   title: 'Success',
-        //   message: 'OTP Sent. $otp',
-        // );
+        debugPrint('🔢 OTP Received: $otp');
+
         return otp;
       } else {
+        debugPrint('❌ Email verification failed');
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
@@ -73,7 +98,10 @@ class ForgotPasswordController extends GetxController {
         );
         return false;
       }
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('🔥 Exception occurred: $e');
+      debugPrint('📍 Stacktrace: $stack');
+
       CustomSnackbar.showError(
         context: context,
         title: 'Error',
@@ -82,6 +110,7 @@ class ForgotPasswordController extends GetxController {
       return false;
     } finally {
       isLoading.value = false;
+      debugPrint('⏹️ Loading stopped (Gmail)');
     }
   }
 
@@ -89,6 +118,8 @@ class ForgotPasswordController extends GetxController {
     String phone,
     BuildContext context,
   ) async {
+    debugPrint('📞 [ForgotPassword][PHONE] Phone received: $phone');
+
     if (phone.isEmpty) {
       CustomSnackbar.showError(
         context: context,
@@ -97,20 +128,30 @@ class ForgotPasswordController extends GetxController {
       );
       return false;
     }
+
     final plainPhone = jsonEncode({'PhoneNumber': phone});
+    debugPrint('📝 Plain Phone Payload: $plainPhone');
 
     isLoading.value = true;
 
     try {
       final uri = Uri.parse("$baseUrl$forgotPhoneOtpEndpoint");
-      final encryptedPhone = EncryptionService.encryptData(plainPhone);
-      final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
+      debugPrint('🌐 API URL: $uri');
 
+      final encryptedPhone = EncryptionService.encryptData(plainPhone);
+      debugPrint('🔐 Encrypted Phone Hash: ${encryptedPhone['hash']}');
+      debugPrint(
+        '🔐 Encrypted Phone Data Length: ${encryptedPhone['encryptedData']?.length}',
+      );
+
+      final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
       headers['X-Data-Hash'] = encryptedPhone['hash']!;
+      debugPrint('📦 Request Headers: $headers');
 
       final encryptedBody = jsonEncode({
         'data': encryptedPhone['encryptedData'],
       });
+      debugPrint('📤 Encrypted Request Body Length: ${encryptedBody.length}');
 
       final response = await http.post(
         uri,
@@ -118,33 +159,43 @@ class ForgotPasswordController extends GetxController {
         body: encryptedBody,
       );
 
+      debugPrint('📥 Response Status Code: ${response.statusCode}');
+      debugPrint('📥 Raw Response Body: ${response.body}');
+      debugPrint('📥 Response Headers: ${response.headers}');
+
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         final encryptedBody = responseBody['data'];
         final responseHash = response.headers['x-data-hash'];
+
+        debugPrint(
+          '🔓 Encrypted Response Data Length: ${encryptedBody?.length}',
+        );
+        debugPrint('🔓 Response Hash: $responseHash');
+
         final decrypted = EncryptionService.decryptData(
           encryptedBody,
           responseHash!,
         );
 
+        debugPrint('✅ Decrypted Response: $decrypted');
+
         if (decrypted == null) {
-          return;
+          debugPrint('❌ Decryption failed');
+          return false;
         }
 
         final Map<String, dynamic> responseData = jsonDecode(decrypted);
-        print(responseData);
+        debugPrint('📊 Parsed Response JSON: $responseData');
 
         final data = responseData['data'];
         final otp = data['Otp'];
 
-        // CustomSnackbar.showSuccess(
-        //   context: context,
-        //   title: 'Success',
-        //   message: 'OTP Sent. $otp',
-        // );
+        debugPrint('🔢 OTP Received: $otp');
+
         return otp;
       } else {
-        print(response.body);
+        debugPrint('❌ Phone verification failed');
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
@@ -152,8 +203,10 @@ class ForgotPasswordController extends GetxController {
         );
         return false;
       }
-    } catch (e) {
-      debugPrint(e.toString());
+    } catch (e, stack) {
+      debugPrint('🔥 Exception occurred: $e');
+      debugPrint('📍 Stacktrace: $stack');
+
       CustomSnackbar.showError(
         context: context,
         title: 'Error',
@@ -162,6 +215,7 @@ class ForgotPasswordController extends GetxController {
       return false;
     } finally {
       isLoading.value = false;
+      debugPrint('⏹️ Loading stopped (Phone)');
     }
   }
 }
