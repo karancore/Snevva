@@ -31,6 +31,8 @@ class SymptomsBottomSheet extends StatelessWidget {
     BottomSheetController(),
   );
 
+  final TextEditingController noteController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
@@ -72,47 +74,47 @@ class SymptomsBottomSheet extends StatelessWidget {
                     }).toList(),
               ),
               SizedBox(height: 20),
-              Obx(() {
-                final selected = bottomSheetController.selectedSymptoms;
-                final selectedSymptom =
-                    selected.isNotEmpty ? selected.last : "a Symptom";
+              // Obx(() {
+              //   final selected = bottomSheetController.selectedSymptoms;
+              //   final selectedSymptom =
+              //       selected.isNotEmpty ? selected.last : "a Symptom";
 
-                return Text(
-                  "Select $selectedSymptom Level",
-                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 20),
-                );
-              }),
-              SizedBox(height: 10),
-              Row(
-                children: [
-                  getSymptoms(
-                    "Mild",
-                    level3,
-                    () => bottomSheetController.toggleSymptomLevel("Mild"),
-                    isDarkMode,
-                    isLevel: true,
-                  ),
+              //   return Text(
+              //     "Select $selectedSymptom Level",
+              //     style: TextStyle(fontWeight: FontWeight.w500, fontSize: 20),
+              //   );
+              // }),
+              // SizedBox(height: 10),
+              // Row(
+              //   children: [
+              //     getSymptoms(
+              //       "Mild",
+              //       level3,
+              //       () => bottomSheetController.toggleSymptomLevel("Mild"),
+              //       isDarkMode,
+              //       isLevel: true,
+              //     ),
 
-                  SizedBox(width: 10),
-                  getSymptoms(
-                    "Moderate",
-                    level1,
-                    () => bottomSheetController.toggleSymptomLevel("Moderate"),
-                    isDarkMode,
-                    isLevel: true,
-                  ),
-                  SizedBox(width: 10),
-                  getSymptoms(
-                    "Severe",
-                    level2,
-                    () => bottomSheetController.toggleSymptomLevel("Severe"),
-                    isDarkMode,
-                    isLevel: true,
-                  ),
-                ],
-              ),
+              //     SizedBox(width: 10),
+              //     getSymptoms(
+              //       "Moderate",
+              //       level1,
+              //       () => bottomSheetController.toggleSymptomLevel("Moderate"),
+              //       isDarkMode,
+              //       isLevel: true,
+              //     ),
+              //     SizedBox(width: 10),
+              //     getSymptoms(
+              //       "Severe",
+              //       level2,
+              //       () => bottomSheetController.toggleSymptomLevel("Severe"),
+              //       isDarkMode,
+              //       isLevel: true,
+              //     ),
+              //   ],
+              // ),
 
-              SizedBox(height: 20),
+              // SizedBox(height: 20),
               Row(
                 children: [
                   Text(
@@ -136,6 +138,7 @@ class SymptomsBottomSheet extends StatelessWidget {
                 color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
                 clipBehavior: Clip.antiAlias,
                 child: TextFormField(
+                  controller: noteController,
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: isDarkMode ? darkGray : white,
@@ -153,6 +156,10 @@ class SymptomsBottomSheet extends StatelessWidget {
                 children: [
                   OutlinedButton(
                     onPressed: () {
+                      // Clear selected symptoms and note on Cancel
+                      bottomSheetController.selectedSymptoms.clear();
+                      noteController.clear();
+
                       Get.back();
                     },
                     style: OutlinedButton.styleFrom(
@@ -166,6 +173,16 @@ class SymptomsBottomSheet extends StatelessWidget {
                   const Spacer(),
                   OutlinedButton(
                     onPressed: () {
+                      // Save API
+                      bottomSheetController.addsymptoAPI(
+                        bottomSheetController.selectedSymptoms.toList(),
+                        noteController.text.trim(),
+                      );
+
+                      // Clear selected symptoms and note after Save
+                      bottomSheetController.selectedSymptoms.clear();
+                      noteController.clear();
+
                       Get.back();
                     },
                     style: OutlinedButton.styleFrom(
@@ -191,10 +208,9 @@ class SymptomsBottomSheet extends StatelessWidget {
     bool isLevel = false,
   }) {
     return Obx(() {
-      final isSelected =
-          isLevel
-              ? bottomSheetController.selectedSymptomsLevel.contains(heading)
-              : bottomSheetController.selectedSymptoms.contains(heading);
+      final isSelected = bottomSheetController.selectedSymptoms.contains(
+        heading,
+      );
       return InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: onTap,

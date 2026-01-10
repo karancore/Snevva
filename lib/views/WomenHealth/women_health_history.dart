@@ -1,9 +1,8 @@
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart' show DateFormat;
+import 'package:snevva/Controllers/WomenHealth/bottom_sheet_controller.dart';
 import 'package:snevva/Widgets/WomenHealth/calender.dart';
 import 'package:snevva/views/WomenHealth/symptoms_bottom_sheet.dart';
-
-import '../../Controllers/WomenHealth/women_health_controller.dart';
 import '../../Widgets/CommonWidgets/custom_appbar.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../consts/consts.dart';
@@ -11,8 +10,7 @@ import '../../consts/consts.dart';
 class WomenHealthHistory extends StatelessWidget {
   WomenHealthHistory({super.key});
 
-  final WomenHealthController womenController =
-      Get.find<WomenHealthController>();
+  final BottomSheetController bottom = Get.find<BottomSheetController>();
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +19,6 @@ class WomenHealthHistory extends StatelessWidget {
     final width = mediaQuery.size.width;
     // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final String formattedDate = DateFormat('d MMM').format(DateTime.now());
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
@@ -39,7 +36,13 @@ class WomenHealthHistory extends StatelessWidget {
                   children: [
                     SvgPicture.asset(calenderIcon),
                     SizedBox(width: 5),
-                    Text(formattedDate),
+                    Obx(() {
+                      final date = bottom.selectedDate.value;
+                      final formattedDate = DateFormat('d MMM').format(date);
+
+                      return Text(formattedDate);
+                    }),
+
                     const Spacer(),
                     Material(
                       color:
@@ -65,7 +68,7 @@ class WomenHealthHistory extends StatelessWidget {
                             children: [
                               Image.asset(symptomsIcon, height: 20),
                               SizedBox(width: 5),
-                              Text('Symptoms'),
+                              Text('Add Symptoms'),
                             ],
                           ),
                         ),
@@ -101,14 +104,24 @@ class WomenHealthHistory extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      getSymptoms(
-                        "Symptoms",
-                        "Back Pain , Bloating, Nausea, Constipation, Joint pain, Muscle pain ",
-                      ),
+                      Obx(() {
+                        return getSymptoms(
+                          "Symptoms",
+                          bottom.symptoms.isNotEmpty
+                              ? bottom.symptoms.join(', ')
+                              : "No symptoms recorded",
+                        );
+                      }),
+
                       getDivider(),
-                      getSymptoms("Period", "No Period Data"),
-                      getDivider(),
-                      getSymptoms("Notes", "No Period Data"),
+                      Obx(() {
+                        return getSymptoms(
+                          "Notes",
+                          bottom.note.value.isNotEmpty
+                              ? bottom.note.value
+                              : "No notes added",
+                        );
+                      }),
                     ],
                   ),
                 ),
@@ -130,6 +143,7 @@ class WomenHealthHistory extends StatelessWidget {
   }
 
   Column getSymptoms(String heading, String subheading) {
+    print("Displaying $heading: $subheading");
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

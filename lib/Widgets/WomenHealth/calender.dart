@@ -1,5 +1,6 @@
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
+import 'package:snevva/Controllers/WomenHealth/bottom_sheet_controller.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 import 'package:snevva/consts/consts.dart';
 import '../../Controllers/WomenHealth/calender_controller.dart';
@@ -8,6 +9,8 @@ class CalendarWidget extends StatelessWidget {
   final CalendarController controller = Get.put(CalendarController());
   final WomenHealthController womenController =
       Get.find<WomenHealthController>();
+  final BottomSheetController bottomsheetcontroller =
+      Get.find<BottomSheetController>();
 
   final List<String> weekDays = [
     'Sun',
@@ -172,6 +175,7 @@ class CalendarWidget extends StatelessWidget {
               String emoji = '';
               Color textColor = isDarkMode ? white : black;
 
+
               // Check against all cycle ranges
               for (final cycle in cycles) {
                 final periodRange = cycle['periodRange'] as DateTimeRange;
@@ -211,7 +215,13 @@ class CalendarWidget extends StatelessWidget {
                 bgColor = AppColors.primaryColor.withOpacity(0.2);
               }
 
-              return Container(
+              return InkWell(
+  onTap: () {
+    final selected = DateTime(day.year, day.month, day.day);
+    bottomsheetcontroller.setSelectedDate(selected);
+
+  },
+  child: Container(
                 margin: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: bgColor,
@@ -235,7 +245,7 @@ class CalendarWidget extends StatelessWidget {
                     ),
                   ],
                 ),
-              );
+              ));
             },
           ),
 

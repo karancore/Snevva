@@ -5,6 +5,7 @@ import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
+import 'package:snevva/Controllers/WomenHealth/bottom_sheet_controller.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
@@ -35,6 +36,7 @@ final waterController = Get.put(HydrationStatController());
 final vitalsController = Get.put(VitalsController());
 final womenhealthController = Get.put(WomenHealthController());
 final moodcontroller = Get.put(MoodController());
+final bottomsheetcontroller = Get.put(BottomSheetController());
 
 final localStorageManager = Get.put(LocalStorageManager());
 
@@ -99,7 +101,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
     await localStorageManager.getFCMToken();
 
-    // await womenhealthController.loaddatafromAPI();
+    await bottomsheetcontroller.loaddatafromAPI();
     await womenhealthController.lastPeriodDatafromAPI();
 
     await moodcontroller.loadmoodfromAPI(
