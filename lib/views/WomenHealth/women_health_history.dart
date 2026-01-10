@@ -114,15 +114,15 @@ class WomenHealthHistory extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(height: 20),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: getSymptoms(
-                "Recomendations",
-                "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-              ),
-            ),
-            SizedBox(height: 20),
+            // SizedBox(height: 20),
+            // Padding(
+            //   padding: EdgeInsets.symmetric(horizontal: 20),
+            //   child: getSymptoms(
+            //     "Recomendations",
+            //     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+            //   ),
+            // ),
+            // SizedBox(height: 20),
           ],
         ),
       ),

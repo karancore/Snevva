@@ -99,7 +99,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
     await localStorageManager.getFCMToken();
 
-    await womenhealthController.loaddatafromAPI();
+    // await womenhealthController.loaddatafromAPI();
     await womenhealthController.lastPeriodDatafromAPI();
 
     await moodcontroller.loadmoodfromAPI(

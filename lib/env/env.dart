@@ -4,8 +4,8 @@ class Env {
 }
 
 // baseUrl
-// const String baseUrl = "https://localhost:7238";
-const String baseUrl = "https://abdmstg.coretegra.com";
+const String baseUrl = "https://localhost:7238";
+// const String baseUrl = "https://abdmstg.coretegra.com";
 
 // send otp api
 const String senOtpEmailEndpoint =
@@ -97,6 +97,7 @@ const String lastPeriodData = '/api/fetchinfo/lastperioddata';
 const String addperioddata = '/api/upsert/addperioddata';
 const String addsymptomdata = '/api/upsert/addsymptomdata';
 const String moodTrackData = '/api/fetchinfo/moodTrackData';
+const String periodsymptomps= '/api/upsert/addsymptomdata';
 
 const String fcmTokenApi = '/api/registration/userdevicetoken';
 const String musicPlaceHolder =

@@ -257,52 +257,80 @@ class WomenHealthController extends GetxController {
     );
 
     final parsedData = jsonDecode(jsonEncode(response));
-    print("parsed last period data from api : $parsedData");
+    debugPrint("parsed last period data from api : $parsedData");
 
-    final womenHealth = parsedData['data']?['WomenHealthData'];
+    final data = parsedData['data'];
+    final womenHealth = data?['WomenHealthData'];
+    final periodData = data?['PeriodData'];
 
-    // ✅ Priority: PeriodsData → fallback WomenHealthData
-    final Map<String, dynamic>? periodData =
-        womenHealth?['PeriodsData'] ?? womenHealth;
+    print("women health data extracted : $womenHealth");
+    print("period data extracted : $periodData");
 
-    print("final period data used : $periodData");
-
-    if (periodData != null) {
-      // ✅ API has data → not first time
+    // 🔹 USER IS NOT FIRST TIME IF ANY DATA EXISTS
+    if (womenHealth != null || periodData != null) {
       isFirstTimeWomen.value = false;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('is_first_time_women', false);
+    }
 
-      // ✅ Safe mapping with defaults
-      final String periodDaysFromAPI =
-          periodData['PeroidsDuration']?.toString() ?? '5';
+    /* -------------------------------------------
+     * 1️⃣ LOAD WOMEN HEALTH SETTINGS (NO CALC)
+     * -----------------------------------------*/
+    if (womenHealth != null) {
+      periodDays.value =
+          womenHealth['PeroidsDuration']?.toString() ?? '5';
 
-      final String periodCycleDaysFromAPI =
-          periodData['PeroidsCycleCount']?.toString() ?? '28';
+      periodCycleDays.value =
+          womenHealth['PeroidsCycleCount']?.toString() ?? '28';
 
-      final int periodDayFromAPI =
-          int.tryParse(periodData['PeriodDay']?.toString() ?? '') ?? 1;
+      final int startDay = womenHealth['PeriodDay'] ?? 1;
+      final int startMonth = womenHealth['PeriodMonth'] ?? 1;
+      final int startYear = womenHealth['PeriodYear'] ?? DateTime.now().year;
 
-      final int periodMonthFromAPI =
-          int.tryParse(periodData['PeriodMonth']?.toString() ?? '') ?? 1;
-
-      final int periodYearFromAPI =
-          int.tryParse(periodData['PeriodYear']?.toString() ?? '') ?? DateTime.now().year;
-
-      // ✅ Update local state
-      periodDays.value = periodDaysFromAPI;
-      periodCycleDays.value = periodCycleDaysFromAPI;
       periodLastPeriodDay.value =
-          "$periodDayFromAPI/${periodMonthFromAPI.toString().padLeft(2, '0')}/$periodYearFromAPI";
+          "$startDay/${startMonth.toString().padLeft(2, '0')}/$startYear";
+    }
 
+    /* -------------------------------------------
+     * 2️⃣ PERIOD DATA = SOURCE OF TRUTH
+     * -----------------------------------------*/
+    if (periodData != null) {
+      final DateTime predictedDate = DateTime(
+        periodData['PredictedYear'],
+        periodData['PredictedMonth'],
+        periodData['PredictedDay'],
+      );
+
+      final DateFormat format = DateFormat("d MMM");
+
+      nextPeriodDay.value = format.format(predictedDate);
+
+      dayLeftNextPeriod.value =
+          DateTime.now().difference(predictedDate).inDays.abs().toString();
+
+      // Optional derived values
+      final ovulationDay =
+          predictedDate.subtract(const Duration(days: 14));
+      final fertilityStart =
+          ovulationDay.subtract(const Duration(days: 5));
+
+      nextOvulationDay.value = format.format(ovulationDay);
+      nextFertilityDay.value = format.format(fertilityStart);
+
+      // 🚫 DO NOT CALL _calculateNextDates()
+      await saveWomenHealthToLocalStorage();
+      return;
+    }
+
+    /* -------------------------------------------
+     * 3️⃣ FALLBACK: LOCAL CALC ONLY IF NO PERIODDATA
+     * -----------------------------------------*/
+    if (womenHealth != null) {
       _calculateNextDates();
       await saveWomenHealthToLocalStorage();
-    } else {
-      // ❌ No data → first time user
-      isFirstTimeWomen.value = true;
     }
   } catch (e) {
-    print("Error fetching period data: $e");
+    debugPrint("❌ Error fetching period data: $e");
   }
 }
 
