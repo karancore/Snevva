@@ -105,7 +105,7 @@ class DietPlanController extends GetxController {
     print("get all suggestions called");
     try {
       isLoading.value = true;
-      List<String> tags = ['Health Tips'];
+      List<String> tags = [];
 
       final localStorageManager = Get.put(LocalStorageManager());
       final bmiController = Get.put(BmiController());
@@ -132,7 +132,9 @@ class DietPlanController extends GetxController {
       // if (healthgoal != null && healthgoal.isNotEmpty) tags.add(healthgoal);
       if (storedGender != null && storedGender.toString().isNotEmpty) {
         print("gender is $storedGender");
-        tags.add(storedGender);
+        if (storedGender.toString() == "Female") {
+          tags.add(storedGender);
+        }
       }
 
       if (day != null && month != null && year != null) {

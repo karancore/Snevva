@@ -22,7 +22,7 @@ class DashboardServicesWidget extends StatefulWidget {
   const DashboardServicesWidget({super.key});
 
   @override
-  _DashboardServicesWidgetState createState() =>
+  State<DashboardServicesWidget> createState() =>
       _DashboardServicesWidgetState();
 }
 
@@ -68,15 +68,15 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
     final userInfo = localstorage.userMap;
     print('userInfo: $userInfo');
 
-    // final useracivedata = signInController.userGoalData ?? {};
+    // final userActiveData = signInController.userGoalData ?? {};
 
-    final useracivedata = localstorage.userGoalDataMap;
-    print('useracivedata: $useracivedata');
-    final womentracking = useracivedata['TrackWomenData'];
-    final stepgoal = useracivedata['StepGoalData']?['Count'];
-    final SleepGoalData = useracivedata['SleepGoalData'];
+    final userActiveData = localstorage.userGoalDataMap;
+    print('userActiveData: $userActiveData');
+    final womentracking = userActiveData['TrackWomenData'];
+    final stepgoal = userActiveData['StepGoalData']?['Count'];
+    final SleepGoalData = userActiveData['SleepGoalData'];
 
-    print('useracivedata: $useracivedata');
+    print('userActiveData: $userActiveData');
     // Safe check for userData and gender
     // final gender = selectedGender ?? localgender ?? 'Unknown';
     // gender = (localGender != null) ? localGender : userData['Gender'];

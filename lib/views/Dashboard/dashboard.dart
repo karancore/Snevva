@@ -89,7 +89,7 @@ class _DashboardState extends State<Dashboard>
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: AppBar(
         title: Padding(
-          padding: const EdgeInsets.only(top: 10),
+          padding: const EdgeInsets.only(left: 8.0, top: 10),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -144,9 +144,12 @@ class _DashboardState extends State<Dashboard>
             ],
           ),
         ),
-        leading: IconButton(
-          icon: SvgPicture.asset(drawerIcon),
-          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 4.0),
+          child: IconButton(
+            icon: SvgPicture.asset(drawerIcon),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          ),
         ),
       ),
       body: GestureDetector(
@@ -167,8 +170,8 @@ class _DashboardState extends State<Dashboard>
             ),
             child: SingleChildScrollView(
               padding: const EdgeInsets.only(
-                left: 30,
-                right: 30,
+                left: 16,
+                right: 16,
                 bottom: 24,
                 top: 4,
               ),

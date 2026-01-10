@@ -22,9 +22,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     final mediaQuery = MediaQuery.of(context);
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    // 🔍 DEBUG
-    debugPrint('CustomAppBar build → showDrawerIcon: $showDrawerIcon');
-
     return SafeArea(
       child: AppBar(
         backgroundColor: isDarkMode ? black : white,
@@ -45,8 +42,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             showDrawerIcon
                 ? Builder(
                   builder: (context) {
-                    debugPrint('Drawer Icon Builder created');
-
                     return Padding(
                       padding: const EdgeInsets.only(left: 12),
                       child: IconButton(
@@ -55,18 +50,11 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                           isWhiteRequired! ? drawerIconWhite : drawerIcon,
                         ),
                         onPressed: () {
-                          debugPrint('Drawer Icon tapped');
-
                           // 🔍 Check if Scaffold exists
                           final scaffold = Scaffold.maybeOf(context);
-                          debugPrint('Scaffold found: ${scaffold != null}');
 
                           if (scaffold != null) {
                             scaffold.openDrawer();
-                          } else {
-                            debugPrint(
-                              '❌ ERROR: No Scaffold found above CustomAppBar',
-                            );
                           }
                         },
                       ),
@@ -82,7 +70,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                     padding: const EdgeInsets.only(right: 20),
                     child: InkWell(
                       onTap: () {
-                        debugPrint('Close button tapped');
                         onClose != null ? onClose!() : Navigator.pop(context);
                       },
                       child: SizedBox(

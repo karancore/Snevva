@@ -24,7 +24,9 @@ class SnevvaTheme {
     appBarTheme: AppBarTheme(
       iconTheme: IconThemeData(color: Colors.black),
       elevation: 0.0,
-      backgroundColor: Colors.transparent,
+      backgroundColor: white,
+      surfaceTintColor: white ,
+      scrolledUnderElevation: 0.0,
     ),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(),
     inputDecorationTheme: TextFormFieldTheme.lightInputDecorationTheme,
@@ -49,7 +51,8 @@ class SnevvaTheme {
     appBarTheme: AppBarTheme(
       iconTheme: IconThemeData(color: Colors.white.withValues(alpha: 0.1)),
       elevation: 0.0,
-      backgroundColor: Colors.transparent,
+      backgroundColor: black,
+      surfaceTintColor: black,
     ),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(),
 

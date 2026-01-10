@@ -28,7 +28,7 @@ class DashboardServiceWidgetItems extends StatelessWidget {
             Container(
               height: 54,
               width: 54,
-              padding: EdgeInsets.all(6),
+              //padding: EdgeInsets.all(6),
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(6)),
               child: SvgPicture.asset(widgetImg),
             ),

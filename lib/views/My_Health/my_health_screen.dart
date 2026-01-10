@@ -34,7 +34,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
   String? localGender;
   String? gender;
   bool isLoading = true;
-  final vitalcontroller = Get.find<VitalsController>();
+  final vitalController = Get.find<VitalsController>();
   final bmiController = Get.put(BmiController());
   final womenController = Get.put(WomenHealthController());
   final localStorageManager = Get.put(LocalStorageManager());
@@ -65,7 +65,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
       final userData = userInfo['data'];
       gender = (localGender != null) ? localGender : userData['Gender'];
       isLoading = false;
-      print('lkjhsaljgfhljsahnfljsdanfljasdnhfkloahnsw$gender');
+      debugPrint('MyHealthScreen $gender');
     });
 
     _initializeVitalItems();
@@ -149,7 +149,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
         cardType: "bpm",
         title: Obx(
           () => Text(
-            '${vitalcontroller.bpm.value}',
+            '${vitalController.bpm.value}',
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
           ),
         ),
@@ -186,7 +186,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
         cardType: "sys",
         title: Obx(
           () => Text(
-            '${vitalcontroller.sys.value}/${vitalcontroller.dia.value}',
+            '${vitalController.sys.value}/${vitalController.dia.value}',
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
           ),
         ),
@@ -299,7 +299,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children:

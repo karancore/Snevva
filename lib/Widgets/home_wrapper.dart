@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:get/instance_manager.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/views/Dashboard/dashboard.dart';
-import 'package:snevva/views/Information/info_page.dart';
+import 'package:snevva/views/Information/menu_screen.dart';
 import 'package:snevva/views/Reminder/reminder_screen.dart';
 import 'package:snevva/widgets/navbar.dart';
 
 import '../Controllers/BMI/bmi_controller.dart';
-import '../views/My_Health/myhealth.dart';
+import '../views/My_Health/my_health_screen.dart';
 import 'Drawer/drawer_menu_wigdet.dart';
 
 // 👈 make sure you have this
@@ -60,7 +60,7 @@ class _HomeWrapperState extends State<HomeWrapper> {
       Dashboard(onTabSelected: onTabSelected),
       MyHealthScreen(),
       ReminderScreen(),
-      InfoPage(),
+      MenuScreen(),
     ];
 
     return Scaffold(

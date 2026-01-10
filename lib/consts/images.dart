@@ -115,9 +115,14 @@ const musicPlayer = "assets/Images/MentalWellness/rainInForest.png";
 
 const alarmSound = "assets/sounds/alarm-327234.mp3";
 //Music Icons
-const shuffleIcon = "assets/Icons/shuffle-line.png";
-const loopIcon = "assets/Icons/repeat-2-line.png";
-const downloadIcon = "assets/Icons/download-line.png";
+// const shuffleIcon = "assets/Icons/shuffle-line.png";
+const shuffleIcon = "assets/Icons/music/shuffle.svg";
+//const loopIcon = "assets/Icons/repeat-2-line.png";
+const loopIcon = "assets/Icons/music/loop.svg";
+const loopOneIcon = "assets/Icons/music/loop-one.svg";
+//const downloadIcon = "assets/Icons/download-line.png";
+const downloadIcon = "assets/Icons/music/download-music.svg";
+
 const speedIcon = "assets/Icons/speed-up-fill.png";
 
 // Yoga Screen

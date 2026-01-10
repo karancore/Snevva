@@ -6,6 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:screen_state/screen_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../consts/consts.dart';
 import '../models/steps_model.dart';
 import '../models/sleep_log.dart';
 
@@ -22,6 +23,28 @@ bool _isUserUsingPhone = false;
 Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
   try {
     DartPluginRegistrant.ensureInitialized();
+
+    debugPrint('🧵 BG isolate started');
+
+    // 🔥 REQUIRED: init Hive for THIS isolate
+    await Hive.initFlutter();
+
+    // 🔥 REQUIRED: register adapters AGAIN
+    if (!Hive.isAdapterRegistered(SleepLogAdapter().typeId)) {
+      Hive.registerAdapter(SleepLogAdapter());
+    }
+
+    // 🔥 REQUIRED: open boxes AGAIN
+    final sleepBox = await Hive.openBox<SleepLog>('sleep_log');
+
+    debugPrint('📦 Hive ready in BG isolate');
+
+    // Now it is safe to use Hive
+    service.on('save_sleep').listen((event) {
+      debugPrint('💾 Saving sleep from BG');
+
+      sleepBox.add(SleepLog(date: DateTime.now(), durationMinutes: 30));
+    });
 
     // Foreground service (Android)
     if (service is AndroidServiceInstance) {
@@ -44,7 +67,6 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
     }
 
     final stepBox = await Hive.openBox<StepEntry>('step_history');
-    final sleepBox = await Hive.openBox<SleepLog>('sleep_log');
 
     // SharedPrefs
     final prefs = await SharedPreferences.getInstance();

@@ -24,6 +24,10 @@ class MusicResponse {
               : [],
     );
   }
+  @override
+  String toString() {
+    return 'MusicResponse(status: $status, statusType: $statusType, message: $message, data: ${data.toString()})';
+  }
 }
 
 class MusicItem {
@@ -61,13 +65,17 @@ class MusicItem {
       media: Media.fromJson(json['Media']),
 
       // ✅ extract CDN URL safely
-      thumbnailMedia: json['ThumbnailMedia'] != null
-          ? json['ThumbnailMedia']['CdnUrl'] as String?
-          : null,
+      thumbnailMedia:
+          json['ThumbnailMedia'] != null
+              ? json['ThumbnailMedia']['CdnUrl'] as String?
+              : null,
     );
   }
+  @override
+  String toString() {
+    return 'MusicItem(id: $id, title: $title, artist: $artistName, cdnUrl: ${media.cdnUrl})';
+  }
 }
-
 
 class Media {
   final String mediaCode;
@@ -89,14 +97,24 @@ class Media {
   });
 
   factory Media.fromJson(Map<String, dynamic> json) {
+    final rawCdnUrl = json['CdnUrl'] ?? '';
     return Media(
       mediaCode: json['MediaCode'] ?? '',
       title: json['Title'] ?? '',
       contentType: json['ContentType'] ?? '',
       description: json['Description'] ?? '',
       originalFilename: json['OriginalFilename'] ?? '',
-      cdnUrl: json['CdnUrl'] ?? '',
+      cdnUrl: _withHttps(rawCdnUrl),
       originBucket: json['OriginBucket'] ?? '',
     );
   }
+  @override
+  String toString() {
+    return 'Media(mediaCode: $mediaCode, title: $title, contentType: $contentType, description: $description , originalFilename : $originalFilename, cdnUrl: $cdnUrl, originBucket: $originBucket)';
+  }
+}
+
+String _withHttps(String url) {
+  if (url.isEmpty) return '';
+  return url.startsWith('http') ? url : 'https://$url';
 }

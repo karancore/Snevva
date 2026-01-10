@@ -39,9 +39,10 @@ class AudioDownloader {
       }
 
       // 📂 Downloads directory
-      final Directory? downloadsDir = Platform.isAndroid
-          ? Directory('/storage/emulated/0/Download')
-          : await getApplicationDocumentsDirectory();
+      final Directory? downloadsDir =
+          Platform.isAndroid
+              ? Directory('/storage/emulated/0/Download')
+              : await getApplicationDocumentsDirectory();
 
       if (downloadsDir == null || !downloadsDir.existsSync()) {
         debugPrint("❌ Downloads directory not found");

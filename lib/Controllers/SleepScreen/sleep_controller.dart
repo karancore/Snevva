@@ -181,9 +181,19 @@ class SleepController extends GetxController {
   Future<void> saveVitalsToLocalStorage() async {
     final prefs = await SharedPreferences.getInstance();
 
-    await prefs.setInt('bedtime', bedtime.value?.millisecondsSinceEpoch ?? 0);
-    await prefs.setInt('waketime', waketime.value?.millisecondsSinceEpoch ?? 0);
+    final int bedMs = bedtime.value?.millisecondsSinceEpoch ?? 0;
+    final int wakeMs = waketime.value?.millisecondsSinceEpoch ?? 0;
+
+    debugPrint("💾 Saving vitals to local storage:");
+    debugPrint("   Bedtime (ms since epoch): $bedMs");
+    debugPrint("   Waketime (ms since epoch): $wakeMs");
+    debugPrint("   is_first_time_sleep: false");
+
+    await prefs.setInt('bedtime', bedMs);
+    await prefs.setInt('waketime', wakeMs);
     await prefs.setBool('is_first_time_sleep', false);
+
+    debugPrint("✅ Vitals saved successfully to SharedPreferences");
   }
 
   Future<void> updateSleepTimestoServer(
@@ -513,19 +523,34 @@ class SleepController extends GetxController {
   // PHONE USAGE
   // ─────────────────────────────────────────────
 
-  void onPhoneUsed(DateTime phoneUsageStart, DateTime phoneUsageEnd) async {
+  Future<void> onPhoneUsed(
+    DateTime phoneUsageStart,
+    DateTime phoneUsageEnd,
+  ) async {
+    final DateTime now = DateTime.now();
     _didPhoneUsageOccur = true;
 
-    if (bedtime.value == null || waketime.value == null) return;
+    debugPrint("📱 Phone used detected");
+    debugPrint("   Start: $phoneUsageStart");
+    debugPrint("   End  : $phoneUsageEnd");
+    debugPrint("   Now  : $now");
+
+    if (bedtime.value == null || waketime.value == null) {
+      debugPrint("⚠️ Bedtime or Waketime is null, returning...");
+      return;
+    }
 
     final usageDuration = phoneUsageEnd.difference(phoneUsageStart);
+    debugPrint("⏱ Phone usage duration: ${usageDuration.inMinutes} min");
 
     final computedBedtime = _sleepService.calculateNewBedtime(
       bedtime: bedtime.value!,
       phoneUsageStart: phoneUsageStart,
       phoneUsageDuration: usageDuration,
     );
-
+    debugPrint(
+      "🛏 Computed bedtime after phone usage adjustment: $computedBedtime",
+    );
     newBedtime.value = computedBedtime;
 
     // Normalize wake to the bed date of computedBedtime
@@ -540,9 +565,12 @@ class SleepController extends GetxController {
         correctedWake.isAtSameMomentAs(computedBedtime)) {
       correctedWake = correctedWake.add(const Duration(days: 1));
     }
+    debugPrint("⏰ Corrected Wake: $correctedWake");
 
     //Calculating deep sleep
     final deep = correctedWake.difference(computedBedtime);
+    debugPrint("💤 Calculated deep sleep duration: ${deep.inMinutes} min");
+
     if (deep.inMinutes < 10) {
       debugPrint(
         '⛔ Skipping save/upload (phone usage): duration too small (${deep.inMinutes}m)',
@@ -550,12 +578,21 @@ class SleepController extends GetxController {
       return;
     }
 
-    deepSleepDuration.value = deep;
+    if (now.isAfter(correctedWake)) {
+      debugPrint("✅ Now is after corrected wake, updating deepSleepDuration");
+      deepSleepDuration.value = deep;
+    } else {
+      debugPrint(
+        "ℹ️ Now is before corrected wake, not updating deepSleepDuration yet",
+      );
+    }
 
     // Save against bed date of the cycle
+    debugPrint("💾 Saving sleep data for date: $computedBedtime");
     await saveDeepSleepData(computedBedtime, deep);
 
     // Upload normalized values
+    debugPrint("🌍 Uploading sleep data to server...");
     await uploadsleepdatatoServer(
       TimeOfDay.fromDateTime(computedBedtime),
       TimeOfDay.fromDateTime(correctedWake),

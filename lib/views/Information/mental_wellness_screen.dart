@@ -30,7 +30,10 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
+
     final width = mediaQuery.size.width;
+    print("height is $height ");
+    print("width is $width ");
 
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     debugPrint("🌓 Theme mode: ${isDarkMode ? "Dark" : "Light"}");
@@ -45,58 +48,57 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
             // =================== General Music ===================
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Obx(() {
-                  debugPrint("🔄 Obx triggered for generalMusic list");
+              padding: const EdgeInsets.symmetric(horizontal: 20),
 
-                  if (controller.isLoading.value) {
-                    debugPrint("⏳ Loading music...");
-                    return Center(child: const Loader());
-                  }
-                  if (controller.hasError.value) {
-                    debugPrint("❌ Error occurred while fetching music");
-                    return const Text("Error loading music");
-                  }
+              child: Obx(() {
+                debugPrint("🔄 Obx triggered for generalMusic list");
 
-                  final generalMusic = controller.generalMusic;
-                  debugPrint("🎵 generalMusic length: ${generalMusic.length}");
+                if (controller.isLoading.value) {
+                  debugPrint("⏳ Loading music...");
+                  return Center(child: const Loader());
+                }
+                if (controller.hasError.value) {
+                  debugPrint("❌ Error occurred while fetching music");
+                  return const Text("Error loading music");
+                }
 
-                  if (generalMusic.isEmpty) {
-                    debugPrint("⚠️ generalMusic list is empty");
-                    return const Text("No suggestions");
-                  }
+                final generalMusic = controller.generalMusic;
+                debugPrint("🎵 generalMusic length: ${generalMusic.length}");
 
-                  return SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: List.generate(generalMusic.length -1 , (index) {
-                        final item = generalMusic[index];
-                        print("item runTime Type: ${item.runtimeType}");
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            right: index == generalMusic.length - 1 ? 0 : 16,
-                          ),
-                          child: MentalWellnessHeaderWidget(
-                            height: 180,
-                            musicItem: item,
-                            width: 240,
-                            wellnessContainerImage:
-                                generalMusic[index].thumbnailMedia ??
-                                musicPlaceHolder,
-                            heading: generalMusic[index].title,
-                            subHeading:
-                                generalMusic[index].artistName == "Unknown"
-                                    ? ""
-                                    : generalMusic[index].artistName,
-                            boxFit: BoxFit.cover,
-                          ),
-                        );
-                      }),
-                    ),
-                  );
-                }),
-              ),
+                if (generalMusic.isEmpty) {
+                  debugPrint("⚠️ generalMusic list is empty");
+                  return const Text("No suggestions");
+                }
+
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: List.generate(generalMusic.length - 1, (index) {
+                      final item = generalMusic[index];
+
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          right: index == generalMusic.length - 1 ? 0 : 16,
+                        ),
+                        child: MentalWellnessHeaderWidget(
+                          height: 180,
+                          musicItem: item,
+                          width: 240,
+                          wellnessContainerImage:
+                              generalMusic[index].thumbnailMedia ??
+                              musicPlaceHolder,
+                          heading: generalMusic[index].title,
+                          subHeading:
+                              generalMusic[index].artistName == "Unknown"
+                                  ? ""
+                                  : generalMusic[index].artistName,
+                          boxFit: BoxFit.cover,
+                        ),
+                      );
+                    }),
+                  ),
+                );
+              }),
             ),
 
             // =================== Meditation Section ===================
@@ -119,8 +121,6 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                       debugPrint("⏳ Loading music...");
                       return Center(child: const Loader());
                     }
-                    print("height is ${height / 4}");
-                    print("width is ${width / 0.3}");
 
                     return SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
@@ -129,7 +129,7 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                           index,
                         ) {
                           final item = meditationMusic[index];
-                          print("item runTime Type: ${item.runtimeType}");
+
                           return Padding(
                             padding: EdgeInsets.only(
                               right:
@@ -140,9 +140,7 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                               musicItem: item,
                               width: width / 1.2,
                               wellnessContainerImage:
-                                  meditationMusic[index]
-                                      .thumbnailMedia
-                                       ??
+                                  meditationMusic[index].thumbnailMedia ??
                                   meditationMusicPlaceHolder,
                               heading: meditationMusic[index].title,
                               subHeading:
@@ -194,8 +192,7 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                         return MentalWellnessFooterWidget(
                           musicItem: item,
                           wellnessContainerImage:
-                              item.thumbnailMedia ??
-                              natureMusicPlaceHolder,
+                              item.thumbnailMedia ?? natureMusicPlaceHolder,
                           heading: item.title,
                           subHeading:
                               item.artistName == "Unknown"

@@ -24,16 +24,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'Sleep Screen/sleep_tracker.dart';
 
-class InfoPage extends StatefulWidget {
+class MenuScreen extends StatefulWidget {
   final Function(int)? onTabSelected;
 
-  const InfoPage({super.key, this.onTabSelected});
+  const MenuScreen({super.key, this.onTabSelected});
 
   @override
-  State<InfoPage> createState() => _InfoPageState();
+  State<MenuScreen> createState() => _MenuScreenState();
 }
 
-class _InfoPageState extends State<InfoPage>
+class _MenuScreenState extends State<MenuScreen>
     with SingleTickerProviderStateMixin {
   String? gender;
   bool isLoading = true;
@@ -257,7 +257,7 @@ class _InfoPageState extends State<InfoPage>
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: CustomAppBar(appbarText: "Services", showCloseButton: false),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 1),
+        padding: const EdgeInsets.symmetric(horizontal: 24 ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children:
