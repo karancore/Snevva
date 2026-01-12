@@ -15,20 +15,35 @@ import '../../models/medicine_reminder_model.dart';
 
 class MedicineController extends GetxController {
   ReminderController get reminderController => Get.find<ReminderController>();
+  RxList<MedicineItem> medicines = <MedicineItem>[].obs;
 
   final medicineController = TextEditingController();
-  var medicineNames = <String>[].obs;
   var medicineList = <MedicineReminderModel>[].obs;
+  var selectedMedicineIndex = (-1).obs;
 
   void addMedicine() {
-    if (medicineController.text.isNotEmpty) {
-      medicineNames.add(medicineController.text);
-      medicineController.clear();
-    }
+    final name = medicineController.text.trim();
+    if (name.isEmpty) return;
+    medicines.add(MedicineItem(name: name, times: []));
+    selectedMedicineIndex.value = medicines.length - 1;
+    //medicines.add(medicineController.text);
+    medicineController.clear();
   }
 
+
+  void addTimeToMedicine(TimeOfDay time) {
+    if (selectedMedicineIndex.value == -1) return;
+
+    medicines[selectedMedicineIndex.value].times.add(
+      MedicineTime(time: time),
+    );
+
+    medicines.refresh();
+  }
+
+
   void removeMedicine(int index) {
-    medicineNames.removeAt(index);
+    medicines.removeAt(index);
   }
 
   Future<void> addMedicineAlarm(
@@ -53,9 +68,10 @@ class MedicineController extends GetxController {
                     reminderController.titleController.text.isNotEmpty
                         ? reminderController.titleController.text
                         : 'MEDICINE REMINDER',
-                body:
-                    'Take ${medicineNames.isNotEmpty ? medicineNames.join(", ") : "your medicine"}.',
-                stopButton: 'Stop',
+            body:
+            'Take ${medicines.map((e) => e.name).join(", ")}.',
+
+            stopButton: 'Stop',
                 icon: 'alarm',
                 iconColor: AppColors.primaryColor,
               )
@@ -84,7 +100,7 @@ class MedicineController extends GetxController {
         MedicineReminderModel(
           title: reminderController.titleController.text.trim(),
           note: reminderController.notesController.text.trim(),
-          medicines: List<String>.from(medicineNames),
+          medicines: List<MedicineItem>.from(medicines),
           alarm: alarmSettings,
         ),
       );
@@ -99,8 +115,8 @@ class MedicineController extends GetxController {
       reminderController.titleController.clear();
       reminderController.notesController.clear();
       medicineController.clear();
-      medicineNames.clear();
-      await reminderController.saveReminderList(medicineList, "medicine_list");
+      medicines.clear();
+      await reminderController.saveReminderList(medicines, "medicine_list");
 
       // Reload the combined list
       await reminderController.loadAllReminderLists();
@@ -148,7 +164,7 @@ class MedicineController extends GetxController {
                         ? reminderController.titleController.text
                         : 'MEDICINE REMINDER',
                 body:
-                    'Take ${medicineNames.isNotEmpty ? medicineNames.join(", ") : "your medicine"}. ${reminderController.notesController.text}',
+                    'Take ${medicines.isNotEmpty ? medicines.join(", ") : "your medicine"}. ${reminderController.notesController.text}',
                 stopButton: 'Stop',
                 icon: 'alarm',
                 iconColor: AppColors.primaryColor,
@@ -179,7 +195,7 @@ class MedicineController extends GetxController {
     final newModel = MedicineReminderModel(
       title: reminderController.titleController.text.trim(),
       note: reminderController.notesController.text.trim(),
-      medicines: List<String>.from(medicineNames),
+      medicines: List<MedicineItem>.from(medicines),
       alarm: alarmSettings,
     );
 
@@ -239,7 +255,7 @@ class MedicineController extends GetxController {
   @override
   void onClose() {
     medicineController.dispose();
-    medicineNames.clear();
+    medicines.clear();
     super.onClose();
   }
 }

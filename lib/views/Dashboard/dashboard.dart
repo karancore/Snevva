@@ -35,7 +35,7 @@ class _DashboardState extends State<Dashboard>
   bool switchValue = false;
   String? username;
   bool isVisible = true;
-  final localStorageManager = Get.put(LocalStorageManager());
+  final localStorageManager = Get.find<LocalStorageManager>();
 
   late AnimationController _animationController;
   late Animation<Offset> _slideAnimation;

@@ -84,6 +84,7 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                           height: 180,
                           musicItem: item,
                           width: 240,
+                          playText: '',
                           wellnessContainerImage:
                               generalMusic[index].thumbnailMedia ??
                               musicPlaceHolder,
@@ -109,7 +110,7 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                 children: [
                   const Text(
                     'Meditation for You',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w500),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                   ),
                   SizedBox(height: 18),
                   Obx(() {
@@ -139,6 +140,7 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                               height: height / 4,
                               musicItem: item,
                               width: width / 1.2,
+                              playText: "Play",
                               wellnessContainerImage:
                                   meditationMusic[index].thumbnailMedia ??
                                   meditationMusicPlaceHolder,
@@ -184,22 +186,24 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                   return const Text("No suggestions");
                 }
 
-                return Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
-                  children:
-                      natureMusic.map((item) {
-                        return MentalWellnessFooterWidget(
-                          musicItem: item,
-                          wellnessContainerImage:
-                              item.thumbnailMedia ?? natureMusicPlaceHolder,
-                          heading: item.title,
-                          subHeading:
-                              item.artistName == "Unknown"
-                                  ? ""
-                                  : item.artistName,
-                        );
-                      }).toList(),
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    spacing: 16,
+                    children:
+                        natureMusic.map((item) {
+                          return MentalWellnessFooterWidget(
+                            musicItem: item,
+                            wellnessContainerImage:
+                                item.thumbnailMedia ?? natureMusicPlaceHolder,
+                            heading: item.title,
+                            subHeading:
+                                item.artistName == "Unknown"
+                                    ? ""
+                                    : item.artistName,
+                          );
+                        }).toList(),
+                  ),
                 );
               }),
             ),

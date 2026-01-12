@@ -67,6 +67,7 @@ dependencies:
   image_picker: ^1.0.7
   fl_chart: ^1.0.0
   flutter_picker: ^2.1.0
+
   wheel_picker: ^0.2.2
   scroll_datetime_picker: ^0.2.2
   hive: ^2.2.3

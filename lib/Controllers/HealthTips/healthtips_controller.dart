@@ -97,8 +97,7 @@ class HealthTipsController extends GetxController {
       List<String> tags = ['Health Tips'];
       print("call2");
 
-      final prefs = await SharedPreferences.getInstance();
-      final localStorageManager = Get.put(LocalStorageManager());
+      final localStorageManager = Get.find<LocalStorageManager>();
       final day = localStorageManager.userMap['DayOfBirth'];
       final month = localStorageManager.userMap['MonthOfBirth'];
       final year = localStorageManager.userMap['YearOfBirth'];

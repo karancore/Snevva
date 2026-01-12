@@ -107,8 +107,8 @@ class DietPlanController extends GetxController {
       isLoading.value = true;
       List<String> tags = [];
 
-      final localStorageManager = Get.put(LocalStorageManager());
-      final bmiController = Get.put(BmiController());
+      final localStorageManager = Get.find<LocalStorageManager>();
+      final bmiController = Get.find<BmiController>();
       final day = localStorageManager.userMap['DayOfBirth'];
       final month = localStorageManager.userMap['MonthOfBirth'];
       final year = localStorageManager.userMap['YearOfBirth'];

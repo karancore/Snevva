@@ -39,7 +39,7 @@ final womenhealthController = Get.put(WomenHealthController());
 final moodcontroller = Get.put(MoodController());
 final bottomsheetcontroller = Get.put(BottomSheetController());
 
-final localStorageManager = Get.put(LocalStorageManager());
+final localStorageManager = Get.find<LocalStorageManager>();
 
 class _SignInScreenState extends State<SignInScreen> {
   late TextEditingController userEmailOrPhoneField;

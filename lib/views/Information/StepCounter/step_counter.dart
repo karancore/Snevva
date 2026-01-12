@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/widgets/semi_circular_progress.dart';
 
 import '../../../common/global_variables.dart';
+import '../../../services/app_initializer.dart';
 import '../../../widgets/CommonWidgets/custom_appbar.dart';
 import '../../../widgets/CommonWidgets/step_stat_graph_widget.dart';
 import '../../../widgets/Drawer/drawer_menu_wigdet.dart';
@@ -54,6 +55,8 @@ class _StepCounterState extends State<StepCounter> {
   @override
   void initState() {
     super.initState();
+
+
 
     // Ensure controller's Hive data is loaded so weekly graph can render immediately
     stepController.loadTodayStepsFromHive();

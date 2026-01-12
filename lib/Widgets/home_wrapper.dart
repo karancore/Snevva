@@ -1,3 +1,4 @@
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/instance_manager.dart';
@@ -8,6 +9,7 @@ import 'package:snevva/views/Reminder/reminder_screen.dart';
 import 'package:snevva/widgets/navbar.dart';
 
 import '../Controllers/BMI/bmi_controller.dart';
+import '../services/app_initializer.dart';
 import '../views/My_Health/my_health_screen.dart';
 import 'Drawer/drawer_menu_wigdet.dart';
 
@@ -22,9 +24,11 @@ class HomeWrapper extends StatefulWidget {
 
 class _HomeWrapperState extends State<HomeWrapper> {
   int _selectedIndex = 0;
+ // e.g. "Moto G (4)"
+
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final localStorageManager = Get.put(LocalStorageManager());
-  final bmiController = Get.put(BmiController());
+  final localStorageManager = Get.find<LocalStorageManager>();
+  final bmiController = Get.find<BmiController>();
 
   void onTabSelected(int index) {
     setState(() {
@@ -36,10 +40,26 @@ class _HomeWrapperState extends State<HomeWrapper> {
   void initState() {
     super.initState();
     bmiController.loadUserBMI();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        initBackgroundService();
+        requestAllPermissions();
+      });
+    });
+    getDeviceInfo();
+
     //fetchFCMToken();
     // checksession();
     // localStorageManager.checksession();
   }
+  Future<void> getDeviceInfo() async {
+    final deviceInfo = DeviceInfoPlugin();
+    final androidInfo = await deviceInfo.androidInfo;
+
+    debugPrint('Device ID: ${androidInfo.id}');
+  }
+
+
 
   // Future<void> checksession() async {
   //   final prefs = await SharedPreferences.getInstance();

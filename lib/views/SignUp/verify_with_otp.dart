@@ -38,7 +38,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
   final smartAuth = SmartAuth.instance;
   bool _isLoading = false;
   // late SmsUserConsent smsUserConsent;
-  final localStorageManager = Get.put(LocalStorageManager());
+  final localStorageManager = Get.find<LocalStorageManager>();
 
   @override
   void initState() {

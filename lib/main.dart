@@ -160,7 +160,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ Only do CRITICAL initialization in main()
+  await setupHive();
+
   if (Firebase.apps.isEmpty) {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -172,7 +173,7 @@ void main() async {
   await setupNotificationChannel();
   await Alarm.init();
 
-  Get.put(AlertsController(), permanent: true);
+
 
   // ✅ Only check login status - don't do heavy init
   final prefs = await SharedPreferences.getInstance();
@@ -279,7 +280,7 @@ class _MyAppState extends State<MyApp> {
 
 // ✅ Simple splash screen during initialization
 class InitializationSplash extends StatelessWidget {
-  const InitializationSplash({Key? key}) : super(key: key);
+  const InitializationSplash({super.key});
 
   @override
   Widget build(BuildContext context) {

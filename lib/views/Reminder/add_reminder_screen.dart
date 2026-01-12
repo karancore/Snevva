@@ -8,6 +8,7 @@ import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
+import 'package:snevva/models/medicine_reminder_model.dart';
 
 import '../../Controllers/Reminder/meal_controller.dart';
 import '../../Controllers/Reminder/medicine_controller.dart';
@@ -46,15 +47,27 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       controller.loadReminderData(widget.reminder!);
       controller.titleController.text =
           widget.reminder!['Title']?.toString() ?? '';
-      final names = widget.reminder!['MedicineName'];
-      if (names is List) {
-        medicineGetxController.medicineNames.clear();
-        medicineGetxController.medicineNames.addAll(
-          names.map((e) => e.toString()),
-        );
-      } else if (names != null) {
-        medicineGetxController.medicineNames.value = [names.toString()];
+      final medicinesData = widget.reminder!['Medicines'];
+
+      if (medicinesData is List) {
+        medicineGetxController.medicines.clear();
+
+        for (final med in medicinesData) {
+          medicineGetxController.medicines.add(
+            MedicineItem(
+              name: med['name'],
+              times: (med['times'] as List)
+                  .map(
+                    (t) => MedicineTime(
+                  time: TimeOfDay.fromDateTime(DateTime.parse(t)),
+                ),
+              )
+                  .toList(),
+            ),
+          );
+        }
       }
+
       controller.timeController.text = formatReminderTime(
         widget.reminder!['RemindTime'] ?? [],
       );
@@ -71,7 +84,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     }
     if (widget.reminder == null) {
       medicineGetxController.medicineList.value = [];
-      medicineGetxController.medicineNames.value = [];
+      medicineGetxController.medicines.value = [];
       waterGetxController.waterList.value = [];
       eventGetxController.eventList.value = [];
       mealGetxController.mealsList.value = [];
@@ -277,25 +290,46 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
           ],
         ),
         SizedBox(height: 10),
-        Obx(
-          () => ListView.separated(
-            shrinkWrap: true,
-            separatorBuilder: (context, index) => SizedBox(height: 1),
-            physics: NeverScrollableScrollPhysics(),
-            itemCount: medicineGetxController.medicineNames.length,
-            itemBuilder: (context, index) {
-              return ListTile(
-                title: Text(medicineGetxController.medicineNames[index]),
-                trailing: IconButton(
-                  icon: Icon(Icons.delete),
-                  onPressed: () => medicineGetxController.removeMedicine(index),
-                ),
-              );
-            },
-          ),
-        ),
+        Obx(() => ListView.builder(
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
+          itemCount: medicineGetxController.medicines.length,
+          itemBuilder: (context, index) {
+            final med = medicineGetxController.medicines[index];
+            return Card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ListTile(
+                    title: Text(med.name),
+                    trailing: IconButton(
+                      icon: Icon(Icons.delete),
+                      onPressed: () =>
+                          medicineGetxController.removeMedicine(index),
+                    ),
+                    onTap: () =>
+                    medicineGetxController.selectedMedicineIndex.value = index,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16),
+                    child: Wrap(
+                      spacing: 8,
+                      children: med.times
+                          .map((t) => Chip(
+                        label: Text(
+                          t.time.format(context),
+                        ),
+                      ))
+                          .toList(),
+                    ),
+                  )
+                ],
+              ),
+            );
+          },
+        )),
         SizedBox(height: 20),
-        Text("Reminder Date", style: TextStyle(fontWeight: FontWeight.bold)),
+        Text("Medicine Date", style: TextStyle(fontWeight: FontWeight.bold)),
         SizedBox(height: 6),
         SizedBox(
           width: double.infinity,
@@ -312,16 +346,27 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
           ),
         ),
         SizedBox(height: 20),
-        Text("Reminder Time", style: TextStyle(fontWeight: FontWeight.bold)),
+        Text("Medicine Time", style: TextStyle(fontWeight: FontWeight.bold)),
         SizedBox(height: 6),
-        TextField(
-          controller: controller.timeController,
-          readOnly: true,
-          onTap: () => _selectTime(controller.timeController.text),
-          decoration: InputDecoration(
-            hintText: '09:30 AM',
-            border: OutlineInputBorder(),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: controller.timeController,
+                readOnly: true,
+                onTap: () => _selectTime(controller.timeController.text),
+                decoration: InputDecoration(
+                  hintText: '09:30 AM',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ),
+            SizedBox(width: 8),
+            IconButton(
+              icon: Icon(Icons.add),
+              onPressed: () => medicineGetxController.addMedicine(),
+            ),
+          ],
         ),
         // SizedBox(height: 10),
         // Obx(
@@ -376,6 +421,59 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        SizedBox(height: 20),
+        Text(
+          "Set Reminder Time",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        SizedBox(height: 20),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Center(
+                child: SizedBox(
+                  height: 48,
+
+                  child: TextField(
+                    controller: waterGetxController.startWaterTimeController,
+                    readOnly: true,
+                    textAlign: TextAlign.center,
+                    onTap: () => _selectStartTime(),
+                    decoration: InputDecoration(
+                      hintText: '09:30 AM',
+                      contentPadding: const EdgeInsets.all(8),
+                      hintStyle: TextStyle(fontSize: 2),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Text("  to  "),
+            Expanded(
+              child: Center(
+                child: SizedBox(
+                  height: 48,
+
+                  child: Center(
+                    child: TextField(
+                      controller: waterGetxController.endWaterTimeController,
+                      readOnly: true,
+                      textAlign: TextAlign.center,
+                      onTap: () => _selectEndTime(),
+                      decoration: InputDecoration(
+                        hintText: "12:00 PM",
+                        contentPadding: const EdgeInsets.all(8),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
         SizedBox(height: 20),
         Text(
           "Set Reminder Frequency",
@@ -543,58 +641,6 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         //             ),
         //           ),
         // ),
-        Text(
-          "Set Reminder Time",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        SizedBox(height: 20),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Center(
-                child: SizedBox(
-                  height: 48,
-
-                  child: TextField(
-                    controller: waterGetxController.startWaterTimeController,
-                    readOnly: true,
-                    textAlign: TextAlign.center,
-                    onTap: () => _selectStartTime(),
-                    decoration: InputDecoration(
-                      hintText: '09:30 AM',
-                      contentPadding: const EdgeInsets.all(8),
-                      hintStyle: TextStyle(fontSize: 2),
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Text("  to  "),
-            Expanded(
-              child: Center(
-                child: SizedBox(
-                  height: 48,
-
-                  child: Center(
-                    child: TextField(
-                      controller: waterGetxController.endWaterTimeController,
-                      readOnly: true,
-                      textAlign: TextAlign.center,
-                      onTap: () => _selectEndTime(),
-                      decoration: InputDecoration(
-                        hintText: "12:00 PM",
-                        contentPadding: const EdgeInsets.all(8),
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
       ],
     );
   }
@@ -663,7 +709,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(height: 20),
-        Text("Reminder Date", style: TextStyle(fontWeight: FontWeight.bold)),
+        Text("Event Date", style: TextStyle(fontWeight: FontWeight.bold)),
         SizedBox(height: 6),
         SizedBox(
           width: double.infinity,
@@ -679,7 +725,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
           ),
         ),
         SizedBox(height: 20),
-        Text("Reminder Time", style: TextStyle(fontWeight: FontWeight.bold)),
+        Text("Event Time", style: TextStyle(fontWeight: FontWeight.bold)),
         SizedBox(height: 6),
         TextField(
           controller: controller.timeController,
@@ -690,7 +736,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             border: OutlineInputBorder(),
           ),
         ),
-        SizedBox(height: 8),
+        SizedBox(height: 12),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -699,9 +745,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               "Remind me before event",
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 6),
             Obx(
               () => Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 // FIX: Changed from Wrap to Row for cleaner layout
                 children: [
                   Radio(
@@ -711,8 +760,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       controller.eventReminderOption.value = value as int;
                     },
                   ),
-                  Text("Remind me"),
-                  SizedBox(width: 8),
+                  Text("Remind me "),
+
                   SizedBox(
                     width: 50,
                     height: 35,
@@ -738,13 +787,14 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       },
                     ),
                   ),
-                  SizedBox(width: 8),
+                  Text("  "),
+
                   SizedBox(
-                    width: 80,
+                    width: 70,
+                    height: 35,
                     child: DropdownButton<String>(
                       value: controller.selectedValue.value,
-                      isExpanded: true,
-                      underline: const SizedBox(),
+                      isExpanded: false,
                       iconSize: 18,
                       items:
                           ['minutes', 'hours']
@@ -763,8 +813,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       },
                     ),
                   ),
-                  SizedBox(width: 8),
-                  Text("before"),
+
+                  Text("  before"),
                 ],
               ),
             ),
@@ -815,35 +865,74 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("Toggles", style: TextStyle(fontWeight: FontWeight.bold)),
-        Obx(
-          () => CheckboxListTile(
-            value: controller.enableNotifications.value,
-            onChanged: (value) => controller.enableNotifications.value = value!,
-            title: Text('Enable notifications'),
-            activeColor: AppColors.primaryColor,
-            controlAffinity: ListTileControlAffinity.leading,
-          ),
+        const Text(
+          "Toggles",
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        Obx(
-          () => CheckboxListTile(
-            value: controller.soundVibrationToggle.value,
-            onChanged:
-                (value) => controller.soundVibrationToggle.value = value!,
-            title: Text('Sound/Vibration toggle'),
-            activeColor: AppColors.primaryColor,
-            controlAffinity: ListTileControlAffinity.leading,
-          ),
-        ),
+        const SizedBox(height: 6),
+
+        Obx(() => _compactCheckbox(
+          value: controller.enableNotifications.value,
+          text: "Enable notifications",
+          onChanged: (v) => controller.enableNotifications.value = v,
+        )),
+
+        const SizedBox(height: 4), // 👈 exact spacing control
+
+        Obx(() => _compactCheckbox(
+          value: controller.soundVibrationToggle.value,
+          text: "Sound/Vibration toggle",
+          onChanged: (v) => controller.soundVibrationToggle.value = v,
+        )),
       ],
     );
   }
+
+  Widget _compactCheckbox({
+    required bool value,
+    required String text,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => onChanged(!value),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 12.0 , right: 6 , top: 10 , bottom: 10),
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: Checkbox(
+                value: value,
+                onChanged: (v) => onChanged(v!),
+                activeColor: AppColors.primaryColor,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: const VisualDensity(
+                  horizontal: -4,
+                  vertical: -4,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: const TextStyle(fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   Widget _buildNotesField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text("Notes", style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8,),
         TextField(
           controller: controller.notesController,
           maxLines: 3,

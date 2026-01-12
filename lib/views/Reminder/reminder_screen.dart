@@ -64,16 +64,11 @@ class _ReminderScreenState extends State<ReminderScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.alarm_off, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text(
-                  'No reminders yet',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
-                ),
+                Image.asset(noReminders ,scale: 2,),
                 SizedBox(height: 8),
                 Text(
                   'Tap "+ Add Reminder" to create one',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
                 ),
               ],
             ),

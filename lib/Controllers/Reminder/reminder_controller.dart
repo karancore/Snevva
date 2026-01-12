@@ -308,7 +308,7 @@ class ReminderController extends GetxController {
     titleController.clear();
     notesController.clear();
     medicineGetxController.medicineController.clear();
-    medicineGetxController.medicineNames.clear();
+    medicineGetxController.medicines.clear();
 
     await saveReminderList(list, key);
     await loadAllReminderLists();
@@ -685,7 +685,7 @@ class ReminderController extends GetxController {
       "Category": category,
       "MedicineName":
           category == "Medicine"
-              ? List<String>.from(medicineGetxController.medicineNames)
+              ? List<String>.from(medicineGetxController.medicines)
               : [],
       "StartDay": start.day,
       "StartMonth": start.month,
@@ -847,7 +847,7 @@ class ReminderController extends GetxController {
     editingId.value = reminder['id']; // Populate ID from the opened reminder
 
     if (selectedCategory.value == 'Medicine') {
-      medicineGetxController.medicineNames.value = List<String>.from(
+      medicineGetxController.medicines.value = List<MedicineItem>.from(
         reminder['MedicineName'] ?? [],
       );
     }

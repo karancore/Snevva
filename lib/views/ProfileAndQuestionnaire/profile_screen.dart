@@ -21,7 +21,7 @@ class ProfileScreen extends StatelessWidget {
     final width = mediaQuery.size.width;
     // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final localStorageManager = Get.put(LocalStorageManager());
+    final localStorageManager = Get.find<LocalStorageManager>();
 
     return SafeArea(
       child: Scaffold(

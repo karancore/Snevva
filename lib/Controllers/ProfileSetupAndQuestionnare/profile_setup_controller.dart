@@ -27,7 +27,7 @@ class ProfileSetupController extends GetxController {
 
   DateTime _selectedDate = DateTime.now();
 
-  final localStorageManager = Get.put(LocalStorageManager());
+  final localStorageManager = Get.find<LocalStorageManager>();
 
   var pickedImage = Rx<File?>(null);
   final ImagePicker _imgPicker = ImagePicker();

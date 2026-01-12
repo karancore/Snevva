@@ -35,7 +35,7 @@ class HeightWeightController extends GetxController {
     return feet;
   }
 
-  final localStorageManager = Get.put(LocalStorageManager());
+  final localStorageManager = Get.find<LocalStorageManager>();
 
   void updateFromFeet(double feet) {
     // Snap to nearest inch to avoid "5.999" floating point issues

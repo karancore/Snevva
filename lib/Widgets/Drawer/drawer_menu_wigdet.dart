@@ -2,7 +2,6 @@ import 'package:flutter_svg/svg.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:snevva/AuthBinding.dart';
 import 'package:snevva/Controllers/DietPlan/diet_plan_controller.dart';
 import 'package:snevva/Controllers/HealthTips/healthtips_controller.dart';
 import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
@@ -14,8 +13,6 @@ import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
-import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
-import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
 
 import 'package:snevva/initial_bindings.dart';
 import 'package:snevva/models/steps_model.dart';
@@ -76,12 +73,12 @@ class DrawerMenuWidget extends StatelessWidget {
     Get.delete<StepCounterController>();
     Get.delete<VitalsController>();
 
-    Get.offAll(() => SignInScreen(), binding: AuthBinding());
+    Get.offAll(() => SignInScreen());
   }
 
   @override
   Widget build(BuildContext context) {
-    final localStorageManager = Get.put(LocalStorageManager());
+    final localStorageManager = Get.find<LocalStorageManager>();
     final initialProfileController = Get.put(ProfileSetupController());
 
     return Column(

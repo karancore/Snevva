@@ -21,7 +21,7 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final profileController = Get.put(ProfileSetupController());
-  final localStorageManager = Get.put(LocalStorageManager());
+  final localStorageManager = Get.find<LocalStorageManager>();
   final initialProfileController = Get.put(ProfileSetupController());
 
   final controller = Get.put(EditprofileController());

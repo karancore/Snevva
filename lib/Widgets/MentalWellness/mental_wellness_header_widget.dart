@@ -15,7 +15,7 @@ class MentalWellnessHeaderWidget extends StatelessWidget {
     required this.heading,
     required this.subHeading,
     required this.boxFit,
-    this.playText,
+    required this.playText,
   });
 
   final double height;
@@ -25,7 +25,7 @@ class MentalWellnessHeaderWidget extends StatelessWidget {
   final String wellnessContainerImage;
   final String heading;
   final String subHeading;
-  final String? playText;
+  final String playText;
   final BoxFit boxFit;
 
   @override
@@ -67,43 +67,65 @@ class MentalWellnessHeaderWidget extends StatelessWidget {
                     Text(
                       heading,
                       style: TextStyle(
-                        color: Colors.white,
+                        color: white,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
                       subHeading,
-                      style: TextStyle(color: Colors.white, fontSize: 16),
+                      style: TextStyle(color: white, fontSize: 16),
                     ),
                     Spacer(),
-                    Container(
+                    playText.isEmpty
+                        ? ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        color: white,
+                        child: const Icon(
+                          Icons.play_arrow,
+                          color: Colors.black,
+                          size: 22,
+                        ),
+                      ),
+                    )
+                        : Container(
                       padding: EdgeInsets.only(
+                        top: (containerPadding ?? 10) - 7,
                         left: containerPadding ?? 10,
                         right: (containerPadding ?? 10) + 5,
                         bottom: (containerPadding ?? 10) - 7,
                       ),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(100),
-                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(200),
+                        color: white,
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.play_arrow, color: Colors.black, size: 28),
-                          if (playText != null)
-                            Padding(
-                              padding: const EdgeInsets.only(left: 5),
-                              child: Text(
-                                playText!,
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 20,
-                                ),
+                      child:
+                         Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.play_arrow,
+                                    color: Colors.black,
+                                    size: 22,
+                                  ),
+                                  playText.isEmpty
+                                      ? SizedBox.shrink()
+                                      : Padding(
+                                        padding: const EdgeInsets.only(left: 5),
+                                        child: Expanded(
+                                          child: Text(
+                                            playText,
+                                            style: TextStyle(
+                                              color: black,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                ],
                               ),
-                            ),
-                        ],
-                      ),
                     ),
                   ],
                 ),

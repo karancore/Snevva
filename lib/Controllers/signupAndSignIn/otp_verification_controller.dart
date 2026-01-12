@@ -36,9 +36,6 @@ class OTPVerificationController extends GetxController with CodeAutoFill {
   @override
   void onInit() {
     super.onInit();
-    SmsAutoFill().getAppSignature.then((signature) {
-      print("App Signature is $signature");
-    });
 
     pinController.addListener(() {
       final text = pinController.text;

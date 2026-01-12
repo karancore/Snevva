@@ -27,7 +27,7 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
 
     initialProfileController = Get.put(ProfileSetupController());
 
-    final localStorageManager = Get.put(LocalStorageManager());
+    final localStorageManager = Get.find<LocalStorageManager>();
 
     print(localStorageManager.userMap);
 

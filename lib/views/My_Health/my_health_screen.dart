@@ -38,9 +38,9 @@ class _MyHealthScreenState extends State<MyHealthScreen>
   String? gender;
   bool isLoading = true;
   final vitalController = Get.find<VitalsController>();
-  final bmiController = Get.put(BmiController());
-  final womenController = Get.put(WomenHealthController());
-  final localStorageManager = Get.put(LocalStorageManager());
+  final bmiController = Get.find<BmiController>();
+  final womenController = Get.find<WomenHealthController>();
+  final localStorageManager = Get.find<LocalStorageManager>();
 
   final HydrationStatController c = Get.find();
 

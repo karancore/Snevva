@@ -13,7 +13,7 @@ const veriemail = "assets/Images/verifyEmail.png";
 const tick = "assets/Images/tick.png";
 const mascotAi = "assets/Images/eleAI.png";
 const elemascot = "assets/Images/loginel.png";
-
+const splash = "assets/Icons/splash.webp";
 const avatar1 = "assets/Images/avatar1.jpg";
 const avatar2 = "assets/Images/avatar2.jpg";
 const avatar3 = "assets/Images/avatar3.png";
@@ -23,7 +23,7 @@ const avatar6 = "assets/Images/avatar6.png";
 const avatar7 = "assets/Images/avatar7.jpg";
 const heart2 = "assets/Images/Heart2.png";
 const hielly = "assets/Images/hielly.png";
-
+const noReminders = "assets/Images/no-reminders.webp";
 // Common Icons
 const google = "assets/Images/google.png";
 const facebook = "assets/Images/facebook.png";

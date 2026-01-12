@@ -2,13 +2,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
-
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/services/api_service.dart';
-import 'package:snevva/views/Dashboard/dashboard.dart';
-import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
-import 'package:timezone/timezone.dart';
 import '../../consts/consts.dart';
 import '../../env/env.dart';
 import '../../services/auth_header_helper.dart';
@@ -18,7 +14,7 @@ class SignInController extends GetxController {
   dynamic userProfData = {};
   dynamic userGoalData = {};
 
-  final localstorage = Get.put(LocalStorageManager());
+  final localStorage = Get.find<LocalStorageManager>();
 
   Future<bool> signInUsingEmail(
     String email,
@@ -138,7 +134,7 @@ class SignInController extends GetxController {
         }
 
         print('🗂 Saving userProfileData into localstorage.userMap...');
-        localstorage.userMap.value = userProfileData;
+        localStorage.userMap.value = userProfileData;
         print('✅ localstorage.userMap updated');
 
         if (userProfileData is Map) {
@@ -158,7 +154,7 @@ class SignInController extends GetxController {
         print('🎯 user goal data: $data');
         print('🎯 user goal data runtimeType: ${data.runtimeType}');
 
-        localstorage.userGoalDataMap.value = data;
+        localStorage.userGoalDataMap.value = data;
 
         if (data is Map) {
           final userGoalJson = jsonEncode(data);
@@ -213,7 +209,7 @@ class SignInController extends GetxController {
     );
     // print("$response");
     userProfData = response;
-    localstorage.userMap.value = userProfData['data'];
+    localStorage.userMap.value = userProfData['data'];
     return userProfData;
   }
 
@@ -226,7 +222,7 @@ class SignInController extends GetxController {
     );
     // print("$response");
     userGoalData = response;
-    localstorage.userGoalDataMap.value = userGoalData['data'];
+    localStorage.userGoalDataMap.value = userGoalData['data'];
     return userGoalData;
   }
 
@@ -359,7 +355,7 @@ class SignInController extends GetxController {
         }
 
         print('🗂 Saving userProfileData into localstorage.userMap...');
-        localstorage.userMap.value = userProfileData;
+        localStorage.userMap.value = userProfileData;
         print('✅ localstorage.userMap updated');
 
         if (userProfileData is Map) {
@@ -379,7 +375,7 @@ class SignInController extends GetxController {
         print('🎯 user goal data: $data');
         print('🎯 user goal data runtimeType: ${data.runtimeType}');
 
-        localstorage.userGoalDataMap.value = data;
+        localStorage.userGoalDataMap.value = data;
 
         if (data is Map) {
           final userGoalJson = jsonEncode(data);

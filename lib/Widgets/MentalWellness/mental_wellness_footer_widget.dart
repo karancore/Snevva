@@ -32,8 +32,7 @@ class MentalWellnessFooterWidget extends StatelessWidget {
       child: Container(
         height: 108,
         width: 108,
-        // margin: EdgeInsets.only(right: 20),
-        //padding: const EdgeInsets.all(10.0),
+
         decoration: BoxDecoration(
           color: Color(0xFF01021D),
           borderRadius: BorderRadius.circular(50),
@@ -56,21 +55,25 @@ class MentalWellnessFooterWidget extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.start,
-
                   children: [
                     SizedBox(height: 10),
-                    Icon(Icons.play_arrow, color: black, size: 20),
-                    SizedBox(height: 15),
-                    Text(
-                      heading,
-                      style: TextStyle(color: black, fontSize: 16),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Icon(Icons.play_arrow, color: black, size: 28),
+                    SizedBox(height: 5),
+                    Flexible(
+                      child: Text(
+                        heading.trim()
+                            .split(RegExp(r'\s+'))
+                            .join('\n'),
+                        style: TextStyle(color: black, fontSize: 16),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                    Text(
-                      subHeading,
-                      style: TextStyle(color: black, fontSize: 16),
-                    ),
+                    // Text(
+                    //   subHeading,
+                    //   style: TextStyle(color: black, fontSize: 16),
+                    // ),
                   ],
                 ),
               ),
