@@ -3,19 +3,19 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
-import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
-import 'package:snevva/Widgets/CommonWidgets/step_stat_graph_widget.dart';
-import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
-import 'package:snevva/Widgets/CommonWidgets/common_stat_graph_widget.dart';
-import 'package:snevva/Widgets/semi_circular_progress.dart';
+
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/steps_model.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/widgets/semi_circular_progress.dart';
 
 import '../../../common/global_variables.dart';
+import '../../../widgets/CommonWidgets/custom_appbar.dart';
+import '../../../widgets/CommonWidgets/step_stat_graph_widget.dart';
+import '../../../widgets/Drawer/drawer_menu_wigdet.dart';
 
 class StepCounter extends StatefulWidget {
   final int? customGoal;

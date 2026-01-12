@@ -3,11 +3,12 @@ import 'package:get/get.dart';
 import 'package:linear_progress_bar/linear_progress_bar.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/question_screen_controller.dart';
-import 'package:snevva/Widgets/home_wrapper.dart';
+import 'package:snevva/Widgets/ProfileSetupAndQuestionnaire/answer_selection_widget.dart';
+
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/initial_bindings.dart';
-import '../../Widgets/ProfileSetupAndQuestionnaire/answer_selection_widget.dart';
-import '../../Widgets/ProfileSetupAndQuestionnaire/custom_dialog.dart';
+import 'package:snevva/widgets/home_wrapper.dart' show HomeWrapper;
+
 import '../../consts/consts.dart';
 import '../../models/questions_model.dart';
 

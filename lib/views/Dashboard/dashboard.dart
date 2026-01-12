@@ -7,17 +7,19 @@ import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/editprofile_contr
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
-import 'package:snevva/Widgets/Dashboard/dashboard_services_widget.dart';
-import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
+
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Alerts/alerts_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import '../../Controllers/Hydration/hydration_stat_controller.dart';
-import '../../Widgets/Dashboard/dashboard_ads_carousel_slider.dart';
-import '../../Widgets/Dashboard/dashboard_header_widget.dart';
-import '../../Widgets/Dashboard/dashboard_service_overview_dynamic_widgets.dart';
+
 import '../../common/global_variables.dart';
 import '../../services/notification_service.dart';
+import '../../widgets/Drawer/drawer_menu_wigdet.dart';
+import '../../widgets/dashboard/dashboard_ads_carousel_slider.dart';
+import '../../widgets/dashboard/dashboard_header_widget.dart';
+import '../../widgets/dashboard/dashboard_service_overview_dynamic_widgets.dart';
+import '../../widgets/dashboard/dashboard_services_widget.dart';
 
 class Dashboard extends StatefulWidget {
   final Function(int)? onTabSelected;

@@ -112,7 +112,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
-import 'package:snevva/Widgets/home_wrapper.dart';
+
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/common/loader.dart';
 import 'package:snevva/consts/consts.dart';
@@ -127,6 +127,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'Controllers/alerts/alerts_controller.dart';
 import 'firebase_options.dart';
 import 'models/app_notification.dart';
+import 'widgets/home_wrapper.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {

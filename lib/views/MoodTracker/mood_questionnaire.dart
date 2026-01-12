@@ -4,13 +4,13 @@ import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:linear_progress_bar/linear_progress_bar.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_questions_controller.dart';
-import 'package:snevva/Widgets/home_wrapper.dart';
-import '../../Widgets/CommonWidgets/custom_appbar.dart';
-import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
-import '../../Widgets/MoodTracker/exercise_bubbles.dart';
-import '../../Widgets/MoodTracker/mood_answer_selection_widget.dart';
+import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
+import 'package:snevva/widgets/home_wrapper.dart' show HomeWrapper;
+
 import '../../consts/consts.dart';
 import '../../models/mood_questionnaire_model.dart';
+import '../../widgets/CommonWidgets/custom_appbar.dart';
+import '../../widgets/MoodTracker/mood_answer_selection_widget.dart';
 
 class MoodQuestionnaire extends StatefulWidget {
   const MoodQuestionnaire({super.key});

@@ -16,8 +16,9 @@ import 'package:snevva/views/ProfileAndQuestionnaire/height_and_weight_screen.da
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/questionnaire_screen.dart';
 import 'package:snevva/views/SignUp/forgot_password.dart';
-import '../../Widgets/SignInScreens/sign_in_footer_widget.dart';
-import '../../Widgets/home_wrapper.dart';
+import 'package:snevva/widgets/home_wrapper.dart';
+
+import '../../widgets/SignInScreens/sign_in_footer_widget.dart';
 import 'create_new_profile.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -101,7 +102,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
     await localStorageManager.getFCMToken();
 
-    await bottomsheetcontroller.loaddatafromAPI();
+    //await bottomsheetcontroller.loaddatafromAPI();
     await womenhealthController.lastPeriodDatafromAPI();
 
     await moodcontroller.loadmoodfromAPI(

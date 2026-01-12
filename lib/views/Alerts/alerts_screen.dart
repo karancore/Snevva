@@ -1,15 +1,15 @@
+
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_instance/src/extension_instance.dart';
+import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
 import 'package:intl/intl.dart';
-import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
-import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
-import 'package:snevva/consts/consts.dart';
-
 import '../../Controllers/alerts/alerts_controller.dart';
-import '../../services/app_initializer.dart';
+import '../../consts/images.dart';
 import '../../services/notification_service.dart';
-import 'package:get/get.dart';
+import '../../widgets/CommonWidgets/custom_appbar.dart';
 
 class AlertsScreen extends StatefulWidget {
   const AlertsScreen({super.key});

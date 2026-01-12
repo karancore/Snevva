@@ -2,12 +2,12 @@ import 'package:snevva/views/Information/HydrationScreens/hydration_bottom_sheet
 import 'package:snevva/views/Information/HydrationScreens/water_bottom_sheet.dart';
 import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.dart';
 import 'package:snevva/views/Reminder/reminder_screen.dart';
+import 'package:snevva/widgets/Hydration/floating_button_bar.dart';
 import 'package:wheel_picker/wheel_picker.dart';
 import '../../../../Widgets/CommonWidgets/custom_appbar.dart';
 import '../../../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../../../consts/consts.dart';
 import '../../../Controllers/Hydration/hydration_stat_controller.dart';
-import '../../../Widgets/Hydration/floating_button_bar.dart';
 import 'hydration_statistics.dart';
 
 class HydrationScreen extends StatefulWidget {

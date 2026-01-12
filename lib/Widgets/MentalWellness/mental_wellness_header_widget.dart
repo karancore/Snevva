@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:snevva/views/Information/music_player_screen.dart';
+
+import 'package:snevva/views/information/music_player_screen.dart';
 import '../../consts/consts.dart';
 import '../../models/music/music_response.dart';
 

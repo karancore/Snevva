@@ -1,7 +1,7 @@
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import '../../Controllers/language/language_controller.dart';
-import '../../Widgets/CommonWidgets/custom_outlined_button.dart';
+import '../../widgets/Commonwidgets/custom_outlined_button.dart';
 import '../../consts/consts.dart';
 
 class SelectLanguageScreen extends StatelessWidget {

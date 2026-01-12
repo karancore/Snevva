@@ -16,13 +16,14 @@ import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
-import 'package:snevva/Widgets/home_wrapper.dart';
+
 import 'package:snevva/initial_bindings.dart';
 import 'package:snevva/models/steps_model.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import '../../consts/consts.dart';
+import '../home_wrapper.dart';
 import 'drawer_menu_item.dart';
 
 class DrawerMenuWidget extends StatelessWidget {

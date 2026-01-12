@@ -3,7 +3,8 @@ import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
-import 'package:snevva/views/Information/BMI/bmi_result.dart';
+
+import 'bmi_result.dart';
 
 class BmiCal extends StatefulWidget {
   const BmiCal({super.key});

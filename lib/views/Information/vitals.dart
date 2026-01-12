@@ -2,17 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart'
-    show CustomAppBar;
-import 'package:snevva/Widgets/home_wrapper.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/queryParamViewModels/bloodpressure.dart';
+import 'package:snevva/widgets/home_wrapper.dart';
 
 import '../../Controllers/Vitals/vitalsController.dart';
-import '../../Widgets/CommonWidgets/custom_outlined_button.dart';
-import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../common/global_variables.dart';
+import '../../widgets/CommonWidgets/custom_appbar.dart';
+import '../../widgets/CommonWidgets/custom_outlined_button.dart';
+import '../../widgets/Drawer/drawer_menu_wigdet.dart';
 
 class VitalScreen extends StatefulWidget {
   const VitalScreen({super.key});

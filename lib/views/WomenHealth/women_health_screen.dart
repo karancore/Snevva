@@ -2,15 +2,16 @@ import 'package:modern_form_line_awesome_icons/modern_form_line_awesome_icons.da
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
-import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/models/tips_response.dart';
 import 'package:snevva/views/WomenHealth/women_health_history.dart';
-import '../../Widgets/Hydration/floating_button_bar.dart';
-import '../../Widgets/WomenHealth/calender.dart';
-import '../../Widgets/WomenHealth/period_cycle_phase_cont.dart';
-import '../../Widgets/WomenHealth/women_health_quotes_widget.dart';
-import '../../Widgets/WomenHealth/women_health_top_cont.dart';
+import 'package:snevva/widgets/Hydration/floating_button_bar.dart';
+
+import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../consts/consts.dart';
+import '../../widgets/WomenHealth/calender.dart';
+import '../../widgets/WomenHealth/period_cycle_phase_cont.dart';
+import '../../widgets/WomenHealth/women_health_quotes_widget.dart';
+import '../../widgets/WomenHealth/women_health_top_cont.dart';
 import '../Reminder/reminder_screen.dart';
 
 class WomenHealthScreen extends StatefulWidget {
