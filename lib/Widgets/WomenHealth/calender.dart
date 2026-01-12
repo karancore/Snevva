@@ -78,18 +78,35 @@ class CalendarWidget extends StatelessWidget {
           int.tryParse(womenController.periodCycleDays.value) ?? 28;
 
       // Parse last period date
+      // 🔥 PRIORITY: Use PeriodData if available, else use WomenHealthData
       DateTime? lastPeriodDate;
-      try {
-        final parts = womenController.periodLastPeriodDay.value.split('/');
-        if (parts.length == 3) {
-          lastPeriodDate = DateTime(
-            int.parse(parts[2]),
-            int.parse(parts[1]),
-            int.parse(parts[0]),
-          );
+      
+      if (womenController.hasPeriodData.value && 
+          womenController.periodDataStartDay.value != 0 &&
+          womenController.periodDataStartMonth.value != 0 &&
+          womenController.periodDataStartYear.value != 0) {
+        // Use PeriodData from API
+        lastPeriodDate = DateTime(
+          womenController.periodDataStartYear.value,
+          womenController.periodDataStartMonth.value,
+          womenController.periodDataStartDay.value,
+        );
+        print("🟢 Calendar using PeriodData: $lastPeriodDate");
+      } else {
+        // Fallback to WomenHealthData
+        try {
+          final parts = womenController.periodLastPeriodDay.value.split('/');
+          if (parts.length == 3) {
+            lastPeriodDate = DateTime(
+              int.parse(parts[2]),
+              int.parse(parts[1]),
+              int.parse(parts[0]),
+            );
+            print("🟡 Calendar using WomenHealthData: $lastPeriodDate");
+          }
+        } catch (e) {
+          lastPeriodDate = null;
         }
-      } catch (e) {
-        lastPeriodDate = null;
       }
 
       // Pre-compute all cycles (backward + forward months)

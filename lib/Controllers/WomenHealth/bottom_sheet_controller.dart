@@ -20,14 +20,20 @@ class BottomSheetController extends GetxController {
   final RxMap<DateTime, DaySymptoms> symptomsByDate =
       <DateTime, DaySymptoms>{}.obs;
 
+  /// � Helper to normalize DateTime to midnight (for consistent map keys)
+  DateTime _normalizeDate(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
   /// 🔹 Set the selected date and load symptoms/note
   void setSelectedDate(DateTime date) {
-    final key = DateTime(date.year, date.month, date.day);
+    final key = _normalizeDate(date);
     selectedDate.value = key;
 
     final dayData = symptomsByDate[key];
 
     print("Selected date: $key, Data: $dayData");
+    print("Available keys in map: ${symptomsByDate.keys.toList()}");
 
     if (dayData != null) {
       symptoms.value = List.from(dayData.symptoms);
@@ -67,10 +73,16 @@ class BottomSheetController extends GetxController {
 
     for (final item in decoded) {
       final data = DaySymptoms.fromJson(item);
-      map[data.date] = data;
+      final normalizedDate = _normalizeDate(data.date);
+      map[normalizedDate] = DaySymptoms(
+        date: normalizedDate,
+        symptoms: data.symptoms,
+        note: data.note,
+      );
     }
 
     symptomsByDate.value = map;
+    print("🔹 Loaded ${map.length} symptom dates from prefs");
   }
 
   /// 🔹 Load Women Health data from API
@@ -103,7 +115,12 @@ class BottomSheetController extends GetxController {
       final Map<DateTime, DaySymptoms> tempMap = {};
 
       for (final item in apiSymptoms) {
-        final date = DateTime(item['Year'], item['Month'], item['Day']);
+        // 🔥 Normalize date to ensure consistent map keys
+        final date = _normalizeDate(DateTime(
+          item['Year'],
+          item['Month'],
+          item['Day'],
+        ));
         final List<String> daySymptoms = List<String>.from(
           item['Symptoms'] ?? [],
         );
@@ -128,13 +145,16 @@ class BottomSheetController extends GetxController {
             symptoms: daySymptoms,
             note: dayNote,
           );
+          print("Added symptoms for date $date: $daySymptoms");
         }
       }
 
       symptomsByDate.value = tempMap;
+      print("✅ Symptom map updated with ${tempMap.length} dates");
+      print("🔍 Symptom dates in map: ${tempMap.keys.map((d) => '${d.day}-${d.month}-${d.year}').toList()}");
       await saveSymptomsToPrefs();
     } catch (e) {
-      print(e);
+      print("❌ Error loading symptoms: $e");
       CustomSnackbar.showError(
         context: Get.context!,
         title: 'Error',
@@ -171,11 +191,12 @@ class BottomSheetController extends GetxController {
   /// 🔹 Add symptoms to API
   Future<void> addsymptoAPI(List<String> symptoms, String note) async {
     try {
+      final normalizedDate = _normalizeDate(selectedDate.value);
       
       final payload = {
-        'Day': selectedDate.value.day,
-        'Month': selectedDate.value.month,
-        'Year': selectedDate.value.year,
+        'Day': normalizedDate.day,
+        'Month': normalizedDate.month,
+        'Year': normalizedDate.year,
         'Symptoms': symptoms,
         'Note': note,
       };

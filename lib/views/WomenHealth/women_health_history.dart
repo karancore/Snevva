@@ -7,10 +7,29 @@ import '../../Widgets/CommonWidgets/custom_appbar.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../consts/consts.dart';
 
-class WomenHealthHistory extends StatelessWidget {
-  WomenHealthHistory({super.key});
+class WomenHealthHistory extends StatefulWidget {
+  const WomenHealthHistory({super.key});
 
+  @override
+  State<WomenHealthHistory> createState() => _WomenHealthHistoryState();
+}
+
+class _WomenHealthHistoryState extends State<WomenHealthHistory> {
   final BottomSheetController bottom = Get.find<BottomSheetController>();
+
+  @override
+  void initState() {
+    super.initState();
+    // 🔥 Load symptoms from API when screen initializes
+    _initializeSymptomsData();
+  }
+
+  Future<void> _initializeSymptomsData() async {
+    // First load from prefs (cached)
+    await bottom.loadSymptomsFromPrefs();
+    // Then refresh from API
+    await bottom.loaddatafromAPI();
+  }
 
   @override
   Widget build(BuildContext context) {

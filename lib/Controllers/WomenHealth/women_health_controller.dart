@@ -32,6 +32,12 @@ class WomenHealthController extends GetxController {
   var periodMonth = 0;
   var periodYear = 0;
 
+  // 🔥 PeriodData from API (priority over WomenHealthData)
+  var periodDataStartDay = 0.obs;
+  var periodDataStartMonth = 0.obs;
+  var periodDataStartYear = 0.obs;
+  var hasPeriodData = false.obs;
+
   DateTime _selectedDate = DateTime.now();
   final DateTime _currentDate = DateTime.now();
 
@@ -61,6 +67,12 @@ class WomenHealthController extends GetxController {
     periodDay = day;
     periodMonth = month;
     periodYear = year;
+
+    // 🔥 Update PeriodData values for calendar
+    periodDataStartDay.value = day;
+    periodDataStartMonth.value = month;
+    periodDataStartYear.value = year;
+    hasPeriodData.value = true;
 
     final formattedDate =
         "${day.toString().padLeft(2, '0')}/"
@@ -140,8 +152,12 @@ class WomenHealthController extends GetxController {
       await prefs.setString('nextOvulationDay', nextOvulationDay.value);
       await prefs.setString('dayLeftNextPeriod', dayLeftNextPeriod.value);
 
-      // 🔥 NEW
+      // 🔥 NEW - Save PeriodData if available
       await prefs.setBool('is_first_time_women', isFirstTimeWomen.value);
+      await prefs.setBool('hasPeriodData', hasPeriodData.value);
+      await prefs.setInt('periodDataStartDay', periodDataStartDay.value);
+      await prefs.setInt('periodDataStartMonth', periodDataStartMonth.value);
+      await prefs.setInt('periodDataStartYear', periodDataStartYear.value);
 
       print('✅ Women Health Data saved successfully!');
     } catch (e) {
@@ -161,8 +177,12 @@ class WomenHealthController extends GetxController {
       nextOvulationDay.value = prefs.getString('nextOvulationDay') ?? '';
       dayLeftNextPeriod.value = prefs.getString('dayLeftNextPeriod') ?? '0';
 
-      // 🔥 NEW
+      // 🔥 NEW - Load PeriodData if available
       isFirstTimeWomen.value = prefs.getBool('is_first_time_women') ?? true;
+      hasPeriodData.value = prefs.getBool('hasPeriodData') ?? false;
+      periodDataStartDay.value = prefs.getInt('periodDataStartDay') ?? 0;
+      periodDataStartMonth.value = prefs.getInt('periodDataStartMonth') ?? 0;
+      periodDataStartYear.value = prefs.getInt('periodDataStartYear') ?? 0;
 
       if (periodLastPeriodDay.value.isNotEmpty) {
         final date = DateFormat("dd/MM/yyyy").parse(periodLastPeriodDay.value);
@@ -173,6 +193,7 @@ class WomenHealthController extends GetxController {
       }
 
       print('🟢 isFirstTimeWomen = ${isFirstTimeWomen.value}');
+      print('🟢 hasPeriodData = ${hasPeriodData.value}');
     } catch (e) {
       print('❌ Error loading Women Health Data: $e');
     }
@@ -268,6 +289,12 @@ class WomenHealthController extends GetxController {
 
     // 🔹 2. Use PeriodData as priority for next period & calendar
     if (periodData != null) {
+      // 🔥 Store PeriodData start date for calendar
+      periodDataStartDay.value = periodData['StartDay'] ?? 1;
+      periodDataStartMonth.value = periodData['StartMonth'] ?? 1;
+      periodDataStartYear.value = periodData['StartYear'] ?? DateTime.now().year;
+      hasPeriodData.value = true;
+
       final DateTime predictedDate = DateTime(
         periodData['PredictedYear'],
         periodData['PredictedMonth'],
