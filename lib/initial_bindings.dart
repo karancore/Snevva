@@ -2,6 +2,7 @@ import 'package:snevva/Controllers/Reminder/event_controller.dart';
 import 'package:snevva/Controllers/Reminder/meal_controller.dart';
 import 'package:snevva/Controllers/Reminder/medicine_controller.dart';
 import 'package:snevva/Controllers/Reminder/water_controller.dart';
+import 'package:snevva/Controllers/WomenHealth/bottom_sheet_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 
 import 'Controllers/DietPlan/diet_plan_controller.dart';
@@ -27,6 +28,7 @@ class InitialBindings extends Bindings {
     Get.lazyPut<MedicineController>(() => MedicineController(), fenix: true);
     Get.lazyPut<MealController>(() => MealController(), fenix: true);
     Get.lazyPut<EventController>(() => EventController(), fenix: true);
+    Get.lazyPut<BottomSheetController>(() => BottomSheetController(), fenix: true);
 
     Get.lazyPut(() => DietPlanController(), fenix: true);
     Get.lazyPut(() => HealthTipsController(), fenix: true);
