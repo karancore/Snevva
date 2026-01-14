@@ -69,7 +69,7 @@ class SleepController extends GetxController {
   // HELPERS
   // ─────────────────────────────────────────────
 
-  String _dateKey(DateTime d) => "${d.year}-${d.month}-${d.day}";
+  String _dateKey(DateTime d) => "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
 
   bool hasSleepDataForDate(DateTime date) {
     return deepSleepHistory.containsKey(_dateKey(date));
@@ -142,7 +142,7 @@ class SleepController extends GetxController {
 
         final duration = wakeTime.difference(bedTime);
 
-        final key = "$year-$month-$day";
+        final key = "$year-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}";
         deepSleepHistory[key] = duration;
       }
 
@@ -436,9 +436,11 @@ class SleepController extends GetxController {
       final date = weekStart.add(Duration(days: i));
       final key = _dateKey(date);
 
-      final hours = deepSleepHistory[key]?.inMinutes.toDouble() ?? 0;
+      // ✅ Convert minutes to hours correctly
+      final minutes = deepSleepHistory[key]?.inMinutes ?? 0;
+      final hours = minutes / 60.0;
 
-      spots.add(FlSpot(i.toDouble(), hours / 60));
+      spots.add(FlSpot(i.toDouble(), hours));
     }
 
     deepSleepSpots.value = spots;
@@ -465,11 +467,19 @@ class SleepController extends GetxController {
     _morningCheckTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
       final now = DateTime.now();
 
-      if (!_didPhoneUsageOccur &&
-          waketime.value != null &&
-          now.isAfter(waketime.value!)) {
-        _handleSleepWithoutPhoneUsage();
-        timer.cancel();
+      if (!_didPhoneUsageOccur && waketime.value != null) {
+        // ✅ Compare within today's context (not full DateTime comparison)
+        final wakeToday = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          waketime.value!.hour,
+          waketime.value!.minute,
+        );
+        if (now.isAfter(wakeToday)) {
+          _handleSleepWithoutPhoneUsage();
+          timer.cancel();
+        }
       }
     });
   }
@@ -537,6 +547,12 @@ class SleepController extends GetxController {
 
     if (bedtime.value == null || waketime.value == null) {
       debugPrint("⚠️ Bedtime or Waketime is null, returning...");
+      return;
+    }
+
+    // Ignore morning phone usage (after wake time)
+    if (phoneUsageStart.isAfter(waketime.value!)) {
+      debugPrint("ℹ️ Morning phone check - ignoring");
       return;
     }
 

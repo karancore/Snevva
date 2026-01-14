@@ -111,7 +111,7 @@ class SleepNoticingService {
     // CONDITION 2: Phone used after safe window
     // New Bedtime = (Usage End Time - 15 mins)
     // Usage End Time = Start + Duration
-    final DateTime usageEnd = phoneUsageStart.add(phoneUsageDuration).toLocal();
+    final DateTime usageEnd = phoneUsageStart.add(phoneUsageDuration);
     final DateTime adjustedBedtime = usageEnd.subtract(
       const Duration(minutes: 15),
     );
