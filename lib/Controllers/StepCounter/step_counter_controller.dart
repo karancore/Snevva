@@ -38,6 +38,9 @@ class StepCounterController extends GetxController {
   double get _currentPercent =>
       stepGoal.value == 0 ? 0.0 : todaySteps.value / stepGoal.value;
 
+  static const String _lastSyncedDateKey = "last_synced_step_date";
+
+
   late Box<StepEntry> _stepBox;
   // Helper to avoid crashes when underlying Hive file gets closed by another isolate.
   // If a FileSystemException occurs, we attempt to reopen the box asynchronously
@@ -104,7 +107,7 @@ class StepCounterController extends GetxController {
     await loadTodayStepsFromHive();
 
     // Start listening to background service events
-    _listenToBackgroundSteps();
+    // _listenToBackgroundSteps();
 
     // Start a lightweight poller to detect background-isolate Hive writes
     _hivePoller = Timer.periodic(
@@ -126,22 +129,67 @@ class StepCounterController extends GetxController {
   // =======================
   // DAY RESET
   // =======================
-  void _checkDayReset() {
-    final now = DateTime.now();
-    final todayKey = _dayKey(now);
-    final lastDate = _prefs.getString("last_step_date");
+  Future<void> _checkDayReset() async {
+  final now = DateTime.now();
+  final todayKey = _dayKey(now);
+  final lastDate = _prefs.getString("last_step_date");
 
-    if (lastDate != todayKey) {
-      todaySteps.value = 0;
-      lastSteps = 0;
-      lastPercent = 0.0;
-
-      _prefs.setString("last_step_date", todayKey);
-      _saveToHive(0);
-
-      _prefs.remove(_lastSyncKey); // optional
-    }
+  if (lastDate != null && lastDate != todayKey) {
+    // 👇 FORCE PUSH YESTERDAY BEFORE RESET
+    await _forceSyncPreviousDay(lastDate);
   }
+
+  if (lastDate != todayKey) {
+    todaySteps.value = 0;
+    lastSteps = 0;
+    lastStepsRx.value = 0;
+    lastPercent = 0.0;
+
+    _prefs.setString("last_step_date", todayKey);
+    await _saveToHive(0);
+  }
+}
+
+Future<void> _forceSyncPreviousDay(String dayKey) async {
+  final alreadySynced = _prefs.getString(_lastSyncedDateKey);
+
+  if (alreadySynced == dayKey) {
+    print("⏭️ Yesterday already synced");
+    return;
+  }
+
+  final steps = _safeGetSteps(dayKey);
+  if (steps <= 0) return;
+
+  final parts = dayKey.split("-");
+  final year = int.parse(parts[0]);
+  final month = int.parse(parts[1]);
+  final day = int.parse(parts[2]);
+
+  final payload = {
+    "Day": day,
+    "Month": month,
+    "Year": year,
+    "Time": "23:59",
+    "Count": steps,
+  };
+
+  try {
+    await ApiService.post(
+      stepRecord,
+      payload,
+      withAuth: true,
+      encryptionRequired: true,
+    );
+
+    await _prefs.setString(_lastSyncedDateKey, dayKey);
+    print("✅ Yesterday steps force-synced: $steps");
+  } catch (e) {
+    print("❌ Failed to force sync yesterday: $e");
+  }
+}
+
+
 
   // =======================
   // LISTEN TO BACKGROUND SERVICE
@@ -214,6 +262,7 @@ class StepCounterController extends GetxController {
         print(
           "🔎 Hive poll detected change: todaySteps = $effective (hive=$steps pref=$prefSteps)",
         );
+        _checkDayReset();
       }
     } catch (e) {
       // ignore polling errors
@@ -449,24 +498,31 @@ class StepCounterController extends GetxController {
 
   /// 🔁 Sync every 500 steps (LIVE)
   Future<void> _maybeSyncSteps() async {
-    if (todaySteps.value <= 0) return;
+  if (todaySteps.value <= 0) return;
 
-    final now = DateTime.now();
+  final now = DateTime.now();
+  final todayKey = _dayKey(now);
 
-    final lastSyncMillis = _prefs.getInt(_lastSyncKey);
-    final lastSyncTime =
-        lastSyncMillis != null
-            ? DateTime.fromMillisecondsSinceEpoch(lastSyncMillis)
-            : null;
+  final lastSyncMillis = _prefs.getInt(_lastSyncKey);
+  final lastSyncTime =
+      lastSyncMillis != null
+          ? DateTime.fromMillisecondsSinceEpoch(lastSyncMillis)
+          : null;
 
-    // ⏳ First ever sync OR 4 hours passed
-    if (lastSyncTime == null || now.difference(lastSyncTime) >= _syncInterval) {
-      await saveStepRecordToServer();
+  final lastSyncedDate = _prefs.getString(_lastSyncedDateKey);
 
-      // 🔐 Save sync time
-      await _prefs.setInt(_lastSyncKey, now.millisecondsSinceEpoch);
-    }
+  // 🔥 Always allow first sync of the day
+  if (lastSyncedDate != todayKey ||
+      lastSyncTime == null ||
+      now.difference(lastSyncTime) >= _syncInterval) {
+
+    await saveStepRecordToServer();
+
+    await _prefs.setInt(_lastSyncKey, now.millisecondsSinceEpoch);
+    await _prefs.setString(_lastSyncedDateKey, todayKey);
   }
+}
+
 
   Future<void> saveStepRecordToServer() async {
     try {
