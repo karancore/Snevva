@@ -32,6 +32,10 @@ class SleepController extends GetxController {
   Timer? _morningCheckTimer;
   bool _didPhoneUsageOccur = false;
 
+  static const String _lastUploadedSleepDateKey =
+    "last_uploaded_sleep_bed_date";
+
+
   /// Hive box
   Box<SleepLog> get _box => Hive.box<SleepLog>('sleep_log');
   final box = GetStorage();
@@ -142,7 +146,7 @@ class SleepController extends GetxController {
 
         final duration = wakeTime.difference(bedTime);
 
-        final key = "$year-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}";
+        final key = _dateKey(DateTime(year, month, day));
         deepSleepHistory[key] = duration;
       }
 
@@ -255,82 +259,69 @@ class SleepController extends GetxController {
   }
 
   Future<void> uploadsleepdatatoServer(
-    TimeOfDay bedTime,
-    TimeOfDay wakeTime,
-  ) async {
-    try {
-      // Normalize to a single sleep cycle and send the correct date parts (bed date)
-      final now = DateTime.now();
-      // Reconstruct DateTimes on the assumed bed date (y/m/d from now by default)
-      DateTime bedDt = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        bedTime.hour,
-        bedTime.minute,
-      );
-      DateTime wakeDt = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        wakeTime.hour,
-        wakeTime.minute,
-      );
-      if (wakeDt.isBefore(bedDt) || wakeDt.isAtSameMomentAs(bedDt)) {
-        wakeDt = wakeDt.add(const Duration(days: 1));
-      }
+  DateTime bedDateTime,
+  DateTime wakeDateTime,
+) async {
+  try {
+    // Normalize wake across midnight
+    DateTime wake = wakeDateTime;
+    if (wake.isBefore(bedDateTime) || wake.isAtSameMomentAs(bedDateTime)) {
+      wake = wake.add(const Duration(days: 1));
+    }
 
-      final duration = wakeDt.difference(bedDt);
-      // Filter out spurious durations
-      if (duration.inMinutes < 10) {
-        debugPrint(
-          '⛔ Skipping upload: duration too small (${duration.inMinutes}m)',
-        );
-        return;
-      }
+    final duration = wake.difference(bedDateTime);
+    if (duration.inMinutes < 10) {
+      debugPrint("⛔ Sleep too short, skipping upload");
+      return;
+    }
 
-      // Use the bed date as the record date for server consistency
-      final recordDate = DateTime(bedDt.year, bedDt.month, bedDt.day);
+    // 🔐 Dedup by BED DATE
+    final prefs = await SharedPreferences.getInstance();
+    final bedKey = _dateKey(bedDateTime);
+    final lastUploaded = prefs.getString(_lastUploadedSleepDateKey);
 
-      final payload = {
-        'Day': recordDate.day,
-        'Month': recordDate.month,
-        'Year': recordDate.year,
-        'Time': TimeOfDay.fromDateTime(
-          wakeDt,
-        ).format(Get.context!), // when pushing (after wake)
-        'SleepingFrom': timeOfDayToString(TimeOfDay.fromDateTime(bedDt)),
-        'SleepingTo': timeOfDayToString(TimeOfDay.fromDateTime(wakeDt)),
-      };
+    if (lastUploaded == bedKey) {
+      debugPrint("⏭️ Sleep already uploaded for $bedKey");
+      return;
+    }
 
-      debugPrint("🛰️ Uploading sleep record: ${payload.toString()}");
+    final payload = {
+      "Day": bedDateTime.day,
+      "Month": bedDateTime.month,
+      "Year": bedDateTime.year,
+      "Time": TimeOfDay.fromDateTime(wake).format(Get.context!),
+      "SleepingFrom": timeOfDayToString(
+        TimeOfDay.fromDateTime(bedDateTime),
+      ),
+      "SleepingTo": timeOfDayToString(
+        TimeOfDay.fromDateTime(wake),
+      ),
+    };
 
-      final response = await ApiService.post(
-        sleepGoal,
-        payload,
-        withAuth: true,
-        encryptionRequired: true,
-      );
+    debugPrint("🛰️ Uploading sleep payload: $payload");
 
-      if (response is http.Response) {
-        CustomSnackbar.showError(
-          context: Get.context!,
-          title: 'Error',
-          message: 'Failed to upload sleep data to server.',
-        );
-        debugPrint("❌ Upload failed: ${response.statusCode} ${response.body}");
-      } else {
-        debugPrint("✅ Sleep record uploaded successfully.");
-      }
-    } catch (e) {
+    final response = await ApiService.post(
+      sleepGoal,
+      payload,
+      withAuth: true,
+      encryptionRequired: true,
+    );
+
+    if (response is http.Response) {
       CustomSnackbar.showError(
         context: Get.context!,
-        title: "Error",
-        message: "Failed to upload data to server.",
+        title: 'Error',
+        message: 'Failed to upload sleep data.',
       );
-      debugPrint("🔥 Error upload sleep data to server: $e");
+      return;
     }
+
+    await prefs.setString(_lastUploadedSleepDateKey, bedKey);
+    debugPrint("✅ Sleep uploaded for bed date $bedKey");
+  } catch (e) {
+    debugPrint("🔥 Sleep upload error: $e");
   }
+}
 
   void loadDeepSleepData() {
     deepSleepHistory.clear();
@@ -523,10 +514,8 @@ class SleepController extends GetxController {
     await saveDeepSleepData(bt, deep);
 
     // Push correct normalized times to server
-    await uploadsleepdatatoServer(
-      TimeOfDay.fromDateTime(bt),
-      TimeOfDay.fromDateTime(wt),
-    );
+    await uploadsleepdatatoServer(bt, wt);
+    debugPrint('✅ Auto-saved sleep without phone usage: $deep');
   }
 
   // ─────────────────────────────────────────────
@@ -609,10 +598,7 @@ class SleepController extends GetxController {
 
     // Upload normalized values
     debugPrint("🌍 Uploading sleep data to server...");
-    await uploadsleepdatatoServer(
-      TimeOfDay.fromDateTime(computedBedtime),
-      TimeOfDay.fromDateTime(correctedWake),
-    );
+    await uploadsleepdatatoServer(computedBedtime, correctedWake);
   }
 
   // ─────────────────────────────────────────────
