@@ -13,6 +13,7 @@ import 'package:snevva/views/Alerts/alerts_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import '../../Controllers/Hydration/hydration_stat_controller.dart';
 
+import '../../Controllers/Vitals/vitalsController.dart';
 import '../../common/global_variables.dart';
 import '../../services/notification_service.dart';
 import '../../widgets/Drawer/drawer_menu_wigdet.dart';
@@ -66,10 +67,14 @@ class _DashboardState extends State<Dashboard>
 
     _animationController.forward();
 
-    // Existing controllers
-    Get.put(HydrationStatController());
-    Get.put(MoodController());
-    Get.put(EditprofileController());
+    WidgetsBinding.instance.addPostFrameCallback((_){
+
+      Get.put(HydrationStatController());
+      Get.put(MoodController());
+      Get.put(EditprofileController());
+
+    });
+
     // Get.put(StepCounterController().loadtodaySteps());
   }
 

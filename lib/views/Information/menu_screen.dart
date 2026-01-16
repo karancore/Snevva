@@ -257,7 +257,7 @@ class _MenuScreenState extends State<MenuScreen>
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: CustomAppBar(appbarText: "Services", showCloseButton: false),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24 ),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children:

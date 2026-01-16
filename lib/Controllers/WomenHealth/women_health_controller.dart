@@ -252,82 +252,84 @@ class WomenHealthController extends GetxController {
   // }
 
   Future<void> lastPeriodDatafromAPI() async {
-  try {
-    final response = await ApiService.post(
-      lastPeriodData,
-      null,
-      withAuth: true,
-      encryptionRequired: true,
-    );
-
-    final parsedData = jsonDecode(jsonEncode(response));
-    debugPrint("Parsed last period data: $parsedData");
-
-    final data = parsedData['data'];
-    final womenHealth = data?['WomenHealthData'];
-    final periodData = data?['PeriodData'];
-
-    // ✅ User is not first-time if any data exists
-    if (womenHealth != null || periodData != null) {
-      isFirstTimeWomen.value = false;
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('is_first_time_women', false);
-    }
-
-    // 🔹 1. Load women health settings
-    if (womenHealth != null) {
-      periodDays.value = womenHealth['PeroidsDuration']?.toString() ?? '5';
-      periodCycleDays.value = womenHealth['PeroidsCycleCount']?.toString() ?? '28';
-
-      final int startDay = womenHealth['PeriodDay'] ?? 1;
-      final int startMonth = womenHealth['PeriodMonth'] ?? 1;
-      final int startYear = womenHealth['PeriodYear'] ?? DateTime.now().year;
-
-      periodLastPeriodDay.value =
-          "$startDay/${startMonth.toString().padLeft(2, '0')}/$startYear";
-    }
-
-    // 🔹 2. Use PeriodData as priority for next period & calendar
-    if (periodData != null) {
-      // 🔥 Store PeriodData start date for calendar
-      periodDataStartDay.value = periodData['StartDay'] ?? 1;
-      periodDataStartMonth.value = periodData['StartMonth'] ?? 1;
-      periodDataStartYear.value = periodData['StartYear'] ?? DateTime.now().year;
-      hasPeriodData.value = true;
-
-      final DateTime predictedDate = DateTime(
-        periodData['PredictedYear'],
-        periodData['PredictedMonth'],
-        periodData['PredictedDay'],
+    try {
+      final response = await ApiService.post(
+        lastPeriodData,
+        null,
+        withAuth: true,
+        encryptionRequired: true,
       );
 
-      final DateFormat format = DateFormat("d MMM");
-      nextPeriodDay.value = format.format(predictedDate);
+      final parsedData = jsonDecode(jsonEncode(response));
+      debugPrint("Parsed last period data: $parsedData");
 
-      // Optional derived values
-      final ovulationDay = predictedDate.subtract(const Duration(days: 14));
-      final fertilityStart = ovulationDay.subtract(const Duration(days: 5));
+      final data = parsedData['data'];
+      final womenHealth = data?['WomenHealthData'];
+      final periodData = data?['PeriodData'];
 
-      nextOvulationDay.value = format.format(ovulationDay);
-      nextFertilityDay.value = format.format(fertilityStart);
+      // ✅ User is not first-time if any data exists
+      if (womenHealth != null || periodData != null) {
+        isFirstTimeWomen.value = false;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('is_first_time_women', false);
+      }
 
-      dayLeftNextPeriod.value =
-          DateTime.now().difference(predictedDate).inDays.abs().toString();
+      // 🔹 1. Load women health settings
+      if (womenHealth != null) {
+        periodDays.value = womenHealth['PeroidsDuration']?.toString() ?? '5';
+        periodCycleDays.value =
+            womenHealth['PeroidsCycleCount']?.toString() ?? '28';
 
-      // 🚫 Skip _calculateNextDates() because PeriodData is accurate
-      await saveWomenHealthToLocalStorage();
-      return;
+        final int startDay = womenHealth['PeriodDay'] ?? 1;
+        final int startMonth = womenHealth['PeriodMonth'] ?? 1;
+        final int startYear = womenHealth['PeriodYear'] ?? DateTime.now().year;
+
+        periodLastPeriodDay.value =
+            "$startDay/${startMonth.toString().padLeft(2, '0')}/$startYear";
+      }
+
+      // 🔹 2. Use PeriodData as priority for next period & calendar
+      if (periodData != null) {
+        // 🔥 Store PeriodData start date for calendar
+        periodDataStartDay.value = periodData['StartDay'] ?? 1;
+        periodDataStartMonth.value = periodData['StartMonth'] ?? 1;
+        periodDataStartYear.value =
+            periodData['StartYear'] ?? DateTime.now().year;
+        hasPeriodData.value = true;
+
+        final DateTime predictedDate = DateTime(
+          periodData['PredictedYear'],
+          periodData['PredictedMonth'],
+          periodData['PredictedDay'],
+        );
+
+        final DateFormat format = DateFormat("d MMM");
+        nextPeriodDay.value = format.format(predictedDate);
+
+        // Optional derived values
+        final ovulationDay = predictedDate.subtract(const Duration(days: 14));
+        final fertilityStart = ovulationDay.subtract(const Duration(days: 5));
+
+        nextOvulationDay.value = format.format(ovulationDay);
+        nextFertilityDay.value = format.format(fertilityStart);
+
+        dayLeftNextPeriod.value =
+            DateTime.now().difference(predictedDate).inDays.abs().toString();
+
+        // 🚫 Skip _calculateNextDates() because PeriodData is accurate
+        await saveWomenHealthToLocalStorage();
+        return;
+      }
+
+      // 🔹 3. Fallback: Calculate next dates from WomenHealthData if no PeriodData
+      if (womenHealth != null) {
+        _calculateNextDates();
+        await saveWomenHealthToLocalStorage();
+      }
+    } catch (e) {
+      debugPrint("❌ Error fetching period data: $e");
     }
-
-    // 🔹 3. Fallback: Calculate next dates from WomenHealthData if no PeriodData
-    if (womenHealth != null) {
-      _calculateNextDates();
-      await saveWomenHealthToLocalStorage();
-    }
-  } catch (e) {
-    debugPrint("❌ Error fetching period data: $e");
   }
-}
 
   Future<void> editperioddatatoAPI({
     required DateTime startDate,

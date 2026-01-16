@@ -14,7 +14,7 @@ class MoodTrackerScreen extends StatelessWidget {
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
 
-    final controller = Get.find<MoodController>();
+    final controller = Get.put(MoodController());
 
     final pageController = PageController(
       initialPage: controller.selectedMoodIndex.value,

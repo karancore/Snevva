@@ -107,7 +107,7 @@ class StepCounterController extends GetxController {
     await loadTodayStepsFromHive();
 
     // Start listening to background service events
-    // _listenToBackgroundSteps();
+    _listenToBackgroundSteps();
 
     // Start a lightweight poller to detect background-isolate Hive writes
     _hivePoller = Timer.periodic(
@@ -435,7 +435,12 @@ Future<void> _forceSyncPreviousDay(String dayKey) async {
   }
 
   List<FlSpot> getMonthlyStepsSpots(DateTime month) {
-    final days = DateTime(month.year, month.month + 1, 0).day;
+    final now = DateTime.now();
+
+    final int totalDays = (month.year == now.year && month.month == now.month)
+        ? now.day // only till today
+        : DateTime(month.year, month.month + 1, 0).day;
+
     final spots = <FlSpot>[];
 
     // Build a lookup map from API data
@@ -448,9 +453,14 @@ Future<void> _forceSyncPreviousDay(String dayKey) async {
       }
     }
 
-    for (int day = 1; day <= days; day++) {
+    for (int day = 1; day <= totalDays; day++) {
       final steps = dayToSteps[day] ?? 0;
-      spots.add(FlSpot((day - 1).toDouble(), steps.toDouble()));
+      spots.add(
+        FlSpot(
+          (day - 1).toDouble(), // X = index
+          steps.toDouble(),     // Y = steps
+        ),
+      );
     }
 
     return spots;

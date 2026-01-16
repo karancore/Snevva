@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_instance/src/extension_instance.dart';
@@ -5,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../Controllers/signupAndSignIn/sign_in_controller.dart';
 import '../consts/consts.dart';
+import '../models/medicine_reminder_model.dart';
 
 enum Option { times, interval }
 
@@ -105,15 +107,28 @@ int daysInMonth(int year, int month) {
   return DateTime(year, month + 1, 0).day;
 }
 
+
+
+
+
 String _dateKey(DateTime d) => "${d.year}-${d.month}-${d.day}";
 
 List<String> generateMonthLabels(DateTime month) {
-  final total = daysInMonth(month.year, month.month);
-  return List.generate(total, (i) => '${i + 1}');
+  final now = DateTime.now();
+
+  final int totalDays = (month.year == now.year && month.month == now.month)
+      ? now.day // 🔥 only till today
+      : daysInMonth(month.year, month.month); // full month for past months
+
+  return List.generate(totalDays, (i) => '${i + 1}');
 }
 
 int alarmsId() {
   return DateTime.now().millisecondsSinceEpoch % 2147483647;
+}
+
+int reminderId() {
+  return DateTime.now().microsecondsSinceEpoch % 2147483647;
 }
 
 DateTime combineWithToday(TimeOfDay time) {
@@ -193,6 +208,20 @@ TimeOfDay parseTime(String timeString) {
   return TimeOfDay.fromDateTime(format.parse(timeString));
 }
 
+TimeOfDay parseTimeNew(String input) {
+  // Normalize: ensure space before AM/PM
+  final normalized = input
+      .replaceAll(RegExp(r'\s+'), '')
+      .replaceAllMapped(
+        RegExp(r'(AM|PM)$', caseSensitive: false),
+        (m) => ' ${m.group(0)}',
+      );
+
+  final date = DateFormat('hh:mm a').parse(normalized);
+
+  return TimeOfDay(hour: date.hour, minute: date.minute);
+}
+
 String pluralizeHour(int value) => value > 1 ? 'hours' : 'hour';
 
 void logLong(String tag, String text) {
@@ -202,4 +231,64 @@ void logLong(String tag, String text) {
       '$tag ${text.substring(i, i + chunkSize > text.length ? text.length : i + chunkSize)}',
     );
   }
+}
+
+int medicineAlarmId(String title, String medicineName, TimeOfDay time) {
+  return '$title-$medicineName-${time.hour}-${time.minute}'.hashCode;
+}
+
+DateTime buildDateTime(DateTime date, TimeOfDay time) {
+  return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+}
+
+String buildMedicineText(dynamic medicineList) {
+  if (medicineList == null || medicineList is! List) return '';
+
+  return medicineList
+      .map((e) {
+        if (e is MedicineItem) return e.name;
+        if (e is String) return e;
+        if (e is Map && e['name'] != null) return e['name'];
+        return '';
+      })
+      .where((e) => e.isNotEmpty)
+      .join(', ');
+}
+
+Map<String, dynamic> deepNormalizeMap(Map raw) {
+  return raw.map((key, value) {
+    if (value is Map) {
+      return MapEntry(key.toString(), deepNormalizeMap(value));
+    } else if (value is List) {
+      return MapEntry(
+        key.toString(),
+        value.map((e) {
+          if (e is Map) return deepNormalizeMap(e);
+          return e;
+        }).toList(),
+      );
+    }
+    return MapEntry(key.toString(), value);
+  });
+}
+List<List<FlSpot>> splitByZero(List<FlSpot> points) {
+  final List<List<FlSpot>> segments = [];
+  List<FlSpot> currentSegment = [];
+
+  for (final point in points) {
+    if (point.y <= 0) {
+      if (currentSegment.isNotEmpty) {
+        segments.add(currentSegment);
+        currentSegment = [];
+      }
+    } else {
+      currentSegment.add(point);
+    }
+  }
+
+  if (currentSegment.isNotEmpty) {
+    segments.add(currentSegment);
+  }
+
+  return segments;
 }

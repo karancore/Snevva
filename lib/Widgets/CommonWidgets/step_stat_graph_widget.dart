@@ -13,6 +13,7 @@ class StepStatGraphWidget extends StatelessWidget {
     required this.height,
     required this.points,
     required this.isMonthlyView,
+    this.maxXForWeek,
     this.weekLabels,
     this.graphTitle = '',
   });
@@ -22,6 +23,7 @@ class StepStatGraphWidget extends StatelessWidget {
   final List<FlSpot> points;
   final bool isMonthlyView;
   final List<String>? weekLabels;
+  final int ? maxXForWeek;
   final String graphTitle;
 
   // ---- STEP GRAPH CONSTANTS ----
@@ -44,6 +46,15 @@ class StepStatGraphWidget extends StatelessWidget {
       "Sat",
       "Sun",
     ];
+    // List<String> generateCurrentMonthDays() {
+    //   final now = DateTime.now();
+    //
+    //   // Last day of current month
+    //   final lastDay = DateTime(now.year, now.month + 1, 0).day;
+    //
+    //   return List.generate(lastDay, (index) => (index + 1).toString());
+    // }
+
 
     final labels = weekLabels ?? fixedWeekLabels;
     final bool isMonthly = labels.length > 7;
@@ -64,85 +75,95 @@ class StepStatGraphWidget extends StatelessWidget {
       elevation: 3,
       borderRadius: BorderRadius.circular(8),
       color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          border: Border.all(color: mediumGrey, width: border04px),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ===== HEADER =====
-            Row(
+      child: Stack(
+        
+        children: [
+          Positioned(top : 21 , left : 120 , child: Text("Monthly Step Stats")),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              border: Border.all(color: mediumGrey, width: border04px),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SvgPicture.asset(statisticIcon, height: 22),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    graphTitle,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
+                // ===== HEADER =====
+                Row(
+                  children: [
+                    SvgPicture.asset(statisticIcon, height: 22),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        graphTitle,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
                     ),
-                  ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: mediumGrey, width: border04px),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        formattedDate,
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                    ),
+                  ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: mediumGrey, width: border04px),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    formattedDate,
-                    style: const TextStyle(fontSize: 10),
-                  ),
-                ),
+          
+                const SizedBox(height: 15),
+          
+                // ===== GRAPH =====
+                isMonthlyView
+                    ? SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: _buildChart(
+                        labels: labels,
+                        points: clampedPoints,
+                        isMonthly: true,
+                        todayIndex: todayIndex,
+                      ),
+                    )
+                    : _buildChart(
+                      labels: labels,
+                      points: clampedPoints,
+                      maxXForWeek: maxXForWeek ,
+                      isMonthly: false,
+                      todayIndex: todayIndex,
+                    ),
               ],
             ),
-
-            const SizedBox(height: 15),
-
-            // ===== GRAPH =====
-            isMonthlyView
-                ? SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: _buildChart(
-                    labels: labels,
-                    points: clampedPoints,
-                    isMonthly: true,
-                    todayIndex: todayIndex,
-                  ),
-                )
-                : _buildChart(
-                  labels: labels,
-                  points: clampedPoints,
-                  isMonthly: false,
-                  todayIndex: todayIndex,
-                ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
+
 
   Widget _buildChart({
     required List<String> labels,
     required List<FlSpot> points,
     required bool isMonthly,
     required int todayIndex,
+    int ?  maxXForWeek,
   }) {
+    print("labels length is ${labels.length.toString()}");
     return Container(
       padding: const EdgeInsets.only(top: 52),
       height: height * 0.28,
-      width: isMonthly ? labels.length * 41 : null,
+      width: isMonthly ? labels.length * 42 : null,
       child: LineChart(
         LineChartData(
           minX: 0,
-          maxX: isMonthly ? labels.length - 1 : 6,
+          maxX: isMonthly ? (labels.length).toDouble()  : maxXForWeek!.toDouble(),
           minY: 0,
           maxY: _yMax,
 
@@ -151,12 +172,13 @@ class StepStatGraphWidget extends StatelessWidget {
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                interval: isMonthly ? 5 : 1,
+                interval: 1,
                 reservedSize: 24,
+
                 getTitlesWidget: (value, _) {
                   final index = value.toInt();
                   if (index >= 0 && index < labels.length) {
-                    final isToday = !isMonthly && index == todayIndex;
+                    final isToday = !isMonthly && index == maxXForWeek;
                     return Padding(
                       padding: const EdgeInsets.only(top: 6),
                       child: Text(
@@ -220,18 +242,31 @@ class StepStatGraphWidget extends StatelessWidget {
             LineChartBarData(
               spots: points,
               isCurved: true,
+              preventCurveOverShooting: true,
               color: AppColors.primaryColor,
               barWidth: 2,
               dotData: FlDotData(
                 show: true,
-                getDotPainter:
-                    (_, __, ___, ____) => FlDotCirclePainter(
-                      radius: 4,
-                      color: AppColors.primaryColor,
-                      strokeWidth: 2,
-                      strokeColor: Colors.white,
-                    ),
+                getDotPainter: (spot, percent, barData, index) {
+                  if (spot.y == 0) {
+                    return FlDotCirclePainter(
+                      radius: 0,
+
+                      color: Colors.transparent,
+                      strokeWidth: 0,
+                      strokeColor: Colors.transparent,
+                    );
+                  }
+
+                  return FlDotCirclePainter(
+                    radius: 4,
+                    color: white,
+                    strokeWidth: 2,
+                    strokeColor: AppColors.primaryColor,
+                  );
+                },
               ),
+
               belowBarData: BarAreaData(
                 show: true,
                 gradient: LinearGradient(

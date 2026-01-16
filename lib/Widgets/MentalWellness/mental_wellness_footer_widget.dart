@@ -61,9 +61,7 @@ class MentalWellnessFooterWidget extends StatelessWidget {
                     SizedBox(height: 5),
                     Flexible(
                       child: Text(
-                        heading.trim()
-                            .split(RegExp(r'\s+'))
-                            .join('\n'),
+                        heading.trim().split(RegExp(r'\s+')).join('\n'),
                         style: TextStyle(color: black, fontSize: 16),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,

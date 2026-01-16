@@ -94,12 +94,14 @@ const logoutIcon = "assets/Icons/Drawer/exit.svg";
 const invitefriend = "assets/Icons/Drawer/invitefriend11.svg";
 // const invitefriend = "assets/Icons/Drawer/invitefriend.svg";
 
-//Reminder Scree
-const medicineIcon = "assets/Icons/reminder/medicine.png";
-const mealIcon = "assets/Icons/reminder/meal.png";
-const waterReminderIcon = "assets/Icons/reminder/water.png";
-const eventIcon = "assets/Icons/reminder/event.png";
-const clockRemIcon = "assets/Icons/reminder/clock.png";
+//Reminder Screen
+const medicineIcon = "assets/Icons/reminder/medicine.webp";
+const mealIcon = "assets/Icons/reminder/meal.webp";
+const waterReminderIcon = "assets/Icons/reminder/water.webp";
+const eventIcon = "assets/Icons/reminder/event.webp";
+
+const pen = "assets/Icons/reminder/pencil.svg";
+const clockRemIcon = "assets/Icons/reminder/clock.svg";
 
 //Vitals Screen
 const heartVitalIcon = "assets/Icons/vitals/heart.png";
@@ -262,10 +264,11 @@ const level3 = "assets/Icons/WomenHealth/3.png";
 const chatWallpaper = "assets/chat/chat_wallpaper_new.webp";
 
 //Step Counter
-const run = "assets/Images/Steps/run.png";
-const dis = "assets/Images/Steps/dis.png";
-const cal = "assets/Images/Steps/cal.png";
-const time = "assets/Images/Steps/time.png";
+const run = "assets/Images/Steps/run.webp";
+const dis = "assets/Images/Steps/dis.webp";
+const cal = "assets/Images/Steps/cal.webp";
+const walkElly = "assets/Images/Steps/walk-ele.webp";
+const time = "assets/Images/Steps/time.webp";
 
 // Mood Tracker
 const moodCircle1 = "assets/Images/MoodTracker/Group52.svg";
@@ -303,4 +306,4 @@ const clockIcon = "assets/Icons/SleepScreen/Rectangle-2.png";
 const noNotif = "assets/Images/notificon.png";
 const fatty = "assets/Images/BMI/fatty.png";
 const skinny = "assets/Images/BMI/skiiny.png";
-const pen = "assets/Icons/reminder/pencil.svg";
+

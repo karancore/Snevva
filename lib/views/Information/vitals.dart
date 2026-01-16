@@ -31,7 +31,7 @@ class _VitalScreenState extends State<VitalScreen> {
   final TextEditingController bpmController = TextEditingController();
   final vitalsKey = GlobalKey<FormState>();
 
-  final _controller = Get.find<VitalsController>();
+  final _controller = Get.put(VitalsController());
 
   @override
   void initState() {

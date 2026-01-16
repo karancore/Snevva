@@ -32,6 +32,8 @@ class _StepCounterState extends State<StepCounter> {
   final Box<StepEntry> _box = Hive.box<StepEntry>('step_history');
 
   List<FlSpot> _points = [];
+  int daysSinceMonday = 0;
+  int todayDate = 1 ;
   DateTime _selectedMonth = DateTime.now();
   bool _isMonthlyView = false;
 
@@ -55,8 +57,6 @@ class _StepCounterState extends State<StepCounter> {
   @override
   void initState() {
     super.initState();
-
-
 
     // Ensure controller's Hive data is loaded so weekly graph can render immediately
     stepController.loadTodayStepsFromHive();
@@ -336,9 +336,10 @@ class _StepCounterState extends State<StepCounter> {
                               }
                             },
                             child: SvgPicture.asset(
-                              editIcon,
-                              width: 15,
-                              height: 15,
+                              pen,
+                              color: AppColors.primaryColor,
+                              width: 18,
+                              height: 18,
                             ),
                           ),
                         ],
@@ -417,22 +418,22 @@ class _StepCounterState extends State<StepCounter> {
               SizedBox(
                 height: height * 0.41,
                 child: Obx(() {
+
                   final labels =
                       _isMonthlyView
                           ? generateMonthLabels(_selectedMonth)
-                          : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+                          : generateShortWeekdays();
                   final points =
                       _isMonthlyView
                           ? stepController.getMonthlyStepsSpots(_selectedMonth)
-                          : stepController.stepSpots.toList();
-
-                  print("📈 Rendering graph with points: $points");
+                          : stepController.stepSpots.toList().take(daysSinceMonday + 1).toList();
 
                   return StepStatGraphWidget(
                     isDarkMode: isDarkMode,
                     height: height,
                     points: points,
                     weekLabels: labels,
+                    maxXForWeek: daysSinceMonday,
                     isMonthlyView: _isMonthlyView,
                     graphTitle: 'Steps',
                   );
@@ -444,6 +445,33 @@ class _StepCounterState extends State<StepCounter> {
       ),
     );
   }
+  int getTodayDayNumber() {
+    todayDate = DateTime.now().day;
+    return todayDate;
+  }
+
+
+  List<String> generateShortWeekdays() {
+    List<String> shortWeekdays = [];
+    DateTime now = DateTime.now();
+
+    daysSinceMonday = (now.weekday - DateTime.monday);
+
+    // Remove time part to avoid carrying 12:48:xx everywhere
+    DateTime startOfWeek = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: daysSinceMonday));
+
+    // 🔥 CHANGE IS HERE
+    for (int i = 0; i <= daysSinceMonday; i++) {
+      DateTime date = startOfWeek.add(Duration(days: i));
+      String dayName = DateFormat('E').format(date);
+      shortWeekdays.add(dayName);
+    }
+
+    return shortWeekdays;
+  }
+
+
 
   // Info Row UI
   Widget _infoItem(String icon, String text) =>

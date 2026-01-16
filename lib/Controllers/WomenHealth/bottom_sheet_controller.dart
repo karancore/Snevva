@@ -116,11 +116,9 @@ class BottomSheetController extends GetxController {
 
       for (final item in apiSymptoms) {
         // 🔥 Normalize date to ensure consistent map keys
-        final date = _normalizeDate(DateTime(
-          item['Year'],
-          item['Month'],
-          item['Day'],
-        ));
+        final date = _normalizeDate(
+          DateTime(item['Year'], item['Month'], item['Day']),
+        );
         final List<String> daySymptoms = List<String>.from(
           item['Symptoms'] ?? [],
         );
@@ -151,7 +149,9 @@ class BottomSheetController extends GetxController {
 
       symptomsByDate.value = tempMap;
       print("✅ Symptom map updated with ${tempMap.length} dates");
-      print("🔍 Symptom dates in map: ${tempMap.keys.map((d) => '${d.day}-${d.month}-${d.year}').toList()}");
+      print(
+        "🔍 Symptom dates in map: ${tempMap.keys.map((d) => '${d.day}-${d.month}-${d.year}').toList()}",
+      );
       await saveSymptomsToPrefs();
     } catch (e) {
       print("❌ Error loading symptoms: $e");
@@ -192,7 +192,7 @@ class BottomSheetController extends GetxController {
   Future<void> addsymptoAPI(List<String> symptoms, String note) async {
     try {
       final normalizedDate = _normalizeDate(selectedDate.value);
-      
+
       final payload = {
         'Day': normalizedDate.day,
         'Month': normalizedDate.month,

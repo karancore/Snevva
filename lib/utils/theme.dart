@@ -25,7 +25,7 @@ class SnevvaTheme {
       iconTheme: IconThemeData(color: Colors.black),
       elevation: 0.0,
       backgroundColor: white,
-      surfaceTintColor: white ,
+      surfaceTintColor: white,
       scrolledUnderElevation: 0.0,
     ),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(),

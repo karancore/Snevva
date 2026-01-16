@@ -112,6 +112,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
+import 'package:hive/hive.dart';
 
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/common/loader.dart';
@@ -131,7 +132,6 @@ import 'widgets/home_wrapper.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   final prefs = await SharedPreferences.getInstance();
   final List existing = jsonDecode(
@@ -167,11 +167,7 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
   }
-
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  await FirebaseMessaging.instance.requestPermission();
-  await setupNotificationChannel();
-  await Alarm.init();
 
 
 

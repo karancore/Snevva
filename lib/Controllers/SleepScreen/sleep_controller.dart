@@ -33,8 +33,7 @@ class SleepController extends GetxController {
   bool _didPhoneUsageOccur = false;
 
   static const String _lastUploadedSleepDateKey =
-    "last_uploaded_sleep_bed_date";
-
+      "last_uploaded_sleep_bed_date";
 
   /// Hive box
   Box<SleepLog> get _box => Hive.box<SleepLog>('sleep_log');
@@ -73,7 +72,8 @@ class SleepController extends GetxController {
   // HELPERS
   // ─────────────────────────────────────────────
 
-  String _dateKey(DateTime d) => "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+  String _dateKey(DateTime d) =>
+      "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
 
   bool hasSleepDataForDate(DateTime date) {
     return deepSleepHistory.containsKey(_dateKey(date));
@@ -87,6 +87,59 @@ class SleepController extends GetxController {
     final hour = time.hour.toString().padLeft(2, '0');
     final minute = time.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
+  }
+
+  /// Returns a map with the durations:
+  /// {
+  ///   'beforePhone': Duration, // oldBedtime -> phonePickupTime
+  ///   'afterPhone' : Duration, // newBedtime -> oldWakeTime
+  ///   'total'      : Duration  // sum of both
+  /// }
+  ///
+  ///
+  DateTime normalizeForward(DateTime base, DateTime candidate) {
+    // move candidate forward by whole days until it is after base
+    DateTime c = candidate;
+    while (!c.isAfter(base) && !c.isAtSameMomentAs(base)) {
+      c = c.add(const Duration(days: 1));
+    }
+    return c;
+  }
+
+  Map<String, Duration> calculateSplitDeepSleep({
+    required DateTime oldBedtime,
+    required DateTime oldWakeTime,
+    required DateTime phonePickupTime,
+    required DateTime newBedtime,
+  }) {
+
+    // Segment 1: oldBedtime -> phonePickupTime
+    DateTime seg1Start = oldBedtime;
+    DateTime seg1End = phonePickupTime;
+    if (seg1End.isBefore(seg1Start) || seg1End.isAtSameMomentAs(seg1Start)) {
+      seg1End = seg1End.add(const Duration(days: 1));
+    }
+
+    // Segment 2: newBedtime -> oldWakeTime
+    DateTime seg2Start = newBedtime;
+    DateTime seg2End = oldWakeTime;
+    if (seg2End.isBefore(seg2Start) || seg2End.isAtSameMomentAs(seg2Start)) {
+      seg2End = seg2End.add(const Duration(days: 1));
+    }
+
+    Duration beforePhone = seg1End.difference(seg1Start);
+    Duration afterPhone = seg2End.difference(seg2Start);
+
+    // Guard against negative (shouldn't happen after normalization) just in case
+    if (beforePhone.isNegative) beforePhone = Duration.zero;
+    if (afterPhone.isNegative) afterPhone = Duration.zero;
+
+    final total = beforePhone + afterPhone;
+    return {
+      'beforePhone': beforePhone,
+      'afterPhone': afterPhone,
+      'total': total,
+    };
   }
 
   DateTime _parseTime(int year, int month, int day, String time) {
@@ -259,69 +312,65 @@ class SleepController extends GetxController {
   }
 
   Future<void> uploadsleepdatatoServer(
-  DateTime bedDateTime,
-  DateTime wakeDateTime,
-) async {
-  try {
-    // Normalize wake across midnight
-    DateTime wake = wakeDateTime;
-    if (wake.isBefore(bedDateTime) || wake.isAtSameMomentAs(bedDateTime)) {
-      wake = wake.add(const Duration(days: 1));
-    }
+    DateTime bedDateTime,
+    DateTime wakeDateTime,
+  ) async {
+    try {
+      // Normalize wake across midnight
+      DateTime wake = wakeDateTime;
+      if (wake.isBefore(bedDateTime) || wake.isAtSameMomentAs(bedDateTime)) {
+        wake = wake.add(const Duration(days: 1));
+      }
 
-    final duration = wake.difference(bedDateTime);
-    if (duration.inMinutes < 10) {
-      debugPrint("⛔ Sleep too short, skipping upload");
-      return;
-    }
+      final duration = wake.difference(bedDateTime);
+      if (duration.inMinutes < 10) {
+        debugPrint("⛔ Sleep too short, skipping upload");
+        return;
+      }
 
-    // 🔐 Dedup by BED DATE
-    final prefs = await SharedPreferences.getInstance();
-    final bedKey = _dateKey(bedDateTime);
-    final lastUploaded = prefs.getString(_lastUploadedSleepDateKey);
+      // 🔐 Dedup by BED DATE
+      final prefs = await SharedPreferences.getInstance();
+      final bedKey = _dateKey(bedDateTime);
+      final lastUploaded = prefs.getString(_lastUploadedSleepDateKey);
 
-    if (lastUploaded == bedKey) {
-      debugPrint("⏭️ Sleep already uploaded for $bedKey");
-      return;
-    }
+      if (lastUploaded == bedKey) {
+        debugPrint("⏭️ Sleep already uploaded for $bedKey");
+        return;
+      }
 
-    final payload = {
-      "Day": bedDateTime.day,
-      "Month": bedDateTime.month,
-      "Year": bedDateTime.year,
-      "Time": TimeOfDay.fromDateTime(wake).format(Get.context!),
-      "SleepingFrom": timeOfDayToString(
-        TimeOfDay.fromDateTime(bedDateTime),
-      ),
-      "SleepingTo": timeOfDayToString(
-        TimeOfDay.fromDateTime(wake),
-      ),
-    };
+      final payload = {
+        "Day": bedDateTime.day,
+        "Month": bedDateTime.month,
+        "Year": bedDateTime.year,
+        "Time": TimeOfDay.fromDateTime(wake).format(Get.context!),
+        "SleepingFrom": timeOfDayToString(TimeOfDay.fromDateTime(bedDateTime)),
+        "SleepingTo": timeOfDayToString(TimeOfDay.fromDateTime(wake)),
+      };
 
-    debugPrint("🛰️ Uploading sleep payload: $payload");
+      debugPrint("🛰️ Uploading sleep payload: $payload");
 
-    final response = await ApiService.post(
-      sleepGoal,
-      payload,
-      withAuth: true,
-      encryptionRequired: true,
-    );
-
-    if (response is http.Response) {
-      CustomSnackbar.showError(
-        context: Get.context!,
-        title: 'Error',
-        message: 'Failed to upload sleep data.',
+      final response = await ApiService.post(
+        sleepGoal,
+        payload,
+        withAuth: true,
+        encryptionRequired: true,
       );
-      return;
-    }
 
-    await prefs.setString(_lastUploadedSleepDateKey, bedKey);
-    debugPrint("✅ Sleep uploaded for bed date $bedKey");
-  } catch (e) {
-    debugPrint("🔥 Sleep upload error: $e");
+      if (response is http.Response) {
+        CustomSnackbar.showError(
+          context: Get.context!,
+          title: 'Error',
+          message: 'Failed to upload sleep data.',
+        );
+        return;
+      }
+
+      await prefs.setString(_lastUploadedSleepDateKey, bedKey);
+      debugPrint("✅ Sleep uploaded for bed date $bedKey");
+    } catch (e) {
+      debugPrint("🔥 Sleep upload error: $e");
+    }
   }
-}
 
   void loadDeepSleepData() {
     deepSleepHistory.clear();
@@ -370,7 +419,13 @@ class SleepController extends GetxController {
   }
 
   List<FlSpot> getMonthlyDeepSleepSpots(DateTime month) {
-    int totalDays = daysInMonth(month.year, month.month);
+    final now = DateTime.now();
+
+    final int totalDays =
+        (month.year == now.year && month.month == now.month)
+            ? now
+                .day // 🔥 only till today
+            : daysInMonth(month.year, month.month);
     List<FlSpot> spots = [];
 
     for (int day = 1; day <= totalDays; day++) {
@@ -553,6 +608,33 @@ class SleepController extends GetxController {
       phoneUsageStart: phoneUsageStart,
       phoneUsageDuration: usageDuration,
     );
+    final split = calculateSplitDeepSleep(
+      oldBedtime: bedtime.value!, // original configured bedtime
+      oldWakeTime: waketime.value!, // original configured waketime
+      phonePickupTime: phoneUsageStart, // when the user picked up the phone
+      newBedtime: computedBedtime, // adjusted bedtime (usageEnd - 15min)
+    );
+
+    debugPrint(
+      "💤 Split deep sleep -> beforePhone: ${split['beforePhone']}, afterPhone: ${split['afterPhone']}, total: ${split['total']}",
+    );
+
+    // decide what to save/upload: use `split['total']` as the "deep" duration if you want the sum
+    final Duration deep = split['total']!;
+
+    if (deep.inMinutes < 10) {
+      debugPrint(
+        '⛔ Skipping save/upload (phone usage): duration too small (${deep.inMinutes}m)',
+      );
+      return;
+    }
+
+    // optionally set deepSleepDuration to the total (or one of the halves if you prefer)
+    deepSleepDuration.value = deep;
+
+    // Save using computedBedtime as bed date (as you already do)
+    await saveDeepSleepData(computedBedtime, deep);
+
     debugPrint(
       "🛏 Computed bedtime after phone usage adjustment: $computedBedtime",
     );
@@ -573,7 +655,6 @@ class SleepController extends GetxController {
     debugPrint("⏰ Corrected Wake: $correctedWake");
 
     //Calculating deep sleep
-    final deep = correctedWake.difference(computedBedtime);
     debugPrint("💤 Calculated deep sleep duration: ${deep.inMinutes} min");
 
     if (deep.inMinutes < 10) {

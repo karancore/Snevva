@@ -19,6 +19,8 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
 
   bool _isMonthlyView = false;
   DateTime _selectedMonth = DateTime.now();
+  int daysSinceMonday = 0;
+  int todayDate = 1 ;
 
   @override
   void initState() {
@@ -267,12 +269,12 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                     final labels =
                         _isMonthlyView
                             ? generateMonthLabels(_selectedMonth)
-                            : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+                            : generateShortWeekdays();
 
                     final points =
                         _isMonthlyView
                             ? controller.getMonthlyWaterSpots(_selectedMonth)
-                            : controller.waterSpots.toList();
+                            : controller.waterSpots.toList().take(daysSinceMonday + 1).toList();
 
                     return CommonStatGraphWidget(
                       isMonthlyView: _isMonthlyView,
@@ -283,6 +285,7 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                       yAxisInterval: 1,
                       yAxisMaxValue: 4,
                       gridLineInterval: 2,
+                      maxXForWeek: daysSinceMonday,
                       points: points,
                       weekLabels: labels,
                       measureUnit: 'L',
@@ -390,6 +393,25 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
         ),
       ),
     );
+  }
+  List<String> generateShortWeekdays() {
+    List<String> shortWeekdays = [];
+    DateTime now = DateTime.now();
+
+    daysSinceMonday = (now.weekday - DateTime.monday);
+
+    // Remove time part to avoid carrying 12:48:xx everywhere
+    DateTime startOfWeek = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: daysSinceMonday));
+
+    // 🔥 CHANGE IS HERE
+    for (int i = 0; i <= daysSinceMonday; i++) {
+      DateTime date = startOfWeek.add(Duration(days: i));
+      String dayName = DateFormat('E').format(date);
+      shortWeekdays.add(dayName);
+    }
+
+    return shortWeekdays;
   }
 
   Widget _emptyStateContainer(double height, bool isDarkMode) {

@@ -25,6 +25,7 @@ class AddReminderScreen extends StatefulWidget {
 
 class _AddReminderScreenState extends State<AddReminderScreen> {
   final controller = Get.find<ReminderController>();
+
   final medicineGetxController = Get.find<MedicineController>();
   final waterGetxController = Get.find<WaterController>();
   final mealGetxController = Get.find<MealController>();
@@ -55,14 +56,16 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         for (final med in medicinesData) {
           medicineGetxController.medicines.add(
             MedicineItem(
+
               name: med['name'],
-              times: (med['times'] as List)
-                  .map(
-                    (t) => MedicineTime(
-                  time: TimeOfDay.fromDateTime(DateTime.parse(t)),
-                ),
-              )
-                  .toList(),
+              times:
+                  (med['times'] as List)
+                      .map(
+                        (t) => MedicineTime(
+                          time: TimeOfDay.fromDateTime(DateTime.parse(t)),
+                        ),
+                      )
+                      .toList(),
             ),
           );
         }
@@ -117,8 +120,6 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             _buildCategorySelection(),
             Obx(() => _buildCategorySpecificFields()),
             SizedBox(height: 20),
-            _buildToggles(),
-            SizedBox(height: 20),
             _buildNotesField(),
           ],
         ),
@@ -140,7 +141,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                         waterGetxController.waterList.value = [];
                         eventGetxController.eventList.value = [];
                         mealGetxController.mealsList.value = [];
-                        Navigator.pop(context);
+                        // Navigator.pop(context);
                       }
                       //Navigator.pop(context);
                     }
@@ -183,6 +184,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
           controller: controller.titleController,
           decoration: InputDecoration(
             hintText: 'Enter title',
+            hintStyle: const TextStyle(color: grey),
             border: OutlineInputBorder(),
           ),
         ),
@@ -268,9 +270,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
         Text("Medicine", style: TextStyle(fontWeight: FontWeight.bold)),
-        SizedBox(height: 6),
+        const SizedBox(height: 6),
         Row(
           children: [
             Expanded(
@@ -278,59 +280,116 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 controller: medicineGetxController.medicineController,
                 decoration: InputDecoration(
                   hintText: 'Medicine name',
+                  hintStyle: const TextStyle(color: grey),
                   border: OutlineInputBorder(),
                 ),
               ),
             ),
-            SizedBox(width: 8),
-            IconButton(
-              icon: Icon(Icons.add),
-              onPressed: () => medicineGetxController.addMedicine(),
-            ),
+            // const SizedBox(width: 8),
+            // IconButton(
+            //   icon: Icon(Icons.add),
+            //   onPressed: () {
+            //     medicineGetxController.addMedicine(context);
+            //   },
+            // ),
           ],
         ),
-        SizedBox(height: 10),
-        Obx(() => ListView.builder(
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          itemCount: medicineGetxController.medicines.length,
-          itemBuilder: (context, index) {
-            final med = medicineGetxController.medicines[index];
-            return Card(
-              child: Column(
+        const SizedBox(height: 16),
+        Text("Medicine Type", style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 10,),
+        Wrap(
+          spacing: 8,
+          children:
+          controller.categories.map((category) {
+            final isSelected =
+                controller.selectedCategory.value == category;
+            return GestureDetector(
+              onTap: () => controller.selectedCategory.value = category,
+              child: Card(
+                color:
+                isSelected
+                    ? AppColors.primaryColor
+                    : (Theme.of(context).brightness == Brightness.dark
+                    ? black
+                    : white),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: Colors.grey.shade300),
+                ),
+                elevation: 0,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 16,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset(
+                        controller.getCategoryIcon(category),
+                        //color: isSelected ? white : grey,
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        category,
+                        style: TextStyle(
+                          color: isSelected ? white : grey,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+
+        const SizedBox(height: 16),
+
+        Obx(
+          () => ListView.builder(
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+            itemCount: medicineGetxController.medicines.length,
+            itemBuilder: (context, index) {
+              final med = medicineGetxController.medicines[index];
+              return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ListTile(
                     title: Text(med.name),
                     trailing: IconButton(
                       icon: Icon(Icons.delete),
-                      onPressed: () =>
-                          medicineGetxController.removeMedicine(index),
+                      onPressed:
+                          () => medicineGetxController.removeMedicine(index),
                     ),
-                    onTap: () =>
-                    medicineGetxController.selectedMedicineIndex.value = index,
+                    onTap:
+                        () =>
+                            medicineGetxController.selectedMedicineIndex.value =
+                                index,
                   ),
                   Padding(
                     padding: const EdgeInsets.only(left: 16),
                     child: Wrap(
                       spacing: 8,
-                      children: med.times
-                          .map((t) => Chip(
-                        label: Text(
-                          t.time.format(context),
-                        ),
-                      ))
-                          .toList(),
+                      children:
+                          med.times
+                              .map(
+                                (t) =>
+                                    Chip(label: Text(t.time.format(context))),
+                              )
+                              .toList(),
                     ),
-                  )
+                  ),
                 ],
-              ),
-            );
-          },
-        )),
-        SizedBox(height: 20),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 20),
         Text("Medicine Date", style: TextStyle(fontWeight: FontWeight.bold)),
-        SizedBox(height: 6),
+        const SizedBox(height: 6),
         SizedBox(
           width: double.infinity,
           height: 48,
@@ -345,9 +404,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             ),
           ),
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
         Text("Medicine Time", style: TextStyle(fontWeight: FontWeight.bold)),
-        SizedBox(height: 6),
+        const SizedBox(height: 6),
         Row(
           children: [
             Expanded(
@@ -357,57 +416,98 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 onTap: () => _selectTime(controller.timeController.text),
                 decoration: InputDecoration(
                   hintText: '09:30 AM',
+                  hintStyle: const TextStyle(color: grey),
                   border: OutlineInputBorder(),
                 ),
               ),
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             IconButton(
               icon: Icon(Icons.add),
-              onPressed: () => medicineGetxController.addMedicine(),
+              onPressed:
+                  () => medicineGetxController.addTimeToMedicine(
+                    parseTimeNew(controller.timeController.text.trim()),
+                  ),
             ),
           ],
         ),
-        // SizedBox(height: 10),
+        //SizedBox(height: 10),
         // Obx(
         //   () =>
-        //       controller.medicineList.isEmpty
+        //       medicineGetxController.medicines.isEmpty
         //           ? SizedBox.shrink()
         //           : SizedBox(
-        //             height: controller.getListHeight(
-        //               controller.medicineList.length,
+        //             height: getListHeight(
+        //               medicineGetxController.medicines.length,
+        //               48,
+        //
+        //               maxHeight,
         //             ),
         //             child: ListView.separated(
-        //               itemCount: controller.medicineList.length,
-        //               separatorBuilder: (context, index) => SizedBox(height: 1),
+        //               shrinkWrap: true,
+        //               physics: NeverScrollableScrollPhysics(),
+        //               itemCount: medicineGetxController.medicines.length,
+        //               separatorBuilder:
+        //                   (context, index) => const SizedBox(height: 4),
         //               itemBuilder: (context, index) {
-        //                 final reminder = controller.medicineList[index];
-        //                 final title = reminder.title;
-        //                 final alarm = reminder.alarm;
-        //                 return ListTile(
-        //                   title: Text(
-        //                     '${alarm.dateTime.hour.toString().padLeft(2, '0')}:${alarm.dateTime.minute.toString().padLeft(2, '0')}', // FIX: Added padding
-        //                   ),
-        //                   subtitle: Text(title),
-        //                   trailing: IconButton(
-        //                     icon: Icon(Icons.delete),
-        //                     onPressed: () async {
-        //                       // FIX: Made async and handle MedicineReminderModel
-        //                       await controller.stopAlarm(
-        //                         index,
-        //                         alarm,
-        //                         controller
-        //                             .mealsList, // Workaround - will handle in controller
-        //                       );
-        //                       // Alternative: directly delete from medicineList
-        //                       await Alarm.stop(alarm.id);
-        //                       controller.medicineList.removeAt(index);
-        //                       await controller.saveReminderList(
-        //                         controller.medicineList,
-        //                         "medicine_list",
-        //                       );
-        //                     },
-        //                   ),
+        //                 final medicine =
+        //                     medicineGetxController.medicines[index];
+        //
+        //                 debugPrint('🟦 Building medicine tile');
+        //                 debugPrint('➡️ Index: $index');
+        //                 debugPrint('💊 Medicine: ${medicine.name}');
+        //                 debugPrint('⏰ Times count: ${medicine.times.length}');
+        //
+        //                 return Column(
+        //                   crossAxisAlignment: CrossAxisAlignment.start,
+        //                   children: [
+        //                     ListTile(
+        //                       title: Text(medicine.name),
+        //                       trailing: IconButton(
+        //                         icon: const Icon(Icons.delete),
+        //                         onPressed: () {
+        //                           debugPrint(
+        //                             '🗑 Removing medicine at index $index',
+        //                           );
+        //                           medicineGetxController.removeMedicine(index);
+        //                         },
+        //                       ),
+        //                     ),
+        //
+        //                     // Times list
+        //                     Padding(
+        //                       padding: const EdgeInsets.only(left: 16),
+        //                       child: Column(
+        //                         children: List.generate(medicine.times.length, (
+        //                           timeIndex,
+        //                         ) {
+        //                           final time = medicine.times[timeIndex].time;
+        //
+        //                           debugPrint(
+        //                             '⏱ Rendering time [$timeIndex] → ${time.hour}:${time.minute}',
+        //                           );
+        //
+        //                           return ListTile(
+        //                             dense: true,
+        //                             title: Text(
+        //                               '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
+        //                             ),
+        //                             trailing: IconButton(
+        //                               icon: const Icon(Icons.delete, size: 18),
+        //                               onPressed: () {
+        //                                 debugPrint(
+        //                                   '🗑 Removing time index $timeIndex from medicine ${medicine.name}',
+        //                                 );
+        //                                 medicine.times.removeAt(timeIndex);
+        //                                 medicineGetxController.medicines
+        //                                     .refresh();
+        //                               },
+        //                             ),
+        //                           );
+        //                         }),
+        //                       ),
+        //                     ),
+        //                   ],
         //                 );
         //               },
         //             ),
@@ -421,12 +521,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
         Text(
           "Set Reminder Time",
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -474,12 +574,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             ),
           ],
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
         Text(
           "Set Reminder Frequency",
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         Obx(
           () => Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -708,9 +808,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
         Text("Event Date", style: TextStyle(fontWeight: FontWeight.bold)),
-        SizedBox(height: 6),
+        const SizedBox(height: 6),
         SizedBox(
           width: double.infinity,
           child: Obx(
@@ -724,9 +824,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             ),
           ),
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
         Text("Event Time", style: TextStyle(fontWeight: FontWeight.bold)),
-        SizedBox(height: 6),
+        const SizedBox(height: 6),
         TextField(
           controller: controller.timeController,
           readOnly: true,
@@ -736,16 +836,16 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             border: OutlineInputBorder(),
           ),
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Text(
               "Remind me before event",
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 6),
+            const SizedBox(height: 6),
             Obx(
               () => Row(
                 mainAxisAlignment: MainAxisAlignment.start,
@@ -861,78 +961,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     );
   }
 
-  Widget _buildToggles() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Toggles",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 6),
-
-        Obx(() => _compactCheckbox(
-          value: controller.enableNotifications.value,
-          text: "Enable notifications",
-          onChanged: (v) => controller.enableNotifications.value = v,
-        )),
-
-        const SizedBox(height: 4), // 👈 exact spacing control
-
-        Obx(() => _compactCheckbox(
-          value: controller.soundVibrationToggle.value,
-          text: "Sound/Vibration toggle",
-          onChanged: (v) => controller.soundVibrationToggle.value = v,
-        )),
-      ],
-    );
-  }
-
-  Widget _compactCheckbox({
-    required bool value,
-    required String text,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => onChanged(!value),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 12.0 , right: 6 , top: 10 , bottom: 10),
-            child: SizedBox(
-              width: 24,
-              height: 24,
-              child: Checkbox(
-                value: value,
-                onChanged: (v) => onChanged(v!),
-                activeColor: AppColors.primaryColor,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: const VisualDensity(
-                  horizontal: -4,
-                  vertical: -4,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            text,
-            style: const TextStyle(fontSize: 14),
-          ),
-        ],
-      ),
-    );
-  }
-
-
   Widget _buildNotesField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text("Notes", style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8,),
+        const SizedBox(height: 8),
         TextField(
           controller: controller.notesController,
           maxLines: 3,

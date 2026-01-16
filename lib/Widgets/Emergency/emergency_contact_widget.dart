@@ -76,7 +76,7 @@ class EmergencyContactWidget extends StatelessWidget {
             borderRadius: BorderRadius.circular(30),
             child: Padding(
               padding: const EdgeInsets.all(5.0),
-              child: SvgPicture.asset(editIcon, height: 24),
+              child: SvgPicture.asset(pen, height: 30),
             ),
           ),
         ],

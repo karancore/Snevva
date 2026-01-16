@@ -67,7 +67,6 @@ class WaterController extends GetxController {
         dateTime: nextTime!,
         assetAudioPath: alarmSound,
         loopAudio: false,
-        vibrate: reminderController.soundVibrationToggle.value,
         volumeSettings: VolumeSettings.fade(
           volume: 0.8,
           fadeDuration: const Duration(seconds: 5),
@@ -133,8 +132,7 @@ class WaterController extends GetxController {
       );
 
       if (reminders.isEmpty) {
-        print('No reminders generated for the given interval and time range.');
-        return false;
+       return false;
       }
       setIntervalReminders(
         intervalReminders: reminders,
@@ -165,7 +163,6 @@ class WaterController extends GetxController {
     required BuildContext context,
   }) async {
     if (times == null || times <= 0) {
-      debugPrint('❌ Invalid times value');
       CustomSnackbar.showError(
         context: context,
         title: 'Error',
@@ -188,14 +185,11 @@ class WaterController extends GetxController {
           time.isBefore(DateTime.now()) ? time.add(Duration(days: 1)) : time;
 
       final alarmId = alarmsId();
-      debugPrint('🔔 Creating alarm [$i] → id=$alarmId, time=$scheduledTime');
-
       final alarmSettings = AlarmSettings(
         id: alarmId,
         dateTime: scheduledTime,
         assetAudioPath: alarmSound,
         loopAudio: false,
-        vibrate: reminderController.soundVibrationToggle.value,
         volumeSettings: VolumeSettings.fade(
           volume: 0.8,
           fadeDuration: Duration(seconds: 5),
@@ -218,12 +212,9 @@ class WaterController extends GetxController {
 
       await Alarm.set(alarmSettings: alarmSettings);
       createdAlarms.add(alarmSettings);
-
-      debugPrint('   ✅ Alarm set successfully');
     }
 
     final waterReminderId = DateTime.now().millisecondsSinceEpoch.toString();
-    debugPrint('🆔 Generated water reminder group ID: $waterReminderId');
 
     print('water reminder title is ${reminderController.titleController.text}');
 
@@ -243,29 +234,12 @@ class WaterController extends GetxController {
 
     waterList.add(model);
 
-    debugPrint(
-      '📦 WaterReminderModel saved → '
-      'id=${model.id}, '
-      'alarms=${model.alarms.length}, '
-      'timesPerDay=${model.timesPerDay}',
-    );
-
     savedTimes.value = times;
-    debugPrint('💾 savedTimes updated → $times');
 
     await reminderController.saveReminderList(waterList, "water_list");
-    debugPrint('💾 Water reminders saved to Hive');
-
     await reminderController.loadAllReminderLists();
-    debugPrint('🔄 Reloaded all reminder lists');
 
-    CustomSnackbar.showSuccess(
-      context: context,
-      title: 'Success',
-      message: 'Water reminders set successfully! ($times times per day)',
-    );
-
-    //CustomSnackbar().showReminderBar(context);
+    CustomSnackbar().showReminderBar(context);
     Get.back(result: true);
   }
 
@@ -322,21 +296,11 @@ class WaterController extends GetxController {
     required TimeOfDay end,
     required int intervalHours,
   }) {
-    debugPrint('🔹 generateEveryXHours called');
-    debugPrint('   Start TimeOfDay: ${start.hour}:${start.minute}');
-    debugPrint('   End TimeOfDay  : ${end.hour}:${end.minute}');
-    debugPrint('   Interval Hours: $intervalHours');
-
     if (intervalHours <= 0) {
-      debugPrint('❌ Invalid intervalHours, returning empty list');
       return [];
     }
 
     final window = buildTimeWindow(start, end);
-
-    debugPrint('🕒 Time Window');
-    debugPrint('   Start DateTime: ${window.start}');
-    debugPrint('   End DateTime  : ${window.end}');
 
     final reminders = <DateTime>[];
     DateTime current = window.start;
@@ -344,24 +308,19 @@ class WaterController extends GetxController {
     int counter = 0;
 
     while (!current.isAfter(window.end)) {
-      debugPrint('⏰ Reminder #$counter → $current');
 
       reminders.add(current);
 
       final next = current.add(Duration(hours: intervalHours));
-      debugPrint('   Next calculated time: $next');
 
       current = next;
       counter++;
 
       // Safety guard (prevents infinite loops in debug)
       if (counter > 100) {
-        debugPrint('🚨 Loop safety break triggered');
         break;
       }
     }
-
-    debugPrint('✅ Total reminders generated: ${reminders.length}');
     return reminders;
   }
 
@@ -370,37 +329,23 @@ class WaterController extends GetxController {
     required int intervalHours,
     required BuildContext context,
   }) async {
-    debugPrint(
-      '🔹 setIntervalReminders called with ${intervalReminders.length} reminders',
-    );
-
     for (var reminderTime in intervalReminders) {
-      debugPrint('   Scheduling reminder for: $reminderTime');
-
       final alarmSettings = AlarmSettings(
         id: alarmsId(),
         dateTime: reminderTime,
-        notificationSettings:
-            reminderController.enableNotifications.value
-                ? NotificationSettings(
-                  title:
-                      reminderController.titleController.text.isNotEmpty
-                          ? reminderController.titleController.text
-                          : 'Water reminder',
-                  body:
-                      reminderController.notesController.text.isNotEmpty
-                          ? reminderController.notesController.text
-                          : '',
-                  stopButton: 'Stop',
-                  icon: 'alarm',
-                  iconColor: AppColors.primaryColor,
-                )
-                : NotificationSettings(
-                  title: 'Water reminder',
-                  body: '',
-                  stopButton: 'Stop',
-                  icon: 'alarm',
-                ),
+        notificationSettings: NotificationSettings(
+          title:
+              reminderController.titleController.text.isNotEmpty
+                  ? reminderController.titleController.text
+                  : 'Water reminder',
+          body:
+              reminderController.notesController.text.isNotEmpty
+                  ? reminderController.notesController.text
+                  : '',
+          stopButton: 'Stop',
+          icon: 'alarm',
+          iconColor: AppColors.primaryColor,
+        ),
         assetAudioPath: alarmSound,
         volumeSettings: VolumeSettings.fade(
           volume: 0.8,
@@ -410,12 +355,8 @@ class WaterController extends GetxController {
       );
 
       await Alarm.set(alarmSettings: alarmSettings);
-      debugPrint('   Reminder scheduled with ID: ${alarmSettings.id}');
     }
     final waterReminderId = DateTime.now().millisecondsSinceEpoch.toString();
-    debugPrint('🆔 Generated water reminder group ID: $waterReminderId');
-
-    debugPrint("Interval Hours: $intervalHours");
 
     final model = WaterReminderModel(
       id: waterReminderId,
@@ -433,32 +374,14 @@ class WaterController extends GetxController {
     waterList.value = await loadWaterReminderList("water_list");
     waterList.add(model);
 
-    debugPrint(
-      '📦 WaterReminderModel saved → '
-      'id=${model.id}, '
-      'alarms=${model.alarms.length}, '
-      'interval=${model.interval}, '
-      'intervalHours=${model.timesPerDay}',
-    );
     //final waterList = reminderController.waterList;
 
     await reminderController.saveReminderList(waterList, "water_list");
-    print('💾 Water reminders saved to Hive');
 
     await reminderController.loadAllReminderLists();
-    print('🔄 Reloaded all reminder lists');
-
-    CustomSnackbar.showSuccess(
-      context: context,
-      title: 'Success',
-      message:
-          'Water reminders set successfully! (${everyXhours.value} hours per day between ${startWaterTime.value} and ${endWaterTime.value})',
-    );
 
     CustomSnackbar().showReminderBar(context);
     Get.back(result: true);
-
-    debugPrint('✅ All interval reminders have been scheduled.');
   }
 
   DateTime? _calculateNextWaterAlarm(int intervalHours) {
@@ -491,7 +414,7 @@ class WaterController extends GetxController {
 
       return nextAlarm;
     } else {
-      debugPrint('❌ Invalid water time window');
+      debugPrint('Invalid water time window');
       return null;
     }
   }
@@ -532,26 +455,19 @@ class WaterController extends GetxController {
     int? times,
   ) async {
     try {
-      print("🚰 Updating WATER reminder");
-
       final index = waterList.indexWhere((e) => e.id == id);
-      print("🔍 waterList index → $index");
 
       if (index != -1) {
         final oldModel = waterList[index];
-        print("🛑 stopping ${oldModel.alarms.length} old alarms");
 
         for (var alarm in oldModel.alarms) {
-          print("🛑 stop alarm id=${alarm.id}");
           await Alarm.stop(alarm.id);
         }
 
         waterList.removeAt(index);
         await reminderController.saveReminderList(waterList, "water_list");
-        print("🗑️ old water reminder removed");
       }
 
-      print("➕ creating new water alarms with times=$times");
       await setWaterAlarm(times: times, context: context);
     } catch (e) {
       throw Exception("Error updating WATER reminder: $e");
@@ -559,45 +475,26 @@ class WaterController extends GetxController {
   }
 
   Future<List<WaterReminderModel>> loadWaterReminderList(String keyName) async {
-    print('📦 Loading water reminders from Hive → key: $keyName');
-
     final box = Hive.box('reminders_box');
     final List<dynamic>? storedList = box.get(keyName);
 
     if (storedList == null) {
-      print('⚠️ No data found in Hive for key: $keyName');
       return [];
     }
-
-    print('📄 Raw stored list length: ${storedList.length}');
 
     final List<String> stringList = storedList.cast<String>();
     List<WaterReminderModel> loadedList = [];
 
     for (var i = 0; i < stringList.length; i++) {
       final item = stringList[i];
-      print('🔍 Parsing item [$i]: $item');
 
       try {
         final Map<String, dynamic> decoded = jsonDecode(item);
-        print('✅ Decoded JSON: $decoded');
 
         if (decoded.containsKey('timesPerDay')) {
-          print('🆕 New water reminder format detected');
           final model = WaterReminderModel.fromJson(decoded);
           loadedList.add(model);
-
-          print(
-            '   ➜ Loaded WaterReminderModel → '
-            'id=${model.id}, '
-            'title=${model.title}, '
-            'alarms=${model.alarms.length}, '
-            'interval=${model.interval}, '
-            'timesPerDay=${model.timesPerDay}',
-          );
         } else {
-          print('🟡 Old format detected, migrating…');
-
           final entry = decoded.entries.first;
           final fallbackModel = WaterReminderModel(
             title: entry.key,
@@ -608,25 +505,19 @@ class WaterController extends GetxController {
           );
 
           loadedList.add(fallbackModel);
-
-          print(
-            '   ➜ Migrated WaterReminderModel → '
-            'id=${fallbackModel.id}, '
-            'title=${fallbackModel.title}',
-          );
         }
       } catch (e, stack) {
-        print('❌ Error parsing water reminder: $e');
+        print(' Error parsing water reminder: $e');
         print(stack);
       }
     }
-
-    print('✅ Total water reminders loaded: ${loadedList.length}');
     return loadedList;
   }
 
   Future<void> deleteWaterReminder(String id) async {
     int index = -1;
+
+    // Find the reminder by id
     for (int i = 0; i < waterList.length; i++) {
       if (waterList[i].id == id) {
         index = i;
@@ -635,12 +526,14 @@ class WaterController extends GetxController {
     }
 
     if (index != -1) {
-      // Stop all alarms in this water reminder group
       for (var alarm in waterList[index].alarms) {
         await Alarm.stop(alarm.id);
       }
+
       waterList.removeAt(index);
       await reminderController.saveReminderList(waterList, "water_list");
+    } else {
+      debugPrint('No water reminder found with id: $id');
     }
   }
 

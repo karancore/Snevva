@@ -18,30 +18,21 @@ class MealController extends GetxController {
       dateTime: scheduledTime,
       assetAudioPath: alarmSound,
       loopAudio: true,
-      vibrate: reminderController.soundVibrationToggle.value,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
         fadeDuration: Duration(seconds: 5),
         volumeEnforced: true,
       ),
-      notificationSettings:
-          reminderController.enableNotifications.value
-              ? NotificationSettings(
-                title:
-                    reminderController.titleController.text.isNotEmpty
-                        ? reminderController.titleController.text
-                        : 'MEAL REMINDER',
-                body: reminderController.notesController.text,
-                stopButton: 'Stop',
-                icon: 'alarm',
-                iconColor: AppColors.primaryColor,
-              )
-              : NotificationSettings(
-                title: 'MEAL REMINDER',
-                body: 'Take your meal',
-                stopButton: 'Stop',
-                icon: 'alarm',
-              ),
+      notificationSettings: NotificationSettings(
+        title:
+            reminderController.titleController.text.isNotEmpty
+                ? reminderController.titleController.text
+                : 'MEAL REMINDER',
+        body: reminderController.notesController.text,
+        stopButton: 'Stop',
+        icon: 'alarm',
+        iconColor: AppColors.primaryColor,
+      ),
     );
 
     final success = await Alarm.set(alarmSettings: alarmSettings);
@@ -80,34 +71,24 @@ class MealController extends GetxController {
       dateTime: scheduledTime,
       assetAudioPath: alarmSound,
       loopAudio: true,
-      vibrate: reminderController.soundVibrationToggle.value,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
         fadeDuration: const Duration(seconds: 5),
         volumeEnforced: true,
       ),
-      notificationSettings:
-          reminderController.enableNotifications.value
-              ? NotificationSettings(
-                title:
-                    reminderController.titleController.text.isNotEmpty
-                        ? reminderController.titleController.text
-                        : 'MEAL REMINDER',
-                body:
-                    reminderController.notesController.text.isNotEmpty
-                        ? reminderController.notesController.text
-                        : '',
-                stopButton: 'Stop',
-                icon: 'alarm',
-                iconColor: AppColors.primaryColor,
-              )
-              : NotificationSettings(
-                title: 'MEAL REMINDER',
-                body: '',
-                stopButton: 'Stop',
-                icon: 'alarm',
-                iconColor: AppColors.primaryColor,
-              ),
+      notificationSettings: NotificationSettings(
+        title:
+            reminderController.titleController.text.isNotEmpty
+                ? reminderController.titleController.text
+                : 'MEAL REMINDER',
+        body:
+            reminderController.notesController.text.isNotEmpty
+                ? reminderController.notesController.text
+                : '',
+        stopButton: 'Stop',
+        icon: 'alarm',
+        iconColor: AppColors.primaryColor,
+      ),
     );
 
     await Alarm.set(alarmSettings: alarmSettings);

@@ -121,7 +121,15 @@ class HydrationStatController extends GetxController {
   }
 
   List<FlSpot> getMonthlyWaterSpots(DateTime month) {
-    int totalDays = daysInMonth(month.year, month.month);
+    final now = DateTime.now();
+
+    final int totalDays = (month.year == now.year && month.month == now.month)
+        ? now.day // only till today
+        : DateTime(month.year, month.month + 1, 0).day;
+
+
+
+
     List<FlSpot> spots = [];
 
     for (int day = 1; day <= totalDays; day++) {

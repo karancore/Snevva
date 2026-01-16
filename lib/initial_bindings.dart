@@ -1,11 +1,9 @@
-import 'package:snevva/Controllers/Reminder/event_controller.dart';
-import 'package:snevva/Controllers/Reminder/meal_controller.dart';
-import 'package:snevva/Controllers/Reminder/medicine_controller.dart';
-import 'package:snevva/Controllers/Reminder/water_controller.dart';
-import 'package:snevva/Controllers/WomenHealth/bottom_sheet_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
+import 'package:snevva/Controllers/signupAndSignIn/create_password_controller.dart';
+import 'package:snevva/Controllers/signupAndSignIn/otp_verification_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
 import 'package:snevva/services/notification_service.dart';
+
 import 'Controllers/BMI/bmi_controller.dart';
 import 'Controllers/DietPlan/diet_plan_controller.dart';
 import 'Controllers/HealthTips/healthtips_controller.dart';
@@ -14,58 +12,114 @@ import 'Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'Controllers/MoodTracker/mood_controller.dart';
 import 'Controllers/MoodTracker/mood_questions_controller.dart';
 import 'Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
-import 'Controllers/Reminder/reminder_controller.dart';
+import 'Controllers/Reminder/event_controller.dart';
+import 'Controllers/Reminder/meal_controller.dart';
+import 'Controllers/Reminder/medicine_controller.dart';
+import 'Controllers/Reminder/water_controller.dart';
 import 'Controllers/SleepScreen/sleep_controller.dart';
 import 'Controllers/StepCounter/step_counter_controller.dart';
 import 'Controllers/Vitals/vitalsController.dart';
+import 'Controllers/WomenHealth/bottom_sheet_controller.dart';
 import 'Controllers/WomenHealth/women_health_controller.dart';
 import 'Controllers/alerts/alerts_controller.dart';
-import 'Controllers/language/language_controller.dart';
+
 import 'package:get/get.dart';
+import 'Controllers/signupAndSignIn/forgot_password_controller.dart';
 import 'Controllers/signupAndSignIn/sign_in_controller.dart';
+import 'Controllers/signupAndSignIn/update_old_password_controller.dart';
 import 'utils/theme_controller.dart';
 
 class InitialBindings extends Bindings {
   @override
   void dependencies() {
+    // Core
+    if (!Get.isRegistered<LocalStorageManager>()) {
+      Get.put(LocalStorageManager(), permanent: true);
+    }
+    if (!Get.isRegistered<NotificationService>()) {
+      Get.put(NotificationService(), permanent: true);
+    }
+    if (!Get.isRegistered<AlertsController>()) {
+      Get.put(AlertsController(), permanent: true);
+    }
+    if (!Get.isRegistered<ThemeController>()) {
+      Get.put(ThemeController(), permanent: true);
+    }
 
-    // 🌐 Core / App-wide
-    Get.put(LocalStorageManager(), permanent: true);
-    Get.put(NotificationService(), permanent: true);
-    Get.put(LanguageController(), permanent: true);
-    Get.put(AlertsController(), permanent: true);
-    Get.put(ThemeController(), permanent: true);
+    // Auth
+    if (!Get.isRegistered<SignInController>()) {
+      Get.lazyPut(() => SignInController(), fenix: true);
+    }
+    if (!Get.isRegistered<SignUpController>()) {
+      Get.lazyPut(() => SignUpController(), fenix: true);
+    }
+    if (!Get.isRegistered<OTPVerificationController>()) {
+      Get.lazyPut(() => OTPVerificationController(), fenix: true);
+    }
+    if (!Get.isRegistered<UpdateOldPasswordController>()) {
+      Get.lazyPut(() => UpdateOldPasswordController(), fenix: true);
+    }
+    if (!Get.isRegistered<CreatePasswordController>()) {
+      Get.lazyPut(() => CreatePasswordController(), fenix: true);
+    }
+    if (!Get.isRegistered<ForgotPasswordController>()) {
+      Get.lazyPut(() => ForgotPasswordController(), fenix: true);
+    }
+    if (!Get.isRegistered<ProfileSetupController>()) {
+      Get.lazyPut(() => ProfileSetupController(), fenix: true);
+    }
 
-    // 🧠 Health Core (permanent)
-    Get.put(StepCounterController(), permanent: true);
-    Get.put(SleepController(), permanent: true);
-    Get.put(MoodController(), permanent: true);
-    Get.put(VitalsController(), permanent: true);
-    Get.put(WomenHealthController(), permanent: true);
+    // Health core (lazy, durable)
+    if (!Get.isRegistered<MoodController>()) {
+      Get.lazyPut(() => MoodController(), fenix: true);
+    }
+    if (!Get.isRegistered<WomenHealthController>()) {
+      Get.lazyPut(() => WomenHealthController(), fenix: true);
+    }
 
-    // 👤 User / Auth
-    Get.put(SignInController(), permanent: true);
-    Get.put(SignUpController() , permanent: true);
-    Get.put(ProfileSetupController(), permanent: true);
+    // Reminders
+    if (!Get.isRegistered<WaterController>()) {
+      Get.lazyPut(() => WaterController(), fenix: true);
+    }
+    if (!Get.isRegistered<MealController>()) {
+      Get.lazyPut(() => MealController(), fenix: true);
+    }
+    if (!Get.isRegistered<EventController>()) {
+      Get.lazyPut(() => EventController(), fenix: true);
+    }
+    if (!Get.isRegistered<VitalsController>()) {
+      Get.put(VitalsController(), permanent: true);
+    }
+    if (!Get.isRegistered<MedicineController>()) {
+      Get.put(MedicineController(), permanent: true);
+    }
+    if (!Get.isRegistered<StepCounterController>()) {
+      Get.put(StepCounterController(), permanent: true);
+    }
 
-    // 💧 Reminders (fenix = recreate if disposed)
-    Get.lazyPut(() => ReminderController(), fenix: true);
-    Get.lazyPut(() => WaterController(), fenix: true);
-    Get.lazyPut(() => MedicineController(), fenix: true);
-    Get.lazyPut(() => MealController(), fenix: true);
-    Get.lazyPut(() => EventController(), fenix: true);
+    // Feature
+    if (!Get.isRegistered<BmiController>()) {
+      Get.lazyPut(() => BmiController(), fenix: true);
+    }
+    if (!Get.isRegistered<DietPlanController>()) {
+      Get.lazyPut(() => DietPlanController(), fenix: true);
+    }
+    if (!Get.isRegistered<HealthTipsController>()) {
+      Get.lazyPut(() => HealthTipsController(), fenix: true);
+    }
+    if (!Get.isRegistered<HydrationStatController>()) {
+      Get.lazyPut(() => HydrationStatController(), fenix: true);
+    }
+    if (!Get.isRegistered<MentalWellnessController>()) {
+      Get.lazyPut(() => MentalWellnessController(), fenix: true);
+    }
+    if (!Get.isRegistered<MoodQuestionController>()) {
+      Get.lazyPut(() => MoodQuestionController(), fenix: true);
+    }
 
-    // 📊 Feature controllers (screen-driven)
-    Get.lazyPut(() => BmiController(), fenix: true);
-    Get.lazyPut(() => DietPlanController(), fenix: true);
-    Get.lazyPut(() => HealthTipsController(), fenix: true);
-    Get.lazyPut(() => HydrationStatController(), fenix: true);
-    Get.lazyPut(() => MentalWellnessController(), fenix: true);
-    Get.lazyPut(() => MoodQuestionController(), fenix: true);
-    Get.lazyPut(() => WomenHealthController() , fenix: true);
-
-    // 🩺 UI helpers
-    Get.lazyPut(() => BottomSheetController(), fenix: true);
+    // UI
+    if (!Get.isRegistered<BottomSheetController>()) {
+      Get.lazyPut(() => BottomSheetController(), fenix: true);
+    }
   }
 }
-

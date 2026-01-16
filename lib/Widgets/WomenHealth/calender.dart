@@ -80,8 +80,8 @@ class CalendarWidget extends StatelessWidget {
       // Parse last period date
       // 🔥 PRIORITY: Use PeriodData if available, else use WomenHealthData
       DateTime? lastPeriodDate;
-      
-      if (womenController.hasPeriodData.value && 
+
+      if (womenController.hasPeriodData.value &&
           womenController.periodDataStartDay.value != 0 &&
           womenController.periodDataStartMonth.value != 0 &&
           womenController.periodDataStartYear.value != 0) {
@@ -192,7 +192,6 @@ class CalendarWidget extends StatelessWidget {
               String emoji = '';
               Color textColor = isDarkMode ? white : black;
 
-
               // Check against all cycle ranges
               for (final cycle in cycles) {
                 final periodRange = cycle['periodRange'] as DateTimeRange;
@@ -233,36 +232,36 @@ class CalendarWidget extends StatelessWidget {
               }
 
               return InkWell(
-  onTap: () {
-    final selected = DateTime(day.year, day.month, day.day);
-    bottomsheetcontroller.setSelectedDate(selected);
-
-  },
-  child: Container(
-                margin: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Stack(
-                  children: [
-                    Center(
-                      child: Text(
-                        '${day.day}',
-                        style: TextStyle(color: textColor),
+                onTap: () {
+                  final selected = DateTime(day.year, day.month, day.day);
+                  bottomsheetcontroller.setSelectedDate(selected);
+                },
+                child: Container(
+                  margin: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Stack(
+                    children: [
+                      Center(
+                        child: Text(
+                          '${day.day}',
+                          style: TextStyle(color: textColor),
+                        ),
                       ),
-                    ),
-                    Positioned(
-                      bottom: 2,
-                      right: 4,
-                      child:
-                          emoji.isNotEmpty
-                              ? SvgPicture.asset(emoji, height: 12, width: 12)
-                              : const SizedBox.shrink(),
-                    ),
-                  ],
+                      Positioned(
+                        bottom: 2,
+                        right: 4,
+                        child:
+                            emoji.isNotEmpty
+                                ? SvgPicture.asset(emoji, height: 12, width: 12)
+                                : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ),
                 ),
-              ));
+              );
             },
           ),
 

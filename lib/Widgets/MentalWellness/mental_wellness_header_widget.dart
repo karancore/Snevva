@@ -79,54 +79,53 @@ class MentalWellnessHeaderWidget extends StatelessWidget {
                     Spacer(),
                     playText.isEmpty
                         ? ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        color: white,
-                        child: const Icon(
-                          Icons.play_arrow,
-                          color: Colors.black,
-                          size: 22,
-                        ),
-                      ),
-                    )
+                          borderRadius: BorderRadius.circular(14),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            color: white,
+                            child: const Icon(
+                              Icons.play_arrow,
+                              color: Colors.black,
+                              size: 22,
+                            ),
+                          ),
+                        )
                         : Container(
-                      padding: EdgeInsets.only(
-                        top: (containerPadding ?? 10) - 7,
-                        left: containerPadding ?? 10,
-                        right: (containerPadding ?? 10) + 5,
-                        bottom: (containerPadding ?? 10) - 7,
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(200),
-                        color: white,
-                      ),
-                      child:
-                         Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.play_arrow,
-                                    color: Colors.black,
-                                    size: 22,
-                                  ),
-                                  playText.isEmpty
-                                      ? SizedBox.shrink()
-                                      : Padding(
-                                        padding: const EdgeInsets.only(left: 5),
-                                        child: Expanded(
-                                          child: Text(
-                                            playText,
-                                            style: TextStyle(
-                                              color: black,
-                                              fontSize: 16,
-                                            ),
-                                          ),
+                          padding: EdgeInsets.only(
+                            top: (containerPadding ?? 10) - 7,
+                            left: containerPadding ?? 10,
+                            right: (containerPadding ?? 10) + 5,
+                            bottom: (containerPadding ?? 10) - 7,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(200),
+                            color: white,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.play_arrow,
+                                color: Colors.black,
+                                size: 22,
+                              ),
+                              playText.isEmpty
+                                  ? SizedBox.shrink()
+                                  : Padding(
+                                    padding: const EdgeInsets.only(left: 5),
+                                    child: Expanded(
+                                      child: Text(
+                                        playText,
+                                        style: TextStyle(
+                                          color: black,
+                                          fontSize: 16,
                                         ),
                                       ),
-                                ],
-                              ),
-                    ),
+                                    ),
+                                  ),
+                            ],
+                          ),
+                        ),
                   ],
                 ),
               ),

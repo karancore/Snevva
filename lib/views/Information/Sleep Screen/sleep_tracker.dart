@@ -29,6 +29,8 @@ class SleepTrackerScreen extends StatefulWidget {
 class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
   final sleepService = SleepNoticingService();
   TimeOfDay? selectedTime;
+  int daysSinceMonday = 0;
+  int todayDate = 1 ;
 
   bool _isMonthlyView = false;
   DateTime _selectedMonth = DateTime.now();
@@ -40,12 +42,12 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
   bool _loaded = false;
 
   // Reuse existing SleepController instead of creating a new one.
-  final SleepController sleepController = Get.find<SleepController>();
+  final SleepController sleepController = Get.put(SleepController());
 
   @override
   void initState() {
     super.initState(); // Always call super.initState() first!
-    print("Init Sleep Tracker");
+
     toggleSleepCard();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // SAFE: runs after build is finished
@@ -141,6 +143,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
+
     final width = mediaQuery.size.width;
     final height = mediaQuery.size.height;
     // ✅ Listens to the app's current theme command
@@ -153,7 +156,6 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
       _loaded = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         sleepController.loadDeepSleepData();
-        print(sleepController.deepSleepDuration.value);
       });
     }
 
@@ -217,6 +219,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.w600,
+                                color: sleepController.deepSleepDuration.value == null ? grey : black
                               ),
                             ),
                             Text(
@@ -529,14 +532,14 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                   final labels =
                       _isMonthlyView
                           ? generateMonthLabels(_selectedMonth)
-                          : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+                          : generateShortWeekdays();
 
                   final points =
                       _isMonthlyView
                           ? sleepController.getMonthlyDeepSleepSpots(
                             _selectedMonth,
                           )
-                          : sleepController.deepSleepSpots.toList();
+                          : sleepController.deepSleepSpots.take(daysSinceMonday + 1).toList();
                   return CommonStatGraphWidget(
                     isDarkMode: isDarkMode,
                     yAxisInterval: 2,
@@ -545,6 +548,8 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                     height: height,
                     graphTitle: 'Sleep Statistics',
                     points: points,
+                    maxXForWeek: daysSinceMonday,
+
                     isMonthlyView: _isMonthlyView,
                     gridLineInterval: 2,
                     weekLabels: labels,
@@ -597,4 +602,29 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
       ),
     );
   }
+  List<String> generateShortWeekdays() {
+    List<String> shortWeekdays = [];
+    DateTime now = DateTime.now();
+
+
+    daysSinceMonday = (now.weekday - DateTime.monday);
+
+
+    // Remove time part to avoid carrying 12:48:xx everywhere
+    DateTime startOfWeek = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: daysSinceMonday));
+
+
+    // 🔥 CHANGE IS HERE
+    for (int i = 0; i <= daysSinceMonday; i++) {
+      DateTime date = startOfWeek.add(Duration(days: i));
+      String dayName = DateFormat('E').format(date);
+
+      shortWeekdays.add(dayName);
+    }
+
+
+    return shortWeekdays;
+  }
 }
+

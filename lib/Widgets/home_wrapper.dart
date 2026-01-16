@@ -1,3 +1,4 @@
+import 'package:alarm/alarm.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -7,9 +8,26 @@ import 'package:snevva/views/Dashboard/dashboard.dart';
 import 'package:snevva/views/Information/menu_screen.dart';
 import 'package:snevva/views/Reminder/reminder_screen.dart';
 import 'package:snevva/widgets/navbar.dart';
+import 'package:snevva/Controllers/Reminder/event_controller.dart';
+import 'package:snevva/Controllers/Reminder/meal_controller.dart';
+import 'package:snevva/Controllers/Reminder/medicine_controller.dart';
+import 'package:snevva/Controllers/Reminder/water_controller.dart';
+import 'package:snevva/Controllers/WomenHealth/bottom_sheet_controller.dart';
+import '../Controllers/DietPlan/diet_plan_controller.dart';
+import '../Controllers/Hydration/hydration_stat_controller.dart';
+
+import '../Controllers/HealthTips/healthtips_controller.dart';
+import '../Controllers/MentalWellness/mental_wellness_controller.dart';
+import '../Controllers/MoodTracker/mood_controller.dart';
+import '../Controllers/MoodTracker/mood_questions_controller.dart';
+import '../Controllers/SleepScreen/sleep_controller.dart';
+import '../Controllers/Vitals/vitalsController.dart';
+import '../Controllers/WomenHealth/women_health_controller.dart';
 
 import '../Controllers/BMI/bmi_controller.dart';
+import '../Controllers/StepCounter/step_counter_controller.dart';
 import '../services/app_initializer.dart';
+import '../services/notification_channel.dart';
 import '../views/My_Health/my_health_screen.dart';
 import 'Drawer/drawer_menu_wigdet.dart';
 
@@ -24,9 +42,6 @@ class HomeWrapper extends StatefulWidget {
 
 class _HomeWrapperState extends State<HomeWrapper> {
   int _selectedIndex = 0;
- // e.g. "Moto G (4)"
-
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final localStorageManager = Get.find<LocalStorageManager>();
   final bmiController = Get.find<BmiController>();
 
@@ -40,26 +55,48 @@ class _HomeWrapperState extends State<HomeWrapper> {
   void initState() {
     super.initState();
     bmiController.loadUserBMI();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 500), () {
-        initBackgroundService();
-        requestAllPermissions();
-      });
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+
+        await _startupSequence();
+
     });
-    getDeviceInfo();
+
 
     //fetchFCMToken();
     // checksession();
     // localStorageManager.checksession();
   }
+  Future<void> _startupSequence() async {
+    // 1️⃣ Permissions first
+    await requestAllPermissions();
+
+    // 2️⃣ Wait for app to fully resume
+    await Future.delayed(const Duration(seconds: 1));
+
+    // 3️⃣ THEN start background service
+    await initBackgroundService();
+
+
+
+    await FirebaseMessaging.instance.requestPermission();
+    await setupNotificationChannel();
+    await Alarm.init();
+
+
+
+
+
+    // 4️⃣ Device info LAST
+    await getDeviceInfo();
+  }
+
+
   Future<void> getDeviceInfo() async {
     final deviceInfo = DeviceInfoPlugin();
     final androidInfo = await deviceInfo.androidInfo;
 
     debugPrint('Device ID: ${androidInfo.id}');
   }
-
-
 
   // Future<void> checksession() async {
   //   final prefs = await SharedPreferences.getInstance();
