@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:io';
-
+import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -323,7 +323,7 @@ Future<void> _forceSyncPreviousDay(String dayKey) async {
       if (item['Day'] == now.day &&
           item['Month'] == now.month &&
           item['Year'] == now.year) {
-        todayTotal += (item['Count'] as int);
+        todayTotal = max(todayTotal, item['Count']);
       }
     }
 
@@ -448,8 +448,9 @@ Future<void> _forceSyncPreviousDay(String dayKey) async {
 
     for (final entry in stepsHistoryList) {
       if (entry.date.year == month.year && entry.date.month == month.month) {
-        dayToSteps[entry.date.day] =
-            (dayToSteps[entry.date.day] ?? 0) + entry.steps;
+        // dayToSteps[entry.date.day] = max(dayToSteps[entry.date.day] ?? 0 , entry.steps);
+        dayToSteps[entry.date.day] = max(dayToSteps[entry.date.day] ?? 0, entry.steps);
+
       }
     }
 
