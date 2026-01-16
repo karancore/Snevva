@@ -14,6 +14,7 @@ class SleepNoticingService {
   SleepNoticingService() {
     _screen = Screen();
   }
+  
 
   void startMonitoring() {
     try {

@@ -112,7 +112,6 @@ class SleepController extends GetxController {
     required DateTime phonePickupTime,
     required DateTime newBedtime,
   }) {
-
     // Segment 1: oldBedtime -> phonePickupTime
     DateTime seg1Start = oldBedtime;
     DateTime seg1End = phonePickupTime;
@@ -375,7 +374,8 @@ class SleepController extends GetxController {
   void loadDeepSleepData() {
     deepSleepHistory.clear();
 
-    if (_box.isEmpty) return;
+    if (_box.isEmpty && !box.hasData("bedtime")) return;
+
 
     final bedMs = box.read("bedtime");
     print("bedtime loaded from hive : $bedMs");
@@ -595,7 +595,15 @@ class SleepController extends GetxController {
     }
 
     // Ignore morning phone usage (after wake time)
-    if (phoneUsageStart.isAfter(waketime.value!)) {
+    final wakeToday = DateTime(
+      phoneUsageStart.year,
+      phoneUsageStart.month,
+      phoneUsageStart.day,
+      waketime.value!.hour,
+      waketime.value!.minute,
+    );
+
+    if (phoneUsageStart.isAfter(wakeToday)) {
       debugPrint("ℹ️ Morning phone check - ignoring");
       return;
     }
@@ -631,9 +639,6 @@ class SleepController extends GetxController {
 
     // optionally set deepSleepDuration to the total (or one of the halves if you prefer)
     deepSleepDuration.value = deep;
-
-    // Save using computedBedtime as bed date (as you already do)
-    await saveDeepSleepData(computedBedtime, deep);
 
     debugPrint(
       "🛏 Computed bedtime after phone usage adjustment: $computedBedtime",
