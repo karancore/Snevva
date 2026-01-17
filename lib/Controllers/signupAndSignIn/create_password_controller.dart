@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/services/auth_header_helper.dart';
 import 'package:snevva/services/encryption_service.dart';
@@ -38,6 +39,8 @@ class CreatePasswordController extends GetxController {
   bool get isConfirmPasswordValid =>
       password.value == confirmPassword.value &&
       confirmPassword.value.isNotEmpty;
+
+  final localStorageManager = Get.find<LocalStorageManager>();
 
   @override
   void onInit() {
@@ -126,6 +129,8 @@ class CreatePasswordController extends GetxController {
           message: 'Password Created Successfully with gmail',
         );
 
+        localStorageManager.registerDeviceIfNeeded();
+
         Get.offAll(() => ProfileSetupInitial()); // 👈 clears previous stack
       }
     } catch (e) {
@@ -209,6 +214,8 @@ class CreatePasswordController extends GetxController {
           title: 'Success',
           message: 'Password Created Successfully with gmail',
         );
+
+        localStorageManager.registerDeviceIfNeeded();
 
         Get.offAll(() => ProfileSetupInitial()); // 👈 clears previous stack
       } else {
