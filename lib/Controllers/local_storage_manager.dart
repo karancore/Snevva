@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:get/get.dart';
 import 'package:get/get_connect/http/src/response/response.dart' as http;
@@ -20,36 +21,25 @@ class LocalStorageManager extends GetxController {
     checkSession();
   }
 
-  Future<void> getFCMToken() async {
-    debugPrint('🔔 getFCMToken() called');
 
-    try {
-      String? token = await FirebaseMessaging.instance.getToken();
-
-      debugPrint('📱 Raw FCM Token: $token');
-
-      if (token != null && token.isNotEmpty) {
-        debugPrint('✅ FCM token is valid, sending to server...');
-        await sendFCMTokenToServer(token);
-      } else {
-        debugPrint('⚠️ FCM token is null or empty');
-      }
-
-      return;
-    } catch (e, stack) {
-      debugPrint('❌ Error while fetching FCM token');
-      debugPrint('Error: $e');
-      debugPrint('StackTrace: $stack');
-      return;
-    }
+  Future<String> getDeviceId() async {
+    // Implementation for registering the device token
+    final deviceInfo = DeviceInfoPlugin();
+    final androidInfo = await deviceInfo.androidInfo;
+    print('Device ID: ${androidInfo}'); 
+    return androidInfo.id ?? "unknown_device_id";  
   }
+  
 
-  Future<void> sendFCMTokenToServer(String token) async {
+  Future<bool> sendFCMTokenToServer(String fcmtoken, String deviceId) async {
     debugPrint('🚀 sendFCMTokenToServer() called');
-    debugPrint('📦 Token being sent: $token');
+    debugPrint('📦 Token being sent: $fcmtoken');
 
     try {
-      final payload = {'Value': token};
+      final payload = {
+        'FCMToken': fcmtoken,
+        'DeviceInfo': deviceId,
+        };
 
       debugPrint('📤 Request payload: $payload');
       debugPrint('🌐 API endpoint: $fcmTokenApi');
@@ -73,23 +63,118 @@ class LocalStorageManager extends GetxController {
           title: 'Error',
           message: 'Failed to send token: ${response.statusCode}',
         );
-        return;
+        return false;
       }
 
       final responseData = jsonDecode(jsonEncode(response));
       debugPrint('✅ Parsed API response: $responseData');
+
+      return true;
     } catch (e, stack) {
       debugPrint('❌ Exception while sending FCM token');
       debugPrint('Error: $e');
       debugPrint('StackTrace: $stack');
-
       CustomSnackbar.showError(
         context: Get.context!,
         title: 'Error',
         message: 'Failed to send token: $e',
       );
+      return false;
     }
   }
+
+  Future<void> handleDeviceTokenRegistration() async {
+  final prefs = await SharedPreferences.getInstance();
+
+  final currentDeviceId = await getDeviceId();
+  final storedDeviceId = prefs.getString('device_id');
+
+  final fcmToken = await FirebaseMessaging.instance.getToken();
+  if (fcmToken == null || fcmToken.isEmpty) return;
+
+  // First-time login
+  if (storedDeviceId == null) {
+    final success = await sendFCMTokenToServer(fcmToken, currentDeviceId);
+    if (success) {
+      await prefs.setString('device_id', currentDeviceId);
+      await prefs.setString('fcm_token', fcmToken);
+    }
+    return;
+  }
+
+  // Same device → do nothing
+  if (storedDeviceId == currentDeviceId) {
+    debugPrint("✅ Same device, no change needed");
+    return;
+  }
+
+  // Different device → logout old device
+  final success = await changeDeviceToken(
+    currentDeviceId,
+    storedDeviceId,
+    fcmToken,
+  );
+
+  if (success) {
+    await prefs.setString('device_id', currentDeviceId);
+    await prefs.setString('fcm_token', fcmToken);
+  }
+}
+
+  Future<bool> changeDeviceToken(String newDeviceId, String oldDeviceId, String fcmToken) async {
+    debugPrint('🚀 changeDeviceToken() called');
+    debugPrint('📦 New Device ID: $newDeviceId');
+    debugPrint('📦 Old Device ID: $oldDeviceId');
+
+    try {
+      final payload = {
+        'DeviceInfo': newDeviceId,
+        'FCMToken': fcmToken,
+        'OldDeviceInfoId': oldDeviceId,
+      };
+
+      debugPrint('📤 Request payload: $payload');
+      debugPrint('🌐 API endpoint: $changeDeviceApi');
+
+      final response = await ApiService.post(
+        changeDeviceApi,
+        payload,
+        withAuth: true,
+        encryptionRequired: true,
+      );
+
+      debugPrint('📥 Raw API response: $response');
+
+      if (response is http.Response) {
+        debugPrint('❌ HTTP error response');
+        debugPrint('Status code: ${response.statusCode}');
+        debugPrint('Body: ${response.body}');
+
+        CustomSnackbar.showError(
+          context: Get.context!,
+          title: 'Error',
+          message: 'Failed to change device: ${response.statusCode}',
+        );
+        return false;
+      }
+
+      final responseData = jsonDecode(jsonEncode(response));
+      debugPrint('✅ Parsed API response: $responseData');
+
+      return true;
+    } catch (e, stack) {
+      debugPrint('❌ Exception while changing device token');
+      debugPrint('Error: $e');
+      debugPrint('StackTrace: $stack');
+      CustomSnackbar.showError(
+        context: Get.context!,
+        title: 'Error',
+        message: 'Failed to change device: $e',
+      );
+      return false;
+    }
+  }
+
 
   Future<void> checkSession() async {
     final prefs = await SharedPreferences.getInstance();

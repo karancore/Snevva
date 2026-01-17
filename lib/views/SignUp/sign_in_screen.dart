@@ -100,7 +100,7 @@ class _SignInScreenState extends State<SignInScreen> {
       year: DateTime.now().year,
     );
 
-    await localStorageManager.getFCMToken();
+    await localStorageManager.handleDeviceTokenRegistration();
 
     await bottomsheetcontroller.loaddatafromAPI();
     await womenhealthController.lastPeriodDatafromAPI();
