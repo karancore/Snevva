@@ -8,6 +8,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/env/env.dart';
+import 'package:snevva/models/awake_interval.dart';
 import 'package:snevva/services/api_service.dart';
 
 import '../../common/global_variables.dart';
@@ -27,6 +28,7 @@ class SleepController extends GetxController {
 
   /// Chart data
   final RxList<FlSpot> deepSleepSpots = <FlSpot>[].obs;
+  final List<AwakeInterval> _awakeIntervals = [];
 
   final SleepNoticingService _sleepService = SleepNoticingService();
   Timer? _morningCheckTimer;
@@ -226,7 +228,13 @@ class SleepController extends GetxController {
 
       // 🔁 Refresh weekly graph too
       _updateDeepSleepSpots();
-      saveVitalsToLocalStorage();
+      savesleepToLocalStorage();
+
+      if (deepSleepHistory.isNotEmpty) {
+  final latestKey = deepSleepHistory.keys.last;
+  deepSleepDuration.value = deepSleepHistory[latestKey];
+}
+
 
       print("✅ Sleep history loaded: $deepSleepHistory");
     } catch (e) {
@@ -234,13 +242,13 @@ class SleepController extends GetxController {
     }
   }
 
-  Future<void> saveVitalsToLocalStorage() async {
+  Future<void> savesleepToLocalStorage() async {
     final prefs = await SharedPreferences.getInstance();
 
     final int bedMs = bedtime.value?.millisecondsSinceEpoch ?? 0;
     final int wakeMs = waketime.value?.millisecondsSinceEpoch ?? 0;
 
-    debugPrint("💾 Saving vitals to local storage:");
+    debugPrint("💾 Saving sleep to local storage:");
     debugPrint("   Bedtime (ms since epoch): $bedMs");
     debugPrint("   Waketime (ms since epoch): $wakeMs");
     debugPrint("   is_first_time_sleep: false");
@@ -249,7 +257,7 @@ class SleepController extends GetxController {
     await prefs.setInt('waketime', wakeMs);
     await prefs.setBool('is_first_time_sleep', false);
 
-    debugPrint("✅ Vitals saved successfully to SharedPreferences");
+    debugPrint("✅ sleep saved successfully to SharedPreferences");
   }
 
   Future<void> updateSleepTimestoServer(
@@ -376,7 +384,6 @@ class SleepController extends GetxController {
 
     if (_box.isEmpty && !box.hasData("bedtime")) return;
 
-
     final bedMs = box.read("bedtime");
     print("bedtime loaded from hive : $bedMs");
     final wakeMs = box.read("waketime");
@@ -450,9 +457,10 @@ class SleepController extends GetxController {
     final key = _dateKey(date);
 
     if (deepSleepHistory.containsKey(key)) {
-      print("⛔ Already saved for $key — skipping");
-      return;
-    }
+  debugPrint("⛔ Already saved for $key");
+  return;
+}
+
 
     deepSleepHistory[key] = duration;
 
@@ -507,26 +515,31 @@ class SleepController extends GetxController {
     _sleepService.stopMonitoring();
   }
 
-  void _startMorningAutoCheck() {
+  void _startMorningAutoCheck(){
     _morningCheckTimer?.cancel();
 
-    _morningCheckTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+    _morningCheckTimer = Timer.periodic(const Duration(minutes: 1), (timer) async {
       final now = DateTime.now();
 
-      if (!_didPhoneUsageOccur && waketime.value != null) {
-        // ✅ Compare within today's context (not full DateTime comparison)
-        final wakeToday = DateTime(
-          now.year,
-          now.month,
-          now.day,
-          waketime.value!.hour,
-          waketime.value!.minute,
-        );
-        if (now.isAfter(wakeToday)) {
-          _handleSleepWithoutPhoneUsage();
-          timer.cancel();
-        }
-      }
+      if (waketime.value != null) {
+  final wakeToday = DateTime(
+    now.year,
+    now.month,
+    now.day,
+    waketime.value!.hour,
+    waketime.value!.minute,
+  );
+
+  if (now.isAfter(wakeToday)) {
+    if (_didPhoneUsageOccur) {
+      await _finalizeSleepCycle();
+    } else {
+      await _handleSleepWithoutPhoneUsage();
+    }
+    timer.cancel();
+  }
+}
+
     });
   }
 
@@ -577,114 +590,107 @@ class SleepController extends GetxController {
   // PHONE USAGE
   // ─────────────────────────────────────────────
 
-  Future<void> onPhoneUsed(
-    DateTime phoneUsageStart,
-    DateTime phoneUsageEnd,
-  ) async {
-    final DateTime now = DateTime.now();
+  Future<void> onPhoneUsed(DateTime start, DateTime end) async {
+
     _didPhoneUsageOccur = true;
 
-    debugPrint("📱 Phone used detected");
-    debugPrint("   Start: $phoneUsageStart");
-    debugPrint("   End  : $phoneUsageEnd");
-    debugPrint("   Now  : $now");
+    if (bedtime.value == null || waketime.value == null) return;
 
-    if (bedtime.value == null || waketime.value == null) {
-      debugPrint("⚠️ Bedtime or Waketime is null, returning...");
-      return;
-    }
-
-    // Ignore morning phone usage (after wake time)
-    final wakeToday = DateTime(
-      phoneUsageStart.year,
-      phoneUsageStart.month,
-      phoneUsageStart.day,
+    // Ignore usage outside sleep window
+    final sleepStart = bedtime.value!;
+    DateTime sleepEnd = DateTime(
+      sleepStart.year,
+      sleepStart.month,
+      sleepStart.day,
       waketime.value!.hour,
       waketime.value!.minute,
     );
+    if (sleepEnd.isBefore(sleepStart)) {
+      sleepEnd = sleepEnd.add(const Duration(days: 1));
+    }
 
-    if (phoneUsageStart.isAfter(wakeToday)) {
-      debugPrint("ℹ️ Morning phone check - ignoring");
+    if (end.isBefore(sleepStart) || start.isAfter(sleepEnd)) {
       return;
     }
 
-    final usageDuration = phoneUsageEnd.difference(phoneUsageStart);
-    debugPrint("⏱ Phone usage duration: ${usageDuration.inMinutes} min");
+    // Clamp to sleep window
+    final clampedStart = start.isBefore(sleepStart) ? sleepStart : start;
+    final clampedEnd = end.isAfter(sleepEnd) ? sleepEnd : end;
 
-    final computedBedtime = _sleepService.calculateNewBedtime(
-      bedtime: bedtime.value!,
-      phoneUsageStart: phoneUsageStart,
-      phoneUsageDuration: usageDuration,
-    );
-    final split = calculateSplitDeepSleep(
-      oldBedtime: bedtime.value!, // original configured bedtime
-      oldWakeTime: waketime.value!, // original configured waketime
-      phonePickupTime: phoneUsageStart, // when the user picked up the phone
-      newBedtime: computedBedtime, // adjusted bedtime (usageEnd - 15min)
-    );
+    final duration = clampedEnd.difference(clampedStart);
+if (duration.inSeconds < 30) return;
 
-    debugPrint(
-      "💤 Split deep sleep -> beforePhone: ${split['beforePhone']}, afterPhone: ${split['afterPhone']}, total: ${split['total']}",
-    );
 
-    // decide what to save/upload: use `split['total']` as the "deep" duration if you want the sum
-    final Duration deep = split['total']!;
+    _awakeIntervals.add(AwakeInterval(clampedStart, clampedEnd));
 
-    if (deep.inMinutes < 10) {
-      debugPrint(
-        '⛔ Skipping save/upload (phone usage): duration too small (${deep.inMinutes}m)',
+    debugPrint("📵 Awake interval recorded: $clampedStart → $clampedEnd");
+  }
+
+  List<AwakeInterval> mergeAwakeIntervals(List<AwakeInterval> intervals) {
+  if (intervals.isEmpty) return [];
+
+  // Sort by start time
+  intervals.sort((a, b) => a.start.compareTo(b.start));
+
+  final List<AwakeInterval> merged = [];
+  AwakeInterval current = intervals.first;
+
+  for (int i = 1; i < intervals.length; i++) {
+    final next = intervals[i];
+
+    // Overlap OR touching intervals → merge
+    if (!next.start.isAfter(current.end)) {
+      current = AwakeInterval(
+        current.start,
+        next.end.isAfter(current.end) ? next.end : current.end,
       );
-      return;
-    }
-
-    // optionally set deepSleepDuration to the total (or one of the halves if you prefer)
-    deepSleepDuration.value = deep;
-
-    debugPrint(
-      "🛏 Computed bedtime after phone usage adjustment: $computedBedtime",
-    );
-    newBedtime.value = computedBedtime;
-
-    // Normalize wake to the bed date of computedBedtime
-    DateTime correctedWake = DateTime(
-      computedBedtime.year,
-      computedBedtime.month,
-      computedBedtime.day,
-      waketime.value!.hour,
-      waketime.value!.minute,
-    );
-    if (correctedWake.isBefore(computedBedtime) ||
-        correctedWake.isAtSameMomentAs(computedBedtime)) {
-      correctedWake = correctedWake.add(const Duration(days: 1));
-    }
-    debugPrint("⏰ Corrected Wake: $correctedWake");
-
-    //Calculating deep sleep
-    debugPrint("💤 Calculated deep sleep duration: ${deep.inMinutes} min");
-
-    if (deep.inMinutes < 10) {
-      debugPrint(
-        '⛔ Skipping save/upload (phone usage): duration too small (${deep.inMinutes}m)',
-      );
-      return;
-    }
-
-    if (now.isAfter(correctedWake)) {
-      debugPrint("✅ Now is after corrected wake, updating deepSleepDuration");
-      deepSleepDuration.value = deep;
     } else {
-      debugPrint(
-        "ℹ️ Now is before corrected wake, not updating deepSleepDuration yet",
-      );
+      merged.add(current);
+      current = next;
+    }
+  }
+
+  merged.add(current);
+  return merged;
+}
+
+
+  Future<void> _finalizeSleepCycle() async {
+    if (bedtime.value == null || waketime.value == null) return;
+
+    final DateTime sleepStart = bedtime.value!;
+    DateTime sleepEnd = DateTime(
+      sleepStart.year,
+      sleepStart.month,
+      sleepStart.day,
+      waketime.value!.hour,
+      waketime.value!.minute,
+    );
+    if (sleepEnd.isBefore(sleepStart)) {
+      sleepEnd = sleepEnd.add(const Duration(days: 1));
     }
 
-    // Save against bed date of the cycle
-    debugPrint("💾 Saving sleep data for date: $computedBedtime");
-    await saveDeepSleepData(computedBedtime, deep);
+    final totalWindow = sleepEnd.difference(sleepStart);
 
-    // Upload normalized values
-    debugPrint("🌍 Uploading sleep data to server...");
-    await uploadsleepdatatoServer(computedBedtime, correctedWake);
+    final mergedIntervals = mergeAwakeIntervals(_awakeIntervals);
+
+Duration awakeTotal = Duration.zero;
+for (final a in mergedIntervals) {
+  awakeTotal += a.end.difference(a.start);
+}
+
+
+    final deepSleep = totalWindow - awakeTotal;
+    if (deepSleep.inMinutes < 10) return;
+
+    deepSleepDuration.value = deepSleep;
+
+    await saveDeepSleepData(sleepStart, deepSleep);
+    await uploadsleepdatatoServer(sleepStart, sleepEnd);
+
+    _awakeIntervals.clear();
+
+    debugPrint("😴 Final sleep calculated: $deepSleep");
   }
 
   // ─────────────────────────────────────────────

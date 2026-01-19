@@ -124,6 +124,7 @@ class SleepNoticingService {
 
     return adjustedBedtime;
   }
+  
 
   /// Calculates deep sleep duration.
   ///

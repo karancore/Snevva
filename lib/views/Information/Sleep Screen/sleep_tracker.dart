@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'dart:math';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
@@ -10,7 +8,6 @@ import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
-import 'package:snevva/services/sleep_noticing_service.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_bottom_sheet.dart';
 import '../../../Controllers/SleepScreen/sleep_controller.dart';
 import '../../../Widgets/CommonWidgets/common_stat_graph_widget.dart';
@@ -27,7 +24,6 @@ class SleepTrackerScreen extends StatefulWidget {
 }
 
 class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
-  final sleepService = SleepNoticingService();
   TimeOfDay? selectedTime;
   int daysSinceMonday = 0;
   int todayDate = 1 ;
@@ -576,7 +572,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
               // Check if bedtime and wake time are selected
               if (sleepController.bedtime.value != null &&
                   sleepController.waketime.value != null) {
-                sleepController.startMonitoring(); // START SERVICE
+                // sleepController.startMonitoring(); // START SERVICE
 
                 CustomSnackbar.showSnackbar(
                   context: context,

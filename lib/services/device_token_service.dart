@@ -30,8 +30,8 @@ class DeviceTokenService {
     required String deviceId,
   }) async {
     final payload = {
-        "FCMToken": fcmToken,
-        "DeviceInfo": deviceId,
+      "FCMToken": fcmToken,
+      "DeviceInfo": deviceId,
     };
 
     final response = await ApiService.post(
@@ -51,9 +51,9 @@ class DeviceTokenService {
     required String fcmToken,
   }) async {
     final payload = {
-        "DeviceInfo": newDeviceId,
-        "FCMToken": fcmToken,
-        "OldDeviceInfoId": oldDeviceId,
+      "DeviceInfo": newDeviceId,
+      "FCMToken": fcmToken,
+      "OldDeviceInfoId": oldDeviceId,
     };
 
     final response = await ApiService.post(
@@ -89,8 +89,8 @@ class DeviceTokenService {
     // First login
     if (storedDeviceId == null) {
       final success = await registerDeviceToken(
-        fcmToken: "fcmToken",
-        deviceId: "currentDeviceId",
+        fcmToken: fcmToken,
+        deviceId: currentDeviceId,
       );
 
       if (success) {
@@ -107,9 +107,9 @@ class DeviceTokenService {
 
     // Different device → update backend
     final success = await changeDeviceToken(
-      newDeviceId: "currentDeviceId",
-      oldDeviceId: "storedDeviceId",
-      fcmToken: "fcmToken",
+      newDeviceId: currentDeviceId,
+      oldDeviceId: storedDeviceId,
+      fcmToken: fcmToken,
     );
 
     if (success) {
