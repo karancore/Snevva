@@ -33,7 +33,7 @@ class _StepCounterState extends State<StepCounter> {
 
   List<FlSpot> _points = [];
   int daysSinceMonday = 0;
-  int todayDate = 1 ;
+  int todayDate = 1;
   DateTime _selectedMonth = DateTime.now();
   bool _isMonthlyView = false;
 
@@ -41,8 +41,6 @@ class _StepCounterState extends State<StepCounter> {
   StreamSubscription<Position>? _locationSub;
 
   Timer? _uiRefreshTimer;
-
-  double _graphMaxY = 10;
 
   String _dayKey(DateTime d) => "${d.year}-${d.month}-${d.day}";
 
@@ -115,55 +113,56 @@ class _StepCounterState extends State<StepCounter> {
     await prefs.setBool('isStepGoalSet', true);
   }
 
-  Future<void> _loadWeeklyData() async {
-    final now = DateTime.now();
-    final start = _startOfDay(now).subtract(const Duration(days: 6));
+  //   Future<void> _loadWeeklyData() async {
+  //   final now = DateTime.now();
+  //   final start = _startOfDay(now).subtract(const Duration(days: 6));
 
-    final pts = <FlSpot>[];
-    int maxSteps = 0;
+  //   final pts = <FlSpot>[];
+  //   int maxSteps = 0;
 
-    for (int i = 0; i < 7; i++) {
-      final day = start.add(Duration(days: i));
-      final key = _dayKey(day);
-      final steps = _box.get(key)?.steps ?? 0;
+  //   for (int i = 0; i < 7; i++) {
+  //     final day = start.add(Duration(days: i));
+  //     final key = _dayKey(day);
+  //     final steps = _box.get(key)?.steps ?? 0;
 
-      if (steps > maxSteps) maxSteps = steps;
-      pts.add(FlSpot(i.toDouble(), steps / 1000.0));
-    }
+  //     if (steps > maxSteps) maxSteps = steps;
 
-    if (!mounted) return;
-    setState(() {
-      _points = pts;
-      _graphMaxY = ((maxSteps / 1000).ceil() + 2).toDouble();
-    });
+  //     // Use raw step counts (Option B)
+  //     pts.add(FlSpot(i.toDouble(), steps.toDouble()));
+  //   }
 
-    print("📈 Weekly data loaded: $_points");
-  }
+  //   if (!mounted) return;
+  //   setState(() {
+  //     _points = pts;
+  //     _graphMaxY = maxSteps * 1.1; // add 10% padding
+  //   });
 
-  Future<void> _loadMonthlyData(DateTime month) async {
-    final start = DateTime(month.year, month.month, 1);
-    final days = DateTime(month.year, month.month + 1, 0).day;
+  //   print("📈 Weekly data loaded: $_points");
+  // }
 
-    final pts = <FlSpot>[];
-    int maxSteps = 0;
+  //   Future<void> _loadMonthlyData(DateTime month) async {
+  //   final start = DateTime(month.year, month.month, 1);
+  //   final days = DateTime(month.year, month.month + 1, 0).day;
 
-    for (int i = 0; i < days; i++) {
-      final day = start.add(Duration(days: i));
-      final key = _dayKey(day);
-      final steps = _box.get(key)?.steps ?? 0;
+  //   final pts = <FlSpot>[];
+  //   int maxSteps = 0;
 
-      if (steps > maxSteps) maxSteps = steps;
+  //   for (int i = 0; i < days; i++) {
+  //     final day = start.add(Duration(days: i));
+  //     final key = _dayKey(day);
+  //     final steps = _box.get(key)?.steps ?? 0;
 
-      pts.add(FlSpot(i.toDouble(), steps / 1000.0));
-    }
+  //     if (steps > maxSteps) maxSteps = steps;
 
-    if (!mounted) return;
+  //     pts.add(FlSpot(i.toDouble(), steps.toDouble())); // raw steps
+  //   }
 
-    setState(() {
-      _points = pts;
-      _graphMaxY = ((maxSteps / 1000).ceil() + 2).toDouble();
-    });
-  }
+  //   if (!mounted) return;
+  //   setState(() {
+  //     _points = pts;
+  //     _graphMaxY = maxSteps * 1.1; // 10% padding
+  //   });
+  // }
 
   Future<void> _initLocationTracking() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -418,15 +417,37 @@ class _StepCounterState extends State<StepCounter> {
               SizedBox(
                 height: height * 0.41,
                 child: Obx(() {
-
                   final labels =
                       _isMonthlyView
                           ? generateMonthLabels(_selectedMonth)
                           : generateShortWeekdays();
+
                   final points =
                       _isMonthlyView
                           ? stepController.getMonthlyStepsSpots(_selectedMonth)
-                          : stepController.stepSpots.toList().take(daysSinceMonday + 1).toList();
+                          : stepController.stepSpots
+                              .take(daysSinceMonday + 1)
+                              .toList();
+
+                  // ✅ Calculate maxY from actual data
+                  final double maxSteps =
+                      points.isEmpty
+                          ? 1000
+                          : points
+                              .map((e) => e.y)
+                              .reduce((a, b) => a > b ? a : b);
+
+                  // ✅ Add padding + minimum scale
+                  // final double maxY = (maxSteps * 1.2).clamp(1000, double.infinity);
+                  final double rawMax =
+                      points.isEmpty
+                          ? 0
+                          : points
+                              .map((e) => e.y)
+                              .reduce((a, b) => a > b ? a : b);
+
+                  final double maxY = getNiceMaxY(rawMax);
+                  final double interval = getNiceInterval(maxY);
 
                   return StepStatGraphWidget(
                     isDarkMode: isDarkMode,
@@ -436,6 +457,7 @@ class _StepCounterState extends State<StepCounter> {
                     maxXForWeek: daysSinceMonday,
                     isMonthlyView: _isMonthlyView,
                     graphTitle: 'Steps',
+                    maxY: maxY,
                   );
                 }),
               ),
@@ -445,11 +467,27 @@ class _StepCounterState extends State<StepCounter> {
       ),
     );
   }
+
   int getTodayDayNumber() {
     todayDate = DateTime.now().day;
     return todayDate;
   }
 
+  double getNiceMaxY(double value) {
+    if (value <= 1000) return 1000;
+    if (value <= 5000) return 5000;
+    if (value <= 10000) return 10000;
+    if (value <= 20000) return 20000;
+    if (value <= 50000) return 50000;
+    return (value / 10000).ceil() * 10000;
+  }
+
+  double getNiceInterval(double maxY) {
+    if (maxY <= 5000) return 1000;
+    if (maxY <= 10000) return 2000;
+    if (maxY <= 20000) return 5000;
+    return 10000;
+  }
 
   List<String> generateShortWeekdays() {
     List<String> shortWeekdays = [];
@@ -458,8 +496,11 @@ class _StepCounterState extends State<StepCounter> {
     daysSinceMonday = (now.weekday - DateTime.monday);
 
     // Remove time part to avoid carrying 12:48:xx everywhere
-    DateTime startOfWeek = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: daysSinceMonday));
+    DateTime startOfWeek = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: daysSinceMonday));
 
     // 🔥 CHANGE IS HERE
     for (int i = 0; i <= daysSinceMonday; i++) {
@@ -470,8 +511,6 @@ class _StepCounterState extends State<StepCounter> {
 
     return shortWeekdays;
   }
-
-
 
   // Info Row UI
   Widget _infoItem(String icon, String text) =>

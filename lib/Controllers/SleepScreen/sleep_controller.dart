@@ -49,6 +49,7 @@ class SleepController extends GetxController {
     _sleepService.onPhoneUsageDetected = onPhoneUsed;
 
     loadDeepSleepData();
+    _loadSleepGoal();
   }
 
   @override
@@ -57,6 +58,7 @@ class SleepController extends GetxController {
     _sleepService.stopMonitoring();
     super.onClose();
   }
+  
 
   String getSleepStatus(Duration? duration) {
     if (duration == null || duration.inMinutes <= 0) return '';
@@ -106,6 +108,17 @@ class SleepController extends GetxController {
       c = c.add(const Duration(days: 1));
     }
     return c;
+  }
+
+  Future<void> _loadSleepGoal() async {
+  final prefs = await SharedPreferences.getInstance();
+  final b = prefs.getInt('sleep_bedtime');
+  final w = prefs.getInt('sleep_waketime');
+
+  if (b != null && w != null) {
+    bedtime.value = DateTime.fromMillisecondsSinceEpoch(b);
+    waketime.value = DateTime.fromMillisecondsSinceEpoch(w);
+  }
   }
 
   Map<String, Duration> calculateSplitDeepSleep({
@@ -379,7 +392,7 @@ class SleepController extends GetxController {
     }
   }
 
-  void loadDeepSleepData() {
+  Future<void> loadDeepSleepData() async {
     deepSleepHistory.clear();
 
     if (_box.isEmpty && !box.hasData("bedtime")) return;

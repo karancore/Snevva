@@ -29,7 +29,7 @@ class CommonStatGraphWidget extends StatelessWidget {
 
   final bool isDarkMode;
   final double height;
-  final int ? maxXForWeek;
+  final int? maxXForWeek;
   final String graphTitle;
   final double yAxisInterval;
   final double gridLineInterval;
@@ -154,7 +154,7 @@ class CommonStatGraphWidget extends StatelessWidget {
                 )
                 : _buildChart(
                   labels: labels,
-              maxXForWeek: maxXForWeek ,
+                  maxXForWeek: maxXForWeek,
                   points: points,
                   isMonthly: isMonthly,
                   todayIndex: todayIndex,
@@ -170,7 +170,7 @@ class CommonStatGraphWidget extends StatelessWidget {
     required List<FlSpot> points,
     required bool isMonthly,
     required int todayIndex,
-    int ?  maxXForWeek,
+    int? maxXForWeek,
   }) {
     String formatted = '';
 
@@ -181,7 +181,8 @@ class CommonStatGraphWidget extends StatelessWidget {
       child: LineChart(
         LineChartData(
           minX: 0,
-          maxX: isMonthly ? (labels.length).toDouble() : maxXForWeek!.toDouble(),
+          maxX:
+              isMonthly ? (labels.length).toDouble() : maxXForWeek!.toDouble(),
           // use dynamic maxX
           minY: 0,
           maxY: yAxisMaxValue,
@@ -222,9 +223,12 @@ class CommonStatGraphWidget extends StatelessWidget {
                 interval: yAxisInterval,
                 getTitlesWidget:
                     (value, _) => Text(
-                      '${value.toInt()}$measureUnit',
-                      style: const TextStyle(fontSize: 9),
-                    ),
+  value % 1 == 0
+      ? '${value.toInt()}$measureUnit'
+      : '${value.toStringAsFixed(1)}$measureUnit',
+  style: const TextStyle(fontSize: 9),
+),
+
               ),
             ),
             rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -322,4 +326,42 @@ class CommonStatGraphWidget extends StatelessWidget {
       ),
     );
   }
+}
+
+double getNiceHydrationMaxY(double value) {
+  if (value <= 1) return 1;
+  if (value <= 2) return 2;
+  if (value <= 3) return 3;
+  if (value <= 4) return 4;
+  if (value <= 5) return 5;
+  if (value <= 6) return 6;
+  if (value <= 8) return 8;
+  return (value / 2).ceil() * 2;
+}
+
+double getNiceHydrationInterval(double maxY) {
+  if (maxY <= 2) return 0.5;
+  if (maxY <= 4) return 1;
+  if (maxY <= 6) return 1;
+  if (maxY <= 8) return 2;
+  return 2;
+}
+
+double getNiceSleepMaxY(double value) {
+  if (value <= 4) return 4;
+  if (value <= 5) return 5;
+  if (value <= 6) return 6;
+  if (value <= 7) return 8;
+  if (value <= 8) return 8;
+  if (value <= 9) return 10;
+  if (value <= 10) return 10;
+  if (value <= 12) return 12;
+  return (value / 2).ceil() * 2;
+}
+
+double getNiceSleepInterval(double maxY) {
+  if (maxY <= 5) return 1;
+  if (maxY <= 8) return 2;
+  if (maxY <= 12) return 2;
+  return 2;
 }

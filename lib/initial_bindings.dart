@@ -121,5 +121,9 @@ class InitialBindings extends Bindings {
     if (!Get.isRegistered<BottomSheetController>()) {
       Get.lazyPut(() => BottomSheetController(), fenix: true);
     }
+
+    if (!Get.isRegistered<SleepController>()) {
+      Get.put(SleepController(), permanent: true);
+    }
   }
 }

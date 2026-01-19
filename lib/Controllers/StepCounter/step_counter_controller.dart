@@ -40,7 +40,6 @@ class StepCounterController extends GetxController {
 
   static const String _lastSyncedDateKey = "last_synced_step_date";
 
-
   late Box<StepEntry> _stepBox;
   // Helper to avoid crashes when underlying Hive file gets closed by another isolate.
   // If a FileSystemException occurs, we attempt to reopen the box asynchronously
@@ -130,66 +129,64 @@ class StepCounterController extends GetxController {
   // DAY RESET
   // =======================
   Future<void> _checkDayReset() async {
-  final now = DateTime.now();
-  final todayKey = _dayKey(now);
-  final lastDate = _prefs.getString("last_step_date");
+    final now = DateTime.now();
+    final todayKey = _dayKey(now);
+    final lastDate = _prefs.getString("last_step_date");
 
-  if (lastDate != null && lastDate != todayKey) {
-    // 👇 FORCE PUSH YESTERDAY BEFORE RESET
-    await _forceSyncPreviousDay(lastDate);
+    if (lastDate != null && lastDate != todayKey) {
+      // 👇 FORCE PUSH YESTERDAY BEFORE RESET
+      await _forceSyncPreviousDay(lastDate);
+    }
+
+    if (lastDate != todayKey) {
+      todaySteps.value = 0;
+      lastSteps = 0;
+      lastStepsRx.value = 0;
+      lastPercent = 0.0;
+
+      _prefs.setString("last_step_date", todayKey);
+      await _saveToHive(0);
+    }
   }
 
-  if (lastDate != todayKey) {
-    todaySteps.value = 0;
-    lastSteps = 0;
-    lastStepsRx.value = 0;
-    lastPercent = 0.0;
+  Future<void> _forceSyncPreviousDay(String dayKey) async {
+    final alreadySynced = _prefs.getString(_lastSyncedDateKey);
 
-    _prefs.setString("last_step_date", todayKey);
-    await _saveToHive(0);
+    if (alreadySynced == dayKey) {
+      print("⏭️ Yesterday already synced");
+      return;
+    }
+
+    final steps = _safeGetSteps(dayKey);
+    if (steps <= 0) return;
+
+    final parts = dayKey.split("-");
+    final year = int.parse(parts[0]);
+    final month = int.parse(parts[1]);
+    final day = int.parse(parts[2]);
+
+    final payload = {
+      "Day": day,
+      "Month": month,
+      "Year": year,
+      "Time": "23:59",
+      "Count": steps,
+    };
+
+    try {
+      await ApiService.post(
+        stepRecord,
+        payload,
+        withAuth: true,
+        encryptionRequired: true,
+      );
+
+      await _prefs.setString(_lastSyncedDateKey, dayKey);
+      print("✅ Yesterday steps force-synced: $steps");
+    } catch (e) {
+      print("❌ Failed to force sync yesterday: $e");
+    }
   }
-}
-
-Future<void> _forceSyncPreviousDay(String dayKey) async {
-  final alreadySynced = _prefs.getString(_lastSyncedDateKey);
-
-  if (alreadySynced == dayKey) {
-    print("⏭️ Yesterday already synced");
-    return;
-  }
-
-  final steps = _safeGetSteps(dayKey);
-  if (steps <= 0) return;
-
-  final parts = dayKey.split("-");
-  final year = int.parse(parts[0]);
-  final month = int.parse(parts[1]);
-  final day = int.parse(parts[2]);
-
-  final payload = {
-    "Day": day,
-    "Month": month,
-    "Year": year,
-    "Time": "23:59",
-    "Count": steps,
-  };
-
-  try {
-    await ApiService.post(
-      stepRecord,
-      payload,
-      withAuth: true,
-      encryptionRequired: true,
-    );
-
-    await _prefs.setString(_lastSyncedDateKey, dayKey);
-    print("✅ Yesterday steps force-synced: $steps");
-  } catch (e) {
-    print("❌ Failed to force sync yesterday: $e");
-  }
-}
-
-
 
   // =======================
   // LISTEN TO BACKGROUND SERVICE
@@ -444,7 +441,10 @@ Future<void> _forceSyncPreviousDay(String dayKey) async {
     for (final entry in stepsHistoryList) {
       if (entry.date.year == month.year && entry.date.month == month.month) {
         // dayToSteps[entry.date.day] = max(dayToSteps[entry.date.day] ?? 0 , entry.steps);
-        dayToSteps[entry.date.day] = max(dayToSteps[entry.date.day] ?? 0, entry.steps);
+        dayToSteps[entry.date.day] = max(
+          dayToSteps[entry.date.day] ?? 0,
+          entry.steps,
+        );
       }
     }
 
@@ -498,31 +498,29 @@ Future<void> _forceSyncPreviousDay(String dayKey) async {
 
   /// 🔁 Sync every 500 steps (LIVE)
   Future<void> _maybeSyncSteps() async {
-  if (todaySteps.value <= 0) return;
+    if (todaySteps.value <= 0) return;
 
-  final now = DateTime.now();
-  final todayKey = _dayKey(now);
+    final now = DateTime.now();
+    final todayKey = _dayKey(now);
 
-  final lastSyncMillis = _prefs.getInt(_lastSyncKey);
-  final lastSyncTime =
-      lastSyncMillis != null
-          ? DateTime.fromMillisecondsSinceEpoch(lastSyncMillis)
-          : null;
+    final lastSyncMillis = _prefs.getInt(_lastSyncKey);
+    final lastSyncTime =
+        lastSyncMillis != null
+            ? DateTime.fromMillisecondsSinceEpoch(lastSyncMillis)
+            : null;
 
-  final lastSyncedDate = _prefs.getString(_lastSyncedDateKey);
+    final lastSyncedDate = _prefs.getString(_lastSyncedDateKey);
 
-  // 🔥 Always allow first sync of the day
-  if (lastSyncedDate != todayKey ||
-      lastSyncTime == null ||
-      now.difference(lastSyncTime) >= _syncInterval) {
+    // 🔥 Always allow first sync of the day
+    if (lastSyncedDate != todayKey ||
+        lastSyncTime == null ||
+        now.difference(lastSyncTime) >= _syncInterval) {
+      await saveStepRecordToServer();
 
-    await saveStepRecordToServer();
-
-    await _prefs.setInt(_lastSyncKey, now.millisecondsSinceEpoch);
-    await _prefs.setString(_lastSyncedDateKey, todayKey);
+      await _prefs.setInt(_lastSyncKey, now.millisecondsSinceEpoch);
+      await _prefs.setString(_lastSyncedDateKey, todayKey);
+    }
   }
-}
-
 
   Future<void> saveStepRecordToServer() async {
     try {

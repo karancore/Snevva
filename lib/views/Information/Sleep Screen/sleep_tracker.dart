@@ -37,18 +37,20 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
   bool _loaded = false;
 
-  // Reuse existing SleepController instead of creating a new one.
-  final SleepController sleepController = Get.put(SleepController());
+  final sleepController = Get.find<SleepController>();
 
   @override
   void initState() {
     super.initState(); // Always call super.initState() first!
 
     toggleSleepCard();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // SAFE: runs after build is finished
-      sleepController.loadDeepSleepData();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+    await sleepController.loadDeepSleepData(); // local Hive data
+    await sleepController.loadSleepfromAPI(
+      month: DateTime.now().month,
+      year: DateTime.now().year,
+    );
+  });
 
     // sleepController.loadSleepfromAPI(
     //   month: DateTime.now().month,
@@ -523,37 +525,50 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
               // ========== SLEEP STATISTICS GRAPH ==========
               SizedBox(
-                height: height * 0.41,
-                child: Obx(() {
-                  final labels =
-                      _isMonthlyView
-                          ? generateMonthLabels(_selectedMonth)
-                          : generateShortWeekdays();
+  height: height * 0.41,
+  child: Obx(() {
+    final labels =
+        _isMonthlyView
+            ? generateMonthLabels(_selectedMonth)
+            : generateShortWeekdays();
 
-                  final points =
-                      _isMonthlyView
-                          ? sleepController.getMonthlyDeepSleepSpots(
-                            _selectedMonth,
-                          )
-                          : sleepController.deepSleepSpots.take(daysSinceMonday + 1).toList();
-                  return CommonStatGraphWidget(
-                    isDarkMode: isDarkMode,
-                    yAxisInterval: 2,
-                    yAxisMaxValue: 12,
-                    isWaterGraph: false,
-                    height: height,
-                    graphTitle: 'Sleep Statistics',
-                    points: points,
-                    maxXForWeek: daysSinceMonday,
+    final points =
+        _isMonthlyView
+            ? sleepController.getMonthlyDeepSleepSpots(_selectedMonth)
+            : sleepController.deepSleepSpots
+                .take(daysSinceMonday + 1)
+                .toList();
 
-                    isMonthlyView: _isMonthlyView,
-                    gridLineInterval: 2,
-                    weekLabels: labels,
-                    measureUnit: 'h',
-                    isSleepGraph: true,
-                  );
-                }),
-              ),
+    // 🔥 Find max sleep (in hours)
+    final double rawMax =
+        points.isEmpty
+            ? 0
+            : points.map((e) => e.y).reduce((a, b) => a > b ? a : b);
+
+    // 🔥 Apply nice scaling
+    final double maxY = getNiceSleepMaxY(rawMax);
+    final double interval = getNiceSleepInterval(maxY);
+
+    return CommonStatGraphWidget(
+      isDarkMode: isDarkMode,
+      height: height,
+      graphTitle: 'Sleep Statistics',
+      points: points,
+      maxXForWeek: daysSinceMonday,
+      isMonthlyView: _isMonthlyView,
+      weekLabels: labels,
+
+      yAxisMaxValue: maxY,
+      yAxisInterval: interval,
+      gridLineInterval: interval,
+
+      measureUnit: 'h',
+      isSleepGraph: true,
+      isWaterGraph: false,
+    );
+  }),
+),
+
               const SizedBox(height: 30),
             ],
           ),

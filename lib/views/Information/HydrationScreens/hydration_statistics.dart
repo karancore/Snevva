@@ -20,7 +20,7 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
   bool _isMonthlyView = false;
   DateTime _selectedMonth = DateTime.now();
   int daysSinceMonday = 0;
-  int todayDate = 1 ;
+  int todayDate = 1;
 
   @override
   void initState() {
@@ -274,7 +274,21 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                     final points =
                         _isMonthlyView
                             ? controller.getMonthlyWaterSpots(_selectedMonth)
-                            : controller.waterSpots.toList().take(daysSinceMonday + 1).toList();
+                            : controller.waterSpots
+                                .take(daysSinceMonday + 1)
+                                .toList();
+
+                    // 🔥 Find max intake in liters
+                    final double rawMax =
+                        points.isEmpty
+                            ? 0
+                            : points
+                                .map((e) => e.y)
+                                .reduce((a, b) => a > b ? a : b);
+
+                    // 🔥 Apply nice scaling
+                    final double maxY = getNiceHydrationMaxY(rawMax);
+                    final double interval = getNiceHydrationInterval(maxY);
 
                     return CommonStatGraphWidget(
                       isMonthlyView: _isMonthlyView,
@@ -282,9 +296,9 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                       isDarkMode: isDarkMode,
                       height: height,
                       graphTitle: 'Hydration Statistics',
-                      yAxisInterval: 1,
-                      yAxisMaxValue: 4,
-                      gridLineInterval: 2,
+                      yAxisInterval: interval,
+                      yAxisMaxValue: maxY,
+                      gridLineInterval: interval,
                       maxXForWeek: daysSinceMonday,
                       points: points,
                       weekLabels: labels,
@@ -394,6 +408,7 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
       ),
     );
   }
+
   List<String> generateShortWeekdays() {
     List<String> shortWeekdays = [];
     DateTime now = DateTime.now();
@@ -401,8 +416,11 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
     daysSinceMonday = (now.weekday - DateTime.monday);
 
     // Remove time part to avoid carrying 12:48:xx everywhere
-    DateTime startOfWeek = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: daysSinceMonday));
+    DateTime startOfWeek = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: daysSinceMonday));
 
     // 🔥 CHANGE IS HERE
     for (int i = 0; i <= daysSinceMonday; i++) {
