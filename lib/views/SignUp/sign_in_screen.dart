@@ -102,8 +102,8 @@ class _SignInScreenState extends State<SignInScreen> {
 
     localStorageManager.registerDeviceIfNeeded();
 
-    await bottomsheetcontroller.loaddatafromAPI();
-    await womenhealthController.lastPeriodDatafromAPI();
+    // await bottomsheetcontroller.loaddatafromAPI();
+    // await womenhealthController.lastPeriodDatafromAPI();
 
     await moodcontroller.loadmoodfromAPI(
       month: DateTime.now().month,
@@ -120,6 +120,13 @@ class _SignInScreenState extends State<SignInScreen> {
     final genderValid =
         userData['Gender']?.toString().trim().isNotEmpty ?? false;
     final occupationValid = userData['OccupationData'] != null;
+
+    final gender = userData['Gender']?.toString() ?? 'Unknown';
+    print("Gender is $gender");
+    if(gender == 'Female'){
+      await bottomsheetcontroller.loaddatafromAPI();
+      await womenhealthController.lastPeriodDatafromAPI();
+    }
 
     if (nameValid && genderValid && occupationValid) {
       final userActiveDataResponse = signInController.userGoalData;
