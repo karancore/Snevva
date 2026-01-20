@@ -7,8 +7,9 @@ import 'package:screen_state/screen_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../consts/consts.dart';
-import '../models/steps_model.dart';
-import '../models/sleep_log.dart';
+import '../models/hive_models/sleep_log.dart';
+import '../models/hive_models/steps_model.dart';
+
 
 // Global references for step counting
 StreamSubscription<StepCount>? _pedometerSubscription;

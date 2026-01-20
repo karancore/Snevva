@@ -50,6 +50,7 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
   StreamSubscription<Duration>? _positionSub;
   bool isDownloading = false;
   double downloadProgress = 0.0;
+  int index = Random().nextInt(backgroundImageUrls.length);
 
   @override
   void initState() {
@@ -195,6 +196,8 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
     list.shuffle(Random());
     return list;
   }
+
+
 
   // Future<void> playFromIndex(int index) async {
   //   if (shuffledCdnUrls.isEmpty) return;
@@ -347,9 +350,9 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
               color: Colors.black.withValues(alpha: 0.9),
               image: DecorationImage(
                 image: CachedNetworkImageProvider(
-                  widget.musicItem.thumbnailMedia ?? natureMusicPlaceHolder,
+                  widget.musicItem.thumbnailMedia ?? backgroundImageUrls[index],
                 ),
-                fit: BoxFit.fill,
+                fit: BoxFit.contain,
               ),
             ),
           ),

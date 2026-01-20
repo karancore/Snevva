@@ -1,5 +1,3 @@
-
-
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get_core/src/get_main.dart';
@@ -59,11 +57,14 @@ class _AlertsScreenState extends State<AlertsScreen>
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       extendBodyBehindAppBar: true,
+
       appBar: CustomAppBar(
         appbarText: 'Alerts',
         showCloseButton: false,
         showDrawerIcon: false,
+
       ),
+
       body: SafeArea(
         child: Obx(() {
           final list = Get.find<AlertsController>().notifications;

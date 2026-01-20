@@ -26,7 +26,7 @@ class SleepTrackerScreen extends StatefulWidget {
 class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
   TimeOfDay? selectedTime;
   int daysSinceMonday = 0;
-  int todayDate = 1 ;
+  int todayDate = 1;
 
   bool _isMonthlyView = false;
   DateTime _selectedMonth = DateTime.now();
@@ -217,7 +217,11 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.w600,
-                                color: sleepController.deepSleepDuration.value == null ? grey : black
+                                color:
+                                    sleepController.deepSleepDuration.value ==
+                                            null
+                                        ? grey
+                                        : black,
                               ),
                             ),
                             Text(
@@ -238,6 +242,15 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                 alignment: Alignment.center,
                 children: [
                   Obx(() {
+                    const int maxSleepMinutes = 720;
+                    double getDeepSleepPercent(Duration? deepSleep) {
+                      final minutes = deepSleep?.inMinutes.clamp(
+                        0,
+                        maxSleepMinutes,
+                      ) ?? 0;
+                      return minutes / maxSleepMinutes;
+                    }
+
                     return LinearProgressIndicator(
                       value: getDeepSleepPercent(
                         sleepController.deepSleepDuration.value,
@@ -613,6 +626,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
       ),
     );
   }
+
   List<String> generateShortWeekdays() {
     List<String> shortWeekdays = [];
     DateTime now = DateTime.now();

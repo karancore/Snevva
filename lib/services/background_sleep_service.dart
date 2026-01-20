@@ -4,7 +4,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:screen_state/screen_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../models/sleep_log.dart';
+import '../models/hive_models/sleep_log.dart';
+
 
 // Global reference to the screen state stream subscription
 StreamSubscription<ScreenStateEvent>? _screenStateSubscription;
@@ -20,12 +21,8 @@ Future<bool> backgroundSleepEntry(ServiceInstance service) async {
     // Initialize plugins
     final screen = Screen();
 
-    // Init Hive (safe to call multiple times)
-    await Hive.initFlutter();
-    if (!Hive.isAdapterRegistered(SleepLogAdapter().typeId)) {
-      Hive.registerAdapter(SleepLogAdapter());
-    }
-    final box = await Hive.openBox<SleepLog>('sleep_log');
+
+    final box = Hive.box<SleepLog>('sleep_log');
 
     // SharedPrefs
     final prefs = await SharedPreferences.getInstance();

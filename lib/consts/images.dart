@@ -99,6 +99,10 @@ const medicineIcon = "assets/Icons/reminder/medicine.webp";
 const mealIcon = "assets/Icons/reminder/meal.webp";
 const waterReminderIcon = "assets/Icons/reminder/water.webp";
 const eventIcon = "assets/Icons/reminder/event.webp";
+const injectionIcon = "assets/Icons/reminder/injection.svg";
+const syrupIcon = "assets/Icons/reminder/syrup.svg";
+const tabletIcon = "assets/Icons/reminder/tablet.svg";
+const dropsIcon = "assets/Icons/reminder/drops.svg";
 
 const pen = "assets/Icons/reminder/pencil.svg";
 const clockRemIcon = "assets/Icons/reminder/clock.svg";
@@ -306,4 +310,5 @@ const clockIcon = "assets/Icons/SleepScreen/Rectangle-2.png";
 const noNotif = "assets/Images/notificon.png";
 const fatty = "assets/Images/BMI/fatty.png";
 const skinny = "assets/Images/BMI/skiiny.png";
+
 

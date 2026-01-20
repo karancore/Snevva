@@ -48,7 +48,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   const androidDetails = AndroidNotificationDetails(
     'high_importance_channel',
     'High Importance Notifications',
-    icon: 'ic_stat_notification_png',
+    icon: 'snevva_elly',
     importance: Importance.max,
     priority: Priority.high,
   );

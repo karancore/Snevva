@@ -2,7 +2,7 @@ import 'package:hive/hive.dart';
 
 part 'sleep_log.g.dart';
 
-@HiveType(typeId: 1)
+@HiveType(typeId: 4)
 class SleepLog extends HiveObject {
   @HiveField(0)
   DateTime date; // The date of the sleep log (usually the wake-up day)

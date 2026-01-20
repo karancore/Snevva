@@ -24,6 +24,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
     return SafeArea(
       child: AppBar(
+        automaticallyImplyLeading: false,
+
         backgroundColor: isDarkMode ? black : white,
         centerTitle: true,
         scrolledUnderElevation: 0.0,
@@ -61,7 +63,10 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                     );
                   },
                 )
-                : null,
+                : IconButton(
+                  icon: Icon(Icons.arrow_back_ios, size: 18),
+                  onPressed: () => Navigator.pop(context),
+                ),
 
         actions:
             showCloseButton

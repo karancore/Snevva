@@ -11,12 +11,13 @@ import 'package:http/http.dart' as http;
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/env/env.dart';
 
-import 'package:snevva/models/steps_model.dart';
+
 import 'package:snevva/models/queryParamViewModels/step_goal_vm.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/consts/consts.dart';
 
 import '../../common/global_variables.dart';
+import '../../models/hive_models/steps_model.dart';
 
 class StepCounterController extends GetxController {
   // =======================

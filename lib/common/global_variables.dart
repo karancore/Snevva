@@ -10,6 +10,17 @@ import '../models/medicine_reminder_model.dart';
 
 enum Option { times, interval }
 
+const String reminderBox = 'reminders_box';
+const String medicineKey = 'medicine_list';
+const String waterKey = 'water_model';
+const String eventKey = 'event_map';
+const String mealKey = 'meal_map';
+
+//to access medicne do (reminderBox)[medicineKey];
+
+
+
+
 class MaxValueTextInputFormatter extends TextInputFormatter {
   final int max;
 
@@ -107,18 +118,16 @@ int daysInMonth(int year, int month) {
   return DateTime(year, month + 1, 0).day;
 }
 
-
-
-
-
 String _dateKey(DateTime d) => "${d.year}-${d.month}-${d.day}";
 
 List<String> generateMonthLabels(DateTime month) {
   final now = DateTime.now();
 
-  final int totalDays = (month.year == now.year && month.month == now.month)
-      ? now.day // 🔥 only till today
-      : daysInMonth(month.year, month.month); // full month for past months
+  final int totalDays =
+      (month.year == now.year && month.month == now.month)
+          ? now
+              .day // 🔥 only till today
+          : daysInMonth(month.year, month.month); // full month for past months
 
   return List.generate(totalDays, (i) => '${i + 1}');
 }
@@ -202,6 +211,31 @@ String formatTimeFromHourMinute(int hour, int minute) {
     return '$hour:$minute';
   }
 }
+double heightFactor = 1.073;
+double widthFactor = 1.047;
+
+// final actualHeight = MediaQuery.of(context).size.height;
+// final actualWidth = MediaQuery.of(context).size.width;
+//
+// // Design reference
+// const designHeight = 852.0;
+// const designWidth = 393.0;
+//
+// // Widget design size
+// const widgetHeight = 180.0;
+// const widgetWidth = 280.0;
+//
+// // Scale factors
+// final heightScale = actualHeight / designHeight;
+// final widthScale = actualWidth / designWidth;
+//
+// // Scaled widget size
+// final scaledHeight = widgetHeight * heightScale;
+// final scaledWidth = widgetWidth * widthScale;
+// Height multiplier: 1.073
+//
+// Width multiplier: 1.047
+
 
 TimeOfDay parseTime(String timeString) {
   final format = DateFormat("hh:mm a");
@@ -271,6 +305,7 @@ Map<String, dynamic> deepNormalizeMap(Map raw) {
     return MapEntry(key.toString(), value);
   });
 }
+
 List<List<FlSpot>> splitByZero(List<FlSpot> points) {
   final List<List<FlSpot>> segments = [];
   List<FlSpot> currentSegment = [];

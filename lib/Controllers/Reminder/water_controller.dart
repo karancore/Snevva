@@ -132,7 +132,7 @@ class WaterController extends GetxController {
       );
 
       if (reminders.isEmpty) {
-       return false;
+        return false;
       }
       setIntervalReminders(
         intervalReminders: reminders,
@@ -308,7 +308,6 @@ class WaterController extends GetxController {
     int counter = 0;
 
     while (!current.isAfter(window.end)) {
-
       reminders.add(current);
 
       final next = current.add(Duration(hours: intervalHours));

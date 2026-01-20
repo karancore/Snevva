@@ -51,20 +51,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            Text(
-              "Theme",
-              style: TextStyle(
-                color: Theme.of(context).hintColor,
-                fontWeight: FontWeight.w400,
-                fontSize: 14,
-              ),
-            ),
+            // Text(
+            //   "Theme",
+            //   style: TextStyle(
+            //     color: Theme.of(context).hintColor,
+            //     fontWeight: FontWeight.w400,
+            //     fontSize: 14,
+            //   ),
+            // ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   "Dark Mode",
-                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                 ),
                 CupertinoSwitch(
                   value: themeController.isDarkMode.value,
@@ -76,9 +76,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
-            SizedBox(height: height * 0.0188),
-            const Divider(thickness: border04px, color: mediumGrey),
-            SizedBox(height: height * 0.0188),
+            // SizedBox(height: height * 0.0188),
+            // const Divider(thickness: border04px, color: mediumGrey),
+            // SizedBox(height: height * 0.0188),
             // Text(
             //   "Volume & Access",
             //   style: TextStyle(
@@ -109,47 +109,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // ),
             //
             // SizedBox(height: height * 0.0188),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Push Notifications",
-                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
-                ),
-                CupertinoSwitch(
-                  value: _notificationsToggle,
-                  activeColor: AppColors.activeSwitch,
-                  onChanged: (bool value) {
-                    setState(() {
-                      _notificationsToggle = value;
-                    });
-                  },
-                ),
-              ],
-            ),
-            SizedBox(height: height * 0.0188),
-            const Divider(thickness: border04px, color: mediumGrey),
+            // Row(
+            //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            //   children: [
+            //     Text(
+            //       "Push Notifications",
+            //       style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+            //     ),
+            //     CupertinoSwitch(
+            //       value: _notificationsToggle,
+            //       activeColor: AppColors.activeSwitch,
+            //       onChanged: (bool value) {
+            //         setState(() {
+            //           _notificationsToggle = value;
+            //         });
+            //       },
+            //     ),
+            //   ],
+            // ),
+            // SizedBox(height: height * 0.0188),
+            // const Divider(thickness: border04px, color: mediumGrey),
             // Divider(thickness: 1.0, color: mediumGrey),
-            SizedBox(height: height * 0.0188),
-            Text(
-              "About",
-              style: TextStyle(
-                color: Theme.of(context).hintColor,
-                fontWeight: FontWeight.w400,
-                fontSize: 14,
-              ),
-            ),
+            // SizedBox(height: height * 0.0188),
+            // Text(
+            //   "About",
+            //   style: TextStyle(
+            //     color: Theme.of(context).hintColor,
+            //     fontWeight: FontWeight.w400,
+            //     fontSize: 14,
+            //   ),
+            // ),
             SizedBox(height: height * 0.0117),
             InkWell(
               onTap: () {
                 Get.to(() => AboutScreen());
               },
-              child: Text(
-                "About app",
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
-              ),
+              child: buildTile("About App", "Tap to know")
             ),
-            SizedBox(height: height * 0.0164),
 
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,

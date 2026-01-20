@@ -5,7 +5,7 @@ import 'package:pedometer/pedometer.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../models/steps_model.dart';
+import '../models/hive_models/steps_model.dart';
 
 // Global reference to the pedometer stream subscription
 StreamSubscription<StepCount>? _pedometerSubscription;
@@ -24,12 +24,7 @@ Future<bool> backgroundEntry(ServiceInstance service) async {
       );
     }
 
-    // Init Hive
-    await Hive.initFlutter();
-    if (!Hive.isAdapterRegistered(StepEntryAdapter().typeId)) {
-      Hive.registerAdapter(StepEntryAdapter());
-    }
-    final box = await Hive.openBox<StepEntry>('step_history');
+    final box = await Hive.box<StepEntry>('step_history');
 
     // SharedPrefs (ONCE)
     final prefs = await SharedPreferences.getInstance();

@@ -41,7 +41,12 @@ class SignInController extends GetxController {
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
       headers['X-Data-Hash'] = encryptedEmail['hash']!;
 
-      headers['X-Device-Info'] = extraHeaders!;   
+      headers['X-Device-Info'] = extraHeaders!;
+
+      debugPrint("extra headers $extraHeaders");
+      debugPrint("devive headers $headers['X-Device-Info']");
+      debugPrint("final headers $extraHeaders");
+
 
       debugPrint("Headers: $headers");
      

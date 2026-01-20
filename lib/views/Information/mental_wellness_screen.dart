@@ -26,6 +26,15 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
     });
   }
 
+  Stream<String> emitBackgroundImages({int delaySeconds = 3}) async* {
+    int index = 0;
+    while (true) {
+      yield backgroundImageUrls[index];
+      index = (index + 1) % backgroundImageUrls.length;
+      await Future.delayed(Duration(seconds: delaySeconds));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
@@ -81,13 +90,13 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                           right: index == generalMusic.length - 1 ? 0 : 16,
                         ),
                         child: MentalWellnessHeaderWidget(
-                          height: 180,
+                          height: 180 * heightFactor,
                           musicItem: item,
-                          width: 240,
+                          width: 280 * widthFactor ,
                           playText: '',
                           wellnessContainerImage:
                               generalMusic[index].thumbnailMedia ??
-                              musicPlaceHolder,
+                                  backgroundImageUrls[index],
                           heading: generalMusic[index].title,
                           subHeading:
                               generalMusic[index].artistName == "Unknown"
@@ -137,13 +146,13 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                                   index == meditationMusic.length - 1 ? 0 : 16,
                             ),
                             child: MentalWellnessHeaderWidget(
-                              height: height / 4,
+                              height: 189 * heightFactor,
                               musicItem: item,
-                              width: width / 1.2,
+                              width: 353 * widthFactor,
                               playText: "Play",
                               wellnessContainerImage:
                                   meditationMusic[index].thumbnailMedia ??
-                                  meditationMusicPlaceHolder,
+                                      backgroundImageUrls[index],
                               heading: meditationMusic[index].title,
                               subHeading:
                                   meditationMusic[index].artistName == "Unknown"
@@ -191,11 +200,13 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                   child: Row(
                     spacing: 16,
                     children:
-                        natureMusic.map((item) {
+                        natureMusic.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final item = entry.value;
                           return MentalWellnessFooterWidget(
                             musicItem: item,
                             wellnessContainerImage:
-                                item.thumbnailMedia ?? natureMusicPlaceHolder,
+                                item.thumbnailMedia ?? backgroundImageUrls[index],
                             heading: item.title,
                             subHeading:
                                 item.artistName == "Unknown"

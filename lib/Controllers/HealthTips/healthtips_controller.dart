@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;

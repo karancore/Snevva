@@ -1,26 +1,24 @@
-
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:get/get.dart';
+import 'package:snevva/common/global_variables.dart';
+import 'package:snevva/common/global_variables.dart';
+import 'package:snevva/models/hive_models/reminder_payload_model.dart';
+import 'package:snevva/models/medicine_reminder_model.dart';
+import 'package:snevva/models/water_reminder_model.dart';
 import 'package:timezone/data/latest.dart';
 import 'package:timezone/timezone.dart';
 
-import 'package:snevva/models/steps_model.dart';
-import 'package:snevva/models/sleep_log.dart';
 import 'package:snevva/services/unified_background_service.dart';
 import 'package:snevva/services/notification_service.dart';
 
-import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
-import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
-import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
-import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
-import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
-import 'package:snevva/Controllers/Vitals/vitalsController.dart';
-import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
+import '../models/hive_models/sleep_log.dart';
+import '../models/hive_models/steps_model.dart';
 
 // ====================================================================
 // 0️⃣ NOTIFICATION CHANNEL SETUP (CRITICAL FOR ANDROID 12+)
@@ -73,23 +71,35 @@ Future<void> requestAllPermissions() async {
 // 2️⃣ HIVE INITIALIZATION (CHECK IF ALREADY INITIALIZED)
 // ====================================================================
 Future<void> setupHive() async {
+
+  var directory = await getApplicationDocumentsDirectory();
+  await Hive.initFlutter(directory.path);
   // ✅ Check if Hive is already initialized
   if (Hive.isBoxOpen('step_history') &&
       Hive.isBoxOpen('sleep_log') &&
+      Hive.isBoxOpen('medicine_list') &&
       Hive.isBoxOpen('reminders_box')) {
     print("✅ Hive already initialized, skipping setup");
     return;
   }
 
-  await Hive.initFlutter();
+  // 🔑 OPEN BOXES HERE
+  // await Hive.openBox('sleepBox');
+  // await Hive.openBox('deepSleepBox');
+  // // await Hive.box('medicine_list').clear();
 
   if (!Hive.isAdapterRegistered(StepEntryAdapter().typeId)) {
     Hive.registerAdapter(StepEntryAdapter());
   }
 
+
   if (!Hive.isAdapterRegistered(SleepLogAdapter().typeId)) {
     Hive.registerAdapter(SleepLogAdapter());
   }
+  if (!Hive.isAdapterRegistered(ReminderPayloadModelAdapter().typeId)) {
+    Hive.registerAdapter(ReminderPayloadModelAdapter());
+  }
+
 
   // ✅ Only open boxes if not already open
   if (!Hive.isBoxOpen('step_history')) {
@@ -98,8 +108,11 @@ Future<void> setupHive() async {
   if (!Hive.isBoxOpen('sleep_log')) {
     await Hive.openBox<SleepLog>('sleep_log');
   }
-  if (!Hive.isBoxOpen('reminders_box')) {
-    await Hive.openBox('reminders_box');
+  if (!Hive.isBoxOpen(reminderBox)) {
+    await Hive.openBox(reminderBox);
+  }
+  if (!Hive.isBoxOpen("medicine_list")) {
+    await Hive.openBox('medicine_list');
   }
 
   print("✅ Hive setup complete");
@@ -162,9 +175,6 @@ Future<bool> initializeApp() async {
     // 🌍 Timezone
     initializeTimeZones();
     setLocalLocation(getLocation('Asia/Kolkata'));
-
-    // 📦 Hive
-    await setupHive();
 
     // 🔔 Notification channel
     await createServiceNotificationChannel();

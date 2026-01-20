@@ -8,7 +8,7 @@ part of 'steps_model.dart';
 
 class StepEntryAdapter extends TypeAdapter<StepEntry> {
   @override
-  final int typeId = 0;
+  final int typeId = 5;
 
   @override
   StepEntry read(BinaryReader reader) {

@@ -15,11 +15,11 @@ import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 
 import 'package:snevva/initial_bindings.dart';
-import 'package:snevva/models/steps_model.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import '../../consts/consts.dart';
+import '../../models/hive_models/steps_model.dart';
 import '../home_wrapper.dart';
 import 'drawer_menu_item.dart';
 
@@ -38,15 +38,12 @@ class DrawerMenuWidget extends StatelessWidget {
     await prefs.clear();
 
     try {
-      if (!Hive.isBoxOpen('step_history'))
-        await Hive.openBox<StepEntry>('step_history');
+
       await Hive.box<StepEntry>('step_history').clear();
     } catch (e) {
       print('❌ Failed to clear step_history on logout: $e');
-      // attempt reopen once
       try {
-        await Hive.openBox<StepEntry>('step_history');
-        await Hive.box<StepEntry>('step_history').clear();
+       await Hive.box<StepEntry>('step_history').clear();
       } catch (e2) {
         print('❌ Second attempt to clear step_history failed: $e2');
       }

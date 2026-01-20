@@ -2,12 +2,14 @@ import 'package:alarm/model/alarm_settings.dart';
 import 'package:flutter/material.dart';
 
 class MedicineReminderModel {
+  final String id;
   final String title;
   final String note;
   final List<MedicineItem> medicines;
   final AlarmSettings alarm;
 
   MedicineReminderModel({
+    required this.id,
     required this.title,
     required this.note,
     required this.medicines,
@@ -16,6 +18,7 @@ class MedicineReminderModel {
 
   // Convert to JSON for SharedPreferences
   Map<String, dynamic> toJson() => {
+    'id': id,
     'title': title,
     'medicines': medicines.map((e) => e.toJson()).toList(),
     'note': note,
@@ -25,23 +28,32 @@ class MedicineReminderModel {
   // Load JSON back into model
   factory MedicineReminderModel.fromJson(Map<String, dynamic> json) {
     return MedicineReminderModel(
+      id: json['id'],
       title: json['title'],
       note: json['note'],
-      medicines: (json['medicines'] as List)
-          .map((e) => MedicineItem.fromJson(e))
-          .toList(),
+      medicines:
+          (json['medicines'] as List)
+              .map((e) => MedicineItem.fromJson(e))
+              .toList(),
       alarm: AlarmSettings.fromJson(json['alarm']),
     );
   }
+  @override
+  String toString() {
+    return 'MedicineReminderModel('
+        'title: $title, '
+        'note: $note, '
+        'medicines: $medicines, '
+        'alarm: $alarm'
+        ')';
+  }
 }
+
 class MedicineItem {
   String name;
   List<MedicineTime> times;
 
-  MedicineItem({
-    required this.name,
-    required this.times,
-  });
+  MedicineItem({required this.name, required this.times});
 
   Map<String, dynamic> toJson() => {
     'name': name,
@@ -51,25 +63,36 @@ class MedicineItem {
   factory MedicineItem.fromJson(Map<String, dynamic> json) {
     return MedicineItem(
       name: json['name'],
-      times: (json['times'] as List)
-          .map((e) => MedicineTime.fromJson(e))
-          .toList(),
+      times:
+          (json['times'] as List).map((e) => MedicineTime.fromJson(e)).toList(),
     );
   }
+  @override
+  String toString() {
+    return 'MedicineItem('
+        'name: $name, '
+        'times: $times'
+        ')';
+  }
 }
+
 class MedicineTime {
   final TimeOfDay time;
 
   MedicineTime({required this.time});
 
-  Map<String, dynamic> toJson() => {
-    'hour': time.hour,
-    'minute': time.minute,
-  };
+  Map<String, dynamic> toJson() => {'hour': time.hour, 'minute': time.minute};
 
   factory MedicineTime.fromJson(Map<String, dynamic> json) {
     return MedicineTime(
       time: TimeOfDay(hour: json['hour'], minute: json['minute']),
     );
+  }
+  @override
+  String toString() {
+    return 'MedicineTime('
+        'time: ${time.hour.toString().padLeft(2, '0')}:'
+        '${time.minute.toString().padLeft(2, '0')}'
+        ')';
   }
 }

@@ -2,13 +2,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
-
 import 'package:snevva/common/loader.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Reminder/add_reminder_screen.dart';
-
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
-import '../../common/animted_reminder_bar.dart';
 import '../../common/custom_snackbar.dart';
 import '../../common/global_variables.dart';
 
@@ -27,8 +24,9 @@ class _ReminderScreenState extends State<ReminderScreen> {
   void initState() {
     super.initState();
     // Load both API reminders and local alarm lists
-    _loadData();
-    controller.loadAllReminderLists();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
   }
 
   Future<void> _loadData() async {
@@ -64,7 +62,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(noReminders ,scale: 2,),
+                Image.asset(noReminders, scale: 2),
                 SizedBox(height: 8),
                 Text(
                   'Tap "+ Add Reminder" to create one',
@@ -145,19 +143,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
                                       size: 24,
                                       color: mediumGrey,
                                     ),
-                                    onPressed: () async {
-                                      final result = await Get.to(
-                                        () => AddReminderScreen(
-                                          reminder: reminder,
-                                        ),
-                                      );
-                                      if (result == true) {
-                                        await _loadData();
-                                        // setState(() {
-                                        //   showReminderBar = true;
-                                        // });
-                                      }
-                                    },
+                                    onPressed: () {},
                                   ),
                                 ],
                               ),
@@ -232,8 +218,8 @@ class _ReminderScreenState extends State<ReminderScreen> {
                 ) ??
                 0;
 
-    print(reminder.toString());
-    print(reminder);
+    logLong(" Reminder Screen ", reminder.toString());
+
     switch (category) {
       case 'Medicine':
         return Column(
@@ -241,7 +227,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
           children: [
             if (reminder['MedicineName'] != null)
               Text(
-                'Medicine : ${(reminder['MedicineName'] as List).join(', ')}',
+                'Medicine : ${buildMedicineText(reminder['MedicineName'])}',
                 style: TextStyle(fontSize: 12, color: Color(0xff878787)),
               ),
             if (reminder['Description'] != null &&
@@ -256,7 +242,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                Image.asset(
+                SvgPicture.asset(
                   clockRemIcon,
                   color: Color(0xff878787),
                   width: 12,
@@ -270,7 +256,6 @@ class _ReminderScreenState extends State<ReminderScreen> {
                 Spacer(),
                 InkWell(
                   onTap: () {
-                    print("$reminder tapped");
                     Get.to(AddReminderScreen(reminder: reminder));
                   },
                   child: SvgPicture.asset(
@@ -286,7 +271,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
                   child: Padding(
                     padding: const EdgeInsets.only(right: 14.0),
                     child: Icon(
-                      Icons.delete,
+                      Icons.delete_forever_rounded,
                       size: 18,
                       color: Color(0xff878787),
                     ),
@@ -301,29 +286,29 @@ class _ReminderScreenState extends State<ReminderScreen> {
         return Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (reminder['RemindFrequencyCount'] != null &&
-                      reminder['RemindFrequencyCount'] > 0)
-                    Text(
-                      "Times per day: ${reminder['RemindFrequencyCount']}",
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12, color: Color(0xff878787)),
-                    ),
+            const SizedBox(width: 4),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (reminder['RemindFrequencyCount'] != null &&
+                    reminder['RemindFrequencyCount'] > 0)
+                  Text(
+                    "Times per day: ${reminder['RemindFrequencyCount']}",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, color: Color(0xff878787)),
+                  ),
 
-                  if (freqHour > 0)
-                    Text(
-                      "Reminder will ring after every $frequencyHour ${pluralizeHour(frequencyHour)}",
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12, color: Color(0xff878787)),
-                    ),
-                ],
-              ),
+                if (freqHour > 0)
+                  Text(
+                    "Reminder will ring after every $frequencyHour ${pluralizeHour(frequencyHour)}",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, color: Color(0xff878787)),
+                  ),
+              ],
             ),
+            const Spacer(),
 
             InkWell(
               onTap: () => Get.to(AddReminderScreen(reminder: reminder)),
@@ -337,8 +322,14 @@ class _ReminderScreenState extends State<ReminderScreen> {
             const SizedBox(width: 16),
             InkWell(
               onTap: () => _showDeleteConfirmation(reminder),
-              child: Icon(Icons.delete, size: 18, color: Color(0xff878787)),
+              child: Icon(
+                Icons.delete_forever_rounded,
+                size: 18,
+                color: Color(0xff878787),
+              ),
+
             ),
+            const SizedBox(width: 14),
           ],
         );
 
@@ -347,7 +338,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            Image.asset(
+            SvgPicture.asset(
               clockRemIcon,
               color: Color(0xff878787),
               width: 12,
@@ -362,7 +353,6 @@ class _ReminderScreenState extends State<ReminderScreen> {
             Spacer(),
             InkWell(
               onTap: () {
-                print("$reminder tapped");
                 Get.to(AddReminderScreen(reminder: reminder));
               },
               child: SvgPicture.asset(
@@ -377,7 +367,11 @@ class _ReminderScreenState extends State<ReminderScreen> {
               onTap: () => _showDeleteConfirmation(reminder),
               child: Padding(
                 padding: const EdgeInsets.only(right: 14.0),
-                child: Icon(Icons.delete, size: 18, color: Color(0xff878787)),
+                child: Icon(
+                  Icons.delete_forever_rounded,
+                  size: 18,
+                  color: Color(0xff878787),
+                ),
               ),
             ),
 
@@ -393,7 +387,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                Image.asset(
+                SvgPicture.asset(
                   clockRemIcon,
                   color: Color(0xff878787),
                   width: 12,
@@ -407,7 +401,6 @@ class _ReminderScreenState extends State<ReminderScreen> {
                 Spacer(),
                 InkWell(
                   onTap: () {
-                    print("$reminder tapped");
                     Get.to(AddReminderScreen(reminder: reminder));
                   },
                   child: SvgPicture.asset(
@@ -423,7 +416,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
                   child: Padding(
                     padding: const EdgeInsets.only(right: 14.0),
                     child: Icon(
-                      Icons.delete,
+                      Icons.delete_forever_rounded,
                       size: 18,
                       color: Color(0xff878787),
                     ),

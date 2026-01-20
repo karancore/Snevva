@@ -10,6 +10,7 @@ import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/common/custom_snackbar.dart';
+import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/initial_bindings.dart';
 import 'package:snevva/services/device_token_service.dart';
@@ -41,7 +42,7 @@ final moodcontroller = Get.put(MoodController());
 final bottomsheetcontroller = Get.put(BottomSheetController());
 
 final localStorageManager = Get.find<LocalStorageManager>();
-final DeviceTokenService deviceTokenService = Get.find<DeviceTokenService>();
+final deviceTokenService = DeviceTokenService();
 
 class _SignInScreenState extends State<SignInScreen> {
   late TextEditingController userEmailOrPhoneField;

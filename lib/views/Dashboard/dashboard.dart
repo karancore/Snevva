@@ -67,12 +67,10 @@ class _DashboardState extends State<Dashboard>
 
     _animationController.forward();
 
-    WidgetsBinding.instance.addPostFrameCallback((_){
-
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       Get.put(HydrationStatController());
       Get.put(MoodController());
       Get.put(EditprofileController());
-
     });
 
     // Get.put(StepCounterController().loadtodaySteps());

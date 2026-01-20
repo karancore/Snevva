@@ -39,16 +39,14 @@ class _HomeWrapperState extends State<HomeWrapper> {
     super.initState();
     bmiController.loadUserBMI();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-
-        await _startupSequence();
-
+      await _startupSequence();
     });
-
 
     //fetchFCMToken();
     // checksession();
     // localStorageManager.checksession();
   }
+
   Future<void> _startupSequence() async {
     // 1️⃣ Permissions first
     await requestAllPermissions();
@@ -58,8 +56,6 @@ class _HomeWrapperState extends State<HomeWrapper> {
 
     // 3️⃣ THEN start background service
     await initBackgroundService();
-
-
 
     await FirebaseMessaging.instance.requestPermission();
     await setupNotificationChannel();

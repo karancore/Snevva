@@ -106,21 +106,10 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 16, top: 8),
-          child: Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: mediumGrey,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.only(left: 6),
-              child: IconButton(
-                icon: Icon(Icons.arrow_back_ios, size: 18, color: Colors.white),
-                onPressed: () => SignInScreen(),
-              ),
-            ),
-          ),
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios, size: 18,),
+          onPressed: () => Get.to(SignInScreen()),
         ),
         centerTitle: true,
         title: Padding(

@@ -8,7 +8,7 @@ part of 'sleep_log.dart';
 
 class SleepLogAdapter extends TypeAdapter<SleepLog> {
   @override
-  final int typeId = 1;
+  final int typeId = 4;
 
   @override
   SleepLog read(BinaryReader reader) {

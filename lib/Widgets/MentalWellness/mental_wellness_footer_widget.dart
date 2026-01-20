@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:snevva/common/global_variables.dart';
 
 import '../../consts/consts.dart';
 import '../../models/music/music_response.dart';
@@ -30,8 +31,8 @@ class MentalWellnessFooterWidget extends StatelessWidget {
             ),
           ),
       child: Container(
-        height: 108,
-        width: 108,
+        height: 100 * heightFactor,
+        width: 100 * widthFactor,
 
         decoration: BoxDecoration(
           color: Color(0xFF01021D),
@@ -57,12 +58,12 @@ class MentalWellnessFooterWidget extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     SizedBox(height: 10),
-                    Icon(Icons.play_arrow, color: black, size: 28),
+                    Icon(Icons.play_arrow, color: white, size: 28),
                     SizedBox(height: 5),
                     Flexible(
                       child: Text(
                         heading.trim().split(RegExp(r'\s+')).join('\n'),
-                        style: TextStyle(color: black, fontSize: 16),
+                        style: TextStyle(color: white, fontSize: 16),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,

@@ -2,7 +2,7 @@ import 'package:hive/hive.dart';
 
 part 'steps_model.g.dart'; // for generated adapter
 
-@HiveType(typeId: 0)
+@HiveType(typeId: 5)
 class StepEntry extends HiveObject {
   @HiveField(0)
   DateTime date;

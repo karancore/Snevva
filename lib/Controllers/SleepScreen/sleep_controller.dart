@@ -12,10 +12,14 @@ import 'package:snevva/models/awake_interval.dart';
 import 'package:snevva/services/api_service.dart';
 
 import '../../common/global_variables.dart';
-import '../../models/sleep_log.dart';
+
+import '../../models/hive_models/sleep_log.dart';
 import '../../services/sleep_noticing_service.dart';
 
 class SleepController extends GetxController {
+  String BEDTIME_KEY = 'user_bedtime_ms';
+  String WAKETIME_KEY = 'user_waketime_ms';
+
   /// User bedtime & waketime
   final Rxn<DateTime> bedtime = Rxn<DateTime>();
   final Rxn<DateTime> waketime = Rxn<DateTime>();
@@ -49,7 +53,7 @@ class SleepController extends GetxController {
     _sleepService.onPhoneUsageDetected = onPhoneUsed;
 
     loadDeepSleepData();
-    _loadSleepGoal();
+    loadUserSleepTimes();
   }
 
   @override
@@ -58,7 +62,6 @@ class SleepController extends GetxController {
     _sleepService.stopMonitoring();
     super.onClose();
   }
-  
 
   String getSleepStatus(Duration? duration) {
     if (duration == null || duration.inMinutes <= 0) return '';
@@ -110,15 +113,16 @@ class SleepController extends GetxController {
     return c;
   }
 
-  Future<void> _loadSleepGoal() async {
-  final prefs = await SharedPreferences.getInstance();
-  final b = prefs.getInt('sleep_bedtime');
-  final w = prefs.getInt('sleep_waketime');
+  void loadUserSleepTimes() {
+    final bedMs = box.read(BEDTIME_KEY);
+    final wakeMs = box.read(WAKETIME_KEY);
 
-  if (b != null && w != null) {
-    bedtime.value = DateTime.fromMillisecondsSinceEpoch(b);
-    waketime.value = DateTime.fromMillisecondsSinceEpoch(w);
-  }
+    if (bedMs is int) {
+      bedtime.value = DateTime.fromMillisecondsSinceEpoch(bedMs);
+    }
+    if (wakeMs is int) {
+      waketime.value = DateTime.fromMillisecondsSinceEpoch(wakeMs);
+    }
   }
 
   Map<String, Duration> calculateSplitDeepSleep({
@@ -244,10 +248,9 @@ class SleepController extends GetxController {
       savesleepToLocalStorage();
 
       if (deepSleepHistory.isNotEmpty) {
-  final latestKey = deepSleepHistory.keys.last;
-  deepSleepDuration.value = deepSleepHistory[latestKey];
-}
-
+        final latestKey = deepSleepHistory.keys.last;
+        deepSleepDuration.value = deepSleepHistory[latestKey];
+      }
 
       print("✅ Sleep history loaded: $deepSleepHistory");
     } catch (e) {
@@ -466,27 +469,24 @@ class SleepController extends GetxController {
   // SAVE (NO OVERWRITE)
   // ─────────────────────────────────────────────
 
-  Future<void> saveDeepSleepData(DateTime date, Duration duration) async {
-    final key = _dateKey(date);
+  Future<void> saveDeepSleepData(DateTime bedDate, Duration duration) async {
+    final key = _dateKey(bedDate);
 
-    if (deepSleepHistory.containsKey(key)) {
-  debugPrint("⛔ Already saved for $key");
-  return;
-}
+    if (_box.containsKey(key)) {
+      debugPrint("⛔ Already saved for $key");
+      return;
+    }
 
-
-    deepSleepHistory[key] = duration;
-
-    await _box.add(
+    await _box.put(
+      key,
       SleepLog(
-        date: DateTime(date.year, date.month, date.day),
+        date: DateTime(bedDate.year, bedDate.month, bedDate.day),
         durationMinutes: duration.inMinutes,
       ),
     );
 
+    deepSleepHistory[key] = duration;
     _updateDeepSleepSpots();
-
-    print("✅ Saved sleep for $key (${duration.inMinutes} min)");
   }
 
   // ─────────────────────────────────────────────
@@ -528,31 +528,32 @@ class SleepController extends GetxController {
     _sleepService.stopMonitoring();
   }
 
-  void _startMorningAutoCheck(){
+  void _startMorningAutoCheck() {
     _morningCheckTimer?.cancel();
 
-    _morningCheckTimer = Timer.periodic(const Duration(minutes: 1), (timer) async {
+    _morningCheckTimer = Timer.periodic(const Duration(minutes: 1), (
+      timer,
+    ) async {
       final now = DateTime.now();
 
       if (waketime.value != null) {
-  final wakeToday = DateTime(
-    now.year,
-    now.month,
-    now.day,
-    waketime.value!.hour,
-    waketime.value!.minute,
-  );
+        final wakeToday = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          waketime.value!.hour,
+          waketime.value!.minute,
+        );
 
-  if (now.isAfter(wakeToday)) {
-    if (_didPhoneUsageOccur) {
-      await _finalizeSleepCycle();
-    } else {
-      await _handleSleepWithoutPhoneUsage();
-    }
-    timer.cancel();
-  }
-}
-
+        if (now.isAfter(wakeToday)) {
+          if (_didPhoneUsageOccur) {
+            await _finalizeSleepCycle();
+          } else {
+            await _handleSleepWithoutPhoneUsage();
+          }
+          timer.cancel();
+        }
+      }
     });
   }
 
@@ -604,7 +605,6 @@ class SleepController extends GetxController {
   // ─────────────────────────────────────────────
 
   Future<void> onPhoneUsed(DateTime start, DateTime end) async {
-
     _didPhoneUsageOccur = true;
 
     if (bedtime.value == null || waketime.value == null) return;
@@ -631,8 +631,7 @@ class SleepController extends GetxController {
     final clampedEnd = end.isAfter(sleepEnd) ? sleepEnd : end;
 
     final duration = clampedEnd.difference(clampedStart);
-if (duration.inSeconds < 30) return;
-
+    if (duration.inSeconds < 30) return;
 
     _awakeIntervals.add(AwakeInterval(clampedStart, clampedEnd));
 
@@ -640,33 +639,32 @@ if (duration.inSeconds < 30) return;
   }
 
   List<AwakeInterval> mergeAwakeIntervals(List<AwakeInterval> intervals) {
-  if (intervals.isEmpty) return [];
+    if (intervals.isEmpty) return [];
 
-  // Sort by start time
-  intervals.sort((a, b) => a.start.compareTo(b.start));
+    // Sort by start time
+    intervals.sort((a, b) => a.start.compareTo(b.start));
 
-  final List<AwakeInterval> merged = [];
-  AwakeInterval current = intervals.first;
+    final List<AwakeInterval> merged = [];
+    AwakeInterval current = intervals.first;
 
-  for (int i = 1; i < intervals.length; i++) {
-    final next = intervals[i];
+    for (int i = 1; i < intervals.length; i++) {
+      final next = intervals[i];
 
-    // Overlap OR touching intervals → merge
-    if (!next.start.isAfter(current.end)) {
-      current = AwakeInterval(
-        current.start,
-        next.end.isAfter(current.end) ? next.end : current.end,
-      );
-    } else {
-      merged.add(current);
-      current = next;
+      // Overlap OR touching intervals → merge
+      if (!next.start.isAfter(current.end)) {
+        current = AwakeInterval(
+          current.start,
+          next.end.isAfter(current.end) ? next.end : current.end,
+        );
+      } else {
+        merged.add(current);
+        current = next;
+      }
     }
+
+    merged.add(current);
+    return merged;
   }
-
-  merged.add(current);
-  return merged;
-}
-
 
   Future<void> _finalizeSleepCycle() async {
     if (bedtime.value == null || waketime.value == null) return;
@@ -687,11 +685,10 @@ if (duration.inSeconds < 30) return;
 
     final mergedIntervals = mergeAwakeIntervals(_awakeIntervals);
 
-Duration awakeTotal = Duration.zero;
-for (final a in mergedIntervals) {
-  awakeTotal += a.end.difference(a.start);
-}
-
+    Duration awakeTotal = Duration.zero;
+    for (final a in mergedIntervals) {
+      awakeTotal += a.end.difference(a.start);
+    }
 
     final deepSleep = totalWindow - awakeTotal;
     if (deepSleep.inMinutes < 10) return;
@@ -712,11 +709,11 @@ for (final a in mergedIntervals) {
 
   void setBedtime(DateTime time) {
     bedtime.value = time;
-    box.write("bedtime", time.millisecondsSinceEpoch);
+    box.write(BEDTIME_KEY, time.millisecondsSinceEpoch);
   }
 
   void setWakeTime(DateTime time) {
     waketime.value = time;
-    box.write("waketime", time.millisecondsSinceEpoch);
+    box.write(WAKETIME_KEY, time.millisecondsSinceEpoch);
   }
 }

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+
+        <!-- Splash background -->
+        <item name="android:windowSplashScreenBackground">
+            @android:color/black
+        </item>
+
+        <!-- Splash icon (VECTOR) -->
+        <item name="android:windowSplashScreenAnimatedIcon">
+            @mipmap/snevva_elly_round
+        </item>
+
+
+    </style>
+
+</resources>

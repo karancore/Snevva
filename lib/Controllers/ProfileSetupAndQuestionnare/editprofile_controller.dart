@@ -557,18 +557,19 @@ class EditprofileController extends GetxController {
                   defaultPinTheme: defaultPinTheme,
                   focusedPinTheme: focusedPinTheme,
                   submittedPinTheme: submittedPinTheme,
+                  onCompleted: (pin){},
                   followingPinTheme: followingPinTheme,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  onCompleted: (pin) async {
-                    otpVerificationStatus = await otpVerificationController
-                        .verifyOtp(pin, ctx);
-                    if (otpVerificationStatus) {
-                      localStorageManager.userMap['Email'] = initialValue;
-                      email = initialValue;
-                      await signupController.updateGmail(email, ctx);
-                      if (onUpdated != null) onUpdated();
-                    }
-                  },
+                  // onCompleted: (pin) async {
+                  //   otpVerificationStatus = await otpVerificationController
+                  //       .verifyOtp(pin, , ctx);
+                  //   if (otpVerificationStatus) {
+                  //     localStorageManager.userMap['Email'] = initialValue;
+                  //     email = initialValue;
+                  //     await signupController.updateGmail(email, ctx);
+                  //     if (onUpdated != null) onUpdated();
+                  //   }
+                  // },
                 ),
 
                 const SizedBox(height: 15),
@@ -679,14 +680,14 @@ class EditprofileController extends GetxController {
                   followingPinTheme: followingPinTheme,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   onCompleted: (pin) async {
-                    otpVerificationStatus = await otpVerificationController
-                        .verifyOtp(pin, ctx);
-                    if (otpVerificationStatus) {
-                      localStorageManager.userMap['PhoneNumber'] = initialValue;
-                      phoneNumber = initialValue;
-                      await signupController.updatePhone(phoneNumber, ctx);
-                      if (onUpdated != null) onUpdated();
-                    }
+                   //  otpVerificationStatus = await otpVerificationController
+                   //      .verifyOtp(pin, ctx);
+                   //  if (otpVerificationStatus) {
+                   //    localStorageManager.userMap['PhoneNumber'] = initialValue;
+                   //    phoneNumber = initialValue;
+                   //    await signupController.updatePhone(phoneNumber, ctx);
+                   //    if (onUpdated != null) onUpdated();
+                   // }
                   },
                 ),
 
