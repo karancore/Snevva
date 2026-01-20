@@ -20,6 +20,7 @@ class SignInController extends GetxController {
     String email,
     String password,
     BuildContext context,
+    Map<String, String>? extraHeaders,
   ) async {
     if (email.isEmpty) {
       CustomSnackbar.showError(
@@ -39,6 +40,11 @@ class SignInController extends GetxController {
 
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
       headers['X-Data-Hash'] = encryptedEmail['hash']!;
+
+      // Add device-specific headers dynamically
+      if (extraHeaders != null) {
+        headers.addAll(extraHeaders);
+      }
 
       final encryptedRequestBody = jsonEncode({
         'data': encryptedEmail['encryptedData'],
@@ -241,6 +247,7 @@ class SignInController extends GetxController {
     String phone,
     String password,
     BuildContext context,
+    Map<String, String>? extraHeaders,
   ) async {
     if (phone.isEmpty) {
       CustomSnackbar.showError(
@@ -259,6 +266,10 @@ class SignInController extends GetxController {
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
 
       headers['X-Data-Hash'] = encryptedPhone['hash']!;
+
+      if (extraHeaders != null) {
+        headers.addAll(extraHeaders);
+      }
 
       final encryptedRequestBody = jsonEncode({
         'data': encryptedPhone['encryptedData'],

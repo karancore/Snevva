@@ -1,4 +1,5 @@
 import 'package:flutter/gestures.dart';
+import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import '../../Controllers/signupAndSignIn/create_password_controller.dart';
 import '../../common/custom_snackbar.dart';
@@ -22,13 +23,17 @@ class CreateNewPassword extends StatefulWidget {
 
 class _CreateNewPasswordState extends State<CreateNewPassword> {
   final controller = Get.put(CreatePasswordController());
+  final deviceservice = Get.find<DeviceTokenService>();
 
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    void onCreatePasswordButtonClick() {
+
+    
+    void onCreatePasswordButtonClick() async{
+      dynamic deviceHeaders = await deviceservice.getDeviceHeaders();
       if (controller.password.value.isEmpty ||
           controller.confirmPassword.value.isEmpty) {
         CustomSnackbar.showError(
@@ -75,6 +80,7 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
           widget.otpVerificationStatus,
           controller.confirmPasswordController.text.trim(),
           context,
+          deviceHeaders,
         );
       } else if (RegExp(r'^\d{10,}$').hasMatch(widget.emailOrPhoneText)) {
         localStorageManager.userMap['PhoneNumber'] =
@@ -85,6 +91,7 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
           widget.otpVerificationStatus,
           controller.confirmPasswordController.text.trim(),
           context,
+          deviceHeaders,
         );
       } else {
         CustomSnackbar.showError(
