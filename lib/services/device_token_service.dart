@@ -8,30 +8,70 @@ import '../env/env.dart';
 
 class DeviceTokenService {
   /// ✅ Get stable device ID
-  Future<String> getDeviceId() async {
-    final deviceInfo = DeviceInfoPlugin();
+  // Future<String> getDeviceId() async {
+  //   final deviceInfo = DeviceInfoPlugin();
 
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      final android = await deviceInfo.androidInfo;
-      return android.id ?? "unknown_android";
-    }
+  //   if (defaultTargetPlatform == TargetPlatform.android) {
+  //     final android = await deviceInfo.androidInfo;
+  //     return android.id ?? "unknown_android";
+  //   }
 
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      final ios = await deviceInfo.iosInfo;
-      return ios.identifierForVendor ?? "unknown_ios";
-    }
+  //   if (defaultTargetPlatform == TargetPlatform.iOS) {
+  //     final ios = await deviceInfo.iosInfo;
+  //     return ios.identifierForVendor ?? "unknown_ios";
+  //   }
 
-    return "unknown_device";
+  //   return "unknown_device";
+  // }
+
+  Future<Map<String, String>> getDeviceHeaders() async {
+  final deviceInfo = DeviceInfoPlugin();
+
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    final android = await deviceInfo.androidInfo;
+    return {
+      "platform": "android",
+      "brand": android.brand ?? "unknown",
+      "model": android.model ?? "unknown",
+      "device": android.device ?? "unknown",
+      "product": android.product ?? "unknown",
+      "hardware": android.hardware ?? "unknown",
+      "physical": (android.isPhysicalDevice ?? false).toString(),
+      "abi": (android.supportedAbis.isNotEmpty ? android.supportedAbis.first : "unknown"),
+      "androidVersion": android.version.release ?? "unknown",
+      "sdkInt": android.version.sdkInt.toString(),
+      "securityPatch": android.version.securityPatch ?? "unknown",
+      "lowRam": (android.isLowRamDevice ?? false).toString(),
+    };
   }
+
+  if (defaultTargetPlatform == TargetPlatform.iOS) {
+    final ios = await deviceInfo.iosInfo;
+    return {
+      "platform": "ios",
+      "brand": "apple",
+      "model": ios.utsname.machine ?? "unknown",
+      "device": ios.name ?? "unknown",
+      "product": ios.model ?? "unknown",
+      "hardware": ios.utsname.machine ?? "unknown",
+      "physical": (ios.isPhysicalDevice ?? false).toString(),
+      "abi": "arm64", // iOS default
+      "iosVersion": ios.systemVersion ?? "unknown",
+      "securityPatch": "unknown",
+      "lowRam": "false",
+    };
+  }
+
+  return {"platform": "unknown"};
+}
+
 
   /// ✅ Register device token
   Future<bool> registerDeviceToken({
     required String fcmToken,
-    required String deviceId,
   }) async {
     final payload = {
       "FCMToken": fcmToken,
-      "DeviceInfo": deviceId,
     };
 
     final response = await ApiService.post(
@@ -45,26 +85,26 @@ class DeviceTokenService {
   }
 
   /// ✅ Change device (logout old one)
-  Future<bool> changeDeviceToken({
-    required String newDeviceId,
-    required String oldDeviceId,
-    required String fcmToken,
-  }) async {
-    final payload = {
-      "DeviceInfo": newDeviceId,
-      "FCMToken": fcmToken,
-      "OldDeviceInfoId": oldDeviceId,
-    };
+  // Future<bool> changeDeviceToken({
+  //   required String newDeviceId,
+  //   required String oldDeviceId,
+  //   required String fcmToken,
+  // }) async {
+  //   final payload = {
+  //     "DeviceInfo": newDeviceId,
+  //     "FCMToken": fcmToken,
+  //     "OldDeviceInfoId": oldDeviceId,
+  //   };
 
-    final response = await ApiService.post(
-      changeDeviceApi,
-      payload,
-      withAuth: true,
-      encryptionRequired: true,
-    );
+  //   final response = await ApiService.post(
+  //     changeDeviceApi,
+  //     payload,
+  //     withAuth: true,
+  //     encryptionRequired: true,
+  //   );
 
-    return _isSuccess(response);
-  }
+  //   return _isSuccess(response);
+  // }
 
   /// ✅ Unified response check
   bool _isSuccess(dynamic response) {
@@ -76,53 +116,51 @@ class DeviceTokenService {
     }
   }
 
-  /// ✅ Main entry point (call after login)
+  // ✅ Main entry point (call after login)
   Future<void> handleDeviceRegistration() async {
     final prefs = await SharedPreferences.getInstance();
 
-    final currentDeviceId = await getDeviceId();
-    final storedDeviceId = prefs.getString('device_id');
+    // final currentDeviceId = await getDeviceId();
+    // final storedDeviceId = prefs.getString('device_id');
 
     final fcmToken = await FirebaseMessaging.instance.getToken();
     if (fcmToken == null || fcmToken.isEmpty) return;
 
     // First login
-    if (storedDeviceId == null) {
+    // if (storedDeviceId == null) {
       final success = await registerDeviceToken(
         fcmToken: fcmToken,
-        deviceId: currentDeviceId,
       );
 
       if (success) {
-        await _persist(prefs, currentDeviceId, fcmToken);
+        await _persist(prefs, fcmToken);
       }
       return;
     }
 
-    // Same device → skip
-    if (storedDeviceId == currentDeviceId) {
-      debugPrint("✅ Same device, skipping registration");
-      return;
-    }
+    // // Same device → skip
+    // if (storedDeviceId == currentDeviceId) {
+    //   debugPrint("✅ Same device, skipping registration");
+    //   return;
+    // }
 
-    // Different device → update backend
-    final success = await changeDeviceToken(
-      newDeviceId: currentDeviceId,
-      oldDeviceId: storedDeviceId,
-      fcmToken: fcmToken,
-    );
+    // // Different device → update backend
+    // final success = await changeDeviceToken(
+    //   newDeviceId: currentDeviceId,
+    //   oldDeviceId: storedDeviceId,
+    //   fcmToken: fcmToken,
+    // );
 
-    if (success) {
-      await _persist(prefs, currentDeviceId, fcmToken);
-    }
-  }
+    // if (success) {
+    //   await _persist(prefs, currentDeviceId, fcmToken);
+    // }
+  // }
 
   Future<void> _persist(
     SharedPreferences prefs,
-    String deviceId,
     String fcmToken,
   ) async {
-    await prefs.setString('device_id', deviceId);
+    // await prefs.setString('device_id', deviceId);
     await prefs.setString('fcm_token', fcmToken);
   }
 }

@@ -12,6 +12,7 @@ import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/initial_bindings.dart';
+import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/height_and_weight_screen.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/questionnaire_screen.dart';
@@ -40,6 +41,7 @@ final moodcontroller = Get.put(MoodController());
 final bottomsheetcontroller = Get.put(BottomSheetController());
 
 final localStorageManager = Get.find<LocalStorageManager>();
+final DeviceTokenService deviceTokenService = Get.find<DeviceTokenService>();
 
 class _SignInScreenState extends State<SignInScreen> {
   late TextEditingController userEmailOrPhoneField;
@@ -100,7 +102,7 @@ class _SignInScreenState extends State<SignInScreen> {
       year: DateTime.now().year,
     );
 
-    localStorageManager.registerDeviceIfNeeded();
+    localStorageManager.registerDeviceFCMIfNeeded();
 
     // await bottomsheetcontroller.loaddatafromAPI();
     // await womenhealthController.lastPeriodDatafromAPI();
@@ -197,6 +199,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
     try {
       bool success = false;
+      dynamic deviceHeaders = await deviceTokenService.getDeviceHeaders();
 
       if (isEmail) {
         // 🔹 Email Login
@@ -204,6 +207,7 @@ class _SignInScreenState extends State<SignInScreen> {
           input,
           password,
           context,
+          deviceHeaders,
         );
       } else if (isPhone) {
         // 🔹 Phone Login
@@ -211,6 +215,7 @@ class _SignInScreenState extends State<SignInScreen> {
           input,
           password,
           context,
+          deviceHeaders
         );
       } else {
         print("Invalid input format");

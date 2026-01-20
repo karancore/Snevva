@@ -18,7 +18,7 @@ class LocalStorageManager extends GetxController {
   }
 
   /// ✅ Call this AFTER login success
-  Future<void> registerDeviceIfNeeded() async {
+  Future<void> registerDeviceFCMIfNeeded() async {
     await _deviceTokenService.handleDeviceRegistration();
   }
 

@@ -62,6 +62,7 @@ class CreatePasswordController extends GetxController {
     bool verificationStatus,
     String password,
     BuildContext context,
+    Map<String, String>? extraHeaders, 
   ) async {
     final newPlanePassword = jsonEncode({
       'Gmail': email,
@@ -76,6 +77,10 @@ class CreatePasswordController extends GetxController {
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
 
       headers['X-Data-Hash'] = encryptedPassword['hash']!;
+
+       if (extraHeaders != null) {
+    headers.addAll(extraHeaders);
+  }
 
       final encryptedBody = jsonEncode({
         'data': encryptedPassword['encryptedData'],
@@ -129,7 +134,7 @@ class CreatePasswordController extends GetxController {
           message: 'Password Created Successfully with gmail',
         );
 
-        localStorageManager.registerDeviceIfNeeded();
+        localStorageManager.registerDeviceFCMIfNeeded();
 
         Get.offAll(() => ProfileSetupInitial()); // 👈 clears previous stack
       }
@@ -148,6 +153,7 @@ class CreatePasswordController extends GetxController {
     bool verificationStatus,
     String password,
     BuildContext context,
+    Map<String, String>? extraHeaders, 
   ) async {
     final newPlanePassword = jsonEncode({
       'PhoneNumber': phone,
@@ -162,6 +168,10 @@ class CreatePasswordController extends GetxController {
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
 
       headers['X-Data-Hash'] = encryptedPassword['hash']!;
+
+       if (extraHeaders != null) {
+    headers.addAll(extraHeaders);
+  }
 
       final encryptedBody = jsonEncode({
         'data': encryptedPassword['encryptedData'],
@@ -215,7 +225,7 @@ class CreatePasswordController extends GetxController {
           message: 'Password Created Successfully with gmail',
         );
 
-        localStorageManager.registerDeviceIfNeeded();
+        localStorageManager.registerDeviceFCMIfNeeded();
 
         Get.offAll(() => ProfileSetupInitial()); // 👈 clears previous stack
       } else {

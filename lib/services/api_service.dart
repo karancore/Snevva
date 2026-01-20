@@ -9,95 +9,81 @@ class ApiService {
   static const String _baseUrl = baseUrl;
 
   static Future<Object> post(
-    String endpoint,
-    Map<String, dynamic>? plainBody, {
-    bool withAuth = false,
-    bool encryptionRequired = true,
-  }) async {
-    final headers = await AuthHeaderHelper.getHeaders(withAuth: withAuth);
-    final uri = Uri.parse("$_baseUrl$endpoint");
+  String endpoint,
+  Map<String, dynamic>? plainBody, {
+  bool withAuth = false,
+  bool encryptionRequired = true,
+  Map<String, String>? extraHeaders, // ← new parameter
+}) async {
+  // Get base headers
+  final headers = await AuthHeaderHelper.getHeaders(withAuth: withAuth);
 
-    // debugPrint(uri);
+  // Add device-specific headers dynamically
+  if (extraHeaders != null) {
+    headers.addAll(extraHeaders);
+  }
 
-    if (encryptionRequired && plainBody != null) {
-      // 🔐 Step 1: Encode Map to JSON string
-      final jsonString = jsonEncode(plainBody);
+  final uri = Uri.parse("$_baseUrl$endpoint");
 
-      // debugPrint(jsonString);
+  if (encryptionRequired && plainBody != null) {
+    final jsonString = jsonEncode(plainBody);
+    final encrypted = EncryptionService.encryptData(jsonString);
 
-      // 🔐 Step 2: Encrypt JSON string
-      final encrypted = EncryptionService.encryptData(jsonString);
+    headers['X-Data-Hash'] = encrypted['hash']!;
+    final encryptedBody = jsonEncode({'data': encrypted['encryptedData']});
 
-      // 🔐 Step 3: Set hash header
-      headers['X-Data-Hash'] = encrypted['hash']!;
+    final response = await http.post(
+      uri,
+      headers: headers,
+      body: encryptedBody,
+    );
 
-      // 🔐 Step 4: Prepare encrypted request body
-      final encryptedBody = jsonEncode({'data': encrypted['encryptedData']});
+    _handleErrors(response);
 
-      // 🔐 Step 5: Send encrypted POST request
-      final response = await http.post(
-        uri,
-        headers: headers,
-        body: encryptedBody,
+    if (response.statusCode == 200) {
+      final responseBody = jsonDecode(response.body);
+      final encryptedBody = responseBody['data'];
+      final responseHash = response.headers['x-data-hash']!;
+
+      final decrypted = EncryptionService.decryptData(
+        encryptedBody,
+        responseHash,
       );
-      debugPrint(response.body);
-      _handleErrors(response);
+      final Map<String, dynamic> responseData = jsonDecode(decrypted!);
 
-      if (response.statusCode == 200) {
-        final responseBody = jsonDecode(response.body);
-        final encryptedBody = responseBody['data'];
-        debugPrint(encryptedBody);
-        final responseHash = response.headers['x-data-hash'];
-        debugPrint(responseHash);
-
-        // 🔐 Step 6: Decrypt response
-        final decrypted = EncryptionService.decryptData(
-          encryptedBody,
-          responseHash!,
-        );
-        final Map<String, dynamic> responseData = jsonDecode(decrypted!);
-
-        // debugPrint(responseData);
-
-        return responseData;
-      } else {
-        return response;
-      }
+      return responseData;
     } else {
-      String? bodyPayload;
-      if (plainBody != null) {
-        bodyPayload = jsonEncode(plainBody);
-      }
-
-      // 🔓 No encryption — send regular POST
-      final response = await http.post(
-        uri,
-        headers: headers,
-        body: bodyPayload,
-      );
-
-      _handleErrors(response);
-      if (response.statusCode == 200) {
-        // debugPrint("👉1");
-
-        final responseBody = jsonDecode(response.body);
-        final encryptedBody = responseBody['data'];
-        final responseHash = response.headers['x-data-hash'];
-
-        // 🔐 Step 6: Decrypt response
-        final decrypted = EncryptionService.decryptData(
-          encryptedBody,
-          responseHash!,
-        );
-        // debugPrint("$decrypted");
-        final Map<String, dynamic> responseData = jsonDecode(decrypted!);
-        // debugPrint("$responseData");
-
-        return responseData;
-      }
       return response;
     }
+  } else {
+    String? bodyPayload;
+    if (plainBody != null) bodyPayload = jsonEncode(plainBody);
+
+    final response = await http.post(
+      uri,
+      headers: headers,
+      body: bodyPayload,
+    );
+
+    _handleErrors(response);
+
+    if (response.statusCode == 200) {
+      final responseBody = jsonDecode(response.body);
+      final encryptedBody = responseBody['data'];
+      final responseHash = response.headers['x-data-hash']!;
+
+      final decrypted = EncryptionService.decryptData(
+        encryptedBody,
+        responseHash,
+      );
+      final Map<String, dynamic> responseData = jsonDecode(decrypted!);
+
+      return responseData;
+    }
+    return response;
   }
+}
+
 
   static void _handleErrors(http.Response response) {
     debugPrint('🔍 _handleErrors called');
