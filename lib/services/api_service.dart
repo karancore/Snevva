@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:snevva/common/debug_logger.dart';
 import 'package:snevva/services/encryption_service.dart';
 import '../consts/consts.dart';
 import '../env/env.dart';
@@ -28,7 +29,9 @@ class ApiService {
     headers['X-Data-Hash'] = encrypted['hash']!;
     final encryptedBody = jsonEncode({'data': encrypted['encryptedData']});
 
-    headers['X-Device-Info'] = extraHeaders!;
+    if (extraHeaders != null) {
+  headers['X-Device-Info'] = extraHeaders;
+}
 
     final response = await http.post(
       uri,
@@ -49,9 +52,16 @@ class ApiService {
       );
       final Map<String, dynamic> responseData = jsonDecode(decrypted!);
 
+      DebugLogger().log(
+  "⬅️ API RESPONSE [$endpoint]: $responseData",
+  type: "API",
+);
+
+
       return responseData;
     } else {
       return response;
+
     }
   } else {
     String? bodyPayload;
@@ -75,6 +85,11 @@ class ApiService {
         responseHash,
       );
       final Map<String, dynamic> responseData = jsonDecode(decrypted!);
+      DebugLogger().log(
+  "⬅️ API RESPONSE [$endpoint]: $responseData",
+  type: "API",
+);
+
 
       return responseData;
     }
@@ -96,6 +111,8 @@ class ApiService {
         debugPrint('🧩 Attempting JSON decode...');
         final body = jsonDecode(response.body);
         debugPrint('✅ JSON decoded: $body');
+        
+
 
         if (body['data'] != null) {
           debugPrint('🔐 Encrypted data found');
@@ -108,6 +125,11 @@ class ApiService {
             body['data'],
             response.headers['x-data-hash']!,
           );
+
+          DebugLogger().log(
+  "🔐 Error response: $decrypted",
+  type: "API",
+);
 
           debugPrint('✅ Decrypted error message: $decrypted');
 

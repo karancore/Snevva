@@ -34,6 +34,7 @@ class ReminderController extends GetxController {
   final selectedValue = 'minutes'.obs;
 
   var selectedDateIndex = 0.obs;
+  var startDateString = ''.obs;
 
   var remindTimes = <String>[].obs;
 

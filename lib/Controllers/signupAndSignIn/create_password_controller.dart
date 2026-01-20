@@ -78,7 +78,9 @@ class CreatePasswordController extends GetxController {
 
       headers['X-Data-Hash'] = encryptedPassword['hash']!;
 
-      headers['X-Device-Info'] = extraHeaders!;
+      if (extraHeaders != null) {
+  headers['X-Device-Info'] = extraHeaders;
+}
 
       final encryptedBody = jsonEncode({
         'data': encryptedPassword['encryptedData'],
@@ -167,7 +169,9 @@ class CreatePasswordController extends GetxController {
 
       headers['X-Data-Hash'] = encryptedPassword['hash']!;
 
-      headers['X-Device-Info'] = extraHeaders!;
+      if (extraHeaders != null) {
+  headers['X-Device-Info'] = extraHeaders;
+}
 
       final encryptedBody = jsonEncode({
         'data': encryptedPassword['encryptedData'],
