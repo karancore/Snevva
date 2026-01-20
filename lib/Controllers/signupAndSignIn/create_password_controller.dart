@@ -62,7 +62,7 @@ class CreatePasswordController extends GetxController {
     bool verificationStatus,
     String password,
     BuildContext context,
-    Map<String, String>? extraHeaders, 
+    String? extraHeaders, 
   ) async {
     final newPlanePassword = jsonEncode({
       'Gmail': email,
@@ -78,9 +78,7 @@ class CreatePasswordController extends GetxController {
 
       headers['X-Data-Hash'] = encryptedPassword['hash']!;
 
-       if (extraHeaders != null) {
-    headers.addAll(extraHeaders);
-  }
+      headers['X-Device-Info'] = extraHeaders!;
 
       final encryptedBody = jsonEncode({
         'data': encryptedPassword['encryptedData'],
@@ -153,7 +151,7 @@ class CreatePasswordController extends GetxController {
     bool verificationStatus,
     String password,
     BuildContext context,
-    Map<String, String>? extraHeaders, 
+    String? extraHeaders, 
   ) async {
     final newPlanePassword = jsonEncode({
       'PhoneNumber': phone,
@@ -169,9 +167,7 @@ class CreatePasswordController extends GetxController {
 
       headers['X-Data-Hash'] = encryptedPassword['hash']!;
 
-       if (extraHeaders != null) {
-    headers.addAll(extraHeaders);
-  }
+      headers['X-Device-Info'] = extraHeaders!;
 
       final encryptedBody = jsonEncode({
         'data': encryptedPassword['encryptedData'],

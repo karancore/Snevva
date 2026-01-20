@@ -33,7 +33,7 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
 
     
     void onCreatePasswordButtonClick() async{
-      dynamic deviceHeaders = await deviceservice.getDeviceHeaders();
+      dynamic deviceHeaders = await deviceservice.buildDeviceInfoHeader();
       if (controller.password.value.isEmpty ||
           controller.confirmPassword.value.isEmpty) {
         CustomSnackbar.showError(

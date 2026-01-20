@@ -13,15 +13,11 @@ class ApiService {
   Map<String, dynamic>? plainBody, {
   bool withAuth = false,
   bool encryptionRequired = true,
-  Map<String, String>? extraHeaders, // ← new parameter
+  String? extraHeaders, // ← new parameter
 }) async {
   // Get base headers
   final headers = await AuthHeaderHelper.getHeaders(withAuth: withAuth);
 
-  // Add device-specific headers dynamically
-  if (extraHeaders != null) {
-    headers.addAll(extraHeaders);
-  }
 
   final uri = Uri.parse("$_baseUrl$endpoint");
 
@@ -31,6 +27,8 @@ class ApiService {
 
     headers['X-Data-Hash'] = encrypted['hash']!;
     final encryptedBody = jsonEncode({'data': encrypted['encryptedData']});
+
+    headers['X-Device-Info'] = extraHeaders!;
 
     final response = await http.post(
       uri,

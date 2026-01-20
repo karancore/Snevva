@@ -199,7 +199,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
     try {
       bool success = false;
-      dynamic deviceHeaders = await deviceTokenService.getDeviceHeaders();
+      dynamic deviceHeaders = await deviceTokenService.buildDeviceInfoHeader();
 
       if (isEmail) {
         // 🔹 Email Login

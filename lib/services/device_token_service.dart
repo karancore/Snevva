@@ -23,6 +23,17 @@ class DeviceTokenService {
 
   //   return "unknown_device";
   // }
+  
+
+Future<String> buildDeviceInfoHeader() async {
+  final deviceHeaders = await getDeviceHeaders();
+
+  final jsonString = jsonEncode(deviceHeaders);
+
+  // Optional but recommended (safe for headers)
+  return base64Encode(utf8.encode(jsonString));
+}
+
 
   Future<Map<String, String>> getDeviceHeaders() async {
   final deviceInfo = DeviceInfoPlugin();
