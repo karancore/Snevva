@@ -52,10 +52,10 @@ class ApiService {
         );
         final Map<String, dynamic> responseData = jsonDecode(decrypted!);
 
-        DebugLogger().log(
-          "⬅️ API RESPONSE [$endpoint]: $responseData",
-          type: "API",
-        );
+        // DebugLogger().log(
+        //   "⬅️ API RESPONSE [$endpoint]: $responseData",
+        //   type: "API",
+        // );
 
         return responseData;
       } else if (response.statusCode == 401 || response.statusCode == 403) {
@@ -63,7 +63,7 @@ class ApiService {
         await AuthService.forceLogout();
         throw Exception("Unauthorized");
       } else {
-        _handleErrors(response);
+        _handleErrors(response, endpoint);
         return response;
       }
     } else {
@@ -76,7 +76,7 @@ class ApiService {
         body: bodyPayload,
       );
 
-      _handleErrors(response);
+      _handleErrors(response, endpoint);
 
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
@@ -88,10 +88,10 @@ class ApiService {
           responseHash,
         );
         final Map<String, dynamic> responseData = jsonDecode(decrypted!);
-        DebugLogger().log(
-          "⬅️ API RESPONSE [$endpoint]: $responseData",
-          type: "API",
-        );
+        // DebugLogger().log(
+        //   "⬅️ API RESPONSE [$endpoint]: $responseData",
+        //   type: "API",
+        // );
 
         return responseData;
       }
@@ -99,7 +99,7 @@ class ApiService {
     }
   }
 
-  static void _handleErrors(http.Response response) {
+  static void _handleErrors(http.Response response, String endpoint) {
     debugPrint('🔍 _handleErrors called');
     debugPrint('➡️ Status code: ${response.statusCode}');
     debugPrint('➡️ Headers: ${response.headers}');
@@ -125,7 +125,7 @@ class ApiService {
             response.headers['x-data-hash']!,
           );
 
-          DebugLogger().log("🔐 Error response: $decrypted", type: "API");
+          DebugLogger().log("🔐 Error response [$endpoint]: $decrypted", type: "API");
 
           debugPrint('✅ Decrypted error message: $decrypted');
 
