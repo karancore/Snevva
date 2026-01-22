@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:snevva/common/debug_logger.dart';
+import 'package:snevva/services/auth_service.dart';
+import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/services/encryption_service.dart';
 import '../consts/consts.dart';
 import '../env/env.dart';
@@ -10,93 +12,92 @@ class ApiService {
   static const String _baseUrl = baseUrl;
 
   static Future<Object> post(
-  String endpoint,
-  Map<String, dynamic>? plainBody, {
-  bool withAuth = false,
-  bool encryptionRequired = true,
-  String? extraHeaders, // ← new parameter
-}) async {
-  // Get base headers
-  final headers = await AuthHeaderHelper.getHeaders(withAuth: withAuth);
+    String endpoint,
+    Map<String, dynamic>? plainBody, {
+    bool withAuth = false,
+    bool encryptionRequired = true,
+  }) async {
+    // Get base headers
+    final headers = await AuthHeaderHelper.getHeaders(withAuth: withAuth);
 
+    final uri = Uri.parse("$_baseUrl$endpoint");
 
-  final uri = Uri.parse("$_baseUrl$endpoint");
+    if (encryptionRequired && plainBody != null) {
+      final jsonString = jsonEncode(plainBody);
+      final encrypted = EncryptionService.encryptData(jsonString);
 
-  if (encryptionRequired && plainBody != null) {
-    final jsonString = jsonEncode(plainBody);
-    final encrypted = EncryptionService.encryptData(jsonString);
+      headers['X-Data-Hash'] = encrypted['hash']!;
+      final encryptedBody = jsonEncode({'data': encrypted['encryptedData']});
 
-    headers['X-Data-Hash'] = encrypted['hash']!;
-    final encryptedBody = jsonEncode({'data': encrypted['encryptedData']});
+      final extraHeaders = await DeviceTokenService().buildDeviceInfoHeader();
 
-    if (extraHeaders != null) {
-  headers['X-Device-Info'] = extraHeaders;
-}
-
-    final response = await http.post(
-      uri,
-      headers: headers,
-      body: encryptedBody,
-    );
-
-    _handleErrors(response);
-
-    if (response.statusCode == 200) {
-      final responseBody = jsonDecode(response.body);
-      final encryptedBody = responseBody['data'];
-      final responseHash = response.headers['x-data-hash']!;
-
-      final decrypted = EncryptionService.decryptData(
-        encryptedBody,
-        responseHash,
+      headers['X-Device-Info'] = extraHeaders;
+    
+      final response = await http.post(
+        uri,
+        headers: headers,
+        body: encryptedBody,
       );
-      final Map<String, dynamic> responseData = jsonDecode(decrypted!);
 
-      DebugLogger().log(
-  "⬅️ API RESPONSE [$endpoint]: $responseData",
-  type: "API",
-);
+      // _handleErrors(response);
 
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+        final encryptedBody = responseBody['data'];
+        final responseHash = response.headers['x-data-hash']!;
 
-      return responseData;
+        final decrypted = EncryptionService.decryptData(
+          encryptedBody,
+          responseHash,
+        );
+        final Map<String, dynamic> responseData = jsonDecode(decrypted!);
+
+        DebugLogger().log(
+          "⬅️ API RESPONSE [$endpoint]: $responseData",
+          type: "API",
+        );
+
+        return responseData;
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        // Handle unauthorized access
+        await AuthService.forceLogout();
+        throw Exception("Unauthorized");
+      } else {
+        _handleErrors(response);
+        return response;
+      }
     } else {
-      return response;
+      String? bodyPayload;
+      if (plainBody != null) bodyPayload = jsonEncode(plainBody);
 
-    }
-  } else {
-    String? bodyPayload;
-    if (plainBody != null) bodyPayload = jsonEncode(plainBody);
-
-    final response = await http.post(
-      uri,
-      headers: headers,
-      body: bodyPayload,
-    );
-
-    _handleErrors(response);
-
-    if (response.statusCode == 200) {
-      final responseBody = jsonDecode(response.body);
-      final encryptedBody = responseBody['data'];
-      final responseHash = response.headers['x-data-hash']!;
-
-      final decrypted = EncryptionService.decryptData(
-        encryptedBody,
-        responseHash,
+      final response = await http.post(
+        uri,
+        headers: headers,
+        body: bodyPayload,
       );
-      final Map<String, dynamic> responseData = jsonDecode(decrypted!);
-      DebugLogger().log(
-  "⬅️ API RESPONSE [$endpoint]: $responseData",
-  type: "API",
-);
 
+      _handleErrors(response);
 
-      return responseData;
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+        final encryptedBody = responseBody['data'];
+        final responseHash = response.headers['x-data-hash']!;
+
+        final decrypted = EncryptionService.decryptData(
+          encryptedBody,
+          responseHash,
+        );
+        final Map<String, dynamic> responseData = jsonDecode(decrypted!);
+        DebugLogger().log(
+          "⬅️ API RESPONSE [$endpoint]: $responseData",
+          type: "API",
+        );
+
+        return responseData;
+      }
+      return response;
     }
-    return response;
   }
-}
-
 
   static void _handleErrors(http.Response response) {
     debugPrint('🔍 _handleErrors called');
@@ -111,8 +112,6 @@ class ApiService {
         debugPrint('🧩 Attempting JSON decode...');
         final body = jsonDecode(response.body);
         debugPrint('✅ JSON decoded: $body');
-        
-
 
         if (body['data'] != null) {
           debugPrint('🔐 Encrypted data found');
@@ -126,10 +125,7 @@ class ApiService {
             response.headers['x-data-hash']!,
           );
 
-          DebugLogger().log(
-  "🔐 Error response: $decrypted",
-  type: "API",
-);
+          DebugLogger().log("🔐 Error response: $decrypted", type: "API");
 
           debugPrint('✅ Decrypted error message: $decrypted');
 

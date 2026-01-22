@@ -221,7 +221,7 @@ class _SignInScreenState extends State<SignInScreen> {
       } else {
         print("Invalid input format");
         // 🔹 Invalid input
-        _handleSignInError();
+        // _handleSignInError();
         return;
       }
 
@@ -231,7 +231,7 @@ class _SignInScreenState extends State<SignInScreen> {
         print("Sign-in successful");
       } else {
         print("Sign-in failed");
-        _handleSignInError();
+        // _handleSignInError();
       }
     } catch (e) {
       print("Exception during sign-in: $e");

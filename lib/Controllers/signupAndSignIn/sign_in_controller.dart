@@ -2,8 +2,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
+import 'package:snevva/Widgets/old_device_alert.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/services/api_service.dart';
+import 'package:snevva/services/auth_service.dart';
+import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import '../../consts/consts.dart';
 import '../../env/env.dart';
@@ -42,16 +45,14 @@ class SignInController extends GetxController {
       headers['X-Data-Hash'] = encryptedEmail['hash']!;
 
       if (extraHeaders != null) {
-  headers['X-Device-Info'] = extraHeaders;
-}
+        headers['X-Device-Info'] = extraHeaders;
+      }
 
       debugPrint("extra headers $extraHeaders");
       debugPrint("devive headers $headers['X-Device-Info']");
       debugPrint("final headers $extraHeaders");
 
-
       debugPrint("Headers: $headers");
-     
 
       final encryptedRequestBody = jsonEncode({
         'data': encryptedEmail['encryptedData'],
@@ -192,6 +193,66 @@ class SignInController extends GetxController {
           message: 'Wrong Credentials',
         );
         return false;
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        final responseBody = jsonDecode(response.body);
+        print("response Body: $responseBody");
+
+        final encryptedResponse = responseBody['data'];
+        final responseHash = response.headers['x-data-hash'];
+
+        final decrypted = EncryptionService.decryptData(
+          encryptedResponse,
+          responseHash!,
+        );
+
+        print("Decrypted logout response: $decrypted\n");
+
+        if (decrypted == null) {
+          CustomSnackbar.showError(
+            context: context,
+            title: 'Error',
+            message: 'Failed to decrypt response',
+          );
+          return false;
+        }
+
+        final Map<String, dynamic> responseData = jsonDecode(decrypted);
+        print("resonsedata $responseData");
+
+        // ✅ Extract ONLY the Base64 string
+        final String? encodedDeviceInfo = responseData['data']?['DataCode'];
+
+        if (encodedDeviceInfo == null || encodedDeviceInfo.isEmpty) {
+          debugPrint("❌ DeviceInfo missing in response");
+          return false;
+        }
+
+        // ✅ Decode Base64 → JSON → Map
+        final Map<String, dynamic> oldDeviceInfoMap = DeviceTokenService()
+            .decodeDeviceInfoHeader(encodedDeviceInfo);
+
+        print("oldDeviceInfoMap: $oldDeviceInfoMap");
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) {
+            return OldDeviceAlert(
+              deviceInfo: oldDeviceInfoMap,
+
+              onConfirmDevice: () {
+                AuthService.logout(encodedDeviceInfo);
+                Navigator.pop(context);
+              },
+
+              onRejectDevice: () {
+                Navigator.pop(context);
+              },
+            );
+          },
+        );
+
+        return false;
       }
       // Other failures
       else {
@@ -204,11 +265,7 @@ class SignInController extends GetxController {
       }
     } catch (e, st) {
       print("sign in screen email $e  $st");
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'Sign In failed.',
-      );
+      CustomSnackbar.showDeviceBlocked(context: context);
       return false;
     }
   }
@@ -275,8 +332,8 @@ class SignInController extends GetxController {
       headers['X-Data-Hash'] = encryptedPhone['hash']!;
 
       if (extraHeaders != null) {
-  headers['X-Device-Info'] = extraHeaders;
-}
+        headers['X-Device-Info'] = extraHeaders;
+      }
 
       final encryptedRequestBody = jsonEncode({
         'data': encryptedPhone['encryptedData'],
@@ -409,6 +466,85 @@ class SignInController extends GetxController {
         userPasswordField.clear();
 
         return true;
+      } else if (response.statusCode == 400) {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Wrong Credentials',
+        );
+        return false;
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        final responseBody = jsonDecode(response.body);
+        print("response Body: $responseBody");
+
+        final encryptedResponse = responseBody['data'];
+        final responseHash = response.headers['x-data-hash'];
+
+        final decrypted = EncryptionService.decryptData(
+          encryptedResponse,
+          responseHash!,
+        );
+
+        print("Decrypted logout response: $decrypted\n");
+
+        if (decrypted == null) {
+          CustomSnackbar.showError(
+            context: context,
+            title: 'Error',
+            message: 'Failed to decrypt response',
+          );
+          return false;
+        }
+
+        final Map<String, dynamic> responseData = jsonDecode(decrypted);
+        print("resonsedata $responseData");
+
+        // ✅ Extract ONLY the Base64 string
+        final String? encodedDeviceInfo = responseData['data']?['DataCode'];
+
+        if (encodedDeviceInfo == null || encodedDeviceInfo.isEmpty) {
+          debugPrint("❌ DeviceInfo missing in response");
+          return false;
+        }
+
+        // ✅ Decode Base64 → JSON → Map
+        final Map<String, dynamic> oldDeviceInfoMap = DeviceTokenService()
+            .decodeDeviceInfoHeader(encodedDeviceInfo);
+
+        print("oldDeviceInfoMap: $oldDeviceInfoMap");
+
+        // token
+        final dynamic olddeviceinfo = responseData['data'];
+
+        print("olddeviceinfo $olddeviceinfo");
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) {
+            return OldDeviceAlert(
+              deviceInfo: oldDeviceInfoMap,
+
+              onConfirmDevice: () {
+                AuthService.logout(encodedDeviceInfo);
+                Navigator.pop(context);
+
+                // TODO: Call API to confirm device
+                // confirmDeviceLogin(oldDeviceInfoMap);
+              },
+
+              onRejectDevice: () {
+                Navigator.pop(context);
+
+                CustomSnackbar.showDeviceBlocked(context: context);
+
+                // TODO: Call API to block device / logout all sessions
+              },
+            );
+          },
+        );
+
+        return false;
       } else {
         CustomSnackbar.showError(
           context: context,

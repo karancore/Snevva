@@ -13,8 +13,11 @@ import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
-
+import 'package:snevva/env/env.dart';
+import 'package:http/http.dart' as http;
 import 'package:snevva/initial_bindings.dart';
+import 'package:snevva/services/api_service.dart';
+import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
@@ -24,26 +27,31 @@ import '../home_wrapper.dart';
 import 'drawer_menu_item.dart';
 
 class DrawerMenuWidget extends StatelessWidget {
-  const DrawerMenuWidget({
-    super.key,
-    required this.height,
-    required this.width,
-  });
+  const DrawerMenuWidget({super.key, this.height, this.width});
 
-  final double height;
-  final double width;
+  final double? height;
+  final double? width;
 
   Future<void> performLogout() async {
+    final response = await ApiService.post(
+      logout,
+      null,
+      withAuth: true,
+      encryptionRequired: true,
+    );
+
+    if (response is http.Response) {
+      throw Exception('API Error: ${response.statusCode}');
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
 
     try {
-
       await Hive.box<StepEntry>('step_history').clear();
     } catch (e) {
       print('❌ Failed to clear step_history on logout: $e');
       try {
-       await Hive.box<StepEntry>('step_history').clear();
+        await Hive.box<StepEntry>('step_history').clear();
       } catch (e2) {
         print('❌ Second attempt to clear step_history failed: $e2');
       }
@@ -220,7 +228,7 @@ class DrawerMenuWidget extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         backgroundColor: Color(0xFFF0E5FF),
                         side: BorderSide(color: Colors.transparent),
-                        fixedSize: Size(width, 40),
+                        fixedSize: Size(width!, 40),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),

@@ -23,6 +23,23 @@ class DeviceTokenService {
 
   //   return "unknown_device";
   // }
+
+  Map<String, dynamic> decodeDeviceInfoHeader(String? encodedHeader) {
+  if (encodedHeader == null || encodedHeader.isEmpty) {
+    return {};
+  }
+
+  try {
+    final decodedBytes = base64Decode(encodedHeader);
+    final decodedString = utf8.decode(decodedBytes);
+    return jsonDecode(decodedString) as Map<String, dynamic>;
+  } catch (e) {
+    debugPrint("DeviceInfo decode failed: $e");
+    return {};
+  }
+}
+
+
   
 
 Future<String> buildDeviceInfoHeader() async {
