@@ -18,7 +18,7 @@ class AlertsScreen extends StatefulWidget {
 
 class _AlertsScreenState extends State<AlertsScreen>
     with SingleTickerProviderStateMixin {
-  late final NotificationService notif;
+
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
 
   @override

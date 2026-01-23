@@ -31,6 +31,8 @@ class ApiService {
 
       final extraHeaders = await DeviceTokenService().buildDeviceInfoHeader();
 
+      print("APIService Header $extraHeaders");
+
       headers['X-Device-Info'] = extraHeaders;
     
       final response = await http.post(
@@ -58,11 +60,14 @@ class ApiService {
         // );
 
         return responseData;
-      } else if (response.statusCode == 401 || response.statusCode == 403) {
-        // Handle unauthorized access
-        await AuthService.forceLogout();
-        throw Exception("Unauthorized");
-      } else {
+      }
+      // else if (response.statusCode == 401 || response.statusCode == 403) {
+      //   // Handle unauthorized access
+      //   await AuthService.forceLogout();
+      //   throw Exception("Unauthorized");
+      // }
+
+      else {
         _handleErrors(response, endpoint);
         return response;
       }

@@ -19,6 +19,7 @@ import 'package:snevva/common/loader.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/bindings/initial_bindings.dart';
 import 'package:snevva/services/app_initializer.dart';
+import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/services/notification_channel.dart';
 import 'package:snevva/services/notification_service.dart';
 import 'package:snevva/utils/theme.dart';
@@ -117,6 +118,8 @@ class _MyAppState extends State<MyApp> {
   AppInitState _initState = AppInitState.loading;
   Timer? _initTimeoutTimer;
 
+
+
   @override
   void initState() {
     super.initState();
@@ -141,6 +144,8 @@ class _MyAppState extends State<MyApp> {
         Get.find<AlertsController>().addNotification(notification);
       }
     });
+
+
 
     // Handle when the app is opened from a terminated state
     _handleInitialMessage();
@@ -241,7 +246,7 @@ class _MyAppState extends State<MyApp> {
       home: _initState == AppInitState.loading
           ? const InitializationSplash()
           : _initState == AppInitState.success
-          ? (widget.isRemembered ? HomeWrapper() : SignInScreen())
+          ? (widget.isRemembered ? HomeWrapper() : HomeWrapper())
           : ErrorPlaceholder(
         onRetry: () {
           _startInitTimeout();
@@ -288,25 +293,8 @@ class ErrorPlaceholder extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.error_outline,
-                size: 72,
-                color: Colors.grey.shade600,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                "Something went wrong",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                "Please try again in a moment.",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
-              ),
+              Image.asset(errorIcon, scale: 2),
+              SizedBox(height: 8),
               if (onRetry != null) ...[
                 const SizedBox(height: 20),
                 ElevatedButton(

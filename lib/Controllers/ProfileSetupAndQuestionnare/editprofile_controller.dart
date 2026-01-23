@@ -23,7 +23,7 @@ class EditprofileController extends GetxController {
   late ProfileSetupController initialProfileController;
   late bool otpVerificationStatus;
   final otp = null;
-  final notify = Get.find<NotificationService>();
+  final notify = NotificationService();
 
   DateTime? dob;
   var name = '';

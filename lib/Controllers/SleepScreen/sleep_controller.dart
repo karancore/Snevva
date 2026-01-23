@@ -409,6 +409,7 @@ class SleepController extends GetxController {
       debugPrint("   💤 Weekly ← Hive: $key → ${duration.inMinutes} min");
     }
     deepSleepDuration.value = weeklyDeepSleepHistory[getCurrentDayKey()];
+    print("loadDeepSleepData deepSleepDuration.value ${deepSleepDuration.value}");
 
     weeklyDeepSleepHistory.refresh();
     updateDeepSleepSpots();
@@ -662,6 +663,9 @@ class SleepController extends GetxController {
         durationMinutes: duration.inMinutes,
       ),
     );
+
+    print("✅ HIVE SAVED: $key → ${duration.inMinutes} min");
+
 
     weeklyDeepSleepHistory[key] = duration;
     weeklyDeepSleepHistory.refresh();

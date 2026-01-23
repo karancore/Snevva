@@ -92,6 +92,11 @@ class CreatePasswordController extends GetxController {
         body: encryptedBody,
       );
 
+
+
+      print("extraheader create pass $extraHeaders");
+      print("createpassword code${response.statusCode}");
+
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         print("response Body: $responseBody");

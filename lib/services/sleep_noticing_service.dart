@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:screen_state/screen_state.dart';
 
 class SleepNoticingService {
-  static const Duration minSleepGap = Duration(minutes: 3);
+  static const Duration minSleepGap = Duration(seconds: 3);
 
   StreamSubscription<ScreenStateEvent>? _subscription;
   final Screen _screen = Screen();
@@ -82,7 +82,7 @@ class SleepNoticingService {
     required Duration phoneUsageDuration,
   }) {
     // Use a 15-minute grace period
-    const Duration gracePeriod = Duration(minutes: 15);
+    const Duration gracePeriod = Duration(seconds: 15);
 
     final DateTime safeLimit = bedtime.add(gracePeriod);
 
@@ -102,7 +102,7 @@ class SleepNoticingService {
     phoneUsageStart.add(phoneUsageDuration);
 
     final DateTime adjustedBedtime =
-    usageEnd.subtract(const Duration(minutes: 15));
+    usageEnd.subtract(const Duration(seconds: 15));
 
     print('✅ [SleepService] Bedtime ADJUSTED!');
     print(' Original: ${bedtime.hour}:${bedtime.minute}');

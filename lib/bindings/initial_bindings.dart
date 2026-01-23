@@ -9,6 +9,7 @@ import '../Controllers/Hydration/hydration_stat_controller.dart';
 import '../Controllers/MentalWellness/mental_wellness_controller.dart';
 import '../Controllers/MoodTracker/mood_controller.dart';
 import '../Controllers/MoodTracker/mood_questions_controller.dart';
+import '../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import '../Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
 import '../Controllers/Reminder/event_controller.dart';
 import '../Controllers/Reminder/meal_controller.dart';
@@ -68,8 +69,10 @@ class InitialBindings extends Bindings {
       Get.lazyPut(() => WomenHealthController(), fenix: true);
     }
 
-
-
+    Get.put(VitalsController(), permanent: true);
+    Get.put(HydrationStatController(), permanent: true);
+    Get.put(MoodController(), permanent: true);
+    Get.put(EditprofileController(), permanent: true);
 
     if (!Get.isRegistered<StepCounterController>()) {
       Get.put(StepCounterController(), permanent: true);

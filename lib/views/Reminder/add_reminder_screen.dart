@@ -241,8 +241,6 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
-
-    print("height of add reminder screen is $height and wdht is $width");
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),

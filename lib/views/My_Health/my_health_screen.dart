@@ -43,6 +43,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
   final HydrationStatController c = Get.find();
 
   late AnimationController _listAnimationController;
+
   late final List<TrackerHealthCard> vitalItems;
   List<TrackerHealthCard> filteredVitalItems = [];
   late List<Animation<Offset>> _slideAnimations;
@@ -55,19 +56,50 @@ class _MyHealthScreenState extends State<MyHealthScreen>
     _loadGenderAndInit();
   }
 
+  //Old Method
+  // Future<void> _loadGenderAndInit() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   final localGender = prefs.getString('user_gender');
+  //
+  //   setState(() {
+  //     // gender = localGender ?? 'Not Specified';
+  //     final signInController = Get.find<SignInController>();
+  //     final userInfo = signInController.userProfData ?? {};
+  //     final userData = userInfo['data'];
+  //     gender = (localGender != null) ? localGender : userData['Gender'];
+  //     isLoading = false;
+  //     debugPrint('MyHealthScreen $gender');
+  //   });
+  //
+  //   _initializeVitalItems();
+  //   _initAnimations();
+  // }
   Future<void> _loadGenderAndInit() async {
     final prefs = await SharedPreferences.getInstance();
-    final localGender = prefs.getString('user_gender');
+    final localGenderPref = prefs.getString('user_gender');
+
+    final signInController = Get.find<SignInController>();
+    final userInfo = signInController.userProfData;
+
+    String resolvedGender = 'Not Specified';
+
+    if (localGenderPref != null && localGenderPref.isNotEmpty) {
+      resolvedGender = localGenderPref;
+    } else if (userInfo != null &&
+        userInfo is Map &&
+        userInfo['data'] is Map &&
+        userInfo['data']['Gender'] != null) {
+      resolvedGender = userInfo['data']['Gender'].toString();
+    }
+
+    if (!mounted) return;
 
     setState(() {
-      // gender = localGender ?? 'Not Specified';
-      final signInController = Get.find<SignInController>();
-      final userInfo = signInController.userProfData ?? {};
-      final userData = userInfo['data'];
-      gender = (localGender != null) ? localGender : userData['Gender'];
+      gender = resolvedGender;
       isLoading = false;
-      debugPrint('MyHealthScreen $gender');
     });
+
+    debugPrint('✅ MyHealthScreen gender = $gender');
 
     _initializeVitalItems();
     _initAnimations();

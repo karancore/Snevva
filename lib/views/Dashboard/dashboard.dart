@@ -42,7 +42,7 @@ class _DashboardState extends State<Dashboard>
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final notificationController = Get.put(NotificationService());
+  final notificationController = NotificationService();
 
   @override
   void initState() {
@@ -67,14 +67,7 @@ class _DashboardState extends State<Dashboard>
 
     _animationController.forward();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Get.put(HydrationStatController());
-      Get.put(MoodController());
-      Get.put(EditprofileController());
-      Get.put(VitalsController());
-    });
-
-    // Get.put(StepCounterController().loadtodaySteps());
+    Get.put(StepCounterController());
   }
 
   @override

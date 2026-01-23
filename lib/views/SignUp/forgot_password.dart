@@ -15,7 +15,7 @@ class ForgotPassword extends StatefulWidget {
 class _ForgotPasswordState extends State<ForgotPassword> {
   final TextEditingController textFieldController = TextEditingController();
   final forgotPasswordController = Get.put(ForgotPasswordController());
-  final notify = Get.find<NotificationService>();
+  final notify = NotificationService();
 
   bool isLoading = false;
 

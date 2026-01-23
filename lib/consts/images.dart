@@ -306,7 +306,7 @@ const eyeIcon = "assets/Icons/SleepScreen/Eye.png";
 const moonIcon = "assets/Icons/SleepScreen/Night mode.png";
 const bedtimeIcon = "assets/Icons/SleepScreen/Rectangle.png";
 const clockIcon = "assets/Icons/SleepScreen/Rectangle-2.png";
-
+const errorIcon = "assets/Images/error.webp";
 const noNotif = "assets/Images/notificon.png";
 const fatty = "assets/Images/BMI/fatty.png";
 const skinny = "assets/Images/BMI/skiiny.png";

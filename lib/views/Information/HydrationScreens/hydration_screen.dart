@@ -139,7 +139,7 @@ class _HydrationScreenState extends State<HydrationScreen>
         child: Obx(
           () => FloatingButtonBar(
             onStatBtnTap: () => Get.to(() => const HydrationStatistics()),
-            onReminderBtnTap: () => Get.to(() => const ReminderScreen()),
+            onReminderBtnTap: () => Get.toNamed('/reminder'),
             onAddBtnTap: _onAddButtonPressed,
             onAddBtnLongTap: () async {
               final result = await showHydrationBottomSheetModal(

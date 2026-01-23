@@ -7,6 +7,7 @@ import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/views/Dashboard/dashboard.dart';
 import 'package:snevva/views/Information/menu_screen.dart';
 import 'package:snevva/views/Reminder/reminder_screen.dart';
+import 'package:snevva/views/Reminder/reminder_wrapper.dart';
 import 'package:snevva/widgets/navbar.dart';
 import '../Controllers/BMI/bmi_controller.dart';
 import '../Controllers/Vitals/vitalsController.dart';
@@ -63,10 +64,10 @@ class _HomeWrapperState extends State<HomeWrapper> {
     await setupNotificationChannel();
     await Alarm.init();
 
-    Get.put(ThemeController(), permanent: true);
-
-
-    Get.put(VitalsController(), permanent: true);
+    // Get.put(ThemeController(), permanent: true);
+    //
+    //
+    // Get.put(VitalsController(), permanent: true);
   }
 
   // Future<void> checksession() async {
@@ -87,7 +88,7 @@ class _HomeWrapperState extends State<HomeWrapper> {
     List<Widget> pages = [
       Dashboard(onTabSelected: onTabSelected),
       MyHealthScreen(),
-      ReminderScreen(),
+      ReminderScreenWrapper(),
       MenuScreen(),
     ];
 

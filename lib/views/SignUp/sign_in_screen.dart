@@ -202,6 +202,8 @@ class _SignInScreenState extends State<SignInScreen> {
       bool success = false;
       dynamic deviceHeaders = await deviceTokenService.buildDeviceInfoHeader();
 
+      print("Sininscreen header $deviceHeaders");
+
       if (isEmail) {
         // 🔹 Email Login
         success = await signInController.signInUsingEmail(

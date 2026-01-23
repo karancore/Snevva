@@ -13,7 +13,7 @@ import '../../services/encryption_service.dart';
 class SignUpController extends GetxController {
   var isLoading = false.obs;
 
-  final notify = Get.put(NotificationService());
+  final notify = NotificationService();
 
   Future<dynamic> signUpUsingGmail(String email, BuildContext context) async {
     print("⏳ signUpUsingGmail() called with email: $email");

@@ -192,6 +192,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                           (sleepController.deepSleepDuration.value?.inMinutes ??
                                   0)
                               .toDouble();
+                      print("sleeptrackerscreen $deepSleep");
                       final ideal =
                           (sleepController.idealWakeupDuration?.inMinutes ?? 1)
                               .toDouble();

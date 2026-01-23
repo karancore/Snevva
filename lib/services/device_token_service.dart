@@ -42,14 +42,32 @@ class DeviceTokenService {
 
   
 
-Future<String> buildDeviceInfoHeader() async {
-  final deviceHeaders = await getDeviceHeaders();
+// Future<String> buildDeviceInfoHeader() async {
+//   final deviceHeaders = await getDeviceHeaders();
+//
+//   final jsonString = jsonEncode(deviceHeaders);
+//
+//   // Optional but recommended (safe for headers)
+//   return base64Encode(utf8.encode(jsonString));
+// }
 
-  final jsonString = jsonEncode(deviceHeaders);
+  // Future<String> buildDeviceInfoHeader() async {
+  //   final deviceInfo = await getDeviceHeaders();
+  //
+  //   final fingerprint = [
+  //     deviceInfo['platform'],
+  //     deviceInfo['brand'],
+  //     deviceInfo['model'],
+  //     deviceInfo['hardware'],
+  //   ].join('|');
+  //
+  //   return fingerprint; // 👈 plain string, no Base64, no JSON
+  // }
 
-  // Optional but recommended (safe for headers)
-  return base64Encode(utf8.encode(jsonString));
-}
+  Future<String> buildDeviceInfoHeader() async {
+    final deviceHeaders = await getDeviceHeaders();
+    return base64Encode(utf8.encode(jsonEncode(deviceHeaders)));
+  }
 
 
   Future<Map<String, String>> getDeviceHeaders() async {
