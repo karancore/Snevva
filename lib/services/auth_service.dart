@@ -65,6 +65,28 @@ class AuthService {
     }
   }
 
+  static Future<void> logexceptiontoServer(String exceptionDetails) async {
+    try{      
+
+      
+      
+      final payload = {'ExceptionDetails': exceptionDetails};
+      final response = await ApiService.post(
+        logexception,
+        payload,
+        withAuth: true,
+        encryptionRequired: true,
+      );
+
+      if (response is http.Response) {
+        throw Exception('API Error: ${response.statusCode}');
+      }
+
+      print('✅ Successfully logged exception to server');
+  }catch(e){
+      print('❌ Error during log exception API call: $e');
+    }
+  }
   static Future<void> forceLogout() async {
     if (_isLoggingOut) return;
     _isLoggingOut = true;

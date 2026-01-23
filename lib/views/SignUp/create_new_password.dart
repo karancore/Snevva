@@ -23,7 +23,6 @@ class CreateNewPassword extends StatefulWidget {
 
 class _CreateNewPasswordState extends State<CreateNewPassword> {
   final controller = Get.put(CreatePasswordController());
-  final deviceservice = Get.find<DeviceTokenService>();
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +32,7 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
 
     
     void onCreatePasswordButtonClick() async{
-      dynamic deviceHeaders = await deviceservice.buildDeviceInfoHeader();
+      dynamic deviceHeaders = await DeviceTokenService().buildDeviceInfoHeader();
       if (controller.password.value.isEmpty ||
           controller.confirmPassword.value.isEmpty) {
         CustomSnackbar.showError(
