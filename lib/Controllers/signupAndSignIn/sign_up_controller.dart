@@ -28,16 +28,6 @@ class SignUpController extends GetxController {
       return;
     }
 
-    if (!email.contains("gmail")) {
-      print("❌ Email is not gmail");
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'Use your gmail account',
-      );
-      return;
-    }
-
     final plainEmail = jsonEncode({'Gmail': email});
     print("📨 Plain Email JSON: $plainEmail");
 

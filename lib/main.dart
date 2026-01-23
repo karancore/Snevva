@@ -8,22 +8,26 @@
 // 3. Keep background handler initialization (required for background isolate)
 //    but guard it as well.
 
+import 'dart:async';
 import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
+import 'package:snevva/bindings/reminder_bindings.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/common/loader.dart';
 import 'package:snevva/consts/consts.dart';
-import 'package:snevva/initial_bindings.dart';
+import 'package:snevva/bindings/initial_bindings.dart';
 import 'package:snevva/services/app_initializer.dart';
 import 'package:snevva/services/notification_channel.dart';
 import 'package:snevva/services/notification_service.dart';
 import 'package:snevva/utils/theme.dart';
+import 'package:snevva/views/Reminder/reminder_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'Controllers/alerts/alerts_controller.dart';
+import 'Controllers/local_storage_manager.dart';
 import 'firebase_options.dart';
 import 'models/app_notification.dart';
 import 'widgets/home_wrapper.dart';
@@ -79,6 +83,13 @@ void main() async {
     // Log but continue so app can still run (you might choose to rethrow)
     logLong('INIT ERROR', 'Firebase.initializeApp failed: $e\n$s');
   }
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    final logs = details.stack ?? '';
+    print("logs $logs");
+
+    return const ErrorPlaceholder();
+  };
+
 
   // Register background handler after Firebase is (attempted to be) initialized.
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -100,12 +111,16 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
+enum AppInitState { loading, success, error }
+
 class _MyAppState extends State<MyApp> {
-  bool _isInitialized = false;
+  AppInitState _initState = AppInitState.loading;
+  Timer? _initTimeoutTimer;
 
   @override
   void initState() {
     super.initState();
+
 
     // Safe now: Firebase was initialized in main(). It's still a good idea to
     // make PushNotificationService initialization lightweight and resilient
@@ -132,34 +147,67 @@ class _MyAppState extends State<MyApp> {
 
     // ✅ Do heavy initialization AFTER first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startInitTimeout();
+
       _initializeAppAsync();
     });
   }
 
+  void _startInitTimeout() {
+    _initTimeoutTimer?.cancel();
+
+    _initTimeoutTimer = Timer(const Duration(seconds: 15), () {
+      if (mounted && _initState == AppInitState.loading) {
+        logLong("INIT TIMEOUT", "Initialization exceeded 15 seconds");
+        setState(() {
+          _initState = AppInitState.error;
+        });
+      }
+    });
+  }
+
+
   Future<void> _initializeAppAsync() async {
+
+
     try {
       logLong("INIT", "Starting app initialization");
 
+      setState(() => _initState = AppInitState.loading);
+
       await initializeApp().timeout(
         const Duration(seconds: 10),
-        onTimeout: () {
-          throw Exception("initializeApp() timed out");
-        },
+        onTimeout: () => throw Exception("initializeApp() timeout"),
       );
 
       final notificationService = NotificationService();
       await notificationService.init();
 
-      logLong("INIT", "Initialization finished");
+      final hasSession =
+      await Get.find<LocalStorageManager>().hasValidSession();
+
+      if (!hasSession) {
+        logLong("AUTH", "No valid session found");
+        Get.offAll(() => SignInScreen());
+        return;
+      }
+
+
+
+      _initTimeoutTimer?.cancel(); // ✅ stop timeout
 
       if (mounted) {
-        setState(() => _isInitialized = true);
+        setState(() => _initState = AppInitState.success);
       }
+
+      logLong("INIT", "Initialization finished");
+
     } catch (e, s) {
+      _initTimeoutTimer?.cancel();
       logLong("INIT ERROR", "$e\n$s");
 
       if (mounted) {
-        setState(() => _isInitialized = true); // allow app to continue
+        setState(() => _initState = AppInitState.error);
       }
     }
   }
@@ -184,12 +232,23 @@ class _MyAppState extends State<MyApp> {
       darkTheme: SnevvaTheme.darkTheme,
       themeMode: ThemeMode.system,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
+      getPages: [
+        GetPage(name: '/home', page: () => HomeWrapper()),
+        GetPage(name: '/reminder', page: () => ReminderScreen() , binding: ReminderBindings()),
+      ],
       supportedLocales: AppLocalizations.supportedLocales,
       locale: const Locale('en'),
-
-      home: _isInitialized
+      home: _initState == AppInitState.loading
+          ? const InitializationSplash()
+          : _initState == AppInitState.success
           ? (widget.isRemembered ? HomeWrapper() : SignInScreen())
-          : const InitializationSplash(),
+          : ErrorPlaceholder(
+        onRetry: () {
+          _startInitTimeout();
+          _initializeAppAsync();
+        },
+      ),
+
     );
   }
 }
@@ -210,6 +269,53 @@ class InitializationSplash extends StatelessWidget {
             const SizedBox(height: 24),
             Text('Loading...', style: Theme.of(context).textTheme.titleMedium),
           ],
+        ),
+      ),
+    );
+  }
+}
+class ErrorPlaceholder extends StatelessWidget {
+  final VoidCallback? onRetry;
+
+  const ErrorPlaceholder({super.key, this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 72,
+                color: Colors.grey.shade600,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                "Something went wrong",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Please try again in a moment.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey),
+              ),
+              if (onRetry != null) ...[
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: onRetry,
+                  child: const Text("Retry"),
+                ),
+              ]
+            ],
+          ),
         ),
       ),
     );

@@ -115,7 +115,7 @@ class _StepCounterState extends State<StepCounter> {
   }
 
   //   Future<void> _loadWeeklyData() async {
-  //   final now = DateTime.now();
+  //
   //   final start = _startOfDay(now).subtract(const Duration(days: 6));
 
   //   final pts = <FlSpot>[];
@@ -190,7 +190,7 @@ class _StepCounterState extends State<StepCounter> {
   // ===== LABELS =====
   //
   // List<String> _weekLabels() {
-  //   final now = DateTime.now();
+  //
   //   final start = _startOfDay(now).subtract(const Duration(days: 6));
   //   return List.generate(7, (i) {
   //     final d = start.add(Duration(days: i));

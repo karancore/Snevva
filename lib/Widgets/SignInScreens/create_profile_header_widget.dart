@@ -1,4 +1,3 @@
-import 'package:snevva/common/iphone_back_button.dart';
 
 import '../../consts/consts.dart';
 
@@ -19,9 +18,7 @@ class CreateProfileHeaderWidget extends StatelessWidget {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
-        Align(alignment: Alignment.topLeft, child: IphoneBackButton()),
 
-        SizedBox(height: 16),
         Image.asset(mascot2, height: 100),
         SizedBox(height: 16),
         Text(

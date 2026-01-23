@@ -8,6 +8,7 @@ import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
 
 import '../../common/custom_snackbar.dart';
+import '../../common/global_variables.dart';
 
 class MoodController extends GetxController {
   List<String> moods = ['Pleasant', 'Unpleasant', 'Good'];
@@ -104,7 +105,7 @@ class MoodController extends GetxController {
       selectedMood.value = moods[selectedMoodIndex.value];
       SharedPreferences prefs = await SharedPreferences.getInstance();
       prefs.setString('selectedMood', selectedMood.value);
-      final now = DateTime.now();
+
       final payload = {
         "Mood": moods[selectedMoodIndex.value],
         "Day": now.day,

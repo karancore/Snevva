@@ -7,13 +7,16 @@ class MenuItem {
   final String subtitle;
   final String imagePath;
   final Widget? navigateTo;
+
   final VoidCallback? onTap;
+  final String? routeName;
   final bool? isDisabled;
 
   MenuItem({
     required this.title,
     required this.subtitle,
     required this.imagePath,
+    this.routeName,
     this.navigateTo,
     this.isDisabled = false,
     this.onTap,
@@ -25,18 +28,37 @@ class MenuItemWidget extends StatelessWidget {
   final String subtitle;
   final String imagePath;
   final Widget? navigateTo;
+  final String? routeName;
   final bool isDarkMode;
   final VoidCallback? onTap;
 
   const MenuItemWidget({
     super.key,
     required this.title,
+    this.routeName,
     required this.subtitle,
     required this.imagePath,
     this.navigateTo,
     this.onTap,
     required this.isDarkMode,
   });
+
+  void _handleNavigation() {
+    if (onTap != null) {
+      onTap!();
+      return;
+    }
+
+    if (routeName != null) {
+      Get.toNamed(routeName!);
+      return;
+    }
+
+    if (navigateTo != null) {
+      Get.to(() => navigateTo!);
+      return;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -7,6 +7,8 @@ import '../services/device_token_service.dart';
 
 class LocalStorageManager extends GetxController {
   RxMap<String, dynamic> userMap = <String, dynamic>{}.obs;
+  bool _sessionChecked = false;
+
   RxMap<String, dynamic> userGoalDataMap = <String, dynamic>{}.obs;
 
   final DeviceTokenService _deviceTokenService = DeviceTokenService();
@@ -14,8 +16,15 @@ class LocalStorageManager extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    checkSession();
+    reloadUserMap();
   }
+  Future<bool> hasValidSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    return token != null && token.isNotEmpty;
+  }
+
+
 
   /// ✅ Call this AFTER login success
   Future<void> registerDeviceFCMIfNeeded() async {
@@ -23,6 +32,9 @@ class LocalStorageManager extends GetxController {
   }
 
   Future<void> checkSession() async {
+    if (_sessionChecked) return;
+    _sessionChecked = true;
+
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
 

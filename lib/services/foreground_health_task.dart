@@ -21,7 +21,7 @@
 //   int lastRawSteps = prefs.getInt('lastRawSteps') ?? 0;
 //
 //   Pedometer.stepCountStream.listen((event) async {
-//     final now = DateTime.now();
+//
 //     final todayKey = "${now.year}-${now.month}-${now.day}";
 //
 //     int diff = event.steps - lastRawSteps;

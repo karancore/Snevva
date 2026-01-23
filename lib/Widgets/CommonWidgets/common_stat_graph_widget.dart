@@ -94,6 +94,14 @@ class CommonStatGraphWidget extends StatelessWidget {
             ? clampedPoints.map((e) => e.x).reduce((a, b) => a > b ? a : b)
             : 6;
 
+    print('--- CommonStatGraphWidget BUILD ---');
+    print('isMonthlyView: $isMonthlyView');
+    print('labels.length: ${labels.length}');
+    print('isMonthly (derived): $isMonthly');
+    print('maxXForWeek: $maxXForWeek');
+    print('currentDateIndex: ${getCurrentDateIndex()}');
+
+
     return Material(
       elevation: 3,
       borderRadius: BorderRadius.circular(8),
@@ -165,6 +173,8 @@ class CommonStatGraphWidget extends StatelessWidget {
     );
   }
 
+
+
   Widget _buildChart({
     required List<String> labels,
     required List<FlSpot> points,
@@ -179,6 +189,7 @@ class CommonStatGraphWidget extends StatelessWidget {
       height: height * 0.28,
       width: isMonthly ? labels.length * 42 : null,
       child: LineChart(
+        key: ValueKey(isMonthlyView),
         LineChartData(
           minX: 0,
           maxX:
@@ -195,8 +206,12 @@ class CommonStatGraphWidget extends StatelessWidget {
                 interval: 1,
                 getTitlesWidget: (value, _) {
                   final int index = value.toInt();
+
                   if (index >= 0 && index < labels.length) {
-                    final bool isToday = !isMonthlyView && index == maxXForWeek;
+                    final bool isToday = isMonthly
+                        ? index == getCurrentDateIndex()
+                        : index == maxXForWeek;
+
                     return Padding(
                       padding: const EdgeInsets.only(top: 6),
                       child: Text(
@@ -204,17 +219,18 @@ class CommonStatGraphWidget extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 9,
                           fontWeight:
-                              isToday ? FontWeight.bold : FontWeight.normal,
-                          color:
-                              isToday
-                                  ? AppColors.primaryColor
-                                  : Colors.grey.shade600,
+                          isToday ? FontWeight.bold : FontWeight.normal,
+                          color: isToday
+                              ? AppColors.primaryColor
+                              : Colors.grey.shade600,
                         ),
                       ),
                     );
                   }
+
                   return const SizedBox.shrink();
                 },
+
               ),
             ),
             leftTitles: AxisTitles(
@@ -223,12 +239,11 @@ class CommonStatGraphWidget extends StatelessWidget {
                 interval: yAxisInterval,
                 getTitlesWidget:
                     (value, _) => Text(
-  value % 1 == 0
-      ? '${value.toInt()}$measureUnit'
-      : '${value.toStringAsFixed(1)}$measureUnit',
-  style: const TextStyle(fontSize: 9),
-),
-
+                      value % 1 == 0
+                          ? '${value.toInt()}$measureUnit'
+                          : '${value.toStringAsFixed(1)}$measureUnit',
+                      style: const TextStyle(fontSize: 9),
+                    ),
               ),
             ),
             rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -303,15 +318,13 @@ class CommonStatGraphWidget extends StatelessWidget {
                 return touchedSpots.map((spot) {
                   if (isSleepGraph) {
                     final int minutes = (spot.y * 60).round();
+
                     formatted = formatDurationToHM(Duration(minutes: minutes));
+                    print("CommonStatGraphWidget $formatted");
                   }
 
                   return LineTooltipItem(
-                    isSleepGraph
-                        ? formatted
-                        : isWaterGraph
-                        ? '${(spot.y * 1000).round()} ml'
-                        : '${(spot.y * 1000).round()} Steps',
+                    isSleepGraph ? formatted : '${(spot.y * 1000).round()} ml',
                     const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,

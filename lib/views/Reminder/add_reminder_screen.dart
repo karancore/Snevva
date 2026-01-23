@@ -29,6 +29,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   bool isSelected = false;
   bool showMedicineTime = true;
   num dosage = 1;
+
   bool isFirstTime = true;
   final medicineQuantity = "Tablet";
   bool showMedicineTimeSecond = true;
@@ -45,7 +46,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   @override
   void initState() {
     super.initState();
-    // final now = DateTime.now();
+    //
     // final formattedTime = DateFormat('hh:mm a').format(now);
     // final endWater = DateFormat('hh:mm a').format(now.add(Duration(hours: 8)));
     // controller.timeController.text = formattedTime;

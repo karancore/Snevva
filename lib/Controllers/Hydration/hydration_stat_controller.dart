@@ -7,6 +7,7 @@ import 'package:snevva/env/env.dart';
 import 'package:snevva/models/queryParamViewModels/water_goal_vm.dart';
 import 'package:snevva/services/api_service.dart';
 import '../../common/custom_snackbar.dart';
+import '../../common/global_variables.dart';
 import '../../models/water_history_model.dart';
 import 'package:http/http.dart' as http;
 
@@ -120,7 +121,7 @@ class HydrationStatController extends GetxController {
   }
 
   List<FlSpot> getMonthlyWaterSpots(DateTime month) {
-    final now = DateTime.now();
+
 
     final int totalDays =
         (month.year == now.year && month.month == now.month)
@@ -183,7 +184,7 @@ class HydrationStatController extends GetxController {
 
   Future<void> saveWaterRecord(int count, BuildContext context) async {
     try {
-      final now = DateTime.now();
+
       final payload = {
         "Day": now.day,
         "Month": now.month,
@@ -233,7 +234,7 @@ class HydrationStatController extends GetxController {
   }
 
   void calculateTodayIntakeFromList(List intakeList) {
-    final now = DateTime.now();
+
 
     int todayTotal = 0;
 

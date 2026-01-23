@@ -26,7 +26,8 @@ class _ForgotPasswordState extends State<ForgotPassword> {
     super.dispose();
   }
 
-  Future<void> onButtonClick() async {
+  Future<void> onButtonClick(String input) async {
+    print("onButtonClick $input");
     if (textFieldController.text.isEmpty) {
       CustomSnackbar.showError(
         context: context,
@@ -38,7 +39,6 @@ class _ForgotPasswordState extends State<ForgotPassword> {
 
     setState(() => isLoading = true);
 
-    String input = textFieldController.text.trim();
     dynamic result;
 
     try {
@@ -91,7 +91,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
         elevation: 0,
         automaticallyImplyLeading: false,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios),
+          icon: const Icon(Icons.arrow_back_ios , size: 18,),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -136,7 +136,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: ElevatedButton(
-                  onPressed: isLoading ? null : onButtonClick,
+                  onPressed: isLoading ? null : () => onButtonClick(textFieldController.text.trim()),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     foregroundColor: Colors.white,

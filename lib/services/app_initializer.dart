@@ -7,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:get/get.dart';
 import 'package:snevva/common/global_variables.dart';
-import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
 import 'package:snevva/models/medicine_reminder_model.dart';
 import 'package:snevva/models/water_reminder_model.dart';
@@ -180,7 +179,7 @@ Future<bool> initializeApp() async {
     await createServiceNotificationChannel();
 
     // 🔔 Notification service (SERVICE, not controller)
-    final notifService = Get.find<NotificationService>();
+    final notifService = NotificationService();
     await notifService.init();
 
     // ⏰ One-time reminder

@@ -9,7 +9,7 @@ import '../../common/statement_of_use_bottom_sheet.dart';
 import '../../consts/consts.dart';
 import '../../views/Information/HydrationScreens/hydration_screen.dart';
 import '../../views/Information/Sleep Screen/sleep_bottom_sheet.dart';
-import '../../views/Information/Sleep Screen/sleep_tracker.dart';
+import '../../views/Information/Sleep Screen/sleep_tracker_screen.dart';
 import '../../views/Information/StepCounter/step_counter.dart';
 import '../../views/Information/StepCounter/step_counter_bottom_sheet.dart';
 import '../../views/Information/vitals.dart';

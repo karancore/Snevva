@@ -1,5 +1,3 @@
-
-
 import 'package:sms_autofill/sms_autofill.dart';
 
 import '../../common/custom_snackbar.dart';
@@ -8,18 +6,14 @@ import '../../views/SignUp/create_new_password.dart';
 import '../../views/SignUp/update_old_password.dart';
 
 class OTPVerificationController extends GetxController {
-  String responseOtp;
+  String responseOtp = '';
   final pinController = TextEditingController();
-  final String emailOrPasswordText;
+  var emailOrPasswordText = ''.obs;
   final bool isForgotPasswordScreen;
 
   var isVerifying = false.obs;
 
-  OTPVerificationController(
-      [this.responseOtp = '',
-        this.emailOrPasswordText = '',
-        this.isForgotPasswordScreen = false,]
-      );
+  OTPVerificationController([this.isForgotPasswordScreen = false]);
 
   @override
   void onInit() {
@@ -35,25 +29,45 @@ class OTPVerificationController extends GetxController {
     }
   }
 
-  bool verifyOtp(String enteredOtp, String responseOtpp, BuildContext context) {
+  bool verifyOtp(
+      String enteredOtp,
+      String responseOtpp,
+      BuildContext context,
+      ) {
+    debugPrint('🔐 [verifyOtp] CALLED');
+
     final normalizedEnteredOtp = enteredOtp.trim();
     final normalizedResponseOtp = responseOtpp.trim();
 
-    if (isVerifying.value) return false;
-    isVerifying.value = true;
+    debugPrint('🧪 Entered OTP (raw): "$enteredOtp"');
+    debugPrint('🧪 Entered OTP (normalized): "$normalizedEnteredOtp"');
+    debugPrint('🧪 Response OTP (raw): "$responseOtpp"');
+    debugPrint('🧪 Response OTP (normalized): "$normalizedResponseOtp"');
 
-    debugPrint('🧪 Entered OTP: $normalizedEnteredOtp');
-    debugPrint('🧪 Response OTP: $normalizedResponseOtp');
+    if (isVerifying.value) {
+      debugPrint('⏳ OTP verification already in progress — skipping');
+      return false;
+    }
+
+    isVerifying.value = true;
+    debugPrint('🔄 isVerifying set to TRUE');
 
     if (normalizedEnteredOtp != normalizedResponseOtp) {
+      debugPrint('❌ OTP MISMATCH');
+
       CustomSnackbar.showError(
         context: context,
         title: 'Wrong OTP',
         message: 'Verification failed.',
       );
+
       isVerifying.value = false;
+      debugPrint('🔄 isVerifying reset to FALSE');
+
       return false;
     }
+
+    debugPrint('✅ OTP MATCHED — verification successful');
 
     CustomSnackbar.showSuccess(
       context: context,
@@ -61,20 +75,28 @@ class OTPVerificationController extends GetxController {
       message: 'Verification successful.',
     );
 
-    Get.to(() => isForgotPasswordScreen
-        ? UpdateOldPasword(
-      otpVerificationStatus: true,
-      otp: normalizedResponseOtp,
-      emailOrPhoneText: emailOrPasswordText,
-    )
-        : CreateNewPassword(
-      otpVerificationStatus: true,
-      otp: normalizedResponseOtp,
-      emailOrPhoneText: emailOrPasswordText,
-    ));
+    debugPrint(
+      '➡️ Navigating to ${isForgotPasswordScreen ? "UpdateOldPassword" : "CreateNewPassword"}',
+    );
 
+    print("$emailOrPasswordText");
+
+    Get.to(
+          () => isForgotPasswordScreen
+          ? UpdateOldPasword(
+        otpVerificationStatus: true,
+        otp: normalizedResponseOtp,
+        emailOrPhoneText: emailOrPasswordText.value,
+      )
+          : CreateNewPassword(
+        otpVerificationStatus: true,
+        otp: normalizedResponseOtp,
+        emailOrPhoneText: emailOrPasswordText.value,
+      ),
+    );
+
+    debugPrint('🏁 [verifyOtp] COMPLETED SUCCESSFULLY');
     return true;
   }
-
 
 }

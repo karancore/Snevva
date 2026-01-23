@@ -139,7 +139,7 @@ class StepStatGraphWidget extends StatelessWidget {
 
     final double resolvedMaxX =
         isMonthly
-            ? (labels.length - 1).toDouble()
+            ? (labels.length).toDouble()
             : (maxXForWeek ?? labels.length - 1).toDouble();
 
     return Container(
@@ -159,28 +159,30 @@ class StepStatGraphWidget extends StatelessWidget {
                 interval: 1,
                 reservedSize: 24,
                 getTitlesWidget: (value, _) {
-                  final index = value.toInt();
-                  if (index < 0 || index >= labels.length) {
-                    return const SizedBox.shrink();
-                  }
+                  final int index = value.toInt();
 
-                  final isToday = !isMonthly && index == maxXForWeek;
+                  if (index >= 0 && index < labels.length) {
+                    final bool isToday = isMonthly
+                        ? index == getCurrentDateIndex()
+                        : index == maxXForWeek;
 
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Text(
-                      labels[index],
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight:
-                            isToday ? FontWeight.bold : FontWeight.normal,
-                        color:
-                            isToday
-                                ? AppColors.primaryColor
-                                : Colors.grey.shade600,
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        labels[index],
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight:
+                          isToday ? FontWeight.bold : FontWeight.normal,
+                          color:
+                          isToday
+                              ? AppColors.primaryColor
+                              : Colors.grey.shade600,
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  }
+                  return const SizedBox.shrink();
                 },
               ),
             ),
@@ -252,6 +254,29 @@ class StepStatGraphWidget extends StatelessWidget {
               ),
             ),
           ],
+          lineTouchData: LineTouchData(
+            enabled: true,
+            touchTooltipData: LineTouchTooltipData(
+              getTooltipColor: (touchedSpot) => AppColors.primaryColor,
+              tooltipPadding: EdgeInsets.all(8),
+              tooltipBorderRadius: BorderRadius.circular(24),
+
+              getTooltipItems: (touchedSpots) {
+                return touchedSpots.map((spot) {
+
+
+                  return LineTooltipItem(
+                    '${(spot.y).round() } Steps',
+                    const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: white,
+                    ),
+                  );
+                }).toList();
+              },
+            ),
+          ),
         ),
       ),
     );

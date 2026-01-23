@@ -1,10 +1,11 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
-import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker.dart';
+import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
 import 'package:wheel_picker/wheel_picker.dart';
 import '../../../../consts/consts.dart';
 import '../../../common/custom_snackbar.dart';
+import '../../../common/global_variables.dart';
 
 class SleepBottomSheet extends StatefulWidget {
   final double height;
@@ -280,18 +281,18 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
                 minute: sleepMinute,
               );
 
-              final now = DateTime.now();
-              DateTime st = DateTime(
-                now.year,
-                now.month,
-                now.day,
-                sleepTime.hour,
-                sleepTime.minute,
-              );
 
-              debugPrint("🛏️ Final Sleep DateTime: $st");
+              // DateTime st = DateTime(
+              //   now.year,
+              //   now.month,
+              //   now.day,
+              //   sleepTime.hour,
+              //   sleepTime.minute,
+              // );
 
-              controller.setBedtime(st);
+              debugPrint("🛏️ Final Sleep DateTime: $sleepTime");
+
+              controller.setBedtime(sleepTime);
 
               // --- WAKE-UP TIME ---
               int wakeHour = wakeUpHourController.selected + 1;
@@ -323,12 +324,12 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
                 wakeTime.minute,
               );
 
-              debugPrint("🌅 Final Wake DateTime: $wt");
+              debugPrint("🌅 Final Wake DateTime: $wakeTime");
 
-              controller.setWakeTime(wt);
+              controller.setWakeTime(wakeTime);
 
               debugPrint("Sleep monitoring started at sleep bottom sheet");
-              controller.startMonitoring();
+              await controller.startMonitoring();
               CustomSnackbar.showSnackbar(
                 context: context,
                 title: "Sleep Monitoring Started",

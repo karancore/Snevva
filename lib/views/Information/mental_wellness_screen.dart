@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:snevva/Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/MentalWellness/mental_wellness_footer_widget.dart';
@@ -96,7 +98,7 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                           playText: '',
                           wellnessContainerImage:
                               generalMusic[index].thumbnailMedia ??
-                                  backgroundImageUrls[index],
+                                  generalImageUrls[Random().nextInt(index + 1)],
                           heading: generalMusic[index].title,
                           subHeading:
                               generalMusic[index].artistName == "Unknown"
@@ -152,7 +154,7 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                               playText: "Play",
                               wellnessContainerImage:
                                   meditationMusic[index].thumbnailMedia ??
-                                      backgroundImageUrls[index],
+                                      meditationImageUrls[Random().nextInt(index + 3)],
                               heading: meditationMusic[index].title,
                               subHeading:
                                   meditationMusic[index].artistName == "Unknown"
@@ -206,7 +208,7 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                           return MentalWellnessFooterWidget(
                             musicItem: item,
                             wellnessContainerImage:
-                                item.thumbnailMedia ?? backgroundImageUrls[index],
+                                item.thumbnailMedia ?? natureImageUrls[Random().nextInt(index + 2)],
                             heading: item.title,
                             subHeading:
                                 item.artistName == "Unknown"
