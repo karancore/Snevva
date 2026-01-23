@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:snevva/common/debug_logger.dart';
 import 'package:snevva/services/auth_service.dart';
@@ -26,19 +27,28 @@ class ApiService {
       final jsonString = jsonEncode(plainBody);
       final encrypted = EncryptionService.encryptData(jsonString);
 
+     
+      final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
       headers['X-Data-Hash'] = encrypted['hash']!;
-      final encryptedBody = jsonEncode({'data': encrypted['encryptedData']});
 
-      final extraHeaders = await DeviceTokenService().buildDeviceInfoHeader();
+      // ✅ Always set device info
+      final deviceInfoHeader =
+          await DeviceTokenService().buildDeviceInfoHeader();
+      
+      headers['X-Device-Info'] = deviceInfoHeader;
 
-      print("APIService Header $extraHeaders");
+      debugPrint("📱 X-Device-Info: $deviceInfoHeader");
+      debugPrint("📦 Headers: $headers");
 
-      headers['X-Device-Info'] = extraHeaders;
+      final encryptedRequestBody = jsonEncode({
+        'data': encrypted['encryptedData'],
+      });
+
     
       final response = await http.post(
         uri,
         headers: headers,
-        body: encryptedBody,
+        body: encryptedRequestBody,
       );
 
       // _handleErrors(response);
@@ -61,11 +71,11 @@ class ApiService {
 
         return responseData;
       }
-      // else if (response.statusCode == 401 || response.statusCode == 403) {
-      //   // Handle unauthorized access
-      //   await AuthService.forceLogout();
-      //   throw Exception("Unauthorized");
-      // }
+      else if (response.statusCode == 401 || response.statusCode == 403) {
+        // Handle unauthorized access
+        await AuthService.forceLogout();
+        throw Exception("Unauthorized");
+      }
 
       else {
         _handleErrors(response, endpoint);
@@ -74,6 +84,13 @@ class ApiService {
     } else {
       String? bodyPayload;
       if (plainBody != null) bodyPayload = jsonEncode(plainBody);
+
+      final deviceInfoHeader =
+          await DeviceTokenService().buildDeviceInfoHeader();
+      headers['X-Device-Info'] = deviceInfoHeader;
+
+      debugPrint("📱 X-Device-Info: $deviceInfoHeader");
+      debugPrint("📦 Headers: $headers");
 
       final response = await http.post(
         uri,

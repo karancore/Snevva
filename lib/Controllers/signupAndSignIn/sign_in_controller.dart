@@ -23,7 +23,6 @@ class SignInController extends GetxController {
     String email,
     String password,
     BuildContext context,
-    String? extraHeaders,
   ) async {
     if (email.isEmpty) {
       CustomSnackbar.showError(
@@ -44,15 +43,19 @@ class SignInController extends GetxController {
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
       headers['X-Data-Hash'] = encryptedEmail['hash']!;
 
-      if (extraHeaders != null) {
-        headers['X-Device-Info'] = extraHeaders;
-      }
+      // ✅ Always set device info
+      final deviceInfoHeader =
+          await DeviceTokenService().buildDeviceInfoHeader();
+      headers['X-Device-Info'] = deviceInfoHeader;
 
-      debugPrint("extra headers $extraHeaders");
-      debugPrint("devive headers $headers['X-Device-Info']");
-      debugPrint("final headers $extraHeaders");
+      debugPrint("📱 X-Device-Info: $deviceInfoHeader");
+      debugPrint("📦 Headers: $headers");
 
-      debugPrint("Headers: $headers");
+      // debugPrint("extra headers $extraHeaders");
+      // debugPrint("devive headers ${headers['X-Device-Info']}");
+      // debugPrint("final headers $headers");
+
+      // debugPrint("Headers: $headers");
 
       final encryptedRequestBody = jsonEncode({
         'data': encryptedEmail['encryptedData'],
@@ -311,7 +314,6 @@ class SignInController extends GetxController {
     String phone,
     String password,
     BuildContext context,
-    String? extraHeaders,
   ) async {
     if (phone.isEmpty) {
       CustomSnackbar.showError(
@@ -328,12 +330,15 @@ class SignInController extends GetxController {
       final uri = Uri.parse("$baseUrl$signInPhoneEndpoint");
       final encryptedPhone = EncryptionService.encryptData(plainPhone);
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
-
       headers['X-Data-Hash'] = encryptedPhone['hash']!;
 
-      if (extraHeaders != null) {
-        headers['X-Device-Info'] = extraHeaders;
-      }
+      // ✅ Always set device info
+      final deviceInfoHeader =
+          await DeviceTokenService().buildDeviceInfoHeader();
+      headers['X-Device-Info'] = deviceInfoHeader;
+
+      debugPrint("📱 X-Device-Info: $deviceInfoHeader");
+      debugPrint("📦 Headers: $headers");
 
       final encryptedRequestBody = jsonEncode({
         'data': encryptedPhone['encryptedData'],

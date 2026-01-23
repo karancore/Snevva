@@ -42,7 +42,6 @@ final moodcontroller = Get.put(MoodController());
 final bottomsheetcontroller = Get.put(BottomSheetController());
 
 final localStorageManager = Get.find<LocalStorageManager>();
-final deviceTokenService = DeviceTokenService();
 
 class _SignInScreenState extends State<SignInScreen> {
   late TextEditingController userEmailOrPhoneField;
@@ -200,9 +199,6 @@ class _SignInScreenState extends State<SignInScreen> {
 
     try {
       bool success = false;
-      dynamic deviceHeaders = await deviceTokenService.buildDeviceInfoHeader();
-
-      print("Sininscreen header $deviceHeaders");
 
       if (isEmail) {
         // 🔹 Email Login
@@ -210,7 +206,6 @@ class _SignInScreenState extends State<SignInScreen> {
           input,
           password,
           context,
-          deviceHeaders,
         );
       } else if (isPhone) {
         // 🔹 Phone Login
@@ -218,7 +213,6 @@ class _SignInScreenState extends State<SignInScreen> {
           input,
           password,
           context,
-          deviceHeaders
         );
       } else {
         print("Invalid input format");
