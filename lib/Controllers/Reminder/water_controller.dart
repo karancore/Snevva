@@ -40,7 +40,7 @@ class WaterController extends GetxController {
 
   Future<void> initialiseWaterReminder() async {
     if (savedTimes.value > 0) {
-      final now = DateTime.now();
+
 
       final todayTimes = generateTimesBetween(
         startTime: startWaterTimeController.text,
@@ -64,7 +64,7 @@ class WaterController extends GetxController {
 
       final newAlarm = AlarmSettings(
         id: alarmsId(),
-        dateTime: nextTime!,
+        dateTime: nextTime,
         assetAudioPath: alarmSound,
         loopAudio: false,
         volumeSettings: VolumeSettings.fade(
@@ -250,7 +250,7 @@ class WaterController extends GetxController {
   }) {
     if (times <= 0) return [];
 
-    final now = DateTime.now();
+
 
     final start = DateFormat('hh:mm a').parse(startTime);
     final end = DateFormat('hh:mm a').parse(endTime);
@@ -384,7 +384,7 @@ class WaterController extends GetxController {
   }
 
   DateTime? _calculateNextWaterAlarm(int intervalHours) {
-    final now = DateTime.now();
+
     final startTime = startWaterTimeController.value; // e.g., 8:00 AM
     final endTime = startWaterTimeController.value; // e.g., 10:00 PM
 
@@ -442,7 +442,7 @@ class WaterController extends GetxController {
   }
 
   DateTime parseWaterTime(String time) {
-    final now = DateTime.now();
+
     final parsed = DateFormat('hh:mm a').parse(time);
 
     return DateTime(now.year, now.month, now.day, parsed.hour, parsed.minute);

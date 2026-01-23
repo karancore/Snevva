@@ -4,8 +4,8 @@ class Env {
 }
 
 // baseUrl
-const String baseUrl = "https://localhost:7238";
-//  const String baseUrl = "https://abdmstg.coretegra.com";
+// const String baseUrl = "https://localhost:7238";
+ const String baseUrl = "https://abdmstg.coretegra.com";
 
 // send otp api
 const String senOtpEmailEndpoint =
@@ -101,6 +101,17 @@ const String periodsymptomps = '/api/upsert/addsymptomdata';
 
 const String fcmTokenApi = '/api/registration/userdevicetoken';
 
+List<String> generalImageUrls = [
+  // Random placeholder images
+  "https://picsum.photos/1080/1920",                         // random 1080x1920 image
+  "https://picsum.photos/800/1400",                          // random 800x1400
+  "https://picsum.photos/1200/2000",                         // random vertical photo
+  "https://gdevelop.io/_next/static/media/audio-placeholder.22bf16ce.jpg",
+  "https://i.pinimg.com/1200x/e9/93/ec/e993ec4d2956fbae938515d91d0b0434.jpg",
+  "https://images.pexels.com/photos/34950/pexels-photo.jpg",  // nature scenery
+
+];
+
 List<String> backgroundImageUrls = [
   // Random placeholder images
   "https://picsum.photos/1080/1920",                         // random 1080x1920 image
@@ -130,9 +141,36 @@ List<String> backgroundImageUrls = [
   "https://i.sstatic.net/bkC9s.jpg"
 
   // Night / mood
+      "https://images.pexels.com/photos/1274260/pexels-photo-1274260.jpeg",
+  "https://images.pexels.com/photos/736230/pexels-photo-736230.jpeg"
+];
+
+List<String> meditationImageUrls = [
+
+  "https://images.pexels.com/photos/417173/pexels-photo-417173.jpeg",
+  "https://images.pexels.com/photos/36717/amazing-animal-beautiful-beautifull.jpg",
+
+  // Aesthetic & abstract
+  "https://images.pexels.com/photos/355465/pexels-photo-355465.jpeg",
+  "https://images.pexels.com/photos/110854/pexels-photo-110854.jpeg",
+
+  // Clean gradients/textured backgrounds
+  "https://images.pexels.com/photos/323705/pexels-photo-323705.jpeg",
+  "https://images.pexels.com/photos/207962/pexels-photo-207962.jpeg",
+
+];
+
+List<String> natureImageUrls = [
+  // Urban & skyline
+  "https://images.pexels.com/photos/374870/pexels-photo-374870.jpeg",
+  "https://images.pexels.com/photos/1237119/pexels-photo-1237119.jpeg",
+  "https://i.sstatic.net/bkC9s.jpg"
+  // Night / mood
   "https://images.pexels.com/photos/1274260/pexels-photo-1274260.jpeg",
   "https://images.pexels.com/photos/736230/pexels-photo-736230.jpeg"
 ];
+
+
 
 const String dietPlaceholder =
     "https://community.softr.io/uploads/db9110/original/2X/7/74e6e7e382d0ff5d7773ca9a87e6f6f8817a68a6.jpeg";

@@ -6,6 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:screen_state/screen_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../common/global_variables.dart';
 import '../consts/consts.dart';
 import '../models/hive_models/sleep_log.dart';
 import '../models/hive_models/steps_model.dart';
@@ -78,7 +79,7 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
     print("👣 Initializing step counter...");
 
     // Check for day reset (steps)
-    final now = DateTime.now();
+
     final todayKey = "${now.year}-${now.month}-${now.day}";
     final lastDate = prefs.getString("last_step_date");
 
@@ -94,7 +95,7 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
     await _pedometerSubscription?.cancel();
     _pedometerSubscription = Pedometer.stepCountStream.listen(
       (StepCount event) async {
-        final now = DateTime.now();
+
         final todayKey = "${now.year}-${now.month}-${now.day}";
 
         final lastRawSteps = prefs.getInt('lastRawSteps') ?? event.steps;
@@ -170,7 +171,7 @@ void _handleScreenStateChange(
   Box<SleepLog> sleepBox,
   SharedPreferences prefs,
 ) async {
-  final now = DateTime.now();
+
 
   if (event == ScreenStateEvent.SCREEN_ON) {
     print("☀️ [BG] Screen ON at ${now.hour}:${now.minute}");

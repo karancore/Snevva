@@ -130,7 +130,7 @@ class StepCounterController extends GetxController {
   // DAY RESET
   // =======================
   Future<void> _checkDayReset() async {
-    final now = DateTime.now();
+
     final todayKey = _dayKey(now);
     final lastDate = _prefs.getString("last_step_date");
 
@@ -313,7 +313,7 @@ class StepCounterController extends GetxController {
   }
 
   void calculateTodayStepsFromList(List stepsList) {
-    final now = DateTime.now();
+
 
     int todayTotal = 0;
 
@@ -501,7 +501,7 @@ class StepCounterController extends GetxController {
   Future<void> _maybeSyncSteps() async {
     if (todaySteps.value <= 0) return;
 
-    final now = DateTime.now();
+
     final todayKey = _dayKey(now);
 
     final lastSyncMillis = _prefs.getInt(_lastSyncKey);
@@ -525,7 +525,7 @@ class StepCounterController extends GetxController {
 
   Future<void> saveStepRecordToServer() async {
     try {
-      final now = DateTime.now();
+
       final date = DateUtils.dateOnly(DateTime.now());
       final steps = todaySteps.value;
 
@@ -602,7 +602,7 @@ class StepCounterController extends GetxController {
   }
 
   void syncTodayIntakeFromMap() {
-    final now = DateTime.now();
+
     final key = _dayKey(now);
 
     todaySteps.value = stepsHistoryByDate[key] ?? todaySteps.value;

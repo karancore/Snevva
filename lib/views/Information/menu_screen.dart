@@ -22,7 +22,7 @@ import '../../common/statement_of_use_bottom_sheet.dart';
 import '../WomenHealth/women_bottom_sheets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'Sleep Screen/sleep_tracker.dart';
+import 'Sleep Screen/sleep_tracker_screen.dart';
 
 class MenuScreen extends StatefulWidget {
   final Function(int)? onTabSelected;
@@ -90,7 +90,7 @@ class _MenuScreenState extends State<MenuScreen>
         title: "Add A Reminder",
         subtitle: "Medication, meal, hydration alert",
         imagePath: reminderIcon,
-        navigateTo: ReminderScreen(),
+          routeName : '/reminder' ,
       ),
       MenuItem(
         title: "Steps Tracker",

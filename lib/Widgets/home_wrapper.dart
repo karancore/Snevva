@@ -9,8 +9,10 @@ import 'package:snevva/views/Information/menu_screen.dart';
 import 'package:snevva/views/Reminder/reminder_screen.dart';
 import 'package:snevva/widgets/navbar.dart';
 import '../Controllers/BMI/bmi_controller.dart';
+import '../Controllers/Vitals/vitalsController.dart';
 import '../services/app_initializer.dart';
 import '../services/notification_channel.dart';
+import '../utils/theme_controller.dart';
 import '../views/My_Health/my_health_screen.dart';
 import 'Drawer/drawer_menu_wigdet.dart';
 
@@ -60,6 +62,11 @@ class _HomeWrapperState extends State<HomeWrapper> {
     await FirebaseMessaging.instance.requestPermission();
     await setupNotificationChannel();
     await Alarm.init();
+
+    Get.put(ThemeController(), permanent: true);
+
+
+    Get.put(VitalsController(), permanent: true);
   }
 
   // Future<void> checksession() async {

@@ -907,7 +907,7 @@ class EditprofileController extends GetxController {
                         );
                       }
                       Navigator.pop(ctx);
-                      if (onUpdated != null) onUpdated!();
+                      if (onUpdated != null) onUpdated();
                     },
                     child: Text(
                       "Update",

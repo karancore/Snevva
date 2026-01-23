@@ -28,7 +28,6 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
   int daysSinceMonday = 0;
   int todayDate = 1;
 
-  bool _isMonthlyView = false;
   DateTime _selectedMonth = DateTime.now();
   TimeOfDay? start = TimeOfDay.now();
   TimeOfDay? end = TimeOfDay.fromDateTime(
@@ -45,12 +44,19 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
     toggleSleepCard();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-    await sleepController.loadDeepSleepData(); // local Hive data
-    await sleepController.loadSleepfromAPI(
-      month: DateTime.now().month,
-      year: DateTime.now().year,
-    );
-  });
+      await sleepController.loadDeepSleepData(); // local Hive data
+      sleepController.loadUserSleepTimes();
+      //Testing
+      // await sleepController.saveDeepSleepData(
+      //   DateTime.now().subtract(const Duration(days: 1)),
+      //   const Duration(minutes: 30),
+      // );
+
+      // await sleepController.loadSleepfromAPI(
+      //   month: DateTime.now().month,
+      //   year: DateTime.now().year,
+      // );
+    });
 
     // sleepController.loadSleepfromAPI(
     //   month: DateTime.now().month,
@@ -63,34 +69,19 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     await prefs.setBool('is_first_time_sleep', false);
   }
 
-  Future<void> _pickTime(BuildContext context, bool isBedtime) async {
-    final initial = TimeOfDay.now();
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: initial,
-      initialEntryMode: TimePickerEntryMode.dialOnly,
-    );
+  String _fmt(TimeOfDay? dt) {
+    int hour = dt!.hour;
+    String ampm = hour >= 12 ? "PM" : "AM";
 
-    if (picked == null) return;
+    hour = hour % 12; // Convert 13–23 → 1–11
+    if (hour == 0) hour = 12; // Convert 0 → 12
 
-    final now = DateTime.now();
+    String minute = dt.minute.toString().padLeft(2, '0');
 
-    final dt = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      picked.hour,
-      picked.minute,
-    );
-
-    if (isBedtime) {
-      sleepController.setBedtime(dt);
-    } else {
-      sleepController.setWakeTime(dt);
-    }
+    return "$hour:$minute $ampm";
   }
 
-  String _fmt(DateTime? dt) {
+  String _fmtDt(DateTime? dt) {
     int hour = dt!.hour;
     String ampm = hour >= 12 ? "PM" : "AM";
 
@@ -112,13 +103,22 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
   }
 
   void _toggleView() async {
-    setState(() => _isMonthlyView = !_isMonthlyView);
+    print(
+      "sleepController.isMonthlyView.value${sleepController.isMonthlyView.value}",
+    );
+    sleepController.isMonthlyView.value = !sleepController.isMonthlyView.value;
+    print(
+      "sleepController.isMonthlyView.value${sleepController.isMonthlyView.value}",
+    );
 
-    if (_isMonthlyView) {
+    if (sleepController.isMonthlyView.value) {
       await sleepController.loadSleepfromAPI(
         month: _selectedMonth.month,
         year: _selectedMonth.year,
       );
+      //sleepController.getMonthlyDeepSleepSpots(DateTime.now());
+    } else {
+      sleepController.updateDeepSleepSpots();
     }
   }
 
@@ -130,6 +130,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     );
 
     setState(() => _selectedMonth = newMonth);
+    //sleepController.getMonthlyDeepSleepSpots(newMonth);
 
     // 🔥 LOAD DATA FOR SELECTED MONTH
     await sleepController.loadSleepfromAPI(
@@ -212,16 +213,20 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                               sleepController.deepSleepDuration.value == null
                                   ? "No data"
                                   : fmtDuration(
-                                    sleepController.deepSleepDuration.value!,
+                                    sleepController.deepSleepDuration.value ?? Duration.zero,
                                   ),
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.w600,
                                 color:
-                                    sleepController.deepSleepDuration.value ==
-                                            null
+                                    fmtDuration(
+                                              sleepController
+                                                  .deepSleepDuration
+                                                  .value ?? Duration.zero,
+                                            ) ==
+                                            "0h 00m"
                                         ? grey
-                                        : black,
+                                        : (isDarkMode ? white : black),
                               ),
                             ),
                             Text(
@@ -244,10 +249,8 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                   Obx(() {
                     const int maxSleepMinutes = 720;
                     double getDeepSleepPercent(Duration? deepSleep) {
-                      final minutes = deepSleep?.inMinutes.clamp(
-                        0,
-                        maxSleepMinutes,
-                      ) ?? 0;
+                      final minutes =
+                          deepSleep?.inMinutes.clamp(0, maxSleepMinutes) ?? 0;
                       return minutes / maxSleepMinutes;
                     }
 
@@ -339,7 +342,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
               const SizedBox(height: 4),
               Obx(
                 () => Text(
-                  "Adjusted Bedtime: ${sleepController.newBedtime.value == null ? "--" : _fmt(sleepController.newBedtime.value!)}",
+                  "Adjusted Bedtime: ${sleepController.newBedtime.value == null ? "--" : _fmtDt(sleepController.newBedtime.value!)}",
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -391,7 +394,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                                 Text(
                                   sleepController.bedtime.value != null
                                       ? _fmt(sleepController.bedtime.value)
-                                      : _fmt(DateTime.now()),
+                                      : _fmt(TimeOfDay.now()),
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w400,
@@ -447,9 +450,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                                 Text(
                                   sleepController.waketime.value != null
                                       ? _fmt(sleepController.waketime.value)
-                                      : _fmt(
-                                        DateTime.now().add(Duration(hours: 8)),
-                                      ),
+                                      : _fmt(TimeOfDay.now()),
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w400,
@@ -484,7 +485,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    _isMonthlyView
+                    sleepController.isMonthlyView.value
                         ? "Monthly Sleep Report"
                         : "Weekly Sleep Report",
                     style: const TextStyle(
@@ -496,7 +497,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        if (_isMonthlyView) ...[
+                        if (sleepController.isMonthlyView.value) ...[
                           IconButton(
                             icon: const Icon(Icons.chevron_left),
                             onPressed: () => _changeMonth(-1),
@@ -513,7 +514,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                         TextButton(
                           onPressed: _toggleView,
                           child: Text(
-                            _isMonthlyView
+                            sleepController.isMonthlyView.value
                                 ? "Switch to Weekly"
                                 : "Switch to Monthly",
                           ),
@@ -523,64 +524,59 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                   ),
                 ],
               ),
-              // const SizedBox(height: 10),
-              //
-              // // -------------------------
-              // // Deep sleep duration
-              // // -------------------------
-              // Obx(
-              //   () => Text(
-              //     "Deep Sleep: ${sleepController.deepSleepDuration.value == null ? "--" : _fmtDuration(sleepController.deepSleepDuration.value!)}",
-              //     style: const TextStyle(fontSize: 18, color: Colors.blue),
-              //   ),
-              // ),
               const SizedBox(height: 10),
-
-              // ========== SLEEP STATISTICS GRAPH ==========
               SizedBox(
-  height: height * 0.41,
-  child: Obx(() {
-    final labels =
-        _isMonthlyView
-            ? generateMonthLabels(_selectedMonth)
-            : generateShortWeekdays();
+                height: height * 0.41,
+                child: Obx(() {
+                  final labels =
+                      sleepController.isMonthlyView.value
+                          ? generateMonthLabels(_selectedMonth)
+                          : generateShortWeekdays();
 
-    final points =
-        _isMonthlyView
-            ? sleepController.getMonthlyDeepSleepSpots(_selectedMonth)
-            : sleepController.deepSleepSpots
-                .take(daysSinceMonday + 1)
-                .toList();
+                  print(
+                    "monthlySleepSpots ${sleepController.monthlySleepSpots}",
+                  );
 
-    // 🔥 Find max sleep (in hours)
-    final double rawMax =
-        points.isEmpty
-            ? 0
-            : points.map((e) => e.y).reduce((a, b) => a > b ? a : b);
+                  print("deepSleepSpots ${sleepController.deepSleepSpots}");
 
-    // 🔥 Apply nice scaling
-    final double maxY = getNiceSleepMaxY(rawMax);
-    final double interval = getNiceSleepInterval(maxY);
+                  final points =
+                      sleepController.isMonthlyView.value
+                          ? sleepController.getMonthlyDeepSleepSpots(now)
+                          : sleepController.deepSleepSpots
+                              .take(daysSinceMonday + 1)
+                              .toList();
 
-    return CommonStatGraphWidget(
-      isDarkMode: isDarkMode,
-      height: height,
-      graphTitle: 'Sleep Statistics',
-      points: points,
-      maxXForWeek: daysSinceMonday,
-      isMonthlyView: _isMonthlyView,
-      weekLabels: labels,
+                  // 🔥 Find max sleep (in hours)
+                  final double rawMax =
+                      points.isEmpty
+                          ? 0
+                          : points
+                              .map((e) => e.y)
+                              .reduce((a, b) => a > b ? a : b);
 
-      yAxisMaxValue: maxY,
-      yAxisInterval: interval,
-      gridLineInterval: interval,
+                  // 🔥 Apply nice scaling
+                  final double maxY = getNiceSleepMaxY(rawMax);
+                  final double interval = getNiceSleepInterval(maxY);
 
-      measureUnit: 'h',
-      isSleepGraph: true,
-      isWaterGraph: false,
-    );
-  }),
-),
+                  return CommonStatGraphWidget(
+                    isDarkMode: isDarkMode,
+                    height: height,
+                    graphTitle: 'Sleep Statistics',
+                    points: points,
+                    maxXForWeek: daysSinceMonday,
+                    isMonthlyView: sleepController.isMonthlyView.value,
+                    weekLabels: labels,
+
+                    yAxisMaxValue: maxY,
+                    yAxisInterval: interval,
+                    gridLineInterval: interval,
+
+                    measureUnit: 'h',
+                    isSleepGraph: true,
+                    isWaterGraph: false,
+                  );
+                }),
+              ),
 
               const SizedBox(height: 30),
             ],
@@ -631,14 +627,14 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     List<String> shortWeekdays = [];
     DateTime now = DateTime.now();
 
-
     daysSinceMonday = (now.weekday - DateTime.monday);
 
-
     // Remove time part to avoid carrying 12:48:xx everywhere
-    DateTime startOfWeek = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: daysSinceMonday));
-
+    DateTime startOfWeek = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: daysSinceMonday));
 
     // 🔥 CHANGE IS HERE
     for (int i = 0; i <= daysSinceMonday; i++) {
@@ -648,8 +644,6 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
       shortWeekdays.add(dayName);
     }
 
-
     return shortWeekdays;
   }
 }
-

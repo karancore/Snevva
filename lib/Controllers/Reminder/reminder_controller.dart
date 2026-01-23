@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/widgets.dart';
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
@@ -32,9 +33,9 @@ class ReminderController extends GetxController {
   var alarms = <AlarmSettings>[].obs;
   var isLoading = false.obs;
   final selectedValue = 'minutes'.obs;
+  var startDateString = ''.obs;
 
   var selectedDateIndex = 0.obs;
-  var startDateString = ''.obs;
 
   var remindTimes = <String>[].obs;
 
@@ -67,9 +68,12 @@ class ReminderController extends GetxController {
     startDate.value = DateTime.now();
     checkAndroidNotificationPermission();
     checkAndroidScheduleExactAlarmPermission();
-    loadAlarms();
-    loadAllReminderLists();
     initAlarmListener();
+    // Defer heavy loading until after first frame to avoid UI freeze
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await loadAlarms();
+      await loadAllReminderLists();
+    });
   }
 
   @override
@@ -171,7 +175,7 @@ class ReminderController extends GetxController {
   }
 
   DateTime calculateBeforeReminder() {
-    final now = DateTime.now();
+
 
     // Parse input time (hh:mm a)
     final selectedTime = parseTime(timeController.text);
@@ -206,7 +210,7 @@ class ReminderController extends GetxController {
     required TimeOfDay timeOfDay,
     required String category,
   }) async {
-    final now = DateTime.now();
+
 
     var scheduledTime = DateTime(
       startDate.value?.year ?? now.year,
@@ -250,7 +254,7 @@ class ReminderController extends GetxController {
     print("➡️ timeOfDay: $timeOfDay");
     print("➡️ times: $times (${times.runtimeType})");
 
-    final now = DateTime.now();
+
     var scheduledTime = DateTime(
       startDate.value?.year ?? now.year,
       startDate.value?.month ?? now.month,

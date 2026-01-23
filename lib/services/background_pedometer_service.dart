@@ -5,6 +5,7 @@ import 'package:pedometer/pedometer.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../common/global_variables.dart';
 import '../models/hive_models/steps_model.dart';
 
 // Global reference to the pedometer stream subscription
@@ -30,7 +31,7 @@ Future<bool> backgroundEntry(ServiceInstance service) async {
     final prefs = await SharedPreferences.getInstance();
 
     // Check for day reset
-    final now = DateTime.now();
+
     final todayKey = "${now.year}-${now.month}-${now.day}";
     final lastDate = prefs.getString("last_step_date");
 
@@ -50,7 +51,7 @@ Future<bool> backgroundEntry(ServiceInstance service) async {
     // Listen to pedometer
     _pedometerSubscription = Pedometer.stepCountStream.listen(
       (StepCount event) async {
-        final now = DateTime.now();
+
         final todayKey = "${now.year}-${now.month}-${now.day}";
 
         // Get last raw step count

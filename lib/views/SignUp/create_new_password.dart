@@ -22,85 +22,92 @@ class CreateNewPassword extends StatefulWidget {
 }
 
 class _CreateNewPasswordState extends State<CreateNewPassword> {
-  final controller = Get.put(CreatePasswordController());
-  final deviceservice = Get.find<DeviceTokenService>();
+  final controller = Get.find<CreatePasswordController>();
+  final deviceservice = DeviceTokenService();
+
+
+  void onCreatePasswordButtonClick() async{
+    dynamic deviceHeaders = await deviceservice.buildDeviceInfoHeader();
+    print("number phone ${widget.emailOrPhoneText}");
+    print(RegExp(r'^\d{10,}$').hasMatch(widget.emailOrPhoneText));
+    if (controller.password.value.isEmpty ||
+        controller.confirmPassword.value.isEmpty) {
+      CustomSnackbar.showError(
+        title: "Error",
+        message: "Please fill in both password fields",
+        context: context,
+      );
+      return;
+    }
+
+    if (!controller.isPasswordValid) {
+      CustomSnackbar.showError(
+        title: "Weak Password",
+        message: "Your password doesn't meet the criteria",
+        context: context,
+      );
+      return;
+    }
+
+    if (!controller.isConfirmPasswordValid) {
+      CustomSnackbar.showError(
+        title: "Mismatch",
+        message: "Passwords do not match",
+        context: context,
+      );
+
+      return;
+    }
+
+    if (!controller.isChecked.value) {
+      CustomSnackbar.showError(
+        title: "Agreement Required",
+        message: "You must agree to the terms",
+        context: context,
+      );
+
+      return;
+    }
+    if (widget.emailOrPhoneText.contains('@')) {
+      localStorageManager.userMap['Email'] = widget.emailOrPhoneText.trim();
+      controller.createNewPasswordWithGmail(
+        widget.emailOrPhoneText.trim(),
+        widget.otp,
+        widget.otpVerificationStatus,
+        controller.confirmPasswordController.text.trim(),
+        context,
+        deviceHeaders,
+      );
+    } else if (RegExp(r'^\d{10,}$').hasMatch(widget.emailOrPhoneText)) {
+      print("number phone ${widget.emailOrPhoneText}");
+      print(RegExp(r'^\d{10,}$').hasMatch(widget.emailOrPhoneText));
+
+      localStorageManager.userMap['PhoneNumber'] =
+          widget.emailOrPhoneText.trim();
+      controller.createNewPasswordWithPhone(
+        widget.emailOrPhoneText.trim(),
+        widget.otp,
+        widget.otpVerificationStatus,
+        controller.confirmPasswordController.text.trim(),
+        context,
+        deviceHeaders,
+      );
+    } else {
+      CustomSnackbar.showError(
+        title: "Error",
+        message: "Failed To Create New Password.",
+        context: context,
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
+    print("emailOrPhoneText ${widget.emailOrPhoneText}");
     final mediaQuery = MediaQuery.of(context);
     // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    
-    void onCreatePasswordButtonClick() async{
-      dynamic deviceHeaders = await deviceservice.buildDeviceInfoHeader();
-      if (controller.password.value.isEmpty ||
-          controller.confirmPassword.value.isEmpty) {
-        CustomSnackbar.showError(
-          title: "Error",
-          message: "Please fill in both password fields",
-          context: context,
-        );
-        return;
-      }
-
-      if (!controller.isPasswordValid) {
-        CustomSnackbar.showError(
-          title: "Weak Password",
-          message: "Your password doesn't meet the criteria",
-          context: context,
-        );
-        return;
-      }
-
-      if (!controller.isConfirmPasswordValid) {
-        CustomSnackbar.showError(
-          title: "Mismatch",
-          message: "Passwords do not match",
-          context: context,
-        );
-
-        return;
-      }
-
-      if (!controller.isChecked.value) {
-        CustomSnackbar.showError(
-          title: "Agreement Required",
-          message: "You must agree to the terms",
-          context: context,
-        );
-
-        return;
-      }
-      if (widget.emailOrPhoneText.contains('@')) {
-        localStorageManager.userMap['Email'] = widget.emailOrPhoneText.trim();
-        controller.createNewPasswordWithGmail(
-          widget.emailOrPhoneText.trim(),
-          widget.otp,
-          widget.otpVerificationStatus,
-          controller.confirmPasswordController.text.trim(),
-          context,
-          deviceHeaders,
-        );
-      } else if (RegExp(r'^\d{10,}$').hasMatch(widget.emailOrPhoneText)) {
-        localStorageManager.userMap['PhoneNumber'] =
-            widget.emailOrPhoneText.trim();
-        controller.createNewPasswordWithPhone(
-          widget.emailOrPhoneText.trim(),
-          widget.otp,
-          widget.otpVerificationStatus,
-          controller.confirmPasswordController.text.trim(),
-          context,
-          deviceHeaders,
-        );
-      } else {
-        CustomSnackbar.showError(
-          title: "Error",
-          message: "Failed To Create New Password.",
-          context: context,
-        );
-      }
-    }
 
     return Scaffold(
       appBar: AppBar(
@@ -108,8 +115,8 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
         elevation: 0,
         automaticallyImplyLeading: false,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, size: 18,),
-          onPressed: () => Get.to(SignInScreen()),
+          icon: const Icon(Icons.arrow_back_ios, size: 18,),
+          onPressed: () => Get.back(),
         ),
         centerTitle: true,
         title: Padding(

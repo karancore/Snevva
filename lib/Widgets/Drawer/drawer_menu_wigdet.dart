@@ -15,7 +15,7 @@ import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/env/env.dart';
 import 'package:http/http.dart' as http;
-import 'package:snevva/initial_bindings.dart';
+import 'package:snevva/bindings/initial_bindings.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';

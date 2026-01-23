@@ -1,5 +1,5 @@
-import 'package:snevva/utils/text_form_field_theme.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:snevva/utils/text_form_field_theme.dart';
 import '../consts/consts.dart';
 
 class SnevvaTheme {
@@ -10,6 +10,7 @@ class SnevvaTheme {
     scaffoldBackgroundColor: scaffoldColorLight,
     fontFamily: GoogleFonts.inter().fontFamily,
     textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
+    fontFamilyFallback: const ['Sans'],
     checkboxTheme: CheckboxThemeData(
       fillColor: MaterialStateProperty.resolveWith<Color>((
         Set<MaterialState> states,
@@ -37,6 +38,7 @@ class SnevvaTheme {
     scaffoldBackgroundColor: scaffoldColorDark,
     fontFamily: GoogleFonts.inter().fontFamily,
     textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+    fontFamilyFallback: const ['Sans'],
     checkboxTheme: CheckboxThemeData(
       fillColor: MaterialStateProperty.resolveWith<Color>((
         Set<MaterialState> states,

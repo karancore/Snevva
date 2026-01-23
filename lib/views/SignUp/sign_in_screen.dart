@@ -12,7 +12,7 @@ import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
-import 'package:snevva/initial_bindings.dart';
+import 'package:snevva/bindings/initial_bindings.dart';
 import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/height_and_weight_screen.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
@@ -173,11 +173,11 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   // Handle sign-in error and show snackbar
-  void _handleSignInError() {
+  void _handleSignInError(String message) {
     CustomSnackbar.showError(
       context: context,
-      title: "Error",
-      message: "Invalid credentials. Please try again.",
+      title: "",
+      message: message,
     );
   }
 
@@ -235,7 +235,7 @@ class _SignInScreenState extends State<SignInScreen> {
       }
     } catch (e) {
       print("Exception during sign-in: $e");
-      _handleSignInError();
+      _handleSignInError("Exception during sign-in");
     } finally {
       setState(() => isLoading = false);
     }
@@ -270,7 +270,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   color:
                       isDarkMode
                           ? Colors.white.withValues(alpha: 0.2)
-                          : Colors.white,
+                          : Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8.0),
 
                   child: Stack(

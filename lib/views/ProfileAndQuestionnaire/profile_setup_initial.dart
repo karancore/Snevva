@@ -9,6 +9,7 @@ import 'package:snevva/models/queryParamViewModels/string_value_vm.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/height_and_weight_screen.dart';
 import '../../Controllers/local_storage_manager.dart';
 import '../../Widgets/ProfileSetupAndQuestionnaire/gender_radio_button.dart';
+import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
 
 class ProfileSetupInitial extends StatefulWidget {
@@ -381,7 +382,7 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                         .selectedOccupation
                                         .value = value;
 
-                                    final now = DateTime.now();
+
                                     final formattedTime = TimeOfDay.now()
                                         .format(context);
 

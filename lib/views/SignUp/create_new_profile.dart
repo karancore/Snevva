@@ -53,6 +53,7 @@ class _CreateNewProfileState extends State<CreateNewProfile> {
         }
       } else if (phoneRegex.hasMatch(input)) {
         final result = await signupController.signUpUsingPhone(input, context);
+        print("result ${result.toString()}");
 
         if (result != null && result != false) {
           Get.to(
@@ -77,7 +78,7 @@ class _CreateNewProfileState extends State<CreateNewProfile> {
       print("📌 Stack: $s");
       CustomSnackbar.showError(
         title: 'Error',
-        message: 'Failed to create profile',
+        message: 'Failed to create profile $e',
         context: context,
       );
     }
@@ -86,6 +87,12 @@ class _CreateNewProfileState extends State<CreateNewProfile> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios , size: 18,),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -107,12 +114,13 @@ class _CreateNewProfileState extends State<CreateNewProfile> {
                       isLoading
                           ? null
                           : () async {
+                            final input =
+                                emailOrPasswordTextController.text.trim();
                             setState(() {
                               isLoading = true;
                             });
-                            await onButtonClick(
-                              emailOrPasswordTextController.text.trim(),
-                            );
+                            print("ElevatedButton $input");
+                            await onButtonClick(input);
                             setState(() {
                               isLoading = false;
                             });

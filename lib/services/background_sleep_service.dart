@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:screen_state/screen_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../common/global_variables.dart';
 import '../models/hive_models/sleep_log.dart';
 
 
@@ -59,7 +60,7 @@ void _handleScreenStateChange(
   Box<SleepLog> box,
   SharedPreferences prefs,
 ) async {
-  final now = DateTime.now();
+
 
   if (event == ScreenStateEvent.SCREEN_ON) {
     // Screen turned ON

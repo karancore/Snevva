@@ -18,7 +18,7 @@ const String mealKey = 'meal_map';
 
 //to access medicne do (reminderBox)[medicineKey];
 
-
+final now = DateTime.now();
 
 
 class MaxValueTextInputFormatter extends TextInputFormatter {
@@ -119,9 +119,11 @@ int daysInMonth(int year, int month) {
 }
 
 String _dateKey(DateTime d) => "${d.year}-${d.month}-${d.day}";
-
+int getCurrentDateIndex() {
+  return DateTime.now().day - 1;
+}
 List<String> generateMonthLabels(DateTime month) {
-  final now = DateTime.now();
+
 
   final int totalDays =
       (month.year == now.year && month.month == now.month)
@@ -141,12 +143,12 @@ int reminderId() {
 }
 
 DateTime combineWithToday(TimeOfDay time) {
-  final now = DateTime.now();
+
   return DateTime(now.year, now.month, now.day, time.hour, time.minute);
 }
 
 DateTime toDateTimeToday(TimeOfDay time) {
-  final now = DateTime.now();
+
   return DateTime(now.year, now.month, now.day, time.hour, time.minute);
 }
 
@@ -204,7 +206,7 @@ double getListHeight(int itemCount, double itemHeight, double maxHeight) {
 
 String formatTimeFromHourMinute(int hour, int minute) {
   try {
-    final now = DateTime.now();
+
     final dateTime = DateTime(now.year, now.month, now.day, hour, minute);
     return DateFormat('hh:mm a').format(dateTime);
   } catch (e) {

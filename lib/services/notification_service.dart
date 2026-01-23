@@ -78,10 +78,12 @@ class NotificationService {
       0,
     );
 
-    if (now.isAfter(morningTime))
+    if (now.isAfter(morningTime)) {
       morningTime = morningTime.add(const Duration(days: 1));
-    if (now.isAfter(nightTime))
+    }
+    if (now.isAfter(nightTime)) {
       nightTime = nightTime.add(const Duration(days: 1));
+    }
 
     // Morning channel (used by Android system)
     const morningDetails = NotificationDetails(

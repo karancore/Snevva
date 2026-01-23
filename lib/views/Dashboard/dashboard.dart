@@ -71,6 +71,7 @@ class _DashboardState extends State<Dashboard>
       Get.put(HydrationStatController());
       Get.put(MoodController());
       Get.put(EditprofileController());
+      Get.put(VitalsController());
     });
 
     // Get.put(StepCounterController().loadtodaySteps());

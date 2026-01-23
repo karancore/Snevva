@@ -39,14 +39,14 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
   @override
   void initState() {
     super.initState();
+    print("emailOrPasswordText ${widget.emailOrPasswordText}");
 
     otpController = Get.put(
       OTPVerificationController(
-        widget.responseOtp,
-        widget.emailOrPasswordText,
         widget.isForgotPasswordScreen,
       ),
     );
+    otpController.emailOrPasswordText.value = widget.emailOrPasswordText;
 
     _listenForSms();
   }
