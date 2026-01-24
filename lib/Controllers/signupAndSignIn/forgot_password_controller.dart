@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:snevva/services/device_token_service.dart';
 import '../../common/custom_snackbar.dart';
 import '../../consts/consts.dart';
 import '../../env/env.dart';
@@ -42,6 +43,11 @@ class ForgotPasswordController extends GetxController {
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
       headers['X-Data-Hash'] = encryptedEmail['hash']!;
       debugPrint('📦 Request Headers: $headers');
+
+      final deviceInfoHeader =
+          await DeviceTokenService().buildDeviceInfoHeader();
+      
+      headers['X-Device-Info'] = deviceInfoHeader;
 
       final encryptedBody = jsonEncode({
         'data': encryptedEmail['encryptedData'],
@@ -147,6 +153,11 @@ class ForgotPasswordController extends GetxController {
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
       headers['X-Data-Hash'] = encryptedPhone['hash']!;
       debugPrint('📦 Request Headers: $headers');
+
+      final deviceInfoHeader =
+          await DeviceTokenService().buildDeviceInfoHeader();
+      
+      headers['X-Device-Info'] = deviceInfoHeader;
 
       final encryptedBody = jsonEncode({
         'data': encryptedPhone['encryptedData'],

@@ -39,7 +39,7 @@ class AuthService {
     }
   }
 
-  static Future<void> logout(String deviceId) async {
+  static Future<void> devicelogout(String deviceId) async {
     try{      
       
       final payload = {'DeviceId': deviceId};

@@ -7,23 +7,9 @@ import '../services/api_service.dart';
 import '../env/env.dart';
 
 class DeviceTokenService {
-  /// ✅ Get stable device ID
-  // Future<String> getDeviceId() async {
-  //   final deviceInfo = DeviceInfoPlugin();
 
-  //   if (defaultTargetPlatform == TargetPlatform.android) {
-  //     final android = await deviceInfo.androidInfo;
-  //     return android.id ?? "unknown_android";
-  //   }
-
-  //   if (defaultTargetPlatform == TargetPlatform.iOS) {
-  //     final ios = await deviceInfo.iosInfo;
-  //     return ios.identifierForVendor ?? "unknown_ios";
-  //   }
-
-  //   return "unknown_device";
-  // }
-
+  static String? _cachedHeader;
+  static Future<String>? _inFlight;
   Map<String, dynamic> decodeDeviceInfoHeader(String? encodedHeader) {
   if (encodedHeader == null || encodedHeader.isEmpty) {
     return {};
@@ -38,36 +24,32 @@ class DeviceTokenService {
     return {};
   }
 }
-
-
   
-
-// Future<String> buildDeviceInfoHeader() async {
-//   final deviceHeaders = await getDeviceHeaders();
-//
-//   final jsonString = jsonEncode(deviceHeaders);
-//
-//   // Optional but recommended (safe for headers)
-//   return base64Encode(utf8.encode(jsonString));
-// }
-
-  // Future<String> buildDeviceInfoHeader() async {
-  //   final deviceInfo = await getDeviceHeaders();
-  //
-  //   final fingerprint = [
-  //     deviceInfo['platform'],
-  //     deviceInfo['brand'],
-  //     deviceInfo['model'],
-  //     deviceInfo['hardware'],
-  //   ].join('|');
-  //
-  //   return fingerprint; // 👈 plain string, no Base64, no JSON
-  // }
-
   Future<String> buildDeviceInfoHeader() async {
+    // Already resolved
+    if (_cachedHeader != null) {
+      return _cachedHeader!;
+    }
+
+    // Another call is already building it
+    if (_inFlight != null) {
+      return await _inFlight!;
+    }
+
+    // First caller builds it
+    _inFlight = _build();
+
+    _cachedHeader = await _inFlight!;
+    _inFlight = null;
+
+    return _cachedHeader!;
+  }
+
+  Future<String> _build() async {
     final deviceHeaders = await getDeviceHeaders();
     return base64Encode(utf8.encode(jsonEncode(deviceHeaders)));
   }
+
 
 
   Future<Map<String, String>> getDeviceHeaders() async {

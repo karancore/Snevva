@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/services/auth_header_helper.dart';
+import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/services/encryption_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import '../../../consts/consts.dart';
@@ -62,7 +63,6 @@ class CreatePasswordController extends GetxController {
     bool verificationStatus,
     String password,
     BuildContext context,
-    String? extraHeaders, 
   ) async {
     final newPlanePassword = jsonEncode({
       'Gmail': email,
@@ -78,9 +78,10 @@ class CreatePasswordController extends GetxController {
 
       headers['X-Data-Hash'] = encryptedPassword['hash']!;
 
-      if (extraHeaders != null) {
-  headers['X-Device-Info'] = extraHeaders;
-}
+      final deviceInfoHeader =
+          await DeviceTokenService().buildDeviceInfoHeader();
+      
+      headers['X-Device-Info'] = deviceInfoHeader;
 
       final encryptedBody = jsonEncode({
         'data': encryptedPassword['encryptedData'],
@@ -91,11 +92,6 @@ class CreatePasswordController extends GetxController {
         headers: headers,
         body: encryptedBody,
       );
-
-
-
-      print("extraheader create pass $extraHeaders");
-      print("createpassword code${response.statusCode}");
 
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
@@ -158,7 +154,6 @@ class CreatePasswordController extends GetxController {
     bool verificationStatus,
     String password,
     BuildContext context,
-    String? extraHeaders, 
   ) async {
     final newPlanePassword = jsonEncode({
       'PhoneNumber': phone,
@@ -174,9 +169,10 @@ class CreatePasswordController extends GetxController {
 
       headers['X-Data-Hash'] = encryptedPassword['hash']!;
 
-      if (extraHeaders != null) {
-  headers['X-Device-Info'] = extraHeaders;
-}
+      final deviceInfoHeader =
+          await DeviceTokenService().buildDeviceInfoHeader();
+      
+      headers['X-Device-Info'] = deviceInfoHeader;
 
       final encryptedBody = jsonEncode({
         'data': encryptedPassword['encryptedData'],

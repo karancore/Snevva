@@ -244,12 +244,13 @@ class SignInController extends GetxController {
               deviceInfo: oldDeviceInfoMap,
 
               onConfirmDevice: () {
-                AuthService.logout(encodedDeviceInfo);
+                AuthService.devicelogout(encodedDeviceInfo);
                 Navigator.pop(context);
               },
 
               onRejectDevice: () {
                 Navigator.pop(context);
+                CustomSnackbar.showDeviceBlocked(context: context);
               },
             );
           },
@@ -268,7 +269,7 @@ class SignInController extends GetxController {
       }
     } catch (e, st) {
       print("sign in screen email $e  $st");
-      CustomSnackbar.showDeviceBlocked(context: context);
+      // CustomSnackbar.showDeviceBlocked(context: context);
       return false;
     }
   }
@@ -531,7 +532,7 @@ class SignInController extends GetxController {
               deviceInfo: oldDeviceInfoMap,
 
               onConfirmDevice: () {
-                AuthService.logout(encodedDeviceInfo);
+                AuthService.devicelogout(encodedDeviceInfo);
                 Navigator.pop(context);
 
                 // TODO: Call API to confirm device
@@ -539,9 +540,9 @@ class SignInController extends GetxController {
               },
 
               onRejectDevice: () {
-                Navigator.pop(context);
 
                 CustomSnackbar.showDeviceBlocked(context: context);
+                Navigator.pop(context);
 
                 // TODO: Call API to block device / logout all sessions
               },

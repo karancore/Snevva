@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import '../../common/custom_snackbar.dart';
 import '../../env/env.dart';
@@ -103,6 +104,11 @@ class UpdateOldPasswordController extends GetxController {
 
       headers['X-Data-Hash'] = encryptedPassword['hash']!;
 
+      final deviceInfoHeader =
+          await DeviceTokenService().buildDeviceInfoHeader();
+      
+      headers['X-Device-Info'] = deviceInfoHeader;
+
       final encryptedBody = jsonEncode({
         'data': encryptedPassword['encryptedData'],
       });
@@ -152,6 +158,11 @@ class UpdateOldPasswordController extends GetxController {
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
 
       headers['X-Data-Hash'] = encryptedPassword['hash']!;
+
+      final deviceInfoHeader =
+          await DeviceTokenService().buildDeviceInfoHeader();
+      
+      headers['X-Device-Info'] = deviceInfoHeader;
 
       final encryptedBody = jsonEncode({
         'data': encryptedPassword['encryptedData'],

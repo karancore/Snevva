@@ -32,7 +32,6 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
 
     
     void onCreatePasswordButtonClick() async{
-      dynamic deviceHeaders = await DeviceTokenService().buildDeviceInfoHeader();
       if (controller.password.value.isEmpty ||
           controller.confirmPassword.value.isEmpty) {
         CustomSnackbar.showError(
@@ -79,7 +78,6 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
           widget.otpVerificationStatus,
           controller.confirmPasswordController.text.trim(),
           context,
-          deviceHeaders,
         );
       } else if (RegExp(r'^\d{10,}$').hasMatch(widget.emailOrPhoneText)) {
         localStorageManager.userMap['PhoneNumber'] =
@@ -90,7 +88,6 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
           widget.otpVerificationStatus,
           controller.confirmPasswordController.text.trim(),
           context,
-          deviceHeaders,
         );
       } else {
         CustomSnackbar.showError(

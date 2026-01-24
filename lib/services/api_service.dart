@@ -27,8 +27,6 @@ class ApiService {
       final jsonString = jsonEncode(plainBody);
       final encrypted = EncryptionService.encryptData(jsonString);
 
-     
-      final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
       headers['X-Data-Hash'] = encrypted['hash']!;
 
       // ✅ Always set device info
@@ -56,7 +54,7 @@ class ApiService {
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         final encryptedBody = responseBody['data'];
-        final responseHash = response.headers['x-data-hash']!;
+        final responseHash = response.headers['X-data-hash']!;
 
         final decrypted = EncryptionService.decryptData(
           encryptedBody,

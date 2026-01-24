@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:snevva/services/api_service.dart';
+import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/services/notification_service.dart';
 import '../../common/custom_snackbar.dart';
 import '../../env/env.dart';
@@ -46,6 +47,11 @@ class SignUpController extends GetxController {
       headers['X-Data-Hash'] = encryptedEmail['hash']!;
 
       print("📌 Final Request Headers: $headers");
+
+      final deviceInfoHeader =
+          await DeviceTokenService().buildDeviceInfoHeader();
+      
+      headers['X-Device-Info'] = deviceInfoHeader;
 
       final encryptedBody = jsonEncode({
         'data': encryptedEmail['encryptedData'],
@@ -168,6 +174,11 @@ class SignUpController extends GetxController {
       final headers = await AuthHeaderHelper.getHeaders(withAuth: true);
 
       headers['X-Data-Hash'] = encryptedEmail['hash']!;
+
+      final deviceInfoHeader =
+          await DeviceTokenService().buildDeviceInfoHeader();
+      
+      headers['X-Device-Info'] = deviceInfoHeader;
 
       final encryptedBody = jsonEncode({
         'data': encryptedEmail['encryptedData'],
@@ -293,6 +304,11 @@ class SignUpController extends GetxController {
       final headers = await AuthHeaderHelper.getHeaders(withAuth: true);
 
       headers['X-Data-Hash'] = encryptedphone['hash']!;
+
+      final deviceInfoHeader =
+          await DeviceTokenService().buildDeviceInfoHeader();
+      
+      headers['X-Device-Info'] = deviceInfoHeader;
 
       final encryptedBody = jsonEncode({
         'data': encryptedphone['encryptedData'],
@@ -423,6 +439,11 @@ class SignUpController extends GetxController {
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
 
       headers['X-Data-Hash'] = encryptedPhone['hash']!;
+
+      final deviceInfoHeader =
+          await DeviceTokenService().buildDeviceInfoHeader();
+      
+      headers['X-Device-Info'] = deviceInfoHeader;
 
       final encryptedBody = jsonEncode({
         'data': encryptedPhone['encryptedData'],
