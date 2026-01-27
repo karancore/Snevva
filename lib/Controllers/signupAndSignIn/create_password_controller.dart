@@ -230,7 +230,12 @@ class CreatePasswordController extends GetxController {
 
         Get.offAll(() => ProfileSetupInitial()); // 👈 clears previous stack
       } else {
-        print('❌ HTTP Error: ${response.statusCode} - ${response.body}');
+        final decryptedError = EncryptionService.decryptData(
+          response.body,
+          response.headers['x-data-hash']!,
+        );
+        print("Decrypted error response: $decryptedError");
+        print('HTTP Error: ${response.statusCode} - ${decryptedError}');
         CustomSnackbar.showError(
           context: context,
           title: 'Error',

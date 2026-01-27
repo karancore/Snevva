@@ -133,6 +133,9 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
           AppLocalizations.of(context)!.setupProfile,
           style: TextStyle(fontSize: 26, fontWeight: FontWeight.w600),
         ),
+        iconTheme: IconThemeData(
+          color: AppColors.primaryColor
+        ),
       ),
       body: Align(
         alignment: Alignment.bottomCenter,
@@ -382,7 +385,6 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                         .selectedOccupation
                                         .value = value;
 
-
                                     final formattedTime = TimeOfDay.now()
                                         .format(context);
 
@@ -442,10 +444,9 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                             );
 
                                             // ================= NAME =================
-                                            final nameValue =
-                                                initialProfileController
-                                                    .userNameText
-                                                    .value;
+                                            final String nameValue = initialProfileController.userNameController.text.trim();
+
+
 
                                             final nameModel = StringValueVM(
                                               value: nameValue,
@@ -503,8 +504,20 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                             final dob = DateTime(
                                               year,
                                               month,
-                                              day,
+                                              day
                                             );
+                                            String name = initialProfileController.userNameController.text.trim();
+                                            if (!startsWithCapital(name)) {
+                                              CustomSnackbar.showSnackbar(
+                                                context: context,
+                                                title: 'Invalid Name',
+                                                message:
+                                                "Name must start with a capital letter",
+                                              );
+                                              return; // stop further execution
+                                            }
+
+
 
                                             int age = today.year - dob.year;
                                             if (today.month < dob.month ||

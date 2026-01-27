@@ -163,6 +163,7 @@ class MedicineController extends GetxController {
       dateTime: scheduledTime,
       assetAudioPath: alarmSound,
       loopAudio: true,
+      androidFullScreenIntent: true,
       vibrate: true,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
@@ -277,6 +278,7 @@ class MedicineController extends GetxController {
     // 1. Re-set the alarm with the SAME ID
     final alarmSettings = AlarmSettings(
       id: alarmId,
+      androidFullScreenIntent: true,
       dateTime: scheduledTime,
       assetAudioPath: alarmSound,
       loopAudio: true,

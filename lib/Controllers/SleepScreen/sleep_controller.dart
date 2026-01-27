@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_connect/http/src/response/response.dart' as http;
@@ -6,13 +7,16 @@ import 'package:get_storage/get_storage.dart';
 import 'package:hive/hive.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/models/awake_interval.dart';
 import 'package:snevva/services/api_service.dart';
+import 'package:snevva/services/notification_service.dart';
 
 import '../../common/global_variables.dart';
 
+import '../../consts/images.dart';
 import '../../models/hive_models/sleep_log.dart';
 import '../../services/sleep_noticing_service.dart';
 
@@ -63,7 +67,12 @@ class SleepController extends GetxController {
     loadUserSleepTimes();
 
     recoverMissedSleepIfNeeded();
+
   }
+
+
+
+
 
   Future<void> recoverMissedSleepIfNeeded() async {
     final prefs = await SharedPreferences.getInstance();
@@ -98,6 +107,20 @@ class SleepController extends GetxController {
     }
 
     await _clearSleepCandidate(prefs);
+  }
+
+  DateTime resolveNextWakeDateTime() {
+    final wt = waketime.value!;
+    final now = DateTime.now();
+
+    DateTime wake = DateTime(now.year, now.month, now.day, wt.hour, wt.minute);
+
+    // If wake time already passed → tomorrow
+    if (wake.isBefore(now)) {
+      wake = wake.add(const Duration(days: 1));
+    }
+
+    return wake;
   }
 
   Future<void> _finalizeSleepWithoutPhoneRetroactive(
@@ -150,8 +173,6 @@ class SleepController extends GetxController {
   DateTime buildDateTime(DateTime base, TimeOfDay tod) {
     return DateTime(base.year, base.month, base.day, tod.hour, tod.minute);
   }
-
-
 
   @override
   void onClose() {
@@ -409,7 +430,9 @@ class SleepController extends GetxController {
       debugPrint("   💤 Weekly ← Hive: $key → ${duration.inMinutes} min");
     }
     deepSleepDuration.value = weeklyDeepSleepHistory[getCurrentDayKey()];
-    print("loadDeepSleepData deepSleepDuration.value ${deepSleepDuration.value}");
+    print(
+      "loadDeepSleepData deepSleepDuration.value ${deepSleepDuration.value}",
+    );
 
     weeklyDeepSleepHistory.refresh();
     updateDeepSleepSpots();
@@ -521,7 +544,9 @@ class SleepController extends GetxController {
 
         final key = dateKey(DateTime(year, month, day));
         monthlyDeepSleepHistory[key] = duration;
-        final currentWeekStart = DateTime.now().subtract(Duration(days: DateTime.now().weekday - 1));
+        final currentWeekStart = DateTime.now().subtract(
+          Duration(days: DateTime.now().weekday - 1),
+        );
         final currentWeekEnd = currentWeekStart.add(Duration(days: 6));
         final itemDate = DateTime(year, month, day);
 
@@ -666,8 +691,8 @@ class SleepController extends GetxController {
 
     print("✅ HIVE SAVED: $key → ${duration.inMinutes} min");
 
-
     weeklyDeepSleepHistory[key] = duration;
+    deepSleepDuration.value = duration;
     weeklyDeepSleepHistory.refresh();
     updateDeepSleepSpots();
   }
@@ -686,7 +711,9 @@ class SleepController extends GetxController {
   void updateDeepSleepSpots() {
     debugPrint("📊 [updateDeepSleepSpots] called");
 
-    final weekStart = DateTime.now().subtract(Duration(days: DateTime.now().weekday - 1));
+    final weekStart = DateTime.now().subtract(
+      Duration(days: DateTime.now().weekday - 1),
+    );
     final List<FlSpot> spots = [];
 
     for (int i = 0; i < 7; i++) {
@@ -696,6 +723,7 @@ class SleepController extends GetxController {
       final minutes = weeklyDeepSleepHistory[key]?.inMinutes ?? 0;
       final hours = minutes / 60.0;
 
+
       spots.add(FlSpot(i.toDouble(), hours));
     }
 
@@ -704,6 +732,60 @@ class SleepController extends GetxController {
       ..refresh();
 
     debugPrint("✅ Weekly graph updated");
+  }
+
+  DateTime getWakeUpTime(TimeOfDay waketime) {
+    final now = DateTime.now();
+    DateTime wake = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      waketime.hour,
+      waketime.minute,
+    );
+
+    if (wake.isBefore(now)) {
+      wake = wake.add(const Duration(days: 1));
+    }
+
+    return wake;
+  }
+
+  Future<void> scheduleWakeUpAlarm(DateTime waketime) async {
+    final id = DateTime.now().millisecondsSinceEpoch.remainder(100000);
+    print("Generated alarm ID: $id");
+
+    final alarmSettings = AlarmSettings(
+      id: id,
+      dateTime: waketime,
+      assetAudioPath: alarmSound,
+      loopAudio: true,
+      vibrate: true,
+      androidStopAlarmOnTermination: true,
+      androidFullScreenIntent: true,
+      notificationSettings: NotificationSettings(
+        title: 'Wake Up',
+        body: 'Time to wake up!',
+        icon: 'alarm',
+        stopButton: "Stop Alarm",
+      ),
+      volumeSettings: VolumeSettings.fade(fadeDuration: Duration(seconds: 10)),
+    );
+
+    final result = await Alarm.set(alarmSettings: alarmSettings);
+    if(result == true){
+      debugPrint("✅ Wake alarm scheduled at $waketime");
+    } else {
+      debugPrint("❌ Failed to schedule wake alarm at $waketime");
+    }
+  }
+
+  Future<void> clearSleepData() async {
+    final _box = await Hive.openBox<SleepLog>('sleep_log');
+    await _box.clear();
+    weeklyDeepSleepHistory.clear();
+    deepSleepSpots.clear();
+    debugPrint("🗑️ All sleep data cleared from Hive and controller.");
   }
 
   // ─────────────────────────────────────────────
@@ -733,6 +815,7 @@ class SleepController extends GetxController {
 
     return end;
   }
+
   Future<void> startMonitoring() async {
     phoneUsageIntervals.clear();
     _wasPhoneUsedDuringSleep = false;
@@ -745,8 +828,17 @@ class SleepController extends GetxController {
       await prefs.setString(_sleepCandidateStartKey, bt.toIso8601String());
       await prefs.setBool(_sleepCandidateHadPhoneUsageKey, false);
     }
+    await _scheduleWakeStop();
     _startMorningAutoCheck();
     _sleepService.startMonitoring();
+  }
+
+  Future<void> _scheduleWakeStop() async {
+    if (waketime.value == null) return;
+
+    final wakeDateTime = resolveNextWakeDateTime();
+
+    debugPrint("⏰ Wake stop scheduled at $wakeDateTime");
   }
 
   void stopMonitoring() {
@@ -793,7 +885,7 @@ class SleepController extends GetxController {
     final wt = resolveSleepEnd(bt);
 
     final deep = wt.difference(bt);
-    if (deep.inMinutes < 10) {
+    if (deep.inSeconds < 10) {
       debugPrint(
         '⛔ Skipping save: calculated duration too small (${deep.inMinutes}m)',
       );

@@ -67,6 +67,7 @@ class WaterController extends GetxController {
         dateTime: nextTime,
         assetAudioPath: alarmSound,
         loopAudio: false,
+        androidFullScreenIntent: true,
         volumeSettings: VolumeSettings.fade(
           volume: 0.8,
           fadeDuration: const Duration(seconds: 5),
@@ -190,6 +191,7 @@ class WaterController extends GetxController {
         dateTime: scheduledTime,
         assetAudioPath: alarmSound,
         loopAudio: false,
+        androidFullScreenIntent: true,
         volumeSettings: VolumeSettings.fade(
           volume: 0.8,
           fadeDuration: Duration(seconds: 5),
@@ -345,6 +347,7 @@ class WaterController extends GetxController {
           icon: 'alarm',
           iconColor: AppColors.primaryColor,
         ),
+        androidFullScreenIntent: true,
         assetAudioPath: alarmSound,
         volumeSettings: VolumeSettings.fade(
           volume: 0.8,

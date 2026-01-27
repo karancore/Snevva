@@ -1,7 +1,13 @@
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
-import 'package:timezone/data/latest.dart' as tz;
+import 'package:snevva/main.dart';
+import 'package:timezone/data/latest.dart' as tzd;
 import 'package:timezone/timezone.dart' as tz;
+
+import '../Controllers/SleepScreen/sleep_controller.dart';
+import '../consts/consts.dart';
+const int WAKE_NOTIFICATION_ID = 999;
 
 class NotificationService {
   final FlutterLocalNotificationsPlugin notificationsPlugin =
@@ -20,16 +26,30 @@ class NotificationService {
       iOS: iosInit,
     );
 
-    await notificationsPlugin.initialize(initSettings);
+    await notificationsPlugin.initialize(
+      initSettings,
+      onDidReceiveBackgroundNotificationResponse: onNotificationAction,
+      onDidReceiveNotificationResponse: notificationBackgroundHandler,
+    );
 
     // Initialize timezone (very important for scheduling)
-    tz.initializeTimeZones();
+    tzd.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
   }
+  static void onNotificationAction(NotificationResponse response) {
+    if (response.actionId == 'STOP_ALARM') {
+      if (Get.isRegistered<SleepController>()) {
+        final sleepController = Get.find<SleepController>();
+        sleepController.stopMonitoring();
+        debugPrint('🛑 Alarm stopped by user action.');
+      } else {
+        debugPrint('⚠️ SleepController not registered yet');
+      }
+    }
+  }
 
-  // -------------------------------------------------
-  // Instant notification (like Swiggy order update)
-  // -------------------------------------------------
+
+
   Future<void> showInstantNotification({
     required int id,
     required String title,
@@ -146,7 +166,7 @@ class NotificationService {
   // -------------------------------------------------
   Future<void> showOtpNotification(String otp) async {
     await notificationsPlugin.show(
-      999, // Unique ID for OTP notifications
+      WAKE_NOTIFICATION_ID, // Unique ID for OTP notifications
       'Your OTP Code',
       'OTP: $otp', // Content shown in notification
       const NotificationDetails(
@@ -164,5 +184,94 @@ class NotificationService {
     );
 
     hasNewNotification.value = true;
+  }
+
+  // Future<void> scheduleWakeNotification(DateTime wakeDateTime) async {
+  //   await notificationsPlugin.zonedSchedule(
+  //     999, // fixed ID for wake alarm
+  //     'Wake Time',
+  //     'Stopping sleep monitoring',
+  //     tz.TZDateTime.from(wakeDateTime, tz.local),
+  //     const NotificationDetails(
+  //       android: AndroidNotificationDetails(
+  //         'wake_channel',
+  //         'Wake Alarm',
+  //         importance: Importance.max,
+  //         priority: Priority.high,
+  //       ),
+  //     ),
+  //     androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+  //     matchDateTimeComponents: DateTimeComponents.time,
+  //   );
+  // }
+
+  // Future<void> showWakeNotification() async {
+  //   await notificationsPlugin.show(
+  //     WAKE_NOTIFICATION_ID,
+  //     'Wake Up',
+  //     'Tap STOP to turn off alarm',
+  //     NotificationDetails(
+  //       android: AndroidNotificationDetails(
+  //         'alarm_channel',
+  //         'Alarm',
+  //         importance: Importance.max,
+  //         priority: Priority.high,
+  //         fullScreenIntent: true,
+  //         actions: [
+  //           AndroidNotificationAction(
+  //             'STOP_ALARM',
+  //             'Stop Alarm',
+  //             cancelNotification: true,
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
+  Future<void> scheduleWakeNotification({
+    required DateTime dateTime,
+  }) async {
+    final scheduledDate = tz.TZDateTime.from(dateTime, tz.local);
+    print("Scheduling wake notification at: $scheduledDate");
+
+    await notificationsPlugin.zonedSchedule(
+      999,
+      'Wake Time',
+      'Wake up! Time to start your day.',
+      scheduledDate,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          'STOP_ALARM',
+          channelDescription: 'Wake-up alarms and sleep alerts',
+          'Stop Alarm',
+          playSound: true,
+          fullScreenIntent: true,
+          enableLights: true,
+          enableVibration: true,
+          color: AppColors.primaryColor,
+          importance: Importance.max,
+          priority: Priority.max,
+          ongoing: true,
+          channelBypassDnd: true,
+          channelShowBadge: true,
+          autoCancel: true,
+          audioAttributesUsage: AudioAttributesUsage.alarm,
+          category: AndroidNotificationCategory.alarm,
+          visibility: NotificationVisibility.public,
+          actions: const [
+            AndroidNotificationAction(
+              'STOP_ALARM',
+              'Stop Alarm',
+              cancelNotification: true,
+            ),
+          ]
+        ),
+      ), androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    );
+  }
+
+
+  Future<void> cancelWakeNotification() async {
+    await notificationsPlugin.cancel(999);
   }
 }

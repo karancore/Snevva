@@ -185,7 +185,7 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
               widgetText: 'Mood Tracker',
               widgetImg: moodIcon,
               onTap: () {
-                Get.to(() => MoodTrackerScreen());
+                Get.toNamed('/mood');
               },
             ),
           ],

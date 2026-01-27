@@ -6,19 +6,29 @@ import '../../views/SignUp/create_new_password.dart';
 import '../../views/SignUp/update_old_password.dart';
 
 class OTPVerificationController extends GetxController {
-  String responseOtp = '';
+  RxString responseOtp = ''.obs;
   final pinController = TextEditingController();
-  var emailOrPasswordText = ''.obs;
-  final bool isForgotPasswordScreen;
+  RxString emailOrPasswordText = ''.obs;
+  RxBool isForgotPasswordScreen = false.obs;
 
   var isVerifying = false.obs;
 
-  OTPVerificationController([this.isForgotPasswordScreen = false]);
+  OTPVerificationController({bool isForgotPasswordScreen = false}) {
+    this.isForgotPasswordScreen.value = isForgotPasswordScreen;
+  }
 
   @override
   void onInit() {
     super.onInit();
     _startSmsAutofill();
+  }
+
+  @override
+  void onClose() {
+    pinController.dispose();
+    isVerifying = false.obs;
+
+    super.onClose();
   }
 
   void _startSmsAutofill() {
@@ -29,11 +39,7 @@ class OTPVerificationController extends GetxController {
     }
   }
 
-  bool verifyOtp(
-      String enteredOtp,
-      String responseOtpp,
-      BuildContext context,
-      ) {
+  bool verifyOtp(String enteredOtp, String responseOtpp, BuildContext context) {
     debugPrint('🔐 [verifyOtp] CALLED');
 
     final normalizedEnteredOtp = enteredOtp.trim();
@@ -76,27 +82,28 @@ class OTPVerificationController extends GetxController {
     );
 
     debugPrint(
-      '➡️ Navigating to ${isForgotPasswordScreen ? "UpdateOldPassword" : "CreateNewPassword"}',
+      '➡️ Navigating to ${isForgotPasswordScreen.value ? "UpdateOldPassword" : "CreateNewPassword"}',
     );
 
     print("$emailOrPasswordText");
+    print("isForgotPasswordScreen.value ${isForgotPasswordScreen.value}");
 
     Get.to(
-          () => isForgotPasswordScreen
-          ? UpdateOldPasword(
-        otpVerificationStatus: true,
-        otp: normalizedResponseOtp,
-        emailOrPhoneText: emailOrPasswordText.value,
-      )
-          : CreateNewPassword(
-        otpVerificationStatus: true,
-        otp: normalizedResponseOtp,
-        emailOrPhoneText: emailOrPasswordText.value,
-      ),
+      () =>
+          isForgotPasswordScreen.value
+              ? UpdateOldPasword(
+                otpVerificationStatus: true,
+                otp: normalizedResponseOtp,
+                emailOrPhoneText: emailOrPasswordText.value,
+              )
+              : CreateNewPassword(
+                otpVerificationStatus: true,
+                otp: normalizedResponseOtp,
+                emailOrPhoneText: emailOrPasswordText.value,
+              ),
     );
 
     debugPrint('🏁 [verifyOtp] COMPLETED SUCCESSFULLY');
     return true;
   }
-
 }

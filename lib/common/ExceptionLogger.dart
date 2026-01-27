@@ -28,7 +28,7 @@ class ExceptionLogger {
       await ApiService.post(
         logexception,
         log.toJson(),
-        withAuth: true,
+        withAuth: false,
         encryptionRequired: true,
       );
 

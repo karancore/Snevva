@@ -15,8 +15,8 @@ import '../../consts/consts.dart';
 class ProfileSetupController extends GetxController {
   // ================= TEXT + ERRORS =================
   final userNameController = TextEditingController();
-  RxString userNameText = ''.obs;
-  RxString nameError = ''.obs; // 🔴 NEW
+  var userNameText = ''.obs;
+  RxString nameError = ''.obs;
 
   // ================= OTHER FIELDS =================
   var userDob = ''.obs;

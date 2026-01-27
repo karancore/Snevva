@@ -96,6 +96,7 @@ class InitialBindings extends Bindings {
     }
 
     Get.lazyPut(() => MoodQuestionController(), fenix: true);
+    Get.lazyPut(() => OTPVerificationController() , fenix: true);
 
 
     // UI

@@ -76,6 +76,7 @@ class EventController extends GetxController {
       dateTime: scheduledTime,
       assetAudioPath: alarmSound,
       loopAudio: true,
+      androidFullScreenIntent: true,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
         fadeDuration: const Duration(seconds: 5),

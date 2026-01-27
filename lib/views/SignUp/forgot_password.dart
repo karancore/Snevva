@@ -2,6 +2,7 @@ import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/views/SignUp/verify_with_otp.dart';
 
 import '../../Controllers/signupAndSignIn/forgot_password_controller.dart';
+import '../../Controllers/signupAndSignIn/otp_verification_controller.dart';
 import '../../consts/consts.dart';
 import '../../services/notification_service.dart';
 
@@ -15,9 +16,16 @@ class ForgotPassword extends StatefulWidget {
 class _ForgotPasswordState extends State<ForgotPassword> {
   final TextEditingController textFieldController = TextEditingController();
   final forgotPasswordController = Get.put(ForgotPasswordController());
+  final otpController = Get.find<OTPVerificationController>();
   final notify = NotificationService();
 
   bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    otpController.isForgotPasswordScreen.value = true;
+  }
 
   @override
   void dispose() {

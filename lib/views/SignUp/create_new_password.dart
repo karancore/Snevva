@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import '../../Controllers/signupAndSignIn/create_password_controller.dart';
+import '../../Controllers/signupAndSignIn/otp_verification_controller.dart';
 import '../../common/custom_snackbar.dart';
 import '../../consts/consts.dart';
 
@@ -30,8 +31,7 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
     // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    
-    void onCreatePasswordButtonClick() async{
+    void onCreatePasswordButtonClick() async {
       if (controller.password.value.isEmpty ||
           controller.confirmPassword.value.isEmpty) {
         CustomSnackbar.showError(
@@ -104,8 +104,12 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
         elevation: 0,
         automaticallyImplyLeading: false,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, size: 18,),
-          onPressed: () => Get.to(SignInScreen()),
+          icon: Icon(Icons.arrow_back_ios, size: 18),
+          onPressed: () {
+            Get.delete<OTPVerificationController>();
+
+            Get.to(SignInScreen());
+          },
         ),
         centerTitle: true,
         title: Padding(

@@ -42,9 +42,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
     print("emailOrPasswordText ${widget.emailOrPasswordText}");
 
     otpController = Get.put(
-      OTPVerificationController(
-        widget.isForgotPasswordScreen,
-      ),
+      OTPVerificationController(),
     );
     otpController.emailOrPasswordText.value = widget.emailOrPasswordText;
 
@@ -198,7 +196,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
                 );
 
                 if (result != null && result is String) {
-                  otpController.responseOtp = result;
+                  otpController.responseOtp.value = result;
                 }
               },
               child: Text(

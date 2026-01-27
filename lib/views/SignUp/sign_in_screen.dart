@@ -434,7 +434,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                       isLoading: isLoading,
                                       // Pass here
                                       onBottomTextPressed: () {
-                                        Get.to(CreateNewProfile());
+                                        Get.to(SignUpScreen());
                                       },
                                     ),
                                   ),

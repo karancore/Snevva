@@ -4,22 +4,31 @@ import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import 'package:snevva/views/SignUp/verify_with_otp.dart';
+import '../../Controllers/signupAndSignIn/otp_verification_controller.dart';
 import '../../Controllers/signupAndSignIn/sign_up_controller.dart';
 import '../../Widgets/SignInScreens/create_profile_header_widget.dart';
 
-class CreateNewProfile extends StatefulWidget {
-  const CreateNewProfile({super.key});
+class SignUpScreen extends StatefulWidget {
+  const SignUpScreen({super.key});
 
   @override
-  State<CreateNewProfile> createState() => _CreateNewProfileState();
+  State<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _CreateNewProfileState extends State<CreateNewProfile> {
+class _SignUpScreenState extends State<SignUpScreen> {
   bool agreedToTerms = false;
   DateTime? selectedDate;
 
+  final otpController = Get.find<OTPVerificationController>();
+
   final TextEditingController emailOrPasswordTextController =
       TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    otpController.isForgotPasswordScreen.value = false;
+  }
 
   @override
   void dispose() {
@@ -89,7 +98,7 @@ class _CreateNewProfileState extends State<CreateNewProfile> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios , size: 18,),
+          icon: const Icon(Icons.arrow_back_ios , size: 18, color: black,),
           onPressed: () => Navigator.pop(context),
         ),
       ),

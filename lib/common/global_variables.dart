@@ -20,6 +20,10 @@ const String mealKey = 'meal_map';
 
 final now = DateTime.now();
 
+bool startsWithCapital(String value) {
+  if (value.isEmpty) return false;
+  return value[0] == value[0].toUpperCase();
+}
 
 class MaxValueTextInputFormatter extends TextInputFormatter {
   final int max;

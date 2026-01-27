@@ -333,6 +333,7 @@ class ReminderController extends GetxController {
       id: alarmsId(),
       dateTime: nextTime,
       assetAudioPath: alarmSound,
+      androidFullScreenIntent: true,
       loopAudio: true,
       vibrate: soundVibrationToggle.value,
       volumeSettings: VolumeSettings.fade(
@@ -351,6 +352,7 @@ class ReminderController extends GetxController {
               )
               : NotificationSettings(
                 title: 'Water Reminder',
+
                 // FIX: Added default title
                 body: 'Time to drink water!',
                 // FIX: Added default body

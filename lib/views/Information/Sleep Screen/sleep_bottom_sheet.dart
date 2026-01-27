@@ -6,6 +6,7 @@ import 'package:wheel_picker/wheel_picker.dart';
 import '../../../../consts/consts.dart';
 import '../../../common/custom_snackbar.dart';
 import '../../../common/global_variables.dart';
+import '../../../services/notification_service.dart';
 
 class SleepBottomSheet extends StatefulWidget {
   final double height;
@@ -26,6 +27,8 @@ class SleepBottomSheet extends StatefulWidget {
 class _SleepBottomSheetState extends State<SleepBottomSheet> {
   // Reuse the existing SleepController instead of creating a new one.
   final SleepController controller = Get.find<SleepController>();
+
+  final notificationService = NotificationService();
 
   final WheelPickerController hourController = WheelPickerController(
     itemCount: 12,
@@ -281,7 +284,6 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
                 minute: sleepMinute,
               );
 
-
               // DateTime st = DateTime(
               //   now.year,
               //   now.month,
@@ -330,6 +332,9 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
 
               debugPrint("Sleep monitoring started at sleep bottom sheet");
               await controller.startMonitoring();
+              debugPrint("Alarm scheduled for wake time at sleep bottom sheet");
+              await notificationService.scheduleWakeNotification(dateTime: wt);
+
               CustomSnackbar.showSnackbar(
                 context: context,
                 title: "Sleep Monitoring Started",
