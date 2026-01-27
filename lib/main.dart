@@ -15,7 +15,6 @@ import 'Controllers/alerts/alerts_controller.dart';
 import 'Controllers/local_storage_manager.dart';
 
 import 'bindings/initial_bindings.dart';
-import 'bindings/reminder_bindings.dart';
 
 import 'common/ExceptionLogger.dart';
 import 'common/global_variables.dart';
@@ -229,8 +228,7 @@ class _MyAppState extends State<MyApp> {
 
       await initializeApp().timeout(const Duration(seconds: 10));
 
-      final notificationService = NotificationService();
-      await notificationService.init();
+
 
       final hasSession =
           await Get.find<LocalStorageManager>().hasValidSession();
@@ -271,7 +269,6 @@ class _MyAppState extends State<MyApp> {
         GetPage(
           name: '/reminder',
           page: () => ReminderScreen(),
-          binding: ReminderBindings(),
         ),
       ],
       home:
