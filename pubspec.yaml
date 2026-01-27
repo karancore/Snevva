@@ -131,6 +131,8 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
+
+
   image_path: "assets/Logo/snevva-logo 1.png"
 
 
