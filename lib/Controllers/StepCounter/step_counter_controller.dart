@@ -116,11 +116,21 @@ class StepCounterController extends GetxController {
     );
   }
 
+  @override
+void onClose() {
+  _hivePoller?.cancel();
+  super.onClose();
+}
+
+
+  
+
   Future<void> _init() async {
     _prefs = await SharedPreferences.getInstance();
     _stepBox = Hive.box<StepEntry>('step_history');
 
     _checkDayReset();
+    scheduleMidnightReset();
 
     await loadGoal();
     // Removed duplicate call to loadTodayStepsFromHive
@@ -130,25 +140,45 @@ class StepCounterController extends GetxController {
   // DAY RESET
   // =======================
   Future<void> _checkDayReset() async {
+  final todayKey = _dayKey(now);
+  final lastDate = _prefs.getString("last_step_date");
 
-    final todayKey = _dayKey(now);
-    final lastDate = _prefs.getString("last_step_date");
-
-    if (lastDate != null && lastDate != todayKey) {
-      // 👇 FORCE PUSH YESTERDAY BEFORE RESET
-      await _forceSyncPreviousDay(lastDate);
-    }
-
-    if (lastDate != todayKey) {
-      todaySteps.value = 0;
-      lastSteps = 0;
-      lastStepsRx.value = 0;
-      lastPercent = 0.0;
-
-      _prefs.setString("last_step_date", todayKey);
-      await _saveToHive(0);
-    }
+  if (lastDate != null && lastDate != todayKey) {
+    await _forceSyncPreviousDay(lastDate);
   }
+
+  if (lastDate != todayKey) {
+    print("🌅 New day detected → resetting steps");
+
+    todaySteps.value = 0;
+    lastSteps = 0;
+    lastStepsRx.value = 0;
+    lastPercent = 0.0;
+
+    // 🔥 CRITICAL FIXES
+    stepsHistoryByDate.remove(todayKey);
+    stepsHistoryByDate.refresh();
+    await _prefs.remove('today_steps');
+
+    await _safePutSteps(
+      todayKey,
+      StepEntry(date: _startOfDay(now), steps: 0),
+    );
+
+    await _prefs.setString("last_step_date", todayKey);
+  }
+}
+
+void scheduleMidnightReset() {
+  final now = DateTime.now();
+  final nextMidnight = DateTime(now.year, now.month, now.day + 1);
+  Timer(nextMidnight.difference(now), () {
+    _checkDayReset();
+    scheduleMidnightReset();
+  });
+}
+
+
 
   Future<void> _forceSyncPreviousDay(String dayKey) async {
     final alreadySynced = _prefs.getString(_lastSyncedDateKey);
@@ -260,7 +290,7 @@ class StepCounterController extends GetxController {
         print(
           "🔎 Hive poll detected change: todaySteps = $effective (hive=$steps pref=$prefSteps)",
         );
-        _checkDayReset();
+        // _checkDayReset();
       }
     } catch (e) {
       // ignore polling errors
@@ -602,11 +632,15 @@ class StepCounterController extends GetxController {
   }
 
   void syncTodayIntakeFromMap() {
+  final key = _dayKey(now);
+  final mapValue = stepsHistoryByDate[key];
 
-    final key = _dayKey(now);
-
-    todaySteps.value = stepsHistoryByDate[key] ?? todaySteps.value;
+  // 🔒 Never override a reset with stale data
+  if (mapValue != null && mapValue > todaySteps.value) {
+    todaySteps.value = mapValue;
   }
+}
+
 
   void updateStepSpots() {
     stepSpots.clear();
