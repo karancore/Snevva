@@ -223,7 +223,7 @@ class SignInController extends GetxController {
         print("resonsedata $responseData");
 
         // ✅ Extract ONLY the Base64 string
-        final String? encodedDeviceInfo = responseData['data']?['DataCode'];
+        final String? encodedDeviceInfo = responseData['data']?['DeviceInfo'];
 
         if (encodedDeviceInfo == null || encodedDeviceInfo.isEmpty) {
           debugPrint("❌ DeviceInfo missing in response");
@@ -506,7 +506,7 @@ class SignInController extends GetxController {
         print("resonsedata $responseData");
 
         // ✅ Extract ONLY the Base64 string
-        final String? encodedDeviceInfo = responseData['data']?['DataCode'];
+        final String? encodedDeviceInfo = responseData['data']?['DeviceInfo'];
 
         if (encodedDeviceInfo == null || encodedDeviceInfo.isEmpty) {
           debugPrint("❌ DeviceInfo missing in response");
