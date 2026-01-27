@@ -18,7 +18,7 @@ class EncryptionService {
 
     final hash = sha256.convert(utf8.encode(encrypted)).toString();
 
-    return {'encryptedData': encrypted, 'hash': hash};
+    return {'encryptedData': encrypted, 'Hash': hash};
   }
 
   static String? decryptData(String encryptedText, String hash) {

@@ -41,7 +41,7 @@ class SignInController extends GetxController {
       final encryptedEmail = EncryptionService.encryptData(plainEmail);
 
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
-      headers['X-Data-Hash'] = encryptedEmail['hash']!;
+      headers['x-data-hash'] = encryptedEmail['Hash']!;
 
       // ✅ Always set device info
       final deviceInfoHeader =
@@ -331,7 +331,7 @@ class SignInController extends GetxController {
       final uri = Uri.parse("$baseUrl$signInPhoneEndpoint");
       final encryptedPhone = EncryptionService.encryptData(plainPhone);
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
-      headers['X-Data-Hash'] = encryptedPhone['hash']!;
+      headers['x-data-hash'] = encryptedPhone['Hash']!;
 
       // ✅ Always set device info
       final deviceInfoHeader =

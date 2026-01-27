@@ -27,7 +27,7 @@ class ApiService {
       final jsonString = jsonEncode(plainBody);
       final encrypted = EncryptionService.encryptData(jsonString);
 
-      headers['X-Data-Hash'] = encrypted['hash']!;
+      headers['x-data-hash'] = encrypted['Hash']!;
 
       // ✅ Always set device info
       final deviceInfoHeader =
@@ -54,13 +54,18 @@ class ApiService {
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         final encryptedBody = responseBody['data'];
-        final responseHash = response.headers['X-data-hash']!;
+        final responseHash = response.headers['x-data-hash']!;
 
         final decrypted = EncryptionService.decryptData(
           encryptedBody,
           responseHash,
         );
-        final Map<String, dynamic> responseData = jsonDecode(decrypted!);
+        
+        if (decrypted == null) {
+          throw Exception("Failed to decrypt response data");
+        }
+        
+        final Map<String, dynamic> responseData = jsonDecode(decrypted);
 
         // DebugLogger().log(
         //   "⬅️ API RESPONSE [$endpoint]: $responseData",

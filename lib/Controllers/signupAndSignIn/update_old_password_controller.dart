@@ -102,7 +102,7 @@ class UpdateOldPasswordController extends GetxController {
       final encryptedPassword = EncryptionService.encryptData(newPlanePassword);
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
 
-      headers['X-Data-Hash'] = encryptedPassword['hash']!;
+      headers['x-data-hash'] = encryptedPassword['Hash']!;
 
       final deviceInfoHeader =
           await DeviceTokenService().buildDeviceInfoHeader();
@@ -157,7 +157,7 @@ class UpdateOldPasswordController extends GetxController {
       final encryptedPassword = EncryptionService.encryptData(newPlanePassword);
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
 
-      headers['X-Data-Hash'] = encryptedPassword['hash']!;
+      headers['x-data-hash'] = encryptedPassword['Hash']!;
 
       final deviceInfoHeader =
           await DeviceTokenService().buildDeviceInfoHeader();

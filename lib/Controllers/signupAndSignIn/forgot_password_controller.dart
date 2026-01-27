@@ -35,13 +35,13 @@ class ForgotPasswordController extends GetxController {
       debugPrint('🌐 API URL: $uri');
 
       final encryptedEmail = EncryptionService.encryptData(plainEmail);
-      debugPrint('🔐 Encrypted Email Hash: ${encryptedEmail['hash']}');
+      debugPrint('🔐 Encrypted Email Hash: ${encryptedEmail['Hash']}');
       debugPrint(
         '🔐 Encrypted Email Data Length: ${encryptedEmail['encryptedData']?.length}',
       );
 
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
-      headers['X-Data-Hash'] = encryptedEmail['hash']!;
+      headers['x-data-hash'] = encryptedEmail['Hash']!;
       debugPrint('📦 Request Headers: $headers');
 
       final deviceInfoHeader =
@@ -145,13 +145,13 @@ class ForgotPasswordController extends GetxController {
       debugPrint('🌐 API URL: $uri');
 
       final encryptedPhone = EncryptionService.encryptData(plainPhone);
-      debugPrint('🔐 Encrypted Phone Hash: ${encryptedPhone['hash']}');
+      debugPrint('🔐 Encrypted Phone Hash: ${encryptedPhone['Hash']}');
       debugPrint(
         '🔐 Encrypted Phone Data Length: ${encryptedPhone['encryptedData']?.length}',
       );
 
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
-      headers['X-Data-Hash'] = encryptedPhone['hash']!;
+      headers['x-data-hash'] = encryptedPhone['Hash']!;
       debugPrint('📦 Request Headers: $headers');
 
       final deviceInfoHeader =

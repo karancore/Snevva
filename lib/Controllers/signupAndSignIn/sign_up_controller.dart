@@ -41,10 +41,10 @@ class SignUpController extends GetxController {
 
       final encryptedEmail = EncryptionService.encryptData(plainEmail);
       print("🔐 Encrypted Email: ${encryptedEmail['encryptedData']}");
-      print("🔑 Hash: ${encryptedEmail['hash']}");
+      print("🔑 Hash: ${encryptedEmail['Hash']}");
 
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
-      headers['X-Data-Hash'] = encryptedEmail['hash']!;
+      headers['x-data-hash'] = encryptedEmail['Hash']!;
 
       print("📌 Final Request Headers: $headers");
 
@@ -74,7 +74,10 @@ class SignUpController extends GetxController {
 
         final encryptedBody = responseBody['data'];
         print("🔐 Encrypted Response Data: $encryptedBody");
-
+        
+        
+        // final printedHash = response.headers;
+        // print("📋 prinyted: $printedHash");
         final responseHash = response.headers['x-data-hash'];
         print("🔑 Response Hash: $responseHash");
 
@@ -173,7 +176,7 @@ class SignUpController extends GetxController {
       final encryptedEmail = EncryptionService.encryptData(plainEmail);
       final headers = await AuthHeaderHelper.getHeaders(withAuth: true);
 
-      headers['X-Data-Hash'] = encryptedEmail['hash']!;
+      headers['x-data-hash'] = encryptedEmail['Hash']!;
 
       final deviceInfoHeader =
           await DeviceTokenService().buildDeviceInfoHeader();
@@ -197,7 +200,7 @@ class SignUpController extends GetxController {
         // print("👉 Encrypted OTP response: $encryptedBody");
 
         final responseHash = response.headers['x-data-hash'];
-        // print("👉 Response hash: $responseHash");
+        // print("👉 Response Hash: $responseHash");
 
         final decrypted = EncryptionService.decryptData(
           encryptedBody,
@@ -303,7 +306,7 @@ class SignUpController extends GetxController {
       final encryptedphone = EncryptionService.encryptData(plainphone);
       final headers = await AuthHeaderHelper.getHeaders(withAuth: true);
 
-      headers['X-Data-Hash'] = encryptedphone['hash']!;
+      headers['x-data-hash'] = encryptedphone['Hash']!;
 
       final deviceInfoHeader =
           await DeviceTokenService().buildDeviceInfoHeader();
@@ -327,7 +330,7 @@ class SignUpController extends GetxController {
         // print("👉 Encrypted OTP response: $encryptedBody");
 
         final responseHash = response.headers['x-data-hash'];
-        // print("👉 Response hash: $responseHash");
+        // print("👉 Response Hash: $responseHash");
 
         final decrypted = EncryptionService.decryptData(
           encryptedBody,
@@ -438,12 +441,7 @@ class SignUpController extends GetxController {
       final encryptedPhone = EncryptionService.encryptData(plainPhone);
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
 
-      headers['X-Data-Hash'] = encryptedPhone['hash']!;
-
-      final deviceInfoHeader =
-          await DeviceTokenService().buildDeviceInfoHeader();
-      
-      headers['X-Device-Info'] = deviceInfoHeader;
+      headers['x-data-hash'] = encryptedPhone['Hash']!;
 
       final encryptedBody = jsonEncode({
         'data': encryptedPhone['encryptedData'],
@@ -460,16 +458,19 @@ class SignUpController extends GetxController {
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         final encryptedBody = responseBody['data'];
-        final responseHash = response.headers['x-data-hash'];
+        final responseHash = response.headers['x-data-hash']!;
+
+        print("👉 Encrypted OTP response: $encryptedBody");
+        print("👉 Response Hash: $responseHash");
         final decrypted = EncryptionService.decryptData(
           encryptedBody,
-          responseHash!,
+          responseHash,
         );
 
         print("Decrypted OTP response: $decrypted");
 
         if (decrypted == null) {
-          return;
+          throw Exception("Failed to decrypt response data");
         }
 
         final Map<String, dynamic> responseData = jsonDecode(decrypted);

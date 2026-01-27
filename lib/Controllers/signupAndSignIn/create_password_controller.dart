@@ -76,7 +76,7 @@ class CreatePasswordController extends GetxController {
       final encryptedPassword = EncryptionService.encryptData(newPlanePassword);
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
 
-      headers['X-Data-Hash'] = encryptedPassword['hash']!;
+      headers['x-data-hash'] = encryptedPassword['Hash']!;
 
       final deviceInfoHeader =
           await DeviceTokenService().buildDeviceInfoHeader();
@@ -101,7 +101,7 @@ class CreatePasswordController extends GetxController {
         print("👉 Encrypted token response: $encryptedBody");
 
         final responseHash = response.headers['x-data-hash'];
-        print("👉 Response hash: $responseHash");
+        print("👉 Response Hash: $responseHash");
 
         final decrypted = EncryptionService.decryptData(
           encryptedBody,
@@ -167,7 +167,7 @@ class CreatePasswordController extends GetxController {
       final encryptedPassword = EncryptionService.encryptData(newPlanePassword);
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
 
-      headers['X-Data-Hash'] = encryptedPassword['hash']!;
+      headers['x-data-hash'] = encryptedPassword['Hash']!;
 
       final deviceInfoHeader =
           await DeviceTokenService().buildDeviceInfoHeader();
@@ -192,7 +192,7 @@ class CreatePasswordController extends GetxController {
         print("👉 Encrypted token response: $encryptedBody");
 
         final responseHash = response.headers['x-data-hash'];
-        print("👉 Response hash: $responseHash");
+        print("👉 Response Hash: $responseHash");
 
         final decrypted = EncryptionService.decryptData(
           encryptedBody,
