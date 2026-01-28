@@ -6,7 +6,7 @@ import '../../env/env.dart';
 import '../../services/api_service.dart';
 import '../local_storage_manager.dart';
 
-class BmiController extends GetxController {
+class BmiController extends GetxService {
   RxInt age = 0.obs;
   RxString bmi_text = "Great-Shape".obs;
   var customTips = <dynamic>[].obs;

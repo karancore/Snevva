@@ -73,7 +73,6 @@ Future<void> setupHive() async {
 
   var directory = await getApplicationDocumentsDirectory();
   await Hive.initFlutter(directory.path);
-  // ✅ Check if Hive is already initialized
   if (Hive.isBoxOpen('step_history') &&
       Hive.isBoxOpen('sleep_log') &&
       Hive.isBoxOpen('medicine_list') &&

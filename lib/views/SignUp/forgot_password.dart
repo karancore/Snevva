@@ -30,7 +30,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
   @override
   void dispose() {
     textFieldController.dispose();
-    forgotPasswordController.dispose();
+
     super.dispose();
   }
 

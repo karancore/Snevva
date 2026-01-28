@@ -19,7 +19,7 @@ import 'package:snevva/consts/consts.dart';
 import '../../common/global_variables.dart';
 import '../../models/hive_models/steps_model.dart';
 
-class StepCounterController extends GetxController {
+class StepCounterController extends GetxService {
   // =======================
   // OBSERVABLE STATE
   // =======================

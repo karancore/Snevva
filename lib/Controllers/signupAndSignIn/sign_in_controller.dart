@@ -13,11 +13,13 @@ import '../../env/env.dart';
 import '../../services/auth_header_helper.dart';
 import '../../services/encryption_service.dart';
 
-class SignInController extends GetxController {
+class SignInController extends GetxService {
   dynamic userProfData = {};
   dynamic userGoalData = {};
+  //final authService = Get.find<AuthService>();
 
-  final localStorage = Get.find<LocalStorageManager>();
+  final localStorage = Get.put(LocalStorageManager());
+
 
   Future<bool> signInUsingEmail(
     String email,
@@ -563,8 +565,8 @@ class SignInController extends GetxController {
       print("sign in phone $e $st");
       CustomSnackbar.showError(
         context: context,
-        title: 'Error',
-        message: 'Sign In failed.',
+        title: 'Exception',
+        message: 'Sign In failed $e',
       );
       return false;
     }

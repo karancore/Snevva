@@ -10,7 +10,7 @@ import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart'
 import '../../../consts/consts.dart';
 import '../../../env/env.dart';
 
-class CreatePasswordController extends GetxController {
+class CreatePasswordController extends GetxService {
   var password = ''.obs;
   var confirmPassword = ''.obs;
   var isChecked = false.obs;

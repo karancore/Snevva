@@ -5,7 +5,7 @@ import '../../consts/consts.dart';
 import '../../views/SignUp/create_new_password.dart';
 import '../../views/SignUp/update_old_password.dart';
 
-class OTPVerificationController extends GetxController {
+class OTPVerificationController extends GetxService {
   RxString responseOtp = ''.obs;
   final pinController = TextEditingController();
   RxString emailOrPasswordText = ''.obs;
@@ -17,11 +17,17 @@ class OTPVerificationController extends GetxController {
     this.isForgotPasswordScreen.value = isForgotPasswordScreen;
   }
 
+  // @override
+  // void onInit() {
+  //   super.onInit();
+  //   _startSmsAutofill();
+  // }
   @override
-  void onInit() {
-    super.onInit();
+  void onReady() {
+    super.onReady();
     _startSmsAutofill();
   }
+
 
   @override
   void onClose() {

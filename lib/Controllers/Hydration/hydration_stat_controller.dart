@@ -11,7 +11,7 @@ import '../../common/global_variables.dart';
 import '../../models/water_history_model.dart';
 import 'package:http/http.dart' as http;
 
-class HydrationStatController extends GetxController {
+class HydrationStatController extends GetxService {
   RxBool checkVisibility = false.obs;
   RxBool masterCheck = false.obs;
   var addWaterValue = 250.obs;
@@ -25,8 +25,8 @@ class HydrationStatController extends GetxController {
   var isLoading = true.obs;
 
   @override
-  void onInit() {
-    super.onInit();
+  void onReady() {
+    super.onReady();
     loadWaterIntake();
   }
 

@@ -3,16 +3,23 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/app_notification.dart';
 
-class AlertsController extends GetxController {
+class AlertsController extends GetxService {
   final RxList<AppNotification> notifications = <AppNotification>[].obs;
 
   static const _storageKey = 'notifications_list';
 
+  // @override
+  // void onInit() {
+  //   super.onInit();
+  //   _loadNotifications();
+  // }
+
   @override
-  void onInit() {
-    super.onInit();
+  void onReady() {
+    super.onReady();
     _loadNotifications();
   }
+
 
   Future<void> _loadNotifications() async {
     final prefs = await SharedPreferences.getInstance();

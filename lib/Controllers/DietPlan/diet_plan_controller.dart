@@ -13,7 +13,7 @@ import '../BMI/bmi_controller.dart';
 import '../local_storage_manager.dart';
 
 // To send - gender , age , bmi labels - obese etc
-class DietPlanController extends GetxController {
+class DietPlanController extends GetxService {
   final selectedDayIndex = 0.obs;
   final selectedCategoryIndex = 0.obs;
 

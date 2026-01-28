@@ -1,6 +1,7 @@
 import 'package:alarm/alarm.dart';
 import 'package:alarm/model/alarm_settings.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
+import 'package:snevva/Controllers/Reminder/water_controller.dart';
 import 'package:snevva/consts/consts.dart';
 
 import '../../common/custom_snackbar.dart';
@@ -8,13 +9,31 @@ import '../../common/global_variables.dart';
 
 class MealController extends GetxController {
   ReminderController get reminderController => Get.find<ReminderController>();
+  WaterController get waterController => Get.find<WaterController>();
+
   var mealsList = <Map<String, AlarmSettings>>[].obs;
+
   Future<void> addMealAlarm(
     DateTime scheduledTime,
     BuildContext context,
   ) async {
+    final id = alarmsId();
+    final title = reminderController.titleController.text.trim();
+    final notes = reminderController.notesController.text.trim();
+    Map<String , dynamic> mealData = {
+      "alarmId": id,
+      "category" : "MEAL",
+      "title": title.isNotEmpty ? title : "MEAL REMINDER",
+      "notes": notes.isNotEmpty ? notes : "",
+      "scheduledTime": scheduledTime,
+      "before" : {
+        "int" : waterController.timesPerDayController.text,
+        "time" : reminderController.selectedValue.value
+      }
+    };
+    print("Meal Data: $mealData");
     final alarmSettings = AlarmSettings(
-      id: alarmsId(),
+      id: id,
       dateTime: scheduledTime,
       assetAudioPath: alarmSound,
       loopAudio: true,
@@ -26,10 +45,10 @@ class MealController extends GetxController {
       ),
       notificationSettings: NotificationSettings(
         title:
-            reminderController.titleController.text.isNotEmpty
+            title.isNotEmpty
                 ? reminderController.titleController.text
                 : 'MEAL REMINDER',
-        body: reminderController.notesController.text,
+        body: notes,
         stopButton: 'Stop',
         icon: 'alarm',
         iconColor: AppColors.primaryColor,
@@ -44,6 +63,7 @@ class MealController extends GetxController {
       mealsList.add({
         reminderController.titleController.text.trim(): alarmSettings,
       });
+      reminderController.addRemindertoAPI(mealData, context);
       reminderController.titleController.clear();
       reminderController.notesController.clear();
       await reminderController.saveReminderList(mealsList, "meals_list");

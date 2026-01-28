@@ -23,6 +23,19 @@ import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
+import '../../Controllers/BMI/bmi_controller.dart';
+import '../../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
+import '../../Controllers/Reminder/event_controller.dart';
+import '../../Controllers/Reminder/meal_controller.dart';
+import '../../Controllers/Reminder/medicine_controller.dart';
+import '../../Controllers/Reminder/water_controller.dart';
+import '../../Controllers/WomenHealth/bottom_sheet_controller.dart';
+import '../../Controllers/WomenHealth/women_health_controller.dart';
+import '../../Controllers/alerts/alerts_controller.dart';
+import '../../Controllers/signupAndSignIn/create_password_controller.dart';
+import '../../Controllers/signupAndSignIn/forgot_password_controller.dart';
+import '../../Controllers/signupAndSignIn/sign_up_controller.dart';
+import '../../Controllers/signupAndSignIn/update_old_password_controller.dart';
 import '../../consts/consts.dart';
 import '../../models/hive_models/steps_model.dart';
 import '../home_wrapper.dart';
@@ -35,6 +48,7 @@ class DrawerMenuWidget extends StatelessWidget {
   final double? width;
 
   Future<void> performLogout() async {
+
     final response = await ApiService.post(
       logout,
       null,
@@ -81,8 +95,10 @@ class DrawerMenuWidget extends StatelessWidget {
     Get.delete<SleepController>();
     Get.delete<StepCounterController>();
     Get.delete<VitalsController>();
-
+    Get.deleteAll(force: true);
     Get.offAll(() => SignInScreen());
+
+
   }
 
   @override

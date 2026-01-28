@@ -12,11 +12,11 @@ import 'package:snevva/services/api_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import '../../consts/consts.dart';
 
-class ProfileSetupController extends GetxController {
+class ProfileSetupController extends GetxService {
   // ================= TEXT + ERRORS =================
   final userNameController = TextEditingController();
-  var userNameText = ''.obs;
-  RxString nameError = ''.obs;
+  RxString userNameText = ''.obs;
+  RxString nameError = ''.obs; // 🔴 NEW
 
   // ================= OTHER FIELDS =================
   var userDob = ''.obs;

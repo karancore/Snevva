@@ -4,16 +4,34 @@ import 'dart:convert';
 import 'package:alarm/alarm.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/Controllers/BMI/bmi_controller.dart';
+import 'package:snevva/Controllers/DietPlan/diet_plan_controller.dart';
+import 'package:snevva/Controllers/HealthTips/healthtips_controller.dart';
+import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
+import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
+import 'package:snevva/Controllers/Vitals/vitalsController.dart';
+import 'package:snevva/Controllers/signupAndSignIn/otp_verification_controller.dart';
+import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
+import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
+import 'package:snevva/Controllers/signupAndSignIn/update_old_password_controller.dart';
+import 'package:snevva/utils/theme_controller.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
 
+import 'Controllers/MentalWellness/mental_wellness_controller.dart';
+import 'Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
+import 'Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
 import 'Controllers/SleepScreen/sleep_controller.dart';
+import 'Controllers/StepCounter/step_counter_controller.dart';
+import 'Controllers/WomenHealth/bottom_sheet_controller.dart';
 import 'Controllers/alerts/alerts_controller.dart';
 import 'Controllers/local_storage_manager.dart';
 
+import 'Controllers/signupAndSignIn/create_password_controller.dart';
 import 'bindings/initial_bindings.dart';
 
 import 'common/ExceptionLogger.dart';
@@ -106,7 +124,10 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await initialiseGetxServicesAndControllers();
+
   await setupHive();
+
   await ensureFirebaseInitialized();
 
   // 🔥 Flutter framework errors
@@ -119,28 +140,121 @@ void main() async {
     //   className: 'main.dart',
     // );
 
+    if (kReleaseMode) {
+      ErrorPlaceholder(details: details.toString());
+    } else if (kDebugMode) {
+      ErrorPlaceholder(details: details.toString());
+    }
   };
 
   // 🔥 Dart / async / isolate errors
-  runZonedGuarded(() async {
-    FirebaseMessaging.onBackgroundMessage(
-      _firebaseMessagingBackgroundHandler,
-    );
+  runZonedGuarded(
+    () async {
+      FirebaseMessaging.onBackgroundMessage(
+        _firebaseMessagingBackgroundHandler,
+      );
 
-    final prefs = await SharedPreferences.getInstance();
-    final isRemembered = prefs.getBool('remember_me') ?? false;
+      final prefs = await SharedPreferences.getInstance();
+      final isRemembered = prefs.getBool('remember_me') ?? false;
 
-    runApp(MyApp(isRemembered: isRemembered));
-  }, (error, stack) {
-    // ExceptionLogger.log(
-    //   exception: error.toString(),
-    //   stackTrace: stack,
-    //   methodName: 'FlutterError.onError',
-    //   className: 'main.dart',
-    // );
+      runApp(MyApp(isRemembered: isRemembered));
+    },
+    (error, stack) {
+      // ExceptionLogger.log(
+      //   exception: error.toString(),
+      //   stackTrace: stack,
+      //   methodName: 'FlutterError.onError',
+      //   className: 'main.dart',
+      // );
 
-  });
+      ErrorPlaceholder(details: stack.toString());
+    },
+  );
 }
+
+Future<void> initialiseGetxServicesAndControllers() async {
+  await Get.putAsync<LocalStorageManager>(() async {
+    final service = LocalStorageManager();
+    return service;
+  }, permanent: true);
+  await Get.putAsync<AlertsController>(() async {
+    final service = AlertsController();
+    return service;
+  }, permanent: true);
+  await Get.putAsync<SignInController>(() async {
+    final service = SignInController();
+    return service;
+  }, permanent: false);
+  await Get.putAsync<SignUpController>(() async {
+    final service = SignUpController();
+    return service;
+  }, permanent: false);
+  await Get.putAsync<OTPVerificationController>(() async {
+    final service = OTPVerificationController();
+    return service;
+  }, permanent: false);
+  await Get.putAsync<UpdateOldPasswordController>(() async {
+    final service = UpdateOldPasswordController();
+    return service;
+  }, permanent: false);
+  await Get.putAsync<CreatePasswordController>(() async {
+    final service = CreatePasswordController();
+    return service;
+  }, permanent: false);
+  await Get.putAsync<ProfileSetupController>(() async {
+    final service = ProfileSetupController();
+    return service;
+  }, permanent: false);
+  await Get.putAsync<VitalsController>(() async {
+    final service = VitalsController();
+    return service;
+  }, permanent: false);
+  await Get.putAsync<HydrationStatController>(() async {
+    final service = HydrationStatController();
+    return service;
+  }, permanent: false);
+  await Get.putAsync<MoodController>(() async {
+    final service = MoodController();
+    return service;
+  }, permanent: false);
+  await Get.putAsync<EditprofileController>(() async {
+    final service = EditprofileController();
+    return service;
+  }, permanent: true);
+  await Get.putAsync<StepCounterController>(() async {
+    final service = StepCounterController();
+    return service;
+  }, permanent: true);
+  await Get.putAsync<BmiController>(() async {
+    final service = BmiController();
+    return service;
+  }, permanent: true);
+  await Get.putAsync<DietPlanController>(() async {
+    final service = DietPlanController();
+    return service;
+  }, permanent: true);
+  await Get.putAsync<HealthTipsController>(() async {
+    final service = HealthTipsController();
+    return service;
+  }, permanent: true);
+  if (!Get.isRegistered<MentalWellnessController>()) {
+    Get.lazyPut(() => MentalWellnessController(), fenix: true);
+  }
+  if (!Get.isRegistered<BottomSheetController>()) {
+    Get.lazyPut(() => BottomSheetController(), fenix: true);
+  }
+  if (!Get.isRegistered<ThemeController>()) {
+    Get.lazyPut(() => ThemeController(), fenix: true);
+  }
+
+
+
+
+
+
+
+}
+
 /// ------------------------------------------------------------
 /// 🏠 APP ROOT
 /// ------------------------------------------------------------
@@ -228,8 +342,6 @@ class _MyAppState extends State<MyApp> {
 
       await initializeApp().timeout(const Duration(seconds: 10));
 
-
-
       final hasSession =
           await Get.find<LocalStorageManager>().hasValidSession();
 
@@ -256,7 +368,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      initialBinding: InitialBindings(),
+      //initialBinding: InitialBindings(),
       title: 'Snevva',
       theme: SnevvaTheme.lightTheme,
       darkTheme: SnevvaTheme.darkTheme,
@@ -266,10 +378,7 @@ class _MyAppState extends State<MyApp> {
       locale: const Locale('en'),
       getPages: [
         GetPage(name: '/home', page: () => HomeWrapper()),
-        GetPage(
-          name: '/reminder',
-          page: () => ReminderScreen(),
-        ),
+        GetPage(name: '/reminder', page: () => ReminderScreen()),
       ],
       home:
           _initState == AppInitState.loading
@@ -281,6 +390,7 @@ class _MyAppState extends State<MyApp> {
                   _startTimeout();
                   _initializeAppAsync();
                 },
+                details: '',
               ),
     );
   }
@@ -303,8 +413,9 @@ class InitializationSplash extends StatelessWidget {
 /// ------------------------------------------------------------
 class ErrorPlaceholder extends StatelessWidget {
   final VoidCallback? onRetry;
+  final String details;
 
-  const ErrorPlaceholder({super.key, this.onRetry});
+  const ErrorPlaceholder({super.key, this.onRetry, required this.details});
 
   @override
   Widget build(BuildContext context) {
@@ -314,6 +425,19 @@ class ErrorPlaceholder extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Image.asset(errorIcon, scale: 2),
+            const SizedBox(height: 10),
+            const Text(
+              'Oops! Something went wrong.',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            // Optionally show a basic message for the user,
+            // or log the full details to a service.
+            Text(
+              'An error occurred: ${details.toString()}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.black54),
+            ),
             if (onRetry != null) ...[
               const SizedBox(height: 20),
               ElevatedButton(onPressed: onRetry, child: const Text('Retry')),

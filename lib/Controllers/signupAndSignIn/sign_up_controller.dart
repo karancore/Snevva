@@ -11,10 +11,9 @@ import '../../env/env.dart';
 import '../../services/auth_header_helper.dart';
 import '../../services/encryption_service.dart';
 
-class SignUpController extends GetxController {
+class SignUpController extends GetxService {
   var isLoading = false.obs;
 
-  final notify = NotificationService();
 
   Future<dynamic> signUpUsingGmail(String email, BuildContext context) async {
     print("⏳ signUpUsingGmail() called with email: $email");

@@ -48,7 +48,8 @@ class ReminderController extends GetxController {
   var selectedCategory = 'Medicine'.obs;
   var enableNotifications = true.obs;
   var soundVibrationToggle = true.obs;
-  var eventReminderOption = 0.obs;
+  final RxnInt eventReminderOption = RxnInt();
+
   Rx<DateTime?> startDate = Rx<DateTime?>(null);
   Rx<DateTime?> endDate = Rx<DateTime?>(null);
   Rx<TimeOfDay?> pickedTime = Rx<TimeOfDay?>(null);
@@ -67,6 +68,7 @@ class ReminderController extends GetxController {
     eventGetxController = Get.find<EventController>();
     startDate.value = DateTime.now();
     checkAndroidNotificationPermission();
+    startDateString.value = DateFormat('dd MMMM').format(DateTime.now());
     checkAndroidScheduleExactAlarmPermission();
     initAlarmListener();
     // Defer heavy loading until after first frame to avoid UI freeze
@@ -760,6 +762,7 @@ class ReminderController extends GetxController {
   }
 
   bool validateAndSave(BuildContext context) {
+    print("pickedTime.value → ${pickedTime.value}");
     if (selectedCategory.value == "Medicine" ||
         selectedCategory.value == "Meal" ||
         selectedCategory.value == "Event") {

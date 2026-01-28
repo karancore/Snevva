@@ -14,7 +14,7 @@ import 'package:http/http.dart' as http;
 
 import '../../common/custom_snackbar.dart';
 
-class WomenHealthController extends GetxController {
+class WomenHealthController extends GetxService {
   var periodDays = "5".obs;
   var periodCycleDays = "28".obs;
   var periodLastPeriodDay = "".obs;
@@ -41,12 +41,19 @@ class WomenHealthController extends GetxController {
   DateTime _selectedDate = DateTime.now();
   final DateTime _currentDate = DateTime.now();
 
+  // @override
+  // void onInit() {
+  //   super.onInit();
+  //   formattedDate();
+  //   loadWomenHealthFromLocalStorage();
+  // }
   @override
-  void onInit() {
-    super.onInit();
+  void onReady() {
+    super.onReady();
     formattedDate();
     loadWomenHealthFromLocalStorage();
   }
+
 
   @override
   void onClose() {

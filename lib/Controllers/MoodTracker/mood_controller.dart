@@ -10,7 +10,7 @@ import 'package:snevva/services/api_service.dart';
 import '../../common/custom_snackbar.dart';
 import '../../common/global_variables.dart';
 
-class MoodController extends GetxController {
+class MoodController extends GetxService {
   List<String> moods = ['Pleasant', 'Unpleasant', 'Good'];
 
   // 0 = Happy, 1 = Neutral, 2 = Sad

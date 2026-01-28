@@ -11,12 +11,24 @@ import '../../consts/images.dart';
 class EventController extends GetxController {
   ReminderController get reminderController => Get.find<ReminderController>();
   var eventList = <Map<String, AlarmSettings>>[].obs;
+
   Future<void> addEventAlarm(
     DateTime scheduledTime,
     BuildContext context,
   ) async {
+    final id = alarmsId();
+    final title = reminderController.titleController.text.trim();
+    final notes = reminderController.notesController.text.trim();
+    final eventData = {
+      "alarmId": id,
+      "category": "EVENT",
+      "title": title.isNotEmpty ? title : "EVENT REMINDER",
+      "notes": notes.isNotEmpty ? notes : "",
+      "scheduledTime": scheduledTime,
+    };
+    print("Event Data: $eventData");
     final alarmSettings = AlarmSettings(
-      id: alarmsId(),
+      id: id,
       dateTime: scheduledTime,
       assetAudioPath: alarmSound,
       loopAudio: true,
@@ -26,15 +38,8 @@ class EventController extends GetxController {
         volumeEnforced: true,
       ),
       notificationSettings: NotificationSettings(
-        title:
-            reminderController.titleController.text.isNotEmpty
-                ? reminderController.titleController.text
-                : 'EVENT REMINDER',
-
-        body:
-            reminderController.notesController.text.isNotEmpty
-                ? reminderController.notesController.text
-                : '',
+        title: title.isNotEmpty ? title : 'EVENT REMINDER',
+        body: notes.isNotEmpty ? notes : '',
         stopButton: 'Stop',
         icon: 'alarm',
         iconColor: AppColors.primaryColor,
@@ -49,6 +54,7 @@ class EventController extends GetxController {
       eventList.add({
         reminderController.titleController.text.trim(): alarmSettings,
       });
+      reminderController.addRemindertoAPI(eventData, context);
       reminderController.titleController.clear();
       reminderController.notesController.clear();
       await reminderController.saveReminderList(eventList, "event_list");

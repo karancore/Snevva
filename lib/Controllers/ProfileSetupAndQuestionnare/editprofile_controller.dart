@@ -16,7 +16,7 @@ import '../signupAndSignIn/otp_verification_controller.dart';
 import '../signupAndSignIn/sign_up_controller.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 
-class EditprofileController extends GetxController {
+class EditprofileController extends GetxService {
   final localStorageManager = Get.find<LocalStorageManager>();
   final signupController = Get.put(SignUpController());
   late OTPVerificationController otpVerificationController;

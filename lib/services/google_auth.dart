@@ -10,11 +10,12 @@ class GoogleAuthService {
     try {
       const webClientId =
           '760082000923-v6lm2bqqroimspg8f1am01ntbio5mbn0.apps.googleusercontent.com';
+      const androidClientId = "760082000923-632igd5sfohue6sbcgbs45bauan4b55v.apps.googleusercontent.com";
       final scopes = ['email', 'profile'];
       // Initialize Google Sign-In
       await GoogleSignIn.instance.initialize(
         serverClientId:
-            '760082000923-v6lm2bqqroimspg8f1am01ntbio5mbn0.apps.googleusercontent.com',
+            androidClientId,
       );
 
       // // Optional: sign out before signing in

@@ -1,4 +1,3 @@
-
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:snevva/main.dart';
@@ -7,6 +6,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../Controllers/SleepScreen/sleep_controller.dart';
 import '../consts/consts.dart';
+
 const int WAKE_NOTIFICATION_ID = 999;
 
 class NotificationService {
@@ -36,6 +36,7 @@ class NotificationService {
     tzd.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
   }
+
   static void onNotificationAction(NotificationResponse response) {
     if (response.actionId == 'STOP_ALARM') {
       if (Get.isRegistered<SleepController>()) {
@@ -47,8 +48,6 @@ class NotificationService {
       }
     }
   }
-
-
 
   Future<void> showInstantNotification({
     required int id,
@@ -73,6 +72,26 @@ class NotificationService {
       ),
     );
     hasNewNotification.value = true;
+  }
+
+  tz.TZDateTime nextInstanceOfTime(int hour, int minute) {
+    final now = tz.TZDateTime.now(tz.local);
+
+    var scheduledDate = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    );
+
+    // 🔑 If time already passed today → schedule for tomorrow
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    }
+
+    return scheduledDate;
   }
 
   // -------------------------------------------------
@@ -228,10 +247,8 @@ class NotificationService {
   //     ),
   //   );
   // }
-  Future<void> scheduleWakeNotification({
-    required DateTime dateTime,
-  }) async {
-    final scheduledDate = tz.TZDateTime.from(dateTime, tz.local);
+  Future<void> scheduleWakeNotification({required DateTime dateTime}) async {
+    final scheduledDate = nextInstanceOfTime(dateTime.hour, dateTime.month);
     print("Scheduling wake notification at: $scheduledDate");
 
     await notificationsPlugin.zonedSchedule(
@@ -264,12 +281,12 @@ class NotificationService {
               'Stop Alarm',
               cancelNotification: true,
             ),
-          ]
+          ],
         ),
-      ), androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
   }
-
 
   Future<void> cancelWakeNotification() async {
     await notificationsPlugin.cancel(999);

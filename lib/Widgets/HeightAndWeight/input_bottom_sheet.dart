@@ -35,10 +35,14 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
 
     if (heightText.isEmpty || weightText.isEmpty) {
       print('❌ One or both fields empty');
-      CustomSnackbar.showError(
-        context: context,
-        title: "Error",
-        message: "Height and Weight cannot be empty",
+
+      Get.snackbar(
+        'Empty Values',
+        'Height and Weight cannot be empty',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: AppColors.primaryColor,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 1),
       );
       return;
     }
@@ -50,30 +54,40 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
 
     if (height == null || weight == null) {
       print('❌ Parsing failed');
-      CustomSnackbar.showError(
-        context: context,
-        title: "Error",
-        message: "Please enter valid numeric values",
+
+      Get.snackbar(
+        'Invalid Values',
+        'Please enter valid numeric values',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: AppColors.primaryColor,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 1),
       );
       return;
     }
 
     if (height < 50 || height > 250) {
       print('❌ Height out of range: $height');
-      CustomSnackbar.showError(
-        context: context,
-        title: "Error",
-        message: "Height must be between 50 cm and 250 cm",
+      Get.snackbar(
+        'Invalid Height',
+        'Height must be between 50 cm and 250 cm',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: AppColors.primaryColor,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 1),
       );
       return;
     }
 
     if (weight < 20 || weight > 300) {
       print('❌ Weight out of range: $weight');
-      CustomSnackbar.showError(
-        context: context,
-        title: "Error",
-        message: "Weight must be between 20 kg and 300 kg",
+      Get.snackbar(
+        'Invalid Weight',
+        'Weight must be between 20 kg and 300 kg',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: AppColors.primaryColor,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 1),
       );
       return;
     }

@@ -9,7 +9,7 @@ import '../../env/env.dart';
 import '../../services/auth_header_helper.dart';
 import '../../services/encryption_service.dart';
 
-class UpdateOldPasswordController extends GetxController {
+class UpdateOldPasswordController extends GetxService {
   var obscurePassword = true.obs;
   var obscurePassword2 = true.obs;
 

@@ -9,7 +9,7 @@ import '../../env/env.dart';
 import '../../services/api_service.dart';
 import '../local_storage_manager.dart';
 
-class HealthTipsController extends GetxController {
+class HealthTipsController extends GetxService {
   /// ✅ Reactive variables
   dynamic generalTips;
   var customTips = <dynamic>[].obs;

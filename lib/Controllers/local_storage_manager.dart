@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../views/SignUp/sign_in_screen.dart';
 import '../services/device_token_service.dart';
 
-class LocalStorageManager extends GetxController {
+class LocalStorageManager extends GetxService {
   RxMap<String, dynamic> userMap = <String, dynamic>{}.obs;
   bool _sessionChecked = false;
 
@@ -13,10 +13,16 @@ class LocalStorageManager extends GetxController {
 
   final DeviceTokenService _deviceTokenService = DeviceTokenService();
 
+  // @override
+  // void onInit() {
+  //   super.onInit();
+  //   reloadUserMap();
+  // }
+
+  // Optional: use this if you need async init
   @override
-  void onInit() {
-    super.onInit();
-    reloadUserMap();
+  Future<void> onReady() async {
+    await reloadUserMap();
   }
   Future<bool> hasValidSession() async {
     final prefs = await SharedPreferences.getInstance();
@@ -31,21 +37,21 @@ class LocalStorageManager extends GetxController {
     await _deviceTokenService.handleDeviceRegistration();
   }
 
-  Future<void> checkSession() async {
-    if (_sessionChecked) return;
-    _sessionChecked = true;
-
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (token == null) {
-        Get.offAll(() => SignInScreen());
-      }
-    });
-
-    await reloadUserMap();
-  }
+  // Future<void> checkSession() async {
+  //   if (_sessionChecked) return;
+  //   _sessionChecked = true;
+  //
+  //   final prefs = await SharedPreferences.getInstance();
+  //   final token = prefs.getString('auth_token');
+  //
+  //   WidgetsBinding.instance.addPostFrameCallback((_) {
+  //     if (token == null) {
+  //       Get.offAll(() => SignInScreen());
+  //     }
+  //   });
+  //
+  //   await reloadUserMap();
+  // }
 
   Future<void> reloadUserMap() async {
     final prefs = await SharedPreferences.getInstance();

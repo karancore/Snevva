@@ -55,40 +55,40 @@ class DeviceTokenService {
   Future<Map<String, String>> getDeviceHeaders() async {
   final deviceInfo = DeviceInfoPlugin();
 
-  // if (defaultTargetPlatform == TargetPlatform.android) {
-  //   final android = await deviceInfo.androidInfo;
-  //   return {
-  //     "platform": "android",
-  //     "brand": android.brand ?? "unknown",
-  //     "model": android.model ?? "unknown",
-  //     "device": android.device ?? "unknown",
-  //     "product": android.product ?? "unknown",
-  //     "hardware": android.hardware ?? "unknown",
-  //     "physical": (android.isPhysicalDevice ?? false).toString(),
-  //     "abi": (android.supportedAbis.isNotEmpty ? android.supportedAbis.first : "unknown"),
-  //     "androidVersion": android.version.release ?? "unknown",
-  //     "sdkInt": android.version.sdkInt.toString(),
-  //     "securityPatch": android.version.securityPatch ?? "unknown",
-  //     "lowRam": (android.isLowRamDevice ?? false).toString(),
-  //   };
-  // }
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    final android = await deviceInfo.androidInfo;
+    return {
+      "platform": "android",
+      "brand": android.brand ?? "unknown",
+      "model": android.model ?? "unknown",
+      "device": android.device ?? "unknown",
+      "product": android.product ?? "unknown",
+      "hardware": android.hardware ?? "unknown",
+      "physical": (android.isPhysicalDevice ?? false).toString(),
+      "abi": (android.supportedAbis.isNotEmpty ? android.supportedAbis.first : "unknown"),
+      "androidVersion": android.version.release ?? "unknown",
+      "sdkInt": android.version.sdkInt.toString(),
+      "securityPatch": android.version.securityPatch ?? "unknown",
+      "lowRam": (android.isLowRamDevice ?? false).toString(),
+    };
+  }
 
-  // if (defaultTargetPlatform == TargetPlatform.iOS) {
-  //   final ios = await deviceInfo.iosInfo;
-  //   return {
-  //     "platform": "ios",
-  //     "brand": "apple",
-  //     "model": ios.utsname.machine ?? "unknown",
-  //     "device": ios.name ?? "unknown",
-  //     "product": ios.model ?? "unknown",
-  //     "hardware": ios.utsname.machine ?? "unknown",
-  //     "physical": (ios.isPhysicalDevice ?? false).toString(),
-  //     "abi": "arm64", // iOS default
-  //     "iosVersion": ios.systemVersion ?? "unknown",
-  //     "securityPatch": "unknown",
-  //     "lowRam": "false",
-  //   };
-  // }
+  if (defaultTargetPlatform == TargetPlatform.iOS) {
+    final ios = await deviceInfo.iosInfo;
+    return {
+      "platform": "ios",
+      "brand": "apple",
+      "model": ios.utsname.machine ?? "unknown",
+      "device": ios.name ?? "unknown",
+      "product": ios.model ?? "unknown",
+      "hardware": ios.utsname.machine ?? "unknown",
+      "physical": (ios.isPhysicalDevice ?? false).toString(),
+      "abi": "arm64", // iOS default
+      "iosVersion": ios.systemVersion ?? "unknown",
+      "securityPatch": "unknown",
+      "lowRam": "false",
+    };
+  }
 
   return {"platform": "unknown"};
 }

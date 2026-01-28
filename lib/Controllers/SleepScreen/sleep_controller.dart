@@ -18,7 +18,7 @@ import '../../common/global_variables.dart';
 
 import '../../consts/images.dart';
 import '../../models/hive_models/sleep_log.dart';
-import '../../services/sleep_noticing_service.dart';
+import '../../services/sleep/sleep_noticing_service.dart';
 
 class SleepController extends GetxController {
   String BEDTIME_KEY = 'user_bedtime_ms';

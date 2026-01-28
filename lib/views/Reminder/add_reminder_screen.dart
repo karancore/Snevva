@@ -134,19 +134,23 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     });
   }
 
-  Future<void> _selectTime({required TextEditingController controller}) async {
+  Future<void> _selectTime({required TextEditingController textcontroller}) async {
+    print("Selecting time... $controller ");
     TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
       initialEntryMode: TimePickerEntryMode.dialOnly,
     );
+    print("Picked time: $picked");
+    controller.pickedTime.value = picked;
+
 
     if (picked != null) {
       final hour = picked.hourOfPeriod.toString().padLeft(2, '0');
       final minute = picked.minute.toString().padLeft(2, '0');
       final period = picked.period == DayPeriod.am ? 'AM' : 'PM';
 
-      controller.text = '$hour:$minute $period';
+      textcontroller.text = '$hour:$minute $period';
     }
   }
 
@@ -850,7 +854,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         TextField(
           controller: controller.timeController,
           readOnly: true,
-          onTap: () => _selectTime(controller: controller.timeController),
+          onTap: () => _selectTime(textcontroller: controller.timeController),
           decoration: commonInputDecoration(hint: '10:00 AM'),
         ),
         SizedBox(height: 8),
@@ -948,7 +952,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         TextField(
           controller: controller.timeController,
           readOnly: true,
-          onTap: () => _selectTime(controller: controller.timeController),
+          onTap: () => _selectTime(textcontroller: controller.timeController),
           decoration: commonInputDecoration(hint: '09:28 AM'),
         ),
         Column(
@@ -973,10 +977,14 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     ).copyWith(unselectedWidgetColor: grey),
                     child: Radio(
                       activeColor: black,
+                      toggleable: true,
                       value: 0,
                       groupValue: controller.eventReminderOption.value,
-                      onChanged: (value) {
-                        controller.eventReminderOption.value = value as int;
+                      onChanged: (int ? value) {
+
+                          // toggle ON
+                          controller.eventReminderOption.value = value;
+
                       },
                     ),
                   ),
@@ -1039,43 +1047,43 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             ),
           ],
         ),
-        Obx(
-          () =>
-              eventGetxController.eventList.isEmpty
-                  ? SizedBox.shrink()
-                  : SizedBox(
-                    height: getListHeight(
-                      eventGetxController.eventList.length,
-                      itemHeight,
-                      maxHeight,
-                    ),
-                    child: ListView.separated(
-                      separatorBuilder: (context, index) => SizedBox(height: 1),
-                      itemCount: eventGetxController.eventList.length,
-                      itemBuilder: (context, index) {
-                        final reminderMap =
-                            eventGetxController.eventList[index];
-                        final title = reminderMap.keys.first;
-                        final alarm = reminderMap.values.first;
-                        return ListTile(
-                          title: Text(
-                            '${alarm.dateTime.hour.toString().padLeft(2, '0')}:${alarm.dateTime.minute.toString().padLeft(2, '0')}', // FIX: Added padding
-                          ),
-                          subtitle: Text(title),
-                          trailing: IconButton(
-                            icon: Icon(Icons.delete),
-                            onPressed:
-                                () => controller.stopAlarm(
-                                  index,
-                                  alarm,
-                                  eventGetxController.eventList,
-                                ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-        ),
+        // Obx(
+        //   () =>
+        //       eventGetxController.eventList.isEmpty
+        //           ? SizedBox.shrink()
+        //           : SizedBox(
+        //             height: getListHeight(
+        //               eventGetxController.eventList.length,
+        //               itemHeight,
+        //               maxHeight,
+        //             ),
+        //             child: ListView.separated(
+        //               separatorBuilder: (context, index) => SizedBox(height: 1),
+        //               itemCount: eventGetxController.eventList.length,
+        //               itemBuilder: (context, index) {
+        //                 final reminderMap =
+        //                     eventGetxController.eventList[index];
+        //                 final title = reminderMap.keys.first;
+        //                 final alarm = reminderMap.values.first;
+        //                 return ListTile(
+        //                   title: Text(
+        //                     '${alarm.dateTime.hour.toString().padLeft(2, '0')}:${alarm.dateTime.minute.toString().padLeft(2, '0')}', // FIX: Added padding
+        //                   ),
+        //                   subtitle: Text(title),
+        //                   trailing: IconButton(
+        //                     icon: Icon(Icons.delete),
+        //                     onPressed:
+        //                         () => controller.stopAlarm(
+        //                           index,
+        //                           alarm,
+        //                           eventGetxController.eventList,
+        //                         ),
+        //                   ),
+        //                 );
+        //               },
+        //             ),
+        //           ),
+        // ),
       ],
     );
   }
@@ -1132,7 +1140,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                         child: TextField(
                           controller: controller,
                           readOnly: true,
-                          onTap: () => _selectTime(controller: controller),
+                          onTap: () => _selectTime(textcontroller: controller),
                           decoration: const InputDecoration(
                             hintText: '09:30 AM',
                             hintStyle: TextStyle(color: grey),
@@ -1192,7 +1200,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                         child: TextField(
                           controller: controller,
                           readOnly: true,
-                          onTap: () => _selectTime(controller: controller),
+                          onTap: () => _selectTime(textcontroller: controller),
                           decoration: const InputDecoration(
                             hintText: '09:30 AM',
                             hintStyle: TextStyle(color: grey),

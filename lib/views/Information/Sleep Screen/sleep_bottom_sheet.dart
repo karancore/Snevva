@@ -284,17 +284,15 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
                 minute: sleepMinute,
               );
 
-              // DateTime st = DateTime(
-              //   now.year,
-              //   now.month,
-              //   now.day,
-              //   sleepTime.hour,
-              //   sleepTime.minute,
-              // );
+              DateTime st = DateTime(
+                now.year,
+                now.month,
+                now.day,
+                sleepTime.hour,
+                sleepTime.minute,
+              );
 
               debugPrint("🛏️ Final Sleep DateTime: $sleepTime");
-
-              controller.setBedtime(sleepTime);
 
               // --- WAKE-UP TIME ---
               int wakeHour = wakeUpHourController.selected + 1;
@@ -326,19 +324,63 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
                 wakeTime.minute,
               );
 
+              DateTime sleepDateTime = DateTime(
+                now.year,
+                now.month,
+                now.day,
+                sleepTime.hour,
+                sleepTime.minute,
+              );
+
+              DateTime wakeDateTime = DateTime(
+                now.year,
+                now.month,
+                now.day,
+                wakeTime.hour,
+                wakeTime.minute,
+              );
+
+              if (sleepDateTime.hour == wakeDateTime.hour &&
+                  sleepDateTime.minute == wakeDateTime.minute) {
+                Get.snackbar(
+                  'Invalid Time',
+                  'Sleep and wake time cannot be the same',
+                  snackPosition: SnackPosition.TOP,
+                  backgroundColor: AppColors.primaryColor,
+                  colorText: Colors.white,
+                  duration: const Duration(seconds: 1),
+                );
+                return;
+              }
+
+              // 🌙 If wake time already passed today → next day
+              if (!wakeDateTime.isAfter(now)) {
+                wakeDateTime = wakeDateTime.add(const Duration(days: 1));
+              }
+
+              // 🛏️ If sleep time is after wake → sleep was yesterday
+              if (sleepDateTime.isAfter(wakeDateTime)) {
+                sleepDateTime = sleepDateTime.subtract(const Duration(days: 1));
+              }
+
               debugPrint("🌅 Final Wake DateTime: $wakeTime");
+              controller.setBedtime(sleepTime);
 
               controller.setWakeTime(wakeTime);
 
               debugPrint("Sleep monitoring started at sleep bottom sheet");
               await controller.startMonitoring();
               debugPrint("Alarm scheduled for wake time at sleep bottom sheet");
+
               await notificationService.scheduleWakeNotification(dateTime: wt);
 
-              CustomSnackbar.showSnackbar(
-                context: context,
-                title: "Sleep Monitoring Started",
-                message: '',
+              Get.snackbar(
+                'Sleep Monitoring Started',
+                '' ,
+                snackPosition: SnackPosition.TOP,
+                backgroundColor: AppColors.primaryColor,
+                colorText: Colors.white,
+                duration: const Duration(seconds: 1),
               );
 
               debugPrint(

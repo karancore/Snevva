@@ -7,7 +7,7 @@ import '../../env/env.dart';
 import '../../services/auth_header_helper.dart';
 import '../../services/encryption_service.dart';
 
-class ForgotPasswordController extends GetxController {
+class ForgotPasswordController extends GetxService {
   var isLoading = false.obs;
 
   Future<dynamic> resetPasswordUsingGmail(

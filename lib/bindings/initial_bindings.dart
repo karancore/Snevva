@@ -2,6 +2,7 @@ import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/signupAndSignIn/create_password_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/otp_verification_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
+import 'package:snevva/utils/theme_controller.dart';
 import '../Controllers/BMI/bmi_controller.dart';
 import '../Controllers/DietPlan/diet_plan_controller.dart';
 import '../Controllers/HealthTips/healthtips_controller.dart';
@@ -26,87 +27,84 @@ import 'package:get/get.dart';
 import '../Controllers/signupAndSignIn/forgot_password_controller.dart';
 import '../Controllers/signupAndSignIn/sign_in_controller.dart';
 import '../Controllers/signupAndSignIn/update_old_password_controller.dart';
-import '../utils/theme_controller.dart';
 
 class InitialBindings extends Bindings {
   @override
   void dependencies() {
 
-    Get.put(LocalStorageManager(), permanent: true);
 
-    Get.put(AlertsController(), permanent: true);
-
-
-
-    // Auth
-    if (!Get.isRegistered<SignInController>()) {
-      Get.lazyPut(() => SignInController(), fenix: true);
-    }
-    if (!Get.isRegistered<SignUpController>()) {
-      Get.lazyPut(() => SignUpController(), fenix: true);
-    }
-    if (!Get.isRegistered<OTPVerificationController>()) {
-      Get.lazyPut(() => OTPVerificationController(), fenix: true);
-    }
-    if (!Get.isRegistered<UpdateOldPasswordController>()) {
-      Get.lazyPut(() => UpdateOldPasswordController(), fenix: true);
-    }
-    if (!Get.isRegistered<CreatePasswordController>()) {
-      Get.lazyPut(() => CreatePasswordController(), fenix: true);
-    }
-    if (!Get.isRegistered<ForgotPasswordController>()) {
-      Get.lazyPut(() => ForgotPasswordController(), fenix: true);
-    }
-    if (!Get.isRegistered<ProfileSetupController>()) {
-      Get.lazyPut(() => ProfileSetupController(), fenix: true);
-    }
-
-    // Health core (lazy, durable)
-    if (!Get.isRegistered<MoodController>()) {
-      Get.lazyPut(() => MoodController(), fenix: true);
-    }
-    if (!Get.isRegistered<WomenHealthController>()) {
-      Get.lazyPut(() => WomenHealthController(), fenix: true);
-    }
-
-    Get.put(VitalsController(), permanent: true);
-    Get.put(HydrationStatController(), permanent: true);
-    Get.put(MoodController(), permanent: true);
-    Get.put(EditprofileController(), permanent: true);
-
-    if (!Get.isRegistered<StepCounterController>()) {
-      Get.put(StepCounterController(), permanent: true);
-    }
-
-    // Feature
-    if (!Get.isRegistered<BmiController>()) {
-      Get.lazyPut(() => BmiController(), fenix: true);
-    }
-    if (!Get.isRegistered<DietPlanController>()) {
-      Get.lazyPut(() => DietPlanController(), fenix: true);
-    }
-    if (!Get.isRegistered<HealthTipsController>()) {
-      Get.lazyPut(() => HealthTipsController(), fenix: true);
-    }
-    if (!Get.isRegistered<HydrationStatController>()) {
-      Get.lazyPut(() => HydrationStatController(), fenix: true);
-    }
-    if (!Get.isRegistered<MentalWellnessController>()) {
-      Get.lazyPut(() => MentalWellnessController(), fenix: true);
-    }
-
+    //   Get.put(LocalStorageManager(), permanent: true);
+    //
+    // if (!Get.isRegistered<AlertsController>()) {
+    //   Get.put(AlertsController(), permanent: true);
+    // }
+    //
+    // // Auth
+    // if (!Get.isRegistered<SignInController>()) {
+    //   Get.lazyPut(() => SignInController(), fenix: true);
+    // }
+    // if (!Get.isRegistered<SignUpController>()) {
+    //   Get.lazyPut(() => SignUpController(), fenix: true);
+    // }
+    // if (!Get.isRegistered<OTPVerificationController>()) {
+    //   Get.lazyPut(() => OTPVerificationController(), fenix: true);
+    // }
+    // if (!Get.isRegistered<UpdateOldPasswordController>()) {
+    //   Get.lazyPut(() => UpdateOldPasswordController(), fenix: true);
+    // }
+    // if (!Get.isRegistered<CreatePasswordController>()) {
+    //   Get.lazyPut(() => CreatePasswordController(), fenix: true);
+    // }
+    // if (!Get.isRegistered<ForgotPasswordController>()) {
+    //   Get.lazyPut(() => ForgotPasswordController(), fenix: true);
+    // }
+    // if (!Get.isRegistered<ProfileSetupController>()) {
+    //   Get.lazyPut(() => ProfileSetupController(), fenix: true);
+    // }
+    //
+    //
+    // if (!Get.isRegistered<WomenHealthController>()) {
+    //   Get.lazyPut(() => WomenHealthController(), fenix: true);
+    // }
+    //
+    // Get.put(VitalsController(), permanent: true);
+    // Get.put(HydrationStatController(), permanent: true);
+    // Get.put(MoodController(), permanent: true);
+    // Get.put(EditprofileController(), permanent: true);
+    //
+    // if (!Get.isRegistered<StepCounterController>()) {
+    //   Get.put(StepCounterController(), permanent: true);
+    // }
+    //
+    // // Feature
+    // if (!Get.isRegistered<BmiController>()) {
+    //   Get.lazyPut(() => BmiController(), fenix: true);
+    // }
+    // if (!Get.isRegistered<DietPlanController>()) {
+    //   Get.lazyPut(() => DietPlanController(), fenix: true);
+    // }
+    // if (!Get.isRegistered<HealthTipsController>()) {
+    //   Get.lazyPut(() => HealthTipsController(), fenix: true);
+    // }
+    //
+    // if (!Get.isRegistered<MentalWellnessController>()) {
+    //   Get.lazyPut(() => MentalWellnessController(), fenix: true);
+    // }
+    //
     Get.lazyPut(() => MoodQuestionController(), fenix: true);
-    Get.lazyPut(() => OTPVerificationController() , fenix: true);
+    //
+    //
+    //
+    // // UI
+    // //WOmen
+    // if (!Get.isRegistered<BottomSheetController>()) {
+    //   Get.lazyPut(() => BottomSheetController(), fenix: true);
+    // }
+    // if (!Get.isRegistered<ThemeController>()) {
+    //   Get.lazyPut(() => ThemeController(), fenix: true);
+    // }
+    //
+    //
 
-
-    // UI
-    //WOmen
-    if (!Get.isRegistered<BottomSheetController>()) {
-      Get.lazyPut(() => BottomSheetController(), fenix: true);
-    }
-
-    if (!Get.isRegistered<SleepController>()) {
-      Get.put(SleepController(), permanent: true);
-    }
   }
 }

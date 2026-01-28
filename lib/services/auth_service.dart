@@ -19,6 +19,10 @@ import 'package:snevva/models/hive_models/steps_model.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 
+import 'auth_header_helper.dart';
+import 'device_token_service.dart';
+import 'encryption_service.dart';
+
 class AuthService {
 
   static bool _isLoggingOut = false;
@@ -63,6 +67,35 @@ class AuthService {
     }catch(e){
       print('❌ Error during logout API call: $e');
     }
+  }
+
+  Future<String?> loginWithEmail(String email, String password) async {
+    final plainEmail = jsonEncode({'Gmail': email, 'Password': password});
+
+    final uri = Uri.parse("$baseUrl$signInEmailEndpoint");
+    final encryptedEmail = EncryptionService.encryptData(plainEmail);
+
+    final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
+    headers['x-data-hash'] = encryptedEmail['Hash']!;
+    headers['X-Device-Info'] =
+    await DeviceTokenService().buildDeviceInfoHeader();
+
+    final response = await http.post(
+      uri,
+      headers: headers,
+      body: jsonEncode({'data': encryptedEmail['encryptedData']}),
+    );
+
+    if (response.statusCode != 200) return null;
+
+    final responseBody = jsonDecode(response.body);
+    final decrypted = EncryptionService.decryptData(
+      responseBody['data'],
+      response.headers['x-data-hash']!,
+    );
+
+    final token = jsonDecode(decrypted!)['data'];
+    return token;
   }
 
   static Future<void> logexceptiontoServer(String exceptionDetails) async {
