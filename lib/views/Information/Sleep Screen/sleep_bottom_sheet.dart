@@ -387,9 +387,14 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
                 "📡 Sending SleepTime: $sleepTime | WakeTime: $wakeTime to server",
               );
               controller.updateSleepTimestoServer(sleepTime, wakeTime);
-
               final prefs = await SharedPreferences.getInstance();
               await prefs.setBool('is_first_time_sleep', false);
+
+
+              Navigator.pop(context);
+
+              // final prefs = await SharedPreferences.getInstance();
+              // await prefs.setBool('is_first_time_sleep', false);
 
               debugPrint("💾 is_first_time_sleep set to false");
 

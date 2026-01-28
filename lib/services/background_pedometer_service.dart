@@ -25,7 +25,7 @@ Future<bool> backgroundEntry(ServiceInstance service) async {
       );
     }
 
-    final box = await Hive.box<StepEntry>('step_history');
+    final box = Hive.box<StepEntry>('step_history');
 
     // SharedPrefs (ONCE)
     final prefs = await SharedPreferences.getInstance();

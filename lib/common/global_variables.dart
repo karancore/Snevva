@@ -18,7 +18,9 @@ const String mealKey = 'meal_map';
 
 //to access medicne do (reminderBox)[medicineKey];
 
-final now = DateTime.now();
+// Changed from a fixed final DateTime to a getter so `now` always returns
+// the current time when used. This prevents stale-date bugs across isolates.
+DateTime get now => DateTime.now();
 
 bool startsWithCapital(String value) {
   if (value.isEmpty) return false;

@@ -14,7 +14,6 @@ import 'package:snevva/widgets/semi_circular_progress.dart';
 
 import '../../../common/global_variables.dart';
 import '../../../models/hive_models/steps_model.dart';
-import '../../../services/app_initializer.dart';
 import '../../../widgets/CommonWidgets/custom_appbar.dart';
 import '../../../widgets/CommonWidgets/step_stat_graph_widget.dart';
 import '../../../widgets/Drawer/drawer_menu_wigdet.dart';
@@ -28,9 +27,9 @@ class StepCounter extends StatefulWidget {
   State<StepCounter> createState() => _StepCounterState();
 }
 
-class _StepCounterState extends State<StepCounter> {
+class _StepCounterState extends State<StepCounter>
+    with WidgetsBindingObserver {
   final stepController = Get.find<StepCounterController>();
-  final Box<StepEntry> _box = Hive.box<StepEntry>('step_history');
 
   List<FlSpot> _points = [];
   int daysSinceMonday = 0;
@@ -57,8 +56,15 @@ class _StepCounterState extends State<StepCounter> {
   void initState() {
     super.initState();
 
+    // Ensure we observe app lifecycle to refresh on resume
+    WidgetsBinding.instance.addObserver(this);
+
     // Ensure controller's Hive data is loaded so weekly graph can render immediately
-    stepController.loadTodayStepsFromHive();
+    // Trigger load and refresh UI once complete
+    stepController.loadTodayStepsFromHive().then((_) {
+      if (!mounted) return;
+      setState(() {});
+    });
 
     // Watch stepSpots so UI updates when controller updates the weekly points
     ever(stepController.stepSpots, (val) {
@@ -105,8 +111,21 @@ class _StepCounterState extends State<StepCounter> {
 
   @override
   void dispose() {
+    // Remove lifecycle observer
+    WidgetsBinding.instance.removeObserver(this);
     // No need to cancel _serviceSub anymore
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    if (state == AppLifecycleState.resumed) {
+      // Force reload from Hive and prefs when app returns to foreground
+      print('🔁 App resumed - reloading steps from Hive');
+      stepController.loadTodayStepsFromHive();
+    }
   }
 
   Future<void> toggleStepsCard() async {

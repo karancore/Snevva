@@ -19,7 +19,7 @@ import 'package:snevva/consts/consts.dart';
 import '../../common/global_variables.dart';
 import '../../models/hive_models/steps_model.dart';
 
-class StepCounterController extends GetxService {
+class StepCounterController extends GetxController {
   // =======================
   // OBSERVABLE STATE
   // =======================
@@ -57,6 +57,20 @@ class StepCounterController extends GetxService {
     }
   }
 
+  /// Ensure the step_history box is opened and _stepBox assigned.
+  Future<void> _ensureStepBox() async {
+    try {
+      if (!Hive.isBoxOpen('step_history')) {
+        await Hive.openBox<StepEntry>('step_history');
+      }
+      _stepBox = Hive.box<StepEntry>('step_history');
+    } catch (e) {
+      print('❌ _ensureStepBox failed: $e');
+      // Try reopen fallback
+      await _reopenStepBox();
+    }
+  }
+
   int _safeGetSteps(String key) {
     try {
       return _stepBox.get(key)?.steps ?? 0;
@@ -66,7 +80,9 @@ class StepCounterController extends GetxService {
         _reopenStepBox();
         return 0;
       }
-      rethrow;
+      // For any other error (including late init), attempt to ensure box is opened
+      _ensureStepBox();
+      return 0;
     }
   }
 
@@ -82,7 +98,13 @@ class StepCounterController extends GetxService {
           print('❌ Failed to put after reopen: $e2');
         }
       } else {
-        rethrow;
+        // Attempt to ensure box and retry once for any other error
+        await _ensureStepBox();
+        try {
+          await _stepBox.put(key, entry);
+        } catch (e2) {
+          print('❌ Failed to put after ensure: $e2');
+        }
       }
     }
   }
@@ -106,8 +128,8 @@ class StepCounterController extends GetxService {
     // Load today's steps from Hive first
     await loadTodayStepsFromHive();
 
-    // Start listening to background service events
-    // _listenToBackgroundSteps();
+    //Start listening to background service events
+    _listenToBackgroundSteps();
 
     // Start a lightweight poller to detect background-isolate Hive writes
     _hivePoller = Timer.periodic(
@@ -125,9 +147,12 @@ void onClose() {
 
   
 
+
+
   Future<void> _init() async {
     _prefs = await SharedPreferences.getInstance();
-    _stepBox = Hive.box<StepEntry>('step_history');
+    // Ensure box exists
+    await _ensureStepBox();
 
     _checkDayReset();
     scheduleMidnightReset();
@@ -238,7 +263,7 @@ void scheduleMidnightReset() {
       todaySteps.value = newSteps;
 
       // Persist to Hive
-      _saveToHive(todaySteps.value);
+      await _saveToHive(todaySteps.value);
 
       // Trigger API sync if needed
       await _maybeSyncSteps();
@@ -285,7 +310,7 @@ void scheduleMidnightReset() {
         lastPercent = _currentPercent;
         todaySteps.value = effective;
         todaySteps.refresh();
-        updateStepSpots();
+        await updateStepSpots();
         stepSpots.refresh();
         print(
           "🔎 Hive poll detected change: todaySteps = $effective (hive=$steps pref=$prefSteps)",
@@ -308,7 +333,7 @@ void scheduleMidnightReset() {
     await _safePutSteps(key, StepEntry(date: _startOfDay(today), steps: steps));
 
     // Update graph immediately and notify observers
-    updateStepSpots();
+    await updateStepSpots();
     stepSpots.refresh();
   }
 
@@ -333,16 +358,16 @@ void scheduleMidnightReset() {
       print("📊 Loaded from Hive (changed): $steps steps (prev=$prev)");
 
       // Refresh graph with loaded data and notify observers
-      updateStepSpots();
+      await updateStepSpots();
       stepSpots.refresh();
     } else {
       // No change; just ensure graph is in sync
       print("📊 Loaded from Hive: $steps steps (no change)");
-      updateStepSpots();
+      await updateStepSpots();
     }
   }
 
-  void calculateTodayStepsFromList(List stepsList) {
+  Future<void> calculateTodayStepsFromList(List stepsList) async {
 
 
     int todayTotal = 0;
@@ -368,13 +393,16 @@ void scheduleMidnightReset() {
       todaySteps.refresh();
 
       // Persist and refresh graph
-      _saveToHive(todayTotal); // Save updated steps to Hive
-      stepSpots.refresh();
+      await _saveToHive(todayTotal); // Save updated steps to Hive
+      // stepSpots.refresh(); (already refreshed in _saveToHive)
     }
   }
 
   Future<void> loadStepsfromAPI({required int month, required int year}) async {
     try {
+      // Ensure Hive box is available before processing API data
+      await _ensureStepBox();
+
       final payload = {"Month": month, "Year": year};
 
       final response = await ApiService.post(
@@ -424,7 +452,7 @@ void scheduleMidnightReset() {
         stepsHistoryList.add(StepEntry(date: date, steps: merged));
       }
 
-      calculateTodayStepsFromList(stepData);
+      await calculateTodayStepsFromList(stepData);
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('isStepGoalSet', true);
@@ -588,6 +616,9 @@ void scheduleMidnightReset() {
     // Start by populating map from local Hive (local source of truth when API is not called)
     stepsHistoryByDate.clear();
 
+    // Ensure the box is available
+    await _ensureStepBox();
+
     try {
       for (final key in _stepBox.keys) {
         try {
@@ -628,21 +659,14 @@ void scheduleMidnightReset() {
     }
 
     syncTodayIntakeFromMap();
-    updateStepSpots();
+    await updateStepSpots();
   }
 
-  void syncTodayIntakeFromMap() {
-  final key = _dayKey(now);
-  final mapValue = stepsHistoryByDate[key];
+  // Update the weekly spot values by reading from the merged map and/or Hive.
+  Future<void> updateStepSpots() async {
+    // Ensure box is available
+    await _ensureStepBox();
 
-  // 🔒 Never override a reset with stale data
-  if (mapValue != null && mapValue > todaySteps.value) {
-    todaySteps.value = mapValue;
-  }
-}
-
-
-  void updateStepSpots() {
     stepSpots.clear();
 
     DateTime now = DateTime.now();
@@ -659,6 +683,16 @@ void scheduleMidnightReset() {
     }
 
     stepSpots.refresh();
+  }
+
+  void syncTodayIntakeFromMap() {
+    final key = _dayKey(DateTime.now());
+    final mapValue = stepsHistoryByDate[key];
+
+    if (mapValue != null && mapValue > todaySteps.value) {
+      todaySteps.value = mapValue;
+      todaySteps.refresh();
+    }
   }
 
   void scheduleStepPush() {

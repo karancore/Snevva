@@ -221,10 +221,11 @@ Future<void> initialiseGetxServicesAndControllers() async {
     final service = EditprofileController();
     return service;
   }, permanent: true);
-  await Get.putAsync<StepCounterController>(() async {
-    final service = StepCounterController();
-    return service;
-  }, permanent: true);
+  // await Get.putAsync<StepCounterController>(() async {
+  //   final service = StepCounterController();
+  //   return service;
+  // }, permanent: true);
+  Get.put(StepCounterController(), permanent: true);
   await Get.putAsync<BmiController>(() async {
     final service = BmiController();
     return service;
