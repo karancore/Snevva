@@ -593,7 +593,7 @@ void scheduleMidnightReset() {
         "Day": now.day,
         "Month": now.month,
         "Year": now.year,
-        "Time": "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}",
+        "Time": TimeOfDay.now().format(Get.context!),
         "Count": steps,
       };
 
