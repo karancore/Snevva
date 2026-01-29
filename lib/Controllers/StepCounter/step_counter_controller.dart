@@ -183,7 +183,9 @@ void onClose() {
     // 🔥 CRITICAL FIXES
     stepsHistoryByDate.remove(todayKey);
     stepsHistoryByDate.refresh();
-    await _prefs.remove('today_steps');
+    // await _prefs.remove('today_steps');
+    await _prefs.setInt('today_steps', 0);
+
 
     await _safePutSteps(
       todayKey,
@@ -591,7 +593,7 @@ void scheduleMidnightReset() {
         "Day": now.day,
         "Month": now.month,
         "Year": now.year,
-        "Time": TimeOfDay.now().format(Get.context!),
+        "Time": "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}",
         "Count": steps,
       };
 

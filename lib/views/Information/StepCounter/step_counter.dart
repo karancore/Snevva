@@ -27,13 +27,12 @@ class StepCounter extends StatefulWidget {
   State<StepCounter> createState() => _StepCounterState();
 }
 
-class _StepCounterState extends State<StepCounter>
-    with WidgetsBindingObserver {
+class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
   final stepController = Get.find<StepCounterController>();
 
   List<FlSpot> _points = [];
   int daysSinceMonday = 0;
-  int todayDate = 1 ;
+  int todayDate = 1;
   DateTime _selectedMonth = DateTime.now();
   bool _isMonthlyView = false;
 
@@ -51,6 +50,8 @@ class _StepCounterState extends State<StepCounter>
   // StreamSubscription? _serviceSub;
 
   Timer? _debounce;
+  int _secretTapCount = 0;
+  Timer? _secretResetTimer;
 
   @override
   void initState() {
@@ -334,7 +335,29 @@ class _StepCounterState extends State<StepCounter>
                         );
                       }),
 
-                      const Text('Steps', style: TextStyle(fontSize: 16)),
+                      GestureDetector(
+                        onTap: () {
+                          _secretTapCount++;
+
+                          _secretResetTimer?.cancel();
+                          _secretResetTimer = Timer(
+                            const Duration(seconds: 2),
+                            () {
+                              _secretTapCount = 0;
+                            },
+                          );
+
+                          if (_secretTapCount == 7) {
+                            print("🕵️ Secret API push activated");
+                            stepController.saveStepRecordToServer();
+                            _secretTapCount = 0;
+                          }
+                        },
+                        child: Text(
+                          "Steps",
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
 
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
