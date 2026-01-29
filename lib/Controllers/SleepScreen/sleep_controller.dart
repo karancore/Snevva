@@ -128,7 +128,7 @@ class SleepController extends GetxController {
     DateTime sleepEnd,
   ) async {
     final deep = sleepEnd.difference(sleepStart);
-    if (deep.inMinutes < 10) return;
+    if (deep.inSeconds < 10) return;
 
     await saveDeepSleepData(sleepStart, deep);
     await uploadsleepdatatoServer(sleepStart, sleepEnd);
@@ -142,7 +142,7 @@ class SleepController extends GetxController {
   ) async {
     // Without live screen data, we assume worst-case: awake periods lost
     final deep = sleepEnd.difference(sleepStart);
-    if (deep.inMinutes < 10) return;
+    if (deep.inSeconds < 10) return;
 
     await saveDeepSleepData(sleepStart, deep);
     await uploadsleepdatatoServer(sleepStart, sleepEnd);
@@ -362,7 +362,7 @@ class SleepController extends GetxController {
       }
 
       final duration = wake.difference(bedDateTime);
-      if (duration.inMinutes < 10) {
+      if (duration.inSeconds < 10) {
         debugPrint("⛔ Sleep too short, skipping upload");
         return;
       }
@@ -885,7 +885,7 @@ class SleepController extends GetxController {
     final wt = resolveSleepEnd(bt);
 
     final deep = wt.difference(bt);
-    if (deep.inSeconds < 10) {
+    if (deep.inMinutes < 10) {
       debugPrint(
         '⛔ Skipping save: calculated duration too small (${deep.inMinutes}m)',
       );

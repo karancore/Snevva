@@ -8,6 +8,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/BMI/bmi_controller.dart';
 import 'package:snevva/Controllers/DietPlan/diet_plan_controller.dart';
@@ -15,6 +18,7 @@ import 'package:snevva/Controllers/HealthTips/healthtips_controller.dart';
 import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
+import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/otp_verification_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
@@ -74,15 +78,22 @@ Future<void> ensureFirebaseInitialized() async {
 /// ------------------------------------------------------------
 @pragma('vm:entry-point')
 Future<void> notificationBackgroundHandler(
-  NotificationResponse response,
-) async {
+    NotificationResponse response,
+    ) async {
   if (response.actionId == 'STOP_ALARM') {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('navigate_to_sleep_tracker', true);
+    await prefs.setBool('stop_alarm_pending', true);
 
-    print('🛑 STOP_ALARM stored for next app resume');
+    if (response.id != null) {
+      flutterLocalNotificationsPlugin.cancel(response.id!);
+    }
+
+    // IMPORTANT: stop alarm sound here too
+
+    debugPrint('🛑 STOP_ALARM stored for next launch');
   }
 }
+
 
 /// ------------------------------------------------------------
 /// 🔔 Firebase background handler (separate isolate)
@@ -127,6 +138,7 @@ void main() async {
   await initialiseGetxServicesAndControllers();
 
   await setupHive();
+
 
   await ensureFirebaseInitialized();
 
@@ -247,13 +259,9 @@ Future<void> initialiseGetxServicesAndControllers() async {
   if (!Get.isRegistered<ThemeController>()) {
     Get.lazyPut(() => ThemeController(), fenix: true);
   }
-
-
-
-
-
-
-
+  if (!Get.isRegistered<WomenHealthController>()) {
+    Get.lazyPut(() => WomenHealthController(), fenix: true);
+  }
 }
 
 /// ------------------------------------------------------------

@@ -47,9 +47,9 @@ class StepCounterController extends GetxController {
   // and return a safe fallback value.
   Future<void> _reopenStepBox() async {
     try {
-      if (!Hive.isBoxOpen('step_history')) {
-        await Hive.openBox<StepEntry>('step_history');
-      }
+      // if (!Hive.isBoxOpen('step_history')) {
+      //   await Hive.openBox<StepEntry>('step_history');
+      // }
       _stepBox = Hive.box<StepEntry>('step_history');
       print('🔁 Reopened step_history box');
     } catch (e) {

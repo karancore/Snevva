@@ -80,6 +80,8 @@ Future<void> setupHive() async {
     print("✅ Hive already initialized, skipping setup");
     return;
   }
+  print("🧪 Hive initialized: ${Hive.isBoxOpen('step_history')}");
+
 
   // 🔑 OPEN BOXES HERE
   // await Hive.openBox('sleepBox');

@@ -49,7 +49,7 @@ class SleepNoticingService {
     if (offDuration < minSleepGap) {
       print(
         "⏭️ [SleepService] Screen OFF for "
-            "${offDuration.inSeconds}s → IGNORED",
+            "${offDuration.inMinutes}s → IGNORED",
       );
       _reset();
       return;

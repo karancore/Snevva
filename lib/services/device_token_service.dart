@@ -153,6 +153,8 @@ class DeviceTokenService {
 
     final fcmToken = await FirebaseMessaging.instance.getToken();
     if (fcmToken == null || fcmToken.isEmpty) return;
+    
+    print('FCM Token: $fcmToken');
 
     // First login
     // if (storedDeviceId == null) {

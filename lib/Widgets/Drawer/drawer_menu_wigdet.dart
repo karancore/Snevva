@@ -48,42 +48,63 @@ class DrawerMenuWidget extends StatelessWidget {
   final double? width;
 
   Future<void> performLogout() async {
-
-    final response = await ApiService.post(
-      logout,
-      null,
-      withAuth: true,
-      encryptionRequired: true,
-    );
-
-    if (response is http.Response) {
-      throw Exception('API Error: ${response.statusCode}');
-    }
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    debugPrint('🚪 Logout started');
 
     try {
+      debugPrint('📡 Calling logout API...');
+      final response = await ApiService.post(
+        logout,
+        null,
+        withAuth: true,
+        encryptionRequired: true,
+      );
+
+      if (response is http.Response) {
+        debugPrint('❌ Logout API failed: ${response.statusCode}');
+        throw Exception('API Error: ${response.statusCode}');
+      }
+
+      debugPrint('✅ Logout API success');
+    } catch (e, st) {
+      debugPrint('🔥 Exception during logout API');
+      debugPrint('Error: $e');
+      debugPrint('StackTrace: $st');
+      rethrow;
+    }
+
+    debugPrint('🧹 Clearing SharedPreferences...');
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    debugPrint('✅ SharedPreferences cleared');
+
+    debugPrint('🗄️ Clearing Hive step_history...');
+    try {
       await Hive.box<StepEntry>('step_history').clear();
+      debugPrint('✅ step_history cleared');
     } catch (e) {
-      print('❌ Failed to clear step_history on logout: $e');
+      debugPrint('❌ Failed to clear step_history: $e');
+
       try {
+        debugPrint('🔁 Retrying step_history clear...');
         await Hive.box<StepEntry>('step_history').clear();
+        debugPrint('✅ step_history cleared on retry');
       } catch (e2) {
-        print('❌ Second attempt to clear step_history failed: $e2');
+        debugPrint('❌ Second attempt failed: $e2');
       }
     }
 
+    debugPrint('🧠 Resetting LocalStorageManager...');
     final localStorageManager = Get.find<LocalStorageManager>();
+
     localStorageManager.userMap.value = {};
     localStorageManager.userMap.refresh();
 
     localStorageManager.userGoalDataMap.value = {};
     localStorageManager.userGoalDataMap.refresh();
 
-    // ❌ REMOVE THIS
-    // Get.deleteAll(force: true);
+    debugPrint('✅ LocalStorageManager reset');
 
-    // ✅ Delete only app controllers
+    debugPrint('🗑️ Deleting GetX controllers...');
     Get.delete<DietPlanController>();
     Get.delete<HealthTipsController>();
     Get.delete<HydrationStatController>();
@@ -95,11 +116,14 @@ class DrawerMenuWidget extends StatelessWidget {
     Get.delete<SleepController>();
     Get.delete<StepCounterController>();
     Get.delete<VitalsController>();
-    Get.deleteAll(force: true);
+    debugPrint('✅ Controllers deleted');
+
+    debugPrint('➡️ Navigating to SignInScreen');
     Get.offAll(() => SignInScreen());
 
-
+    debugPrint('🏁 Logout completed successfully');
   }
+
 
   @override
   Widget build(BuildContext context) {

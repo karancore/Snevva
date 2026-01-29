@@ -7,7 +7,9 @@ import 'package:timezone/timezone.dart' as tz;
 import '../Controllers/SleepScreen/sleep_controller.dart';
 import '../consts/consts.dart';
 
-const int WAKE_NOTIFICATION_ID = 999;
+const int NOTIFICATION_ID = 999;
+const int WAKE_NOTIFICATION_ID = 998;
+
 
 class NotificationService {
   final FlutterLocalNotificationsPlugin notificationsPlugin =
@@ -28,8 +30,8 @@ class NotificationService {
 
     await notificationsPlugin.initialize(
       initSettings,
-      onDidReceiveBackgroundNotificationResponse: onNotificationAction,
-      onDidReceiveNotificationResponse: notificationBackgroundHandler,
+      onDidReceiveNotificationResponse: onNotificationAction, // foreground
+      onDidReceiveBackgroundNotificationResponse: notificationBackgroundHandler, // killed
     );
 
     // Initialize timezone (very important for scheduling)
@@ -37,17 +39,23 @@ class NotificationService {
     tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
   }
 
-  static void onNotificationAction(NotificationResponse response) {
+  static void onNotificationAction(NotificationResponse response) async {
     if (response.actionId == 'STOP_ALARM') {
+      debugPrint('🛑 STOP_ALARM (foreground/background)');
+
+      // 1️⃣ Stop alarm sound
+
+      // 2️⃣ Stop sleep monitoring safely
       if (Get.isRegistered<SleepController>()) {
-        final sleepController = Get.find<SleepController>();
-        sleepController.stopMonitoring();
-        debugPrint('🛑 Alarm stopped by user action.');
-      } else {
-        debugPrint('⚠️ SleepController not registered yet');
+        Get.find<SleepController>().stopMonitoring();
       }
+
+      // 3️⃣ Cancel notification
+      final fln = FlutterLocalNotificationsPlugin();
+      await fln.cancel(WAKE_NOTIFICATION_ID);
     }
   }
+
 
   Future<void> showInstantNotification({
     required int id,
@@ -185,7 +193,7 @@ class NotificationService {
   // -------------------------------------------------
   Future<void> showOtpNotification(String otp) async {
     await notificationsPlugin.show(
-      WAKE_NOTIFICATION_ID, // Unique ID for OTP notifications
+      NOTIFICATION_ID, // Unique ID for OTP notifications
       'Your OTP Code',
       'OTP: $otp', // Content shown in notification
       const NotificationDetails(
@@ -248,38 +256,34 @@ class NotificationService {
   //   );
   // }
   Future<void> scheduleWakeNotification({required DateTime dateTime}) async {
-    final scheduledDate = nextInstanceOfTime(dateTime.hour, dateTime.month);
-    print("Scheduling wake notification at: $scheduledDate");
+    final scheduledDate =
+    nextInstanceOfTime(dateTime.hour, dateTime.minute);
 
     await notificationsPlugin.zonedSchedule(
-      999,
+      WAKE_NOTIFICATION_ID,
       'Wake Time',
       'Wake up! Time to start your day.',
       scheduledDate,
       NotificationDetails(
         android: AndroidNotificationDetails(
           'STOP_ALARM',
-          channelDescription: 'Wake-up alarms and sleep alerts',
-          'Stop Alarm',
+          'Wake Alarm',
+          subText: 'Click on STOP to turn off alarm',
+          channelDescription: 'Wake-up alerts',
           playSound: true,
-          fullScreenIntent: true,
-          enableLights: true,
-          enableVibration: true,
-          color: AppColors.primaryColor,
+          sound: RawResourceAndroidNotificationSound('alarm'),
+          audioAttributesUsage: AudioAttributesUsage.alarm,
           importance: Importance.max,
           priority: Priority.max,
-          ongoing: true,
-          channelBypassDnd: true,
-          channelShowBadge: true,
-          autoCancel: true,
-          audioAttributesUsage: AudioAttributesUsage.alarm,
-          category: AndroidNotificationCategory.alarm,
-          visibility: NotificationVisibility.public,
+          fullScreenIntent: true,
+
+          autoCancel: false,
           actions: const [
             AndroidNotificationAction(
               'STOP_ALARM',
-              'Stop Alarm',
+              'Stop',
               cancelNotification: true,
+
             ),
           ],
         ),
@@ -287,6 +291,7 @@ class NotificationService {
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
   }
+
 
   Future<void> cancelWakeNotification() async {
     await notificationsPlugin.cancel(999);

@@ -8,14 +8,11 @@ import '../env/env.dart';
 class GoogleAuthService {
   static Future<void> signInWithGoogle(BuildContext context) async {
     try {
-      const webClientId =
-          '760082000923-v6lm2bqqroimspg8f1am01ntbio5mbn0.apps.googleusercontent.com';
-      const androidClientId = "760082000923-632igd5sfohue6sbcgbs45bauan4b55v.apps.googleusercontent.com";
       final scopes = ['email', 'profile'];
       // Initialize Google Sign-In
       await GoogleSignIn.instance.initialize(
         serverClientId:
-            androidClientId,
+            ANDROID_CLIENT_ID,
       );
 
       // // Optional: sign out before signing in

@@ -29,6 +29,11 @@ class _VitalScreenState extends State<VitalScreen> {
   final TextEditingController diastolicController = TextEditingController();
   final TextEditingController glucoseController = TextEditingController();
   final TextEditingController bpmController = TextEditingController();
+  static const bpmMax = 200;
+  static const sysMax = 200;
+  static const diaMax = 120;
+  static const glucoseMax = 300;
+
   final vitalsKey = GlobalKey<FormState>();
 
   final _controller = Get.put(VitalsController());
@@ -332,7 +337,7 @@ class _VitalScreenState extends State<VitalScreen> {
                             controller: bpmController,
                             keyboardType: TextInputType.number,
                             textAlign: TextAlign.center,
-                            inputFormatters: [MaxValueTextInputFormatter(120)],
+                            inputFormatters: [MaxValueTextInputFormatter(200)],
                             style: TextStyle(
                               fontSize: 44,
                               color: textColor,
@@ -409,7 +414,7 @@ class _VitalScreenState extends State<VitalScreen> {
                               textAlign: TextAlign.center,
                               style: TextStyle(color: textColor, fontSize: 14),
                               inputFormatters: [
-                                MaxValueTextInputFormatter(120),
+                                MaxValueTextInputFormatter(200),
                               ],
                               decoration: InputDecoration(
                                 hintText: '$systolic',
@@ -435,7 +440,7 @@ class _VitalScreenState extends State<VitalScreen> {
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
                               style: TextStyle(color: textColor, fontSize: 14),
-                              inputFormatters: [MaxValueTextInputFormatter(80)],
+                              inputFormatters: [MaxValueTextInputFormatter(120)],
                               decoration: InputDecoration(
                                 hintText: '$diastolic',
                                 hintStyle: TextStyle(
@@ -478,7 +483,7 @@ class _VitalScreenState extends State<VitalScreen> {
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
                               inputFormatters: [
-                                MaxValueTextInputFormatter(140),
+                                MaxValueTextInputFormatter(300),
                               ],
                               style: TextStyle(color: textColor, fontSize: 14),
                               decoration: InputDecoration(
