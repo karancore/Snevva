@@ -85,6 +85,8 @@ Future<void> notificationBackgroundHandler(
     await prefs.setBool('stop_alarm_pending', true);
 
     if (response.id != null) {
+      print("response.id ${response.id}");
+      //flutterLocalNotificationsPlugin.cancel(998);
       flutterLocalNotificationsPlugin.cancel(response.id!);
     }
 
