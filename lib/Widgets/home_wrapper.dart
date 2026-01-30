@@ -146,7 +146,7 @@ class _HomeWrapperState extends State<HomeWrapper> {
     await Future.delayed(const Duration(seconds: 1));
 
     // 3️⃣ THEN start background service
-    await initBackgroundService();
+    // await initBackgroundService();autoStart
 
     await FirebaseMessaging.instance.requestPermission();
     await setupNotificationChannel();

@@ -111,38 +111,56 @@ Future<bool> backgroundEntry(ServiceInstance service) async {
   }
 }
 
-/// Initialize the background service
-Future<void> initBackgroundService() async {
+Future<void> stopBackgroundService() async {
   final service = FlutterBackgroundService();
 
-  // Check if service is already running
   final isRunning = await service.isRunning();
-  if (isRunning) {
-    print("⚠️ Background service already running, skipping initialization");
+  if (!isRunning) {
+    print("ℹ️ Background service not running");
     return;
   }
 
-  await service.configure(
-    androidConfiguration: AndroidConfiguration(
-      onStart: backgroundEntry,
-      isForegroundMode: true,
-      autoStart: true,
-      autoStartOnBoot: true,
-      notificationChannelId: "flutter_background_service",
-      initialNotificationTitle: "Step Tracking",
-      initialNotificationContent: "Tracking steps in background...",
-    ),
-    iosConfiguration: IosConfiguration(
-      autoStart: true,
-      onForeground: backgroundEntry,
-      onBackground: backgroundEntry,
-    ),
-  );
+  print("🛑 Sending stop signal to background service");
 
-  try {
-    await service.startService();
-    print("✅ Background service started successfully");
-  } catch (e) {
-    print("❌ Failed to start background service: $e");
-  }
+  service.invoke('stopService');
+
+  // Small delay to allow isolate cleanup
+  await Future.delayed(const Duration(milliseconds: 300));
 }
+
+
+// /// Initialize the background service
+// Future<void> initBackgroundService() async {
+//   final service = FlutterBackgroundService();
+
+//   // Check if service is already running
+//   final isRunning = await service.isRunning();
+//   if (isRunning) {
+//     print("⚠️ Background service already running, skipping initialization");
+//     return;
+//   }
+
+//   await service.configure(
+//     androidConfiguration: AndroidConfiguration(
+//       onStart: backgroundEntry,
+//       isForegroundMode: true,
+//       autoStart: true,
+//       autoStartOnBoot: true,
+//       notificationChannelId: "flutter_background_service",
+//       initialNotificationTitle: "Step Tracking",
+//       initialNotificationContent: "Tracking steps in background...",
+//     ),
+//     iosConfiguration: IosConfiguration(
+//       autoStart: true,
+//       onForeground: backgroundEntry,
+//       onBackground: backgroundEntry,
+//     ),
+//   );
+
+//   try {
+//     await service.startService();
+//     print("✅ Background service started successfully");
+//   } catch (e) {
+//     print("❌ Failed to start background service: $e");
+//   }
+// }

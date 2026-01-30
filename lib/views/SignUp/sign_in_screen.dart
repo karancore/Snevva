@@ -13,6 +13,7 @@ import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/bindings/initial_bindings.dart';
+import 'package:snevva/services/app_initializer.dart';
 import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/height_and_weight_screen.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
@@ -179,6 +180,9 @@ class _SignInScreenState extends State<SignInScreen> {
       prefs.setBool('remember_me', true);
       prefs.setString('user_credential', emailOrPhone);
     }
+
+    await initBackgroundService();
+
 
     await stepController.loadStepsfromAPI(
       month: DateTime.now().month,

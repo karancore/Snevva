@@ -20,6 +20,7 @@ import 'package:http/http.dart' as http;
 import 'package:snevva/bindings/initial_bindings.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/services/auth_service.dart';
+import 'package:snevva/services/background_pedometer_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
@@ -48,81 +49,121 @@ class DrawerMenuWidget extends StatelessWidget {
   final double? width;
 
   Future<void> performLogout() async {
-    debugPrint('🚪 Logout started');
+  debugPrint('🚪 Logout started');
 
-    try {
-      debugPrint('📡 Calling logout API...');
-      final response = await ApiService.post(
-        logout,
-        null,
-        withAuth: true,
-        encryptionRequired: true,
-      );
+  // ==========================================================
+  // 1️⃣ STOP BACKGROUND SERVICES (FIRST — VERY IMPORTANT)
+  // ==========================================================
+  try {
+    debugPrint('🛑 Stopping background services...');
+    await stopBackgroundService(); // <-- YOUR SERVICE STOPPER
+    debugPrint('✅ Background services stopped');
+  } catch (e) {
+    debugPrint('⚠️ Failed to stop background service: $e');
+    // DO NOT block logout
+  }
 
-      if (response is http.Response) {
-        debugPrint('❌ Logout API failed: ${response.statusCode}');
-        throw Exception('API Error: ${response.statusCode}');
-      }
+  // ==========================================================
+  // 2️⃣ CALL LOGOUT API (BEST EFFORT)
+  // ==========================================================
+  try {
+    debugPrint('📡 Calling logout API...');
+    final response = await ApiService.post(
+      logout,
+      null,
+      withAuth: true,
+      encryptionRequired: true,
+    );
 
+    if (response is http.Response) {
+      debugPrint('❌ Logout API failed: ${response.statusCode}');
+    } else {
       debugPrint('✅ Logout API success');
-    } catch (e, st) {
-      debugPrint('🔥 Exception during logout API');
-      debugPrint('Error: $e');
-      debugPrint('StackTrace: $st');
-      rethrow;
     }
+  } catch (e, st) {
+    debugPrint('🔥 Exception during logout API');
+    debugPrint('Error: $e');
+    debugPrint('StackTrace: $st');
+    // 🔥 NEVER rethrow on logout
+  }
 
-    debugPrint('🧹 Clearing SharedPreferences...');
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    debugPrint('✅ SharedPreferences cleared');
+  // ==========================================================
+  // 3️⃣ CLEAR SHARED PREFS (AUTH FIRST)
+  // ==========================================================
+  debugPrint('🧹 Clearing SharedPreferences...');
+  final prefs = await SharedPreferences.getInstance();
 
-    debugPrint('🗄️ Clearing Hive step_history...');
-    try {
+  // Explicit auth flags first (prevents service restart)
+  await prefs.setBool('remember_me', false);
+  await prefs.remove('access_token');
+  await prefs.remove('refresh_token');
+
+  // Then wipe rest
+  await prefs.clear();
+  debugPrint('✅ SharedPreferences cleared');
+
+  // ==========================================================
+  // 4️⃣ CLEAR HIVE (ONLY USER DATA)
+  // ==========================================================
+  debugPrint('🗄️ Clearing Hive step_history...');
+  try {
+    if (Hive.isBoxOpen('step_history')) {
       await Hive.box<StepEntry>('step_history').clear();
       debugPrint('✅ step_history cleared');
-    } catch (e) {
-      debugPrint('❌ Failed to clear step_history: $e');
-
-      try {
-        debugPrint('🔁 Retrying step_history clear...');
-        await Hive.box<StepEntry>('step_history').clear();
-        debugPrint('✅ step_history cleared on retry');
-      } catch (e2) {
-        debugPrint('❌ Second attempt failed: $e2');
-      }
     }
+  } catch (e) {
+    debugPrint('❌ Failed to clear step_history: $e');
+  }
 
-    debugPrint('🧠 Resetting LocalStorageManager...');
+  // ==========================================================
+  // 5️⃣ CLEAR IN-MEMORY STATE
+  // ==========================================================
+  debugPrint('🧠 Resetting LocalStorageManager...');
+  if (Get.isRegistered<LocalStorageManager>()) {
     final localStorageManager = Get.find<LocalStorageManager>();
 
     localStorageManager.userMap.value = {};
-    localStorageManager.userMap.refresh();
-
     localStorageManager.userGoalDataMap.value = {};
+
+    localStorageManager.userMap.refresh();
     localStorageManager.userGoalDataMap.refresh();
-
-    debugPrint('✅ LocalStorageManager reset');
-
-    debugPrint('🗑️ Deleting GetX controllers...');
-    Get.delete<DietPlanController>();
-    Get.delete<HealthTipsController>();
-    Get.delete<HydrationStatController>();
-    Get.delete<OTPVerificationController>();
-    Get.delete<MentalWellnessController>();
-    Get.delete<MoodController>();
-    Get.delete<SignInController>();
-    Get.delete<MoodQuestionController>();
-    Get.delete<SleepController>();
-    Get.delete<StepCounterController>();
-    Get.delete<VitalsController>();
-    debugPrint('✅ Controllers deleted');
-
-    debugPrint('➡️ Navigating to SignInScreen');
-    Get.offAll(() => SignInScreen());
-
-    debugPrint('🏁 Logout completed successfully');
   }
+  debugPrint('✅ LocalStorageManager reset');
+
+  // // ==========================================================
+  // // 6️⃣ CLEAR SINGLETON CACHES (IMPORTANT)
+  // // ==========================================================
+  // if (Get.isRegistered<DecisionTreeController>()) {
+  //   Get.find<DecisionTreeController>().clear();
+  //   Get.delete<DecisionTreeController>();
+  //   debugPrint('🧹 DecisionTree cache cleared');
+  // }
+
+  // ==========================================================
+  // 7️⃣ DELETE GETX CONTROLLERS
+  // ==========================================================
+  debugPrint('🗑️ Deleting GetX controllers...');
+  Get.delete<DietPlanController>(force: true);
+  Get.delete<HealthTipsController>(force: true);
+  Get.delete<HydrationStatController>(force: true);
+  Get.delete<OTPVerificationController>(force: true);
+  Get.delete<MentalWellnessController>(force: true);
+  Get.delete<MoodController>(force: true);
+  Get.delete<SignInController>(force: true);
+  Get.delete<MoodQuestionController>(force: true);
+  Get.delete<SleepController>(force: true);
+  Get.delete<StepCounterController>(force: true);
+  Get.delete<VitalsController>(force: true);
+  debugPrint('✅ Controllers deleted');
+
+  // ==========================================================
+  // 8️⃣ NAVIGATE (ALWAYS)
+  // ==========================================================
+  debugPrint('➡️ Navigating to SignInScreen');
+  Get.offAll(() => SignInScreen());
+
+  debugPrint('🏁 Logout completed successfully');
+}
 
 
   @override
