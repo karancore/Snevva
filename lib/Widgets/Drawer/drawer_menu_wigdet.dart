@@ -21,6 +21,7 @@ import 'package:snevva/bindings/initial_bindings.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/services/background_pedometer_service.dart';
+import 'package:snevva/services/decisiontree_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
@@ -138,6 +139,10 @@ class DrawerMenuWidget extends StatelessWidget {
   //   Get.delete<DecisionTreeController>();
   //   debugPrint('🧹 DecisionTree cache cleared');
   // }
+
+  debugPrint('🧠 Clearing DecisionTreeService...');
+  await DecisionTreeService().clearAll();
+
 
   // ==========================================================
   // 7️⃣ DELETE GETX CONTROLLERS
