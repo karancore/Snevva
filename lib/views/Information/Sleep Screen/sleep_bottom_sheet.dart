@@ -389,15 +389,15 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
                 );
                 controller.updateSleepTimestoServer(sleepTime, wakeTime);
                 final prefs = await SharedPreferences.getInstance();
-                await prefs.setBool('is_first_time_sleep', false);
+                await prefs.setBool('sleepGoalbool', true);
             
             
                 Navigator.pop(context);
             
                 // final prefs = await SharedPreferences.getInstance();
-                // await prefs.setBool('is_first_time_sleep', false);
+                // await prefs.setBool('sleepGoalbool', false);
             
-                debugPrint("💾 is_first_time_sleep set to false");
+                debugPrint("💾 sleepGoalbool set to false");
             
                 if (widget.isNavigating) {
                   debugPrint("➡️ Navigating to SleepTrackerScreen");

@@ -306,7 +306,7 @@ class SleepController extends GetxController {
       prefs.setInt('waketime', timeOfDayToMinutes(waketime.value!));
     }
 
-    await prefs.setBool('is_first_time_sleep', false);
+    await prefs.setBool('sleepGoalbool', true);
   }
 
   Future<void> updateSleepTimestoServer(

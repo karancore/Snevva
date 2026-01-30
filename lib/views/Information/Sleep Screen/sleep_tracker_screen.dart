@@ -66,7 +66,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
   Future<void> toggleSleepCard() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('is_first_time_sleep', false);
+    await prefs.setBool('sleepGoalbool', true);
   }
 
   String _fmt(TimeOfDay? dt) {

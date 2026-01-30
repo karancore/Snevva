@@ -220,9 +220,9 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
               onTap: () async {
                 final prefs = await SharedPreferences.getInstance();
                 final isFirstSleep =
-                    prefs.getBool('is_first_time_sleep') ?? false;
+                    prefs.getBool('sleepGoalbool') ?? false;
 
-                if (isFirstSleep || SleepGoalData == null) {
+                if (!isFirstSleep) {
                   final agreed = await showSleepBottomSheetModal(
                     context: context,
                     isDarkMode: isDarkMode,
@@ -230,12 +230,31 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
                     isNavigating: true,
                   );
 
-                  if (agreed == true) {
-                    Get.to(() => SleepTrackerScreen());
+                 if (agreed != null) {
+                    await prefs.setBool('sleepGoalbool', true);
+
+                    if (!context.mounted) return;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SleepTrackerScreen(),
+                      ),
+                    );
+
+                    Future.microtask(() async {
+                      await sleepController.savesleepToLocalStorage();
+                    });
                   }
                 } else {
-                  // Not first time, go directly
-                  Get.to(() => SleepTrackerScreen());
+
+                  if (!context.mounted) return;
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SleepTrackerScreen(),
+                    ),
+                  );
                 }
               },
             ),
@@ -257,29 +276,46 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
               DashboardServiceWidgetItems(
                 widgetText: 'Women Health',
                 widgetImg: womenIcon,
-                onTap: () async {
-                  final prefs = await SharedPreferences.getInstance();
-                  final isFirstWomen =
-                      prefs.getBool('is_first_time_women') ?? true;
+                 onTap: () async {
+                final prefs = await SharedPreferences.getInstance();
+                final isFirstWomen =
+                    prefs.getBool('is_first_time_women') ?? true;
 
-                  if (womentracking == false ||
-                      womentracking == null ||
-                      isFirstWomen) {
-                    final agreed = await showWomenBottomSheetsModal(
+                if (isFirstWomen) {
+                  final agreed = await showWomenBottomSheetsModal(
                       context,
                       isDarkMode,
                       width,
                       height,
                     );
 
-                    if (agreed == true) {
-                      // 🚫 DO NOT change flag here
-                      Get.to(() => WomenHealthScreen());
-                    }
-                  } else {
-                    Get.to(() => WomenHealthScreen());
+                 if (agreed != null) {
+                    await prefs.setBool('is_first_time_women', false);
+
+                    if (!context.mounted) return;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => WomenHealthScreen(),
+                      ),
+                    );
+
+                    Future.microtask(() async {
+                      await womenhealthController.saveWomenHealthToLocalStorage();
+                    });
                   }
-                },
+                } else {
+
+                  if (!context.mounted) return;
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => WomenHealthScreen(),
+                    ),
+                  );
+                }
+              },
               ),
 
             if (gender != 'Female')

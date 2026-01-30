@@ -343,9 +343,9 @@ Widget _buildMenuGrid(
               else if (item.title == "Sleep Tracker") {
                 final prefs = await SharedPreferences.getInstance();
                 final isFirstTime =
-                    prefs.getBool('is_first_time_sleep') ?? true;
+                    prefs.getBool('sleepGoalbool') ?? false;
 
-                if (isFirstTime) {
+                if (!isFirstTime) {
                   final agreed = await showSleepBottomSheetModal(
                     context: context,
                     isDarkMode: isDarkMode,
@@ -353,8 +353,8 @@ Widget _buildMenuGrid(
                     isNavigating: false,
                   );
 
-                  if (agreed == true) {
-                    await prefs.setBool('is_first_time_sleep', false);
+                  if (agreed != true) {
+                    await prefs.setBool('sleepGoalbool', true);
                     Get.to(() => SleepTrackerScreen());
                   }
                 } else {

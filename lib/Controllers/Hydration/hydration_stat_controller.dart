@@ -24,6 +24,7 @@ class HydrationStatController extends GetxService {
   final RxList<FlSpot> waterSpots = <FlSpot>[].obs;
   var isLoading = true.obs;
 
+
   @override
   void onReady() {
     super.onReady();
@@ -118,6 +119,10 @@ class HydrationStatController extends GetxService {
       ),
       context,
     );
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setInt('waterGoal', waterGoal.value);
+    prefs.setBool('isWaterGoalSet', true);
+    print('💾 Water goal saved locally: ${waterGoal.value} ml');
   }
 
   List<FlSpot> getMonthlyWaterSpots(DateTime month) {

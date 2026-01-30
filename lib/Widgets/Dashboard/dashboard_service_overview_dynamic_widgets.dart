@@ -2,6 +2,7 @@ import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
+import 'package:snevva/Controllers/local_storage_manager.dart';
 import '../../Controllers/SleepScreen/sleep_controller.dart';
 import '../../Controllers/StepCounter/step_counter_controller.dart';
 import '../../common/global_variables.dart';
@@ -35,6 +36,18 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
     final sleepController = Get.put(SleepController());
     bool _loaded = false;
 
+    final localstorage = Get.find<LocalStorageManager>();
+    final userInfo = localstorage.userMap;
+    print('userInfo: $userInfo');
+
+    // final userActiveData = signInController.userGoalData ?? {};
+
+    final userActiveData = localstorage.userGoalDataMap;
+    print('userActiveData: $userActiveData');
+    final womentracking = userActiveData['TrackWomenData'];
+    final stepgoal = userActiveData['StepGoalData']?['Count'];
+    final SleepGoalData = userActiveData['SleepGoalData'];
+
     if (!_loaded) {
       _loaded = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -48,8 +61,48 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
             Expanded(
               child: DashboardContainerWidget(
                 widgetName: 'Water',
-                onTap: () {
-                  Get.to(() => HydrationScreen());
+                // onTap: () {
+                //   Get.to(() => HydrationScreen());
+                // },
+                onTap: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final isGoalSet = prefs.getBool('isWaterGoalSet') ?? false;
+
+                  final watercontroller = Get.find<HydrationStatController>();
+
+                  if (!isGoalSet) {
+                    final goal = await showStepCounterBottomSheet(
+                      context,
+                      isDarkMode,
+                    );
+
+                    if (goal != null) {
+                      await prefs.setBool('isWaterGoalSet', true);
+                      await prefs.setInt('waterGoal', goal);
+
+                      if (!context.mounted) return;
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => HydrationScreen(),
+                        ),
+                      );
+
+                      Future.microtask(() async {
+                        await watercontroller.updateWaterGoal(goal, context);
+                      });
+                    }
+                  } else {
+
+                    if (!context.mounted) return;
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => HydrationScreen(),
+                      ),
+                    );
+                  }
                 },
                 widgetIcon: waterTrackingIcon,
                 width: width,
@@ -185,47 +238,45 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
           children: [
             Expanded(
               child: DashboardContainerWidget(
-                onTap: () async {
-                  final prefs = await SharedPreferences.getInstance();
-                  final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
+               onTap: () async {
+                final prefs = await SharedPreferences.getInstance();
+                final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
 
-                  final stepController = Get.find<StepCounterController>();
+                if (stepgoal == null || !isGoalSet) {
+                  final goal = await showStepCounterBottomSheet(
+                    context,
+                    isDarkMode,
+                  );
 
-                  if (!isGoalSet) {
-                    final goal = await showStepCounterBottomSheet(
-                      context,
-                      isDarkMode,
-                    );
-
-                    if (goal != null) {
-                      await prefs.setBool('isStepGoalSet', true);
-                      await prefs.setInt('stepGoalValue', goal);
-
-                      if (!context.mounted) return;
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => StepCounter(customGoal: goal),
-                        ),
-                      );
-
-                      Future.microtask(() async {
-                        await stepController.updateStepGoal(goal);
-                      });
-                    }
-                  } else {
-                    final goal = prefs.getInt('stepGoalValue') ?? 10000;
+                  if (goal != null) {
+                    await prefs.setBool('isStepGoalSet', true);
+                    await prefs.setInt('stepGoalValue', goal);
 
                     if (!context.mounted) return;
-
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => StepCounter(customGoal: goal),
                       ),
                     );
+
+                    Future.microtask(() async {
+                      await stepController.updateStepGoal(goal);
+                    });
                   }
-                },
+                } else {
+                  final goal = prefs.getInt('stepGoalValue') ?? 10000;
+
+                  if (!context.mounted) return;
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => StepCounter(customGoal: goal),
+                    ),
+                  );
+                }
+              },                
                 isDarkMode: isDarkMode,
                 widgetName: 'Steps',
                 widgetIcon: stepsTrackingIcon,
@@ -278,26 +329,45 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
             Expanded(
               child: DashboardContainerWidget(
                 onTap: () async {
-                  final prefs = await SharedPreferences.getInstance();
-                  final isFirstSleep =
-                      prefs.getBool('is_first_time_sleep') ?? false;
+                final prefs = await SharedPreferences.getInstance();
+                final isFirstSleep =
+                    prefs.getBool('sleepGoalbool') ?? false;
 
-                  if (isFirstSleep) {
-                    final agreed = await showSleepBottomSheetModal(
-                      context: context,
-                      isDarkMode: isDarkMode,
-                      height: height,
-                      isNavigating: true,
+                if (!isFirstSleep) {
+                  final agreed = await showSleepBottomSheetModal(
+                    context: context,
+                    isDarkMode: isDarkMode,
+                    height: height,
+                    isNavigating: true,
+                  );
+
+                 if (agreed != null) {
+                    await prefs.setBool('sleepGoalbool', true);
+
+                    if (!context.mounted) return;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SleepTrackerScreen(),
+                      ),
                     );
 
-                    if (agreed == true) {
-                      await prefs.setBool('is_first_time_sleep', false);
-                      Get.to(() => SleepTrackerScreen());
-                    }
-                  } else {
-                    Get.to(() => SleepTrackerScreen());
+                    Future.microtask(() async {
+                      await sleepController.savesleepToLocalStorage();
+                    });
                   }
-                },
+                } else {
+
+                  if (!context.mounted) return;
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SleepTrackerScreen(),
+                    ),
+                  );
+                }
+              },
                 isDarkMode: isDarkMode,
                 widgetName: 'Sleep',
                 widgetIcon: sleepTrackerIcon,

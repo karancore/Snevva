@@ -10,6 +10,7 @@ import 'package:snevva/consts/colors.dart';
 import 'package:snevva/consts/images.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
+import 'package:snevva/services/decisiontree_service.dart';
 
 /// ---------- DECISION TREE MODEL ----------
 
@@ -43,44 +44,44 @@ class Option {
 
 Future<Map<String, DecisionNode>> loadDecisionTree() async {
   try {
-    // final response = await ApiService.post(
-    //   ellychat,
-    //   {},
-    //   withAuth: true,
-    //   encryptionRequired: true,
-    // );
-    //
-    // print(response);
-    //
-    // // Convert to Map
-    // if (response is Map && response['data'] != null) {
-    //   final res = Map<String, dynamic>.from(response['data']);
-    //   print("API decision tree fetched.");
-    //
-    //   // Save JSON
-    //   // await _saveDecisionJsonLocally(res);
-    //   // print("Decision tree saved locally.");
-    //   // Parse
-    //   final nodes = <String, DecisionNode>{};
-    //
-    //   res.forEach((key, value) {
-    //     try {
-    //       final normalized = Map<String, dynamic>.from(
-    //         jsonDecode(jsonEncode(value)),
-    //       );
-    //
-    //       nodes[key] = DecisionNode.fromJson(normalized);
-    //     } catch (e) {
-    //       print('Error parsing decision node for key $key: $e');
-    //     }
-    //   });
-    //
-    //   // print("Decision tree parsed from API.");
-    //
-    //   return nodes;
-    // } else {
-    //   throw FormatException("Response does not contain 'data'");
-    // }
+    final response = await ApiService.post(
+      ellychat,
+      {},
+      withAuth: true,
+      encryptionRequired: true,
+    );
+    
+    print(response);
+    
+    // Convert to Map
+    if (response is Map && response['data'] != null) {
+      final res = Map<String, dynamic>.from(response['data']);
+      print("API decision tree fetched.");
+    
+      // Save JSON
+      // await _saveDecisionJsonLocally(res);
+      // print("Decision tree saved locally.");
+      // Parse
+      final nodes = <String, DecisionNode>{};
+    
+      res.forEach((key, value) {
+        try {
+          final normalized = Map<String, dynamic>.from(
+            jsonDecode(jsonEncode(value)),
+          );
+    
+          nodes[key] = DecisionNode.fromJson(normalized);
+        } catch (e) {
+          print('Error parsing decision node for key $key: $e');
+        }
+      });
+    
+      // print("Decision tree parsed from API.");
+    
+      return nodes;
+    } else {
+      throw FormatException("Response does not contain 'data'");
+    }
     return await _loadDecisionJsonFromCache();
   } catch (e) {
     print("API failed, loading cached decision tree…");
@@ -172,7 +173,9 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
   }
 
   Future<void> _initializeTree() async {
-    decisionTree = await loadDecisionTree();
+    // decisionTree = await loadDecisionTree();
+    decisionTree = await DecisionTreeService().getDecisionTree();
+
 
     if (decisionTree.isEmpty) {
       print("❌ decisionTree is EMPTY. Chat cannot load.");
@@ -250,7 +253,7 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: isDarkMode ? black : white,
-        iconTheme: IconThemeData(color: black),
+        iconTheme: IconThemeData(color: AppColors.primaryColor),
         title: Text(
           "Chat with Elly",
           style: TextStyle(
