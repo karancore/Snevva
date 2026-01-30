@@ -696,7 +696,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _setReminderTimes(
+        _setWaterTimes(
           title: 'Water',
           startTimeController: waterGetxController.startWaterTimeController,
           endTimeController: waterGetxController.endWaterTimeController,
@@ -1400,6 +1400,64 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
           : _medicineTimesField();
     });
   }
+  Widget _setWaterTimes({
+    required String title,
+    required TextEditingController startTimeController,
+    required TextEditingController endTimeController,
+  }) {
+    return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Set $title Time",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Center(
+                      child: TextField(
+                        controller: startTimeController,
+                        readOnly: true,
+                        textAlign: TextAlign.center,
+                        onTap:
+                            () => _selectStartTime(
+                              text: startTimeController.text,
+                            ),
+                        decoration: commonInputDecoration(hint: '09:30 AM'),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    "  to  ",
+                    style: TextStyle(
+                      color: isFirstTime ? grey : black,
+                      fontWeight: isFirstTime ? FontWeight.w800 : null,
+                    ),
+                  ),
+                  Expanded(
+                    child: Center(
+                      child: Center(
+                        child: TextField(
+                          controller: endTimeController,
+                          readOnly: true,
+                          textAlign: TextAlign.center,
+                          onTap:
+                              () =>
+                                  _selectEndTime(text: endTimeController.text),
+                          decoration: commonInputDecoration(hint: '11:30 PM'),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+  }
+
 
   InputDecoration commonInputDecoration({String? hint}) {
     return InputDecoration(

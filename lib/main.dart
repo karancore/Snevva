@@ -25,6 +25,7 @@ import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/update_old_password_controller.dart';
 import 'package:snevva/utils/theme_controller.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
+import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
 
 import 'Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
@@ -77,22 +78,20 @@ Future<void> ensureFirebaseInitialized() async {
 /// 🔔 Notification action handler
 /// ------------------------------------------------------------
 @pragma('vm:entry-point')
-Future<void> notificationBackgroundHandler(
-    NotificationResponse response,
-    ) async {
+Future<void> notificationBackgroundHandler(NotificationResponse response) async {
+  // Use the ID from the response if available, otherwise fallback to constant
+  final int notificationId = response.id ?? WAKE_NOTIFICATION_ID;
+
   if (response.actionId == 'STOP_ALARM') {
+    // 1. Mark as stopped for the main app to see later
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('stop_alarm_pending', true);
 
-    if (response.id != null) {
-      print("response.id ${response.id}");
-      //flutterLocalNotificationsPlugin.cancel(998);
-      flutterLocalNotificationsPlugin.cancel(response.id!);
-    }
+    // 2. Manual cancel (as a safety backup to cancelNotification: true)
+    final fln = FlutterLocalNotificationsPlugin();
+    await fln.cancel(notificationId);
 
-    // IMPORTANT: stop alarm sound here too
-
-    debugPrint('🛑 STOP_ALARM stored for next launch');
+    debugPrint('🛑 Alarm $notificationId stopped in background');
   }
 }
 
@@ -235,6 +234,7 @@ Future<void> initialiseGetxServicesAndControllers() async {
     final service = EditprofileController();
     return service;
   }, permanent: true);
+
   // await Get.putAsync<StepCounterController>(() async {
   //   final service = StepCounterController();
   //   return service;
@@ -248,6 +248,7 @@ Future<void> initialiseGetxServicesAndControllers() async {
     final service = DietPlanController();
     return service;
   }, permanent: true);
+   Get.put(DietPlanController());
   await Get.putAsync<HealthTipsController>(() async {
     final service = HealthTipsController();
     return service;
@@ -390,6 +391,7 @@ class _MyAppState extends State<MyApp> {
       getPages: [
         GetPage(name: '/home', page: () => HomeWrapper()),
         GetPage(name: '/reminder', page: () => ReminderScreen()),
+        GetPage(name: '/mood', page: () => MoodTrackerScreen())
       ],
       home:
           _initState == AppInitState.loading

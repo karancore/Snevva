@@ -171,25 +171,27 @@ class SymptomsBottomSheet extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  OutlinedButton(
-                    onPressed: () {
-                      // Save API
-                      bottomSheetController.addsymptoAPI(
-                        bottomSheetController.selectedSymptoms.toList(),
-                        noteController.text.trim(),
-                      );
-
-                      // Clear selected symptoms and note after Save
-                      bottomSheetController.selectedSymptoms.clear();
-                      noteController.clear();
-
-                      Get.back();
-                    },
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: AppColors.primaryColor,
-                      side: BorderSide.none,
+                  SafeArea(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        // Save API
+                        bottomSheetController.addsymptoAPI(
+                          bottomSheetController.selectedSymptoms.toList(),
+                          noteController.text.trim(),
+                        );
+                    
+                        // Clear selected symptoms and note after Save
+                        bottomSheetController.selectedSymptoms.clear();
+                        noteController.clear();
+                    
+                        Get.back();
+                      },
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: AppColors.primaryColor,
+                        side: BorderSide.none,
+                      ),
+                      child: Text("Save", style: TextStyle(color: white)),
                     ),
-                    child: Text("Save", style: TextStyle(color: white)),
                   ),
                 ],
               ),

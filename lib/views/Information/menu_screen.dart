@@ -84,7 +84,7 @@ class _MenuScreenState extends State<MenuScreen>
         title: "Mood Tracker",
         subtitle: "Logs daily mood",
         imagePath: moodIcon,
-        routeName: '/mood',
+        navigateTo: MoodTrackerScreen(),
       ),
       MenuItem(
         title: "Add A Reminder",

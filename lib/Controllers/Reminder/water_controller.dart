@@ -178,6 +178,8 @@ class WaterController extends GetxController {
       times: times,
     );
 
+
+
     List<AlarmSettings> createdAlarms = [];
 
     for (var i = 0; i < alarmTimes.length; i++) {
@@ -240,6 +242,24 @@ class WaterController extends GetxController {
 
     await reminderController.saveReminderList(waterList, "water_list");
     await reminderController.loadAllReminderLists();
+
+    final waterData = {
+      "id": waterReminderId,
+      "category": "WATER",
+      "title": model.title,
+      "notes": reminderController.notesController.text,
+      "reminderType": "times",
+      "startTime": startWaterTimeController.text,
+      "endTime": endWaterTimeController.text,
+      "timesPerDay": times,
+      "intervalHours": null,
+      "isActive": true,
+    };
+
+    print("Water Data setWaterAlarm: $waterData");
+
+
+    reminderController.addRemindertoAPI(waterData, context);
 
     CustomSnackbar().showReminderBar(context);
     Get.back(result: true);
@@ -381,6 +401,23 @@ class WaterController extends GetxController {
     await reminderController.saveReminderList(waterList, "water_list");
 
     await reminderController.loadAllReminderLists();
+
+    final waterData = {
+      "id": waterReminderId,
+      "category": "WATER",
+      "title": model.title,
+      "notes": reminderController.notesController.text,
+      "reminderType": "interval",
+      "startTime": startWaterTimeController.text,
+      "endTime": endWaterTimeController.text,
+      "timesPerDay": null,
+      "intervalHours": intervalHours,
+      "isActive": true,
+    };
+    print("Water Data setIntervalReminders: $waterData");
+
+    reminderController.addRemindertoAPI(waterData, context);
+
 
     CustomSnackbar().showReminderBar(context);
     Get.back(result: true);

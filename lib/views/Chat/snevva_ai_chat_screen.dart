@@ -247,26 +247,19 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: white,
+        backgroundColor: isDarkMode ? black : white,
         iconTheme: IconThemeData(color: black),
-        title: const Text(
+        title: Text(
           "Chat with Elly",
           style: TextStyle(
-            color: black,
+            color: isDarkMode ? white : black,
             fontWeight: FontWeight.w500,
             fontSize: 20,
           ),
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: black),
-            onPressed: () {},
-          ),
-        ],
       ),
 
       body: Stack(
@@ -274,147 +267,145 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
           // Background Image
           Positioned.fill(child: Image.asset(chatWallpaper, fit: BoxFit.cover)),
 
-          Column(
-            children: [
-              /// ------------ CHAT LIST ------------
-              Expanded(
-                child: ListView.builder(
-                  controller: _scrollController,
-                  // Add top padding to account for AppBar and StatusBar
-                  padding: EdgeInsets.only(
-                    top: kToolbarHeight + mediaQuery.padding.top + 10,
-                    left: 16,
-                    right: 16,
-                    bottom: 10,
-                  ),
-                  // Add 1 to count if we have options to show them at the end of the list
-                  itemCount:
-                      messages.length +
-                      (waitingForUser && node != null && node.options.isNotEmpty
-                          ? 1
-                          : 0),
-                  itemBuilder: (context, i) {
-                    // If we are at the end and have options, render them
-                    if (waitingForUser &&
-                        node != null &&
-                        node.options.isNotEmpty &&
-                        i == messages.length) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children:
-                            node.options
-                                .map(
-                                  (opt) => Padding(
-                                    padding: const EdgeInsets.only(
-                                      top: 8.0,
-                                      left: 60,
-                                    ), // Indent to align right
-                                    child: InkWell(
-                                      onTap: () => _handleOptionSelected(opt),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 12,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          gradient: AppColors.primaryGradient,
-                                          // Purple for options (User bubble color)
-                                          borderRadius: BorderRadius.circular(
-                                            20,
+          SafeArea(
+            child: Column(
+              children: [
+                /// ------------ CHAT LIST ------------
+                Expanded(
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    // Add top padding to account for AppBar and StatusBar
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            
+                    // Add 1 to count if we have options to show them at the end of the list
+                    itemCount:
+                        messages.length +
+                        (waitingForUser && node != null && node.options.isNotEmpty
+                            ? 1
+                            : 0),
+                    itemBuilder: (context, i) {
+                      // If we are at the end and have options, render them
+                      if (waitingForUser &&
+                          node != null &&
+                          node.options.isNotEmpty &&
+                          i == messages.length) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children:
+                              node.options
+                                  .map(
+                                    (opt) => Padding(
+                                      padding: const EdgeInsets.only(
+                                        top: 8.0,
+                                        left: 60,
+                                      ), // Indent to align right
+                                      child: InkWell(
+                                        onTap: () => _handleOptionSelected(opt),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 12,
                                           ),
-                                        ),
-                                        child: Text(
-                                          opt.text,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 16,
+                                          decoration: BoxDecoration(
+                                            gradient: AppColors.primaryGradient,
+                                            // Purple for options (User bubble color)
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            opt.text,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                )
-                                .toList(),
-                      );
-                    }
-
-                    final msg = messages[i];
-
-                    return Align(
-                      alignment:
-                          msg.isUser
-                              ? Alignment.centerRight
-                              : Alignment.centerLeft,
-                      child: Column(
-                        crossAxisAlignment:
+                                  )
+                                  .toList(),
+                        );
+                      }
+            
+                      final msg = messages[i];
+            
+                      return Align(
+                        alignment:
                             msg.isUser
-                                ? CrossAxisAlignment.end
-                                : CrossAxisAlignment.start,
-                        children: [
-                          msg.isUser
-                              ? SizedBox.shrink()
-                              : Text(
-                                "SNEVVAI  ${DateFormat('hh:mm a').format(msg.time)}",
-                                style: TextStyle(fontSize: 10),
-                              ),
-
-                          Container(
-                            margin: const EdgeInsets.symmetric(vertical: 6),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            constraints: BoxConstraints(
-                              maxWidth: mediaQuery.size.width * 0.75,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient:
-                                  msg.isUser
-                                      ? AppColors.primaryGradient
-                                      : AppColors.whiteGradient,
-                              // White for bot
-                              borderRadius: BorderRadius.only(
-                                topLeft: const Radius.circular(20),
-                                topRight: const Radius.circular(20),
-                                bottomLeft:
-                                    msg.isUser
-                                        ? const Radius.circular(20)
-                                        : Radius.zero,
-                                bottomRight:
-                                    msg.isUser
-                                        ? Radius.zero
-                                        : const Radius.circular(20),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 5,
-                                  offset: const Offset(0, 2),
+                                ? Alignment.centerRight
+                                : Alignment.centerLeft,
+                        child: Column(
+                          crossAxisAlignment:
+                              msg.isUser
+                                  ? CrossAxisAlignment.end
+                                  : CrossAxisAlignment.start,
+                          children: [
+                            msg.isUser
+                                ? SizedBox.shrink()
+                                : Text(
+                                  "SNEVVAI  ${DateFormat('hh:mm a').format(msg.time)}",
+                                  style: TextStyle(fontSize: 10),
                                 ),
-                              ],
-                            ),
-                            child: Text(
-                              msg.text,
-                              style: TextStyle(
-                                color:
-                                    msg.isUser ? Colors.white : Colors.black87,
-                                fontSize: 16,
+            
+                            Container(
+                              margin: const EdgeInsets.symmetric(vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              constraints: BoxConstraints(
+                                maxWidth: mediaQuery.size.width * 0.75,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient:
+                                    msg.isUser
+                                        ? AppColors.primaryGradient
+                                        : AppColors.whiteGradient,
+                                // White for bot
+                                borderRadius: BorderRadius.only(
+                                  topLeft: const Radius.circular(20),
+                                  topRight: const Radius.circular(20),
+                                  bottomLeft:
+                                      msg.isUser
+                                          ? const Radius.circular(20)
+                                          : Radius.zero,
+                                  bottomRight:
+                                      msg.isUser
+                                          ? Radius.zero
+                                          : const Radius.circular(20),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 5,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                msg.text,
+                                style: TextStyle(
+                                  color:
+                                      msg.isUser ? Colors.white : Colors.black87,
+                                  fontSize: 16,
+                                ),
                               ),
                             ),
-                          ),
-                          msg.isUser
-                              ? Text(
-                                "YOU  ${DateFormat('hh:mm a').format(msg.time)}",
-                                style: TextStyle(fontSize: 10),
-                              )
-                              : SizedBox.shrink(),
-                        ],
-                      ),
-                    );
-                  },
+                            msg.isUser
+                                ? Text(
+                                  "YOU  ${DateFormat('hh:mm a').format(msg.time)}",
+                                  style: TextStyle(fontSize: 10),
+                                )
+                                : SizedBox.shrink(),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

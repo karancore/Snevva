@@ -9,23 +9,34 @@ import 'reminder_screen.dart';
 
 class ReminderScreenWrapper extends StatelessWidget {
   const ReminderScreenWrapper({super.key});
-  //Takle
-
 
   @override
   Widget build(BuildContext context) {
-    Get.put(WaterController(), permanent: true);
-    Get.put(MealController(), permanent: true);
-    Get.put(EventController(), permanent: true);
-    Get.put(MedicineController(), permanent: true);
+    if (!Get.isRegistered<WaterController>()) {
+      Get.put(WaterController(), permanent: true);
+    }
 
-    // Lazily create the controller when this widget is first built
-    final ReminderController controller = Get.put(
-      ReminderController(),
-      tag: 'reminder',
-      permanent: true,
-    );
+    if (!Get.isRegistered<MealController>()) {
+      Get.put(MealController(), permanent: true);
+    }
 
+    if (!Get.isRegistered<EventController>()) {
+      Get.put(EventController(), permanent: true);
+    }
+
+    if (!Get.isRegistered<MedicineController>()) {
+      Get.put(MedicineController(), permanent: true);
+    }
+
+    if (!Get.isRegistered<ReminderController>(tag: 'reminder')) {
+      Get.put(
+        ReminderController(),
+        tag: 'reminder',
+        permanent: true,
+      );
+    } else {
+      Get.find<ReminderController>(tag: 'reminder');
+    }
 
     return ReminderScreen();
   }

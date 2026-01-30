@@ -23,7 +23,9 @@ class MedicineController extends GetxController {
   final selectedValue = 'minutes'.obs;
   var timeBeforeReminder = (-1).obs;
   RxnInt medicineRemindMeBeforeOption = RxnInt();
+
   final everyHourController = TextEditingController();
+
   final timesPerDayController = TextEditingController();
   var savedTimes = 0.obs;
   var timesListLength = 4.obs;

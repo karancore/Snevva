@@ -5,13 +5,19 @@ class SleepNoticingService {
   static const Duration minSleepGap = Duration(minutes: 3);
 
   StreamSubscription<ScreenStateEvent>? _subscription;
+
+
   final Screen _screen = Screen();
 
-  DateTime? _screenOffTime;
-  bool _screenIsOff = false;
+  DateTime? _screenOnTime;
+  bool _screenIsOn = false;
+
 
   // Sleep interval callback
-  Function(DateTime sleepStart, DateTime wakeUp)? onSleepDetected;
+  Function(DateTime start, DateTime end)? onAwakeSegmentDetected;
+  Function(DateTime sleepAgainTime)? onSleepResumed;
+
+
 
   void startMonitoring() {
     try {
@@ -27,42 +33,27 @@ class SleepNoticingService {
     }
   }
   // ✅ FIX: Only record FIRST SCREEN_OFF
-  void _onScreenTurnedOff() {
-    if (_screenIsOff) {
-      // 🔒 Prevent overwrite bug
-      return;
-    }
+  void _onScreenTurnedOn() {
+    if (_screenIsOn) return;
 
-    _screenIsOff = true;
-    _screenOffTime = DateTime.now();
-
-    print("🌙 [SleepService] Screen OFF at $_screenOffTime");
+    _screenIsOn = true;
+    _screenOnTime = DateTime.now();
   }
 
-  void _onScreenTurnedOn() {
-    if (!_screenIsOff || _screenOffTime == null) return;
+  void _onScreenTurnedOff() {
+    if (!_screenIsOn || _screenOnTime == null) return;
 
     final now = DateTime.now();
-    final offDuration = now.difference(_screenOffTime!);
+    final onDuration = now.difference(_screenOnTime!);
 
-    // Debounce short screen-off intervals
-    if (offDuration < minSleepGap) {
-      print(
-        "⏭️ [SleepService] Screen OFF for "
-            "${offDuration.inMinutes}s → IGNORED",
-      );
+    if (onDuration < minSleepGap) {
       _reset();
       return;
     }
 
-    // ✅ Valid sleep interval
-    print(
-      "😴 [SleepService] Sleep detected: "
-          "${_screenOffTime!} → $now "
-          "(${offDuration.inMinutes} min)",
-    );
-
-    onSleepDetected?.call(_screenOffTime!, now);
+    // ✅ TRUE awake segment
+    onAwakeSegmentDetected?.call(_screenOnTime!, now);
+    onSleepResumed?.call(now);;
     _reset();
   }
 
@@ -74,8 +65,8 @@ class SleepNoticingService {
     _reset();
   }
   void _reset() {
-    _screenOffTime = null;
-    _screenIsOff = false;
+    _screenOnTime = null;
+    _screenIsOn = false;
   }
 
   DateTime calculateNewBedtime({

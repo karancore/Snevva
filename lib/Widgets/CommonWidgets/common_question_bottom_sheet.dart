@@ -193,13 +193,15 @@ class _CommonQuestionBottomSheetState extends State<CommonQuestionBottomSheet> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      CustomOutlinedButton(
-                        width: widget.width,
-                        isDarkMode: widget.isDarkMode,
-                        backgroundColor: AppColors.primaryColor,
-                        buttonName: "Next",
-                        onTap: widget.onNext,
+
+                      SafeArea(
+                        child: CustomOutlinedButton(
+                          width: widget.width,
+                          isDarkMode: widget.isDarkMode,
+                          backgroundColor: AppColors.primaryColor,
+                          buttonName: "Next",
+                          onTap: widget.onNext,
+                        ),
                       ),
                     ],
                   ),

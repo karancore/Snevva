@@ -41,18 +41,14 @@ class NotificationService {
 
   static void onNotificationAction(NotificationResponse response) async {
     if (response.actionId == 'STOP_ALARM') {
-      debugPrint('🛑 STOP_ALARM (foreground/background)');
-
-      // 1️⃣ Stop alarm sound
-
-      // 2️⃣ Stop sleep monitoring safely
+      // 1. Stop UI-based alarm sound/logic
       if (Get.isRegistered<SleepController>()) {
         Get.find<SleepController>().stopMonitoring();
       }
 
-      // 3️⃣ Cancel notification
+      // 2. Cancel the specific notification
       final fln = FlutterLocalNotificationsPlugin();
-      await fln.cancel(WAKE_NOTIFICATION_ID);
+      await fln.cancel(response.id ?? WAKE_NOTIFICATION_ID);
     }
   }
 
@@ -294,6 +290,6 @@ class NotificationService {
 
 
   Future<void> cancelWakeNotification() async {
-    await notificationsPlugin.cancel(999);
+    await notificationsPlugin.cancel(WAKE_NOTIFICATION_ID); // Changed from 999 to 998
   }
 }

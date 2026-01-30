@@ -254,159 +254,161 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
             ),
           ),
           SizedBox(height: 10),
-          CustomOutlinedButton(
-            width: width,
-            isDarkMode: isDarkMode,
-            backgroundColor: AppColors.primaryColor,
-            buttonName: "Next",
-            onTap: () async {
-              debugPrint("👉 Sleep/Wake onTap tapped, oyee!");
-
-              // --- SLEEP TIME ---
-              int sleepHour = hourController.selected + 1;
-              int sleepMinute = minuteController.selected;
-              int sleepPeriodIndex = periodController.selected;
-
-              debugPrint(
-                "😴 Raw Sleep -> hourIndex: ${hourController.selected}, minute: $sleepMinute, periodIndex: $sleepPeriodIndex",
-              );
-
-              if (sleepPeriodIndex == 1 && sleepHour < 12) {
-                sleepHour += 12;
-              } else if (sleepPeriodIndex == 0 && sleepHour == 12) {
-                sleepHour = 0;
-              }
-
-              debugPrint("😴 Converted Sleep Hour (24h): $sleepHour");
-
-              TimeOfDay sleepTime = TimeOfDay(
-                hour: sleepHour,
-                minute: sleepMinute,
-              );
-
-              DateTime st = DateTime(
-                now.year,
-                now.month,
-                now.day,
-                sleepTime.hour,
-                sleepTime.minute,
-              );
-
-              debugPrint("🛏️ Final Sleep DateTime: $sleepTime");
-
-              // --- WAKE-UP TIME ---
-              int wakeHour = wakeUpHourController.selected + 1;
-              int wakeMinute = wakeUpMinuteController.selected;
-              int wakePeriodIndex = wakeUpPeriodController.selected;
-
-              debugPrint(
-                "⏰ Raw Wake -> hourIndex: ${wakeUpHourController.selected}, minute: $wakeMinute, periodIndex: $wakePeriodIndex",
-              );
-
-              if (wakePeriodIndex == 1 && wakeHour < 12) {
-                wakeHour += 12;
-              } else if (wakePeriodIndex == 0 && wakeHour == 12) {
-                wakeHour = 0;
-              }
-
-              debugPrint("⏰ Converted Wake Hour (24h): $wakeHour");
-
-              TimeOfDay wakeTime = TimeOfDay(
-                hour: wakeHour,
-                minute: wakeMinute,
-              );
-
-              DateTime wt = DateTime(
-                now.year,
-                now.month,
-                now.day,
-                wakeTime.hour,
-                wakeTime.minute,
-              );
-
-              DateTime sleepDateTime = DateTime(
-                now.year,
-                now.month,
-                now.day,
-                sleepTime.hour,
-                sleepTime.minute,
-              );
-
-              DateTime wakeDateTime = DateTime(
-                now.year,
-                now.month,
-                now.day,
-                wakeTime.hour,
-                wakeTime.minute,
-              );
-
-              if (sleepDateTime.hour == wakeDateTime.hour &&
-                  sleepDateTime.minute == wakeDateTime.minute) {
+          SafeArea(
+            child: CustomOutlinedButton(
+              width: width,
+              isDarkMode: isDarkMode,
+              backgroundColor: AppColors.primaryColor,
+              buttonName: "Next",
+              onTap: () async {
+                debugPrint("👉 Sleep/Wake onTap tapped, oyee!");
+            
+                // --- SLEEP TIME ---
+                int sleepHour = hourController.selected + 1;
+                int sleepMinute = minuteController.selected;
+                int sleepPeriodIndex = periodController.selected;
+            
+                debugPrint(
+                  "😴 Raw Sleep -> hourIndex: ${hourController.selected}, minute: $sleepMinute, periodIndex: $sleepPeriodIndex",
+                );
+            
+                if (sleepPeriodIndex == 1 && sleepHour < 12) {
+                  sleepHour += 12;
+                } else if (sleepPeriodIndex == 0 && sleepHour == 12) {
+                  sleepHour = 0;
+                }
+            
+                debugPrint("😴 Converted Sleep Hour (24h): $sleepHour");
+            
+                TimeOfDay sleepTime = TimeOfDay(
+                  hour: sleepHour,
+                  minute: sleepMinute,
+                );
+            
+                DateTime st = DateTime(
+                  now.year,
+                  now.month,
+                  now.day,
+                  sleepTime.hour,
+                  sleepTime.minute,
+                );
+            
+                debugPrint("🛏️ Final Sleep DateTime: $sleepTime");
+            
+                // --- WAKE-UP TIME ---
+                int wakeHour = wakeUpHourController.selected + 1;
+                int wakeMinute = wakeUpMinuteController.selected;
+                int wakePeriodIndex = wakeUpPeriodController.selected;
+            
+                debugPrint(
+                  "⏰ Raw Wake -> hourIndex: ${wakeUpHourController.selected}, minute: $wakeMinute, periodIndex: $wakePeriodIndex",
+                );
+            
+                if (wakePeriodIndex == 1 && wakeHour < 12) {
+                  wakeHour += 12;
+                } else if (wakePeriodIndex == 0 && wakeHour == 12) {
+                  wakeHour = 0;
+                }
+            
+                debugPrint("⏰ Converted Wake Hour (24h): $wakeHour");
+            
+                TimeOfDay wakeTime = TimeOfDay(
+                  hour: wakeHour,
+                  minute: wakeMinute,
+                );
+            
+                DateTime wt = DateTime(
+                  now.year,
+                  now.month,
+                  now.day,
+                  wakeTime.hour,
+                  wakeTime.minute,
+                );
+            
+                DateTime sleepDateTime = DateTime(
+                  now.year,
+                  now.month,
+                  now.day,
+                  sleepTime.hour,
+                  sleepTime.minute,
+                );
+            
+                DateTime wakeDateTime = DateTime(
+                  now.year,
+                  now.month,
+                  now.day,
+                  wakeTime.hour,
+                  wakeTime.minute,
+                );
+            
+                if (sleepDateTime.hour == wakeDateTime.hour &&
+                    sleepDateTime.minute == wakeDateTime.minute) {
+                  Get.snackbar(
+                    'Invalid Time',
+                    'Sleep and wake time cannot be the same',
+                    snackPosition: SnackPosition.TOP,
+                    backgroundColor: AppColors.primaryColor,
+                    colorText: Colors.white,
+                    duration: const Duration(seconds: 1),
+                  );
+                  return;
+                }
+            
+                // 🌙 If wake time already passed today → next day
+                if (!wakeDateTime.isAfter(now)) {
+                  wakeDateTime = wakeDateTime.add(const Duration(days: 1));
+                }
+            
+                // 🛏️ If sleep time is after wake → sleep was yesterday
+                if (sleepDateTime.isAfter(wakeDateTime)) {
+                  sleepDateTime = sleepDateTime.subtract(const Duration(days: 1));
+                }
+            
+                debugPrint("🌅 Final Wake DateTime: $wakeTime");
+                controller.setBedtime(sleepTime);
+            
+                controller.setWakeTime(wakeTime);
+            
+                debugPrint("Sleep monitoring started at sleep bottom sheet");
+                await controller.startMonitoring();
+                debugPrint("Alarm scheduled for wake time at sleep bottom sheet");
+            
+                await notificationService.scheduleWakeNotification(dateTime: wt);
+            
                 Get.snackbar(
-                  'Invalid Time',
-                  'Sleep and wake time cannot be the same',
+                  'Sleep Monitoring Started',
+                  '' ,
                   snackPosition: SnackPosition.TOP,
                   backgroundColor: AppColors.primaryColor,
                   colorText: Colors.white,
                   duration: const Duration(seconds: 1),
                 );
-                return;
-              }
-
-              // 🌙 If wake time already passed today → next day
-              if (!wakeDateTime.isAfter(now)) {
-                wakeDateTime = wakeDateTime.add(const Duration(days: 1));
-              }
-
-              // 🛏️ If sleep time is after wake → sleep was yesterday
-              if (sleepDateTime.isAfter(wakeDateTime)) {
-                sleepDateTime = sleepDateTime.subtract(const Duration(days: 1));
-              }
-
-              debugPrint("🌅 Final Wake DateTime: $wakeTime");
-              controller.setBedtime(sleepTime);
-
-              controller.setWakeTime(wakeTime);
-
-              debugPrint("Sleep monitoring started at sleep bottom sheet");
-              await controller.startMonitoring();
-              debugPrint("Alarm scheduled for wake time at sleep bottom sheet");
-
-              await notificationService.scheduleWakeNotification(dateTime: wt);
-
-              Get.snackbar(
-                'Sleep Monitoring Started',
-                '' ,
-                snackPosition: SnackPosition.TOP,
-                backgroundColor: AppColors.primaryColor,
-                colorText: Colors.white,
-                duration: const Duration(seconds: 1),
-              );
-
-              debugPrint(
-                "📡 Sending SleepTime: $sleepTime | WakeTime: $wakeTime to server",
-              );
-              controller.updateSleepTimestoServer(sleepTime, wakeTime);
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setBool('is_first_time_sleep', false);
-
-
-              Navigator.pop(context);
-
-              // final prefs = await SharedPreferences.getInstance();
-              // await prefs.setBool('is_first_time_sleep', false);
-
-              debugPrint("💾 is_first_time_sleep set to false");
-
-              if (widget.isNavigating) {
-                debugPrint("➡️ Navigating to SleepTrackerScreen");
+            
+                debugPrint(
+                  "📡 Sending SleepTime: $sleepTime | WakeTime: $wakeTime to server",
+                );
+                controller.updateSleepTimestoServer(sleepTime, wakeTime);
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('is_first_time_sleep', false);
+            
+            
                 Navigator.pop(context);
-                Get.to(() => SleepTrackerScreen());
-              } else {
-                debugPrint("⬅️ Going back");
-                Get.back();
-              }
-            },
+            
+                // final prefs = await SharedPreferences.getInstance();
+                // await prefs.setBool('is_first_time_sleep', false);
+            
+                debugPrint("💾 is_first_time_sleep set to false");
+            
+                if (widget.isNavigating) {
+                  debugPrint("➡️ Navigating to SleepTrackerScreen");
+                  Navigator.pop(context);
+                  Get.to(() => SleepTrackerScreen());
+                } else {
+                  debugPrint("⬅️ Going back");
+                  Get.back();
+                }
+              },
+            ),
           ),
         ],
       ),

@@ -172,7 +172,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
         ),
 
         buttonText: 'Track mood',
-        onPressed: () => Get.to(() => const MoodTrackerScreen()),
+        onPressed: () => Get.to(MoodTrackerScreen()),
       ),
 
       // Health Cards
