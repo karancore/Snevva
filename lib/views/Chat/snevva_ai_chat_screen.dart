@@ -253,7 +253,7 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: isDarkMode ? black : white,
-        iconTheme: IconThemeData(color: AppColors.primaryColor),
+        iconTheme: IconThemeData(color: isDarkMode ? white : black,),
         title: Text(
           "Chat with Elly",
           style: TextStyle(
