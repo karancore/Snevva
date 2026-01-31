@@ -1,11 +1,6 @@
 import 'dart:convert';
-import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart'; // ✅ Needed for directory path
-
 import 'package:snevva/consts/colors.dart';
 import 'package:snevva/consts/images.dart';
 import 'package:snevva/env/env.dart';
@@ -82,62 +77,14 @@ Future<Map<String, DecisionNode>> loadDecisionTree() async {
     } else {
       throw FormatException("Response does not contain 'data'");
     }
-    return await _loadDecisionJsonFromCache();
   } catch (e) {
     print("API failed, loading cached decision tree…");
-    return await _loadDecisionJsonFromCache();
+    return {};
   }
 }
 
 /// ---------- LOCAL STORAGE ----------
 
-Future<File> _decisionFile() async {
-  final dir =
-      await getApplicationDocumentsDirectory(); // ✔ real Flutter function
-  print(dir.path);
-  return File('${dir.path}/decision.json');
-}
-
-Future<void> _saveDecisionJsonLocally(Map<String, dynamic> json) async {
-  final file = await _decisionFile();
-  await file.writeAsString(jsonEncode(json));
-  print("Decision tree updated locally.");
-}
-
-Future<Map<String, DecisionNode>> _loadDecisionJsonFromCache() async {
-  try {
-    final file = await _decisionFile();
-    print("Looking for cached decision tree at: ${file.path}");
-
-    String text;
-
-    // 1. If the local cached file exists → load it
-    if (await file.exists()) {
-      text = await file.readAsString();
-      print("Loaded decision tree from cached file.");
-    }
-    // 2. Otherwise → load from assets
-    else {
-      text = await rootBundle.loadString('assets/decision_tree.json');
-      print("Loaded decision tree from assets file.");
-    }
-
-    final Map<String, dynamic> json = jsonDecode(text);
-
-    final nodes = <String, DecisionNode>{};
-
-    json.forEach((key, value) {
-      nodes[key] = DecisionNode.fromJson(
-        Map<String, dynamic>.from(jsonDecode(jsonEncode(value))),
-      );
-    });
-
-    return nodes;
-  } catch (e) {
-    print("Error loading decision tree: $e");
-    return {};
-  }
-}
 
 /// ---------- CHAT MESSAGE MODEL ----------
 
