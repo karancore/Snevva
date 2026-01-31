@@ -229,7 +229,7 @@ class _SignInScreenState extends State<SignInScreen> {
     print("Gender is $gender");
     if(gender == 'Female'){
       await bottomsheetcontroller.loaddatafromAPI();
-      // await womenhealthController.lastPeriodDatafromAPI();
+      await womenhealthController.lastPeriodDatafromAPI();
     }
 
     if (nameValid && genderValid && occupationValid) {
