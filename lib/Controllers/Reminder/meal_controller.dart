@@ -8,7 +8,7 @@ import '../../common/custom_snackbar.dart';
 import '../../common/global_variables.dart';
 
 class MealController extends GetxController {
-  ReminderController get reminderController => Get.find<ReminderController>();
+  ReminderController get reminderController => Get.find<ReminderController>(tag: 'reminder');
   WaterController get waterController => Get.find<WaterController>();
 
   var mealsList = <Map<String, AlarmSettings>>[].obs;
@@ -25,11 +25,7 @@ class MealController extends GetxController {
       "category" : "MEAL",
       "title": title.isNotEmpty ? title : "MEAL REMINDER",
       "notes": notes.isNotEmpty ? notes : "",
-      "scheduledTime": scheduledTime,
-      "before" : {
-        "int" : waterController.timesPerDayController.text,
-        "time" : reminderController.selectedValue.value
-      }
+      "scheduledTime": scheduledTime.toIso8601String(),
     };
     print("Meal Data: $mealData");
     final alarmSettings = AlarmSettings(

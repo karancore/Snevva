@@ -30,7 +30,7 @@ class WaterController extends GetxController {
   final startWaterTime = Rx<TimeOfDay?>(null);
   final endWaterTime = Rx<TimeOfDay?>(null);
 
-  ReminderController get reminderController => Get.find<ReminderController>();
+  ReminderController get reminderController => Get.find<ReminderController>(tag: 'reminder');
 
   @override
   void onInit() {
@@ -135,10 +135,13 @@ class WaterController extends GetxController {
       if (reminders.isEmpty) {
         return false;
       }
+      final body = reminderController.notesController.text.trim();
       setIntervalReminders(
         intervalReminders: reminders,
         context: context,
+        title: 'Water',
         intervalHours: intervalHours,
+        body: body.isNotEmpty ? body : ''
       );
       return true;
     }
@@ -349,6 +352,10 @@ class WaterController extends GetxController {
     required List<DateTime> intervalReminders,
     required int intervalHours,
     required BuildContext context,
+    required String title ,
+    required String body ,
+
+
   }) async {
     for (var reminderTime in intervalReminders) {
       final alarmSettings = AlarmSettings(
@@ -358,11 +365,8 @@ class WaterController extends GetxController {
           title:
               reminderController.titleController.text.isNotEmpty
                   ? reminderController.titleController.text
-                  : 'Water reminder',
-          body:
-              reminderController.notesController.text.isNotEmpty
-                  ? reminderController.notesController.text
-                  : '',
+                  : '$title reminder',
+          body: body,
           stopButton: 'Stop',
           icon: 'alarm',
           iconColor: AppColors.primaryColor,

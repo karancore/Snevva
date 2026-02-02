@@ -17,7 +17,7 @@ class ReminderScreen extends StatefulWidget {
 }
 
 class _ReminderScreenState extends State<ReminderScreen> {
-  final ReminderController controller = Get.put(ReminderController());
+  final ReminderController controller = Get.find<ReminderController>(tag:  'reminder',);
   bool showReminderBar = true;
 
   @override
@@ -30,7 +30,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
   }
 
   Future<void> _loadData() async {
-    await controller.getReminders(context);
+    //await controller.getReminders(context);
     await controller.loadAllReminderLists();
   }
 
@@ -327,7 +327,6 @@ class _ReminderScreenState extends State<ReminderScreen> {
                 size: 18,
                 color: Color(0xff878787),
               ),
-
             ),
             const SizedBox(width: 14),
           ],

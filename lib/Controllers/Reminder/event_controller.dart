@@ -3,14 +3,26 @@ import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:alarm/alarm.dart';
 import 'package:alarm/model/alarm_settings.dart';
 import 'package:flutter/material.dart';
+import 'package:snevva/Controllers/Reminder/water_controller.dart';
 import '../../common/custom_snackbar.dart';
 import '../../common/global_variables.dart';
 import '../../consts/colors.dart';
 import '../../consts/images.dart';
 
 class EventController extends GetxController {
-  ReminderController get reminderController => Get.find<ReminderController>();
+  ReminderController get reminderController => Get.find<ReminderController>(tag: 'reminder');
+  WaterController get waterController => Get.find<WaterController>();
+
+
   var eventList = <Map<String, AlarmSettings>>[].obs;
+
+  final RxnInt eventRemindMeBefore = RxnInt();
+  final eventTimeBeforeController = TextEditingController();
+  RxString eventUnit = 'minutes'.obs;
+
+
+
+
 
   Future<void> addEventAlarm(
     DateTime scheduledTime,
@@ -24,7 +36,11 @@ class EventController extends GetxController {
       "category": "EVENT",
       "title": title.isNotEmpty ? title : "EVENT REMINDER",
       "notes": notes.isNotEmpty ? notes : "",
-      "scheduledTime": scheduledTime,
+      "scheduledTime": scheduledTime.toIso8601String(),
+      "before" : {
+        "int" : int.parse(reminderController.xTimeUnitController.text),
+        "time" : reminderController.selectedValue.value
+      }
     };
     print("Event Data: $eventData");
     final alarmSettings = AlarmSettings(

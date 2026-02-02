@@ -10,7 +10,7 @@ class AllReminder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ReminderController controller = Get.put(ReminderController());
+    final ReminderController controller = Get.find<ReminderController>(tag:  'reminder',);
 
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;

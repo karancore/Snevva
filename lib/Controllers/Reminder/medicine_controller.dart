@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 import 'package:pinput/pinput.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
+import 'package:snevva/Controllers/Reminder/water_controller.dart';
 
 import '../../boxes/boxes/boxes.dart';
 import '../../common/custom_snackbar.dart';
@@ -16,12 +17,19 @@ import '../../consts/images.dart';
 import '../../models/medicine_reminder_model.dart';
 
 class MedicineController extends GetxController {
-  ReminderController get reminderController => Get.find<ReminderController>();
-  RxList<MedicineItem> medicines = <MedicineItem>[].obs;
+  ReminderController get reminderController =>
+      Get.find<ReminderController>(tag: 'reminder');
+
+  WaterController get waterController => Get.find<WaterController>();
+
+  // RxList<MedicineItem> medicines = <MedicineItem>[].obs;
   RxList<String> medicineStrings = <String>[].obs;
   var medicineReminderOption = Option.times.obs;
-  final selectedValue = 'minutes'.obs;
+  final RxnInt medicineRemindMeBefore = RxnInt();
+  final medicineTimeBeforeController = TextEditingController();
+  RxString medicineUnit = 'minutes'.obs;
   var timeBeforeReminder = (-1).obs;
+
   RxnInt medicineRemindMeBeforeOption = RxnInt();
 
   final everyHourController = TextEditingController();
@@ -42,18 +50,30 @@ class MedicineController extends GetxController {
   var medicineList = <MedicineReminderModel>[].obs;
   var selectedMedicineIndex = (-1).obs;
   final List<String> types = ['Tablet', 'Syrup', 'Injection', 'Drops'];
-  final List<String> mealOptions = ['Before food' , 'After food' , 'No Food'];
-  final List<String> medicineFrequencies = ['Once' , 'Twice' , 'Thrice' , 'Custom'];
-  final Map<String , int> frequencyNum = {'Once' : 1 , 'Twice' : 2 , 'Thrice' : 3 , 'Custom' : 4};
-  final Map<String , String> typeToDosage = {
-    'Tablet' : 'TABLET',
-    'Syrup' : 'ML' ,
-    'Injection' : 'UNIT',
-    'Drops' : 'DROP'
+  final List<String> mealOptions = ['Before food', 'After food', 'No Food'];
+  final List<String> medicineFrequencies = [
+    'Once',
+    'Twice',
+    'Thrice',
+    'Custom',
+  ];
+  final Map<String, int> frequencyNum = {
+    'Once': 1,
+    'Twice': 2,
+    'Thrice': 3,
+    'Custom': 4,
+  };
+  final Map<String, String> typeToDosage = {
+    'Tablet': 'TABLET',
+    'Syrup': 'ML',
+    'Injection': 'UNIT',
+    'Drops': 'DROP',
   };
   final timeControllers = <TextEditingController>[].obs;
+  RxList<DateTime> scheduledTimes = <DateTime>[].obs;
 
   var selectedOption = 'Before food'.obs;
+
   int get selectedFrequencyValue {
     return frequencyNum[selectedFrequency.value] ?? 0;
   }
@@ -62,6 +82,7 @@ class MedicineController extends GetxController {
 
   var selectedType = 'Tablet'.obs;
 
+
   @override
   void onInit() {
     super.onInit();
@@ -69,16 +90,12 @@ class MedicineController extends GetxController {
     ever(selectedFrequency, (_) {
       _syncTimeControllers();
     });
-
   }
 
   void _syncTimeControllers() {
     final length = frequencyNum[selectedFrequency.value] ?? 1;
     updateTimeControllers(length);
   }
-
-
-
 
   void updateTimeControllers(int count) {
     // Remove extra
@@ -107,9 +124,6 @@ class MedicineController extends GetxController {
     timesPerDayController.text = timesPerDayController.length.toString();
   }
 
-
-
-
   String getCategoryIcon(String category) {
     switch (category) {
       case 'Tablet':
@@ -125,32 +139,104 @@ class MedicineController extends GetxController {
     }
   }
 
-  void addMedicine(BuildContext context) {
-    final name = medicineController.text.trim();
+  // void addMedicine(BuildContext context) {
+  //   final name = medicineController.text.trim();
+  //
+  //   medicines.add(MedicineItem(name: name, times: []));
+  //   selectedMedicineIndex.value = medicines.length - 1;
+  //   //medicines.add(medicineController.text);
+  //   medicineController.clear();
+  // }
 
-    medicines.add(MedicineItem(name: name, times: []));
-    selectedMedicineIndex.value = medicines.length - 1;
-    //medicines.add(medicineController.text);
-    medicineController.clear();
+  // void addTimeToMedicine(TimeOfDay time) {
+  //   if (selectedMedicineIndex.value == -1) return;
+  //
+  //   medicines[selectedMedicineIndex.value].times.add(MedicineTime(time: time));
+  //
+  //   medicines.refresh();
+  // }
+
+  // void removeMedicine(int index) {
+  //   medicines.removeAt(index);
+  // }
+
+  String buildMedicineNotificationText({
+    required String medicineName,
+    required num dosage,
+  }) {
+    final type = selectedType.value; 
+    final unit = typeToDosage[type] ?? '';
+    final plural = dosage > 1 ? 's' : '';
+
+    switch (type) {
+      case 'Tablet':
+        return 'Take $dosage $medicineName tablet$plural.';
+
+      case 'Syrup':
+        return 'Take $dosage $unit of $medicineName.';
+
+      case 'Injection':
+        return 'Take $dosage $unit of $medicineName.';
+
+      case 'Drops':
+        return 'Take $dosage $unit of $medicineName.';
+
+      default:
+        return 'Take $medicineName.';
+    }
   }
 
-  void addTimeToMedicine(TimeOfDay time) {
-    if (selectedMedicineIndex.value == -1) return;
 
-    medicines[selectedMedicineIndex.value].times.add(MedicineTime(time: time));
 
-    medicines.refresh();
+  bool addMedicineIntervalAlarm({
+    required BuildContext context,
+    required DateTime startDateTime,
+    required DateTime endDateTime,
+    required int intervalHours,
+    required num ? dosage
+  }) {
+    final medicineName = medicineController.text.trim();
+    if (medicineReminderOption.value == Option.interval) {
+      // Interval mode
+      final intervalHours = int.tryParse(everyHourController.text) ?? 0;
+      if (intervalHours <= 0) {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Please enter a valid hours interval',
+        );
+        return false;
+      }
+
+      final start = stringToTimeOfDay(startMedicineTimeController.text);
+      final end = stringToTimeOfDay(endMedicineTimeController.text);
+
+      final reminders = waterController.generateEveryXHours(
+        start: start,
+        end: end,
+        intervalHours: intervalHours,
+      );
+
+      if (reminders.isEmpty) {
+        return false;
+      }
+      waterController.setIntervalReminders(
+        intervalReminders: reminders,
+        context: context,
+        intervalHours: intervalHours,
+        title: 'Medicine',
+        body :  buildMedicineNotificationText(medicineName: medicineName, dosage: dosage ?? 0),
+      );
+      return true;
+    }
+    return true;
   }
-
-  void removeMedicine(int index) {
-    medicines.removeAt(index);
-  }
-
-  Future<bool> addMedicineAlarm(
-    DateTime scheduledTime,
-    BuildContext context,
-  ) async {
-    if (medicines.isEmpty) {
+  Future<bool> addMedicineAlarm({
+    required BuildContext context,
+    required num ? dosage
+  }) async {
+    final medicineName = medicineController.text.trim();
+    if (medicineName.isEmpty) {
       CustomSnackbar.showError(
         context: context,
         title: 'Error',
@@ -158,101 +244,77 @@ class MedicineController extends GetxController {
       );
       return false;
     }
-    final alarmId = alarmsId();
-    debugPrint("Add Medicine Alarm $alarmId");
-    final alarmSettings = AlarmSettings(
-      id: alarmId,
-      dateTime: scheduledTime,
-      assetAudioPath: alarmSound,
-      loopAudio: true,
-      androidFullScreenIntent: true,
-      vibrate: true,
-      volumeSettings: VolumeSettings.fade(
-        volume: 0.8,
-        fadeDuration: Duration(seconds: 5),
-        volumeEnforced: true,
-      ),
-      notificationSettings: NotificationSettings(
-        title:
-            reminderController.titleController.text.isNotEmpty
-                ? reminderController.titleController.text
-                : 'MEDICINE REMINDER',
-        body: 'Take ${medicines.map((e) => e.name).join(", ")}.',
 
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      ),
-    );
+    final List<AlarmSettings> alarms = [];
+    // List<DateTime> scheduledTimes = scheduledTimesTimeOfDay.map(
+    //   (e) => DateTime(
+    //     DateTime.now().year,
+    //     DateTime.now().month,
+    //     DateTime.now().day,
+    //     e.hour,
+    //     e.minute,
+    //   ),
+    // ).toList();
 
-    print('🔔 Setting alarm:');
-    print('   ID: ${alarmSettings.id}');
-    print('   Time: $scheduledTime');
-    print('   Category: Medicine');
-    print('   Title: ${reminderController.titleController.text}');
+    for (final scheduledTime in scheduledTimes) {
+      final alarmId = alarmsId(); // Generate unique ID for each alarm
 
-    final success = await Alarm.set(alarmSettings: alarmSettings);
-
-    if (success) {
-      // Reload list from Hive to ensure we have the latest data and don't override
-
-      medicineList.value = await loadMedicineReminderList("medicine_list");
-      debugPrint("Add Medicine Alarm $medicineList");
-
-      medicineList.add(
-        MedicineReminderModel(
-          id: alarmId.toString(),
-          title: reminderController.titleController.text.trim(),
-          note: reminderController.notesController.text.trim(),
-          medicines: List<MedicineItem>.from(medicines),
-          alarm: alarmSettings,
+      final alarmSettings = AlarmSettings(
+        id: alarmId,
+        dateTime: scheduledTime,
+        assetAudioPath: alarmSound,
+        loopAudio: true,
+        vibrate: true,
+        androidFullScreenIntent: true,
+        volumeSettings: VolumeSettings.fade(
+          volume: 0.8,
+          fadeDuration: const Duration(seconds: 5),
+          volumeEnforced: true,
+        ),
+        notificationSettings: NotificationSettings(
+          title:
+              reminderController.titleController.text.isNotEmpty
+                  ? reminderController.titleController.text
+                  : 'MEDICINE REMINDER',
+          body: buildMedicineNotificationText(medicineName: medicineName, dosage: dosage ?? 0),
+          stopButton: 'Stop',
+          icon: 'alarm',
+          iconColor: AppColors.primaryColor,
         ),
       );
-      medicineStrings.value =
-          medicineList.map((r) {
-            String meds = r.medicines
-                .map((m) {
-                  String times = m.times
-                      .map(
-                        (t) =>
-                            '${t.time.hour.toString().padLeft(2, '0')}:${t.time.minute.toString().padLeft(2, '0')}',
-                      )
-                      .join(', ');
-                  return '${m.name} ($times)';
-                })
-                .join('; ');
 
-            return '${r.title}: $meds';
-          }).toList();
-      debugPrint("Reminder Strings: $medicineStrings");
-
-      debugPrint(
-        "Add Medicine Alarm medicinesList.add ${medicineList.toString()}",
-      );
-
-      final payload = reminderController.buildReminderPayload(
-        category: "Medicine",
-        id: alarmId,
-      );
-      debugPrint("Add Medicine Alarm payload $payload");
-
-      await reminderController.addRemindertoAPI(payload, context);
-      await saveMedicineReminderList("medicine_list", medicineList);
-
-      reminderController.titleController.clear();
-      reminderController.notesController.clear();
-      medicineController.clear();
-      medicines.clear();
-
-      await reminderController.loadAllReminderLists();
-
-      CustomSnackbar().showReminderBar(context);
-
-      Get.back(result: true);
-
-      final allAlarms = await Alarm.getAlarms();
-      print('   Total alarms active: ${allAlarms.length}');
+      final success = await Alarm.set(alarmSettings: alarmSettings);
+      if (success) {
+        alarms.add(alarmSettings);
+      }
     }
+
+    if (alarms.isEmpty) return false;
+    final id = alarms.first.id.toString();
+    final title = reminderController.titleController.text.trim();
+    final notes = reminderController.notesController.text.trim();
+
+    // 🔹 Single reminder entry, multiple alarms
+    final reminder = MedicineReminderModel(
+      id: id ,
+      // or generate separate reminderId
+      title: title,
+      note: notes,
+      medicineName: medicineName,
+      alarms: alarms, // ⬅️ CHANGE MODEL to List<AlarmSettings>
+    );
+
+    medicineList.add(reminder);
+    await saveMedicineReminderList("medicine_list", medicineList);
+
+    //reminderController.buildReminderPayload(category: "Medicine", id: int.parse(id));
+
+    await reminderController.addRemindertoAPI(
+      reminderController.buildReminderPayload(category: "Medicine", id: int.parse(id)),
+      context,
+    );
+
+    Get.back(result: true);
     return true;
   }
 
@@ -260,16 +322,16 @@ class MedicineController extends GetxController {
     String key,
     List<MedicineReminderModel> list,
   ) async {
-
     final box = Hive.box(reminderBox);
     await box.clear();
 
     for (final reminder in list) {
       debugPrint('🧪 Saving reminder: ${reminder.title}');
-      box.put(medicineKey , reminder.toJson());
+      box.put(medicineKey, reminder.toJson());
     }
 
     debugPrint('✅ Saved ${list.length} items to Hive → $key');
+    //Get.back();
   }
 
   Future<void> updateMedicineAlarm(
@@ -296,7 +358,7 @@ class MedicineController extends GetxController {
                 ? reminderController.titleController.text
                 : 'MEDICINE REMINDER',
         body:
-            'Take ${medicines.isNotEmpty ? medicines.join(", ") : "your medicine"}. ${reminderController.notesController.text}',
+            'Take ${medicineController.text.trim()}. ${reminderController.notesController.text}',
         stopButton: 'Stop',
         icon: 'alarm',
         iconColor: AppColors.primaryColor,
@@ -321,17 +383,18 @@ class MedicineController extends GetxController {
       id: alarmId.toString(),
       title: reminderController.titleController.text.trim(),
       note: reminderController.notesController.text.trim(),
-      medicines: List<MedicineItem>.from(medicines),
-      alarm: alarmSettings,
+      medicineName: medicineController.text.trim(),
+      alarms: [],
     );
+    //medicineList.add(newModel);
 
-    // Find index and replace
-    final index = medicineList.indexWhere((e) => e.alarm.id == alarmId);
-    if (index != -1) {
-      medicineList[index] = newModel;
-    } else {
-      medicineList.add(newModel); // Fallback if not found
-    }
+    // // Find index and replace
+    // final index = medicineList.indexWhere((e) => e.alarms.id == alarmId);
+    // if (index != -1) {
+    //   medicineList[index] = newModel;
+    // } else {
+    //   medicineList.add(newModel); // Fallback if not found
+    // }
 
     // 3. Save and Refresh
     await reminderController.finalizeUpdate(
@@ -452,6 +515,7 @@ class MedicineController extends GetxController {
     everyHourController.dispose();
     timesPerDayController.dispose();
     remindMeBeforeController.dispose();
+    timeControllers.clear();
     for (final controller in timeControllers) {
       controller.dispose();
     }
