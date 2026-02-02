@@ -64,7 +64,9 @@ class CommonStatGraphWidget extends StatelessWidget {
     final labels = weekLabels ?? fixedWeekLabels;
 
     // If labels > 7, treat it as monthly data
-    final bool isMonthly = labels.length > 7;
+    //final bool isMonthly = labels.length > 7;
+    final bool isMonthly = isMonthlyView;
+
 
     // Handle "today" index highlighting only for weekly data
     int todayIndex = 0;
@@ -100,7 +102,6 @@ class CommonStatGraphWidget extends StatelessWidget {
     print('isMonthly (derived): $isMonthly');
     print('maxXForWeek: $maxXForWeek');
     print('currentDateIndex: ${getCurrentDateIndex()}');
-
 
     return Material(
       elevation: 3,
@@ -155,13 +156,14 @@ class CommonStatGraphWidget extends StatelessWidget {
                   child: _buildChart(
                     labels: labels,
                     points: points,
-
+                    context: context,
                     isMonthly: isMonthly,
                     todayIndex: todayIndex,
                   ),
                 )
                 : _buildChart(
                   labels: labels,
+                  context: context,
                   maxXForWeek: maxXForWeek,
                   points: points,
                   isMonthly: isMonthly,
@@ -173,27 +175,50 @@ class CommonStatGraphWidget extends StatelessWidget {
     );
   }
 
-
-
   Widget _buildChart({
     required List<String> labels,
     required List<FlSpot> points,
     required bool isMonthly,
     required int todayIndex,
+    required BuildContext context,
     int? maxXForWeek,
   }) {
     String formatted = '';
+    final double safeMaxX =
+        isMonthly
+            ? max(1, labels.length).toDouble()
+            : max(1, (maxXForWeek ?? labels.length)).toDouble();
+
+    print('--- _buildChart ---');
+    print('isMonthly: $isMonthly');
+    print('labels.length: ${labels.length}');
+    print('safeMaxX: $safeMaxX');
+    print('labels.length: ${labels.length}');
+
+    double chartWidth = max(labels.length * 42.0, MediaQuery.of(context).size.width - 40);
+
+    if (points.isEmpty || labels.isEmpty) {
+      return SizedBox(
+        height: height * 0.28,
+        child: const Center(
+          child: Text(
+            'No data available',
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+        ),
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.only(top: 52),
       height: height * 0.28,
-      width: isMonthly ? labels.length * 42 : null,
+      width:
+          chartWidth,
       child: LineChart(
         key: ValueKey(isMonthlyView),
         LineChartData(
           minX: 0,
-          maxX:
-              isMonthly ? (labels.length).toDouble() : maxXForWeek!.toDouble(),
+          maxX: safeMaxX,
           // use dynamic maxX
           minY: 0,
           maxY: yAxisMaxValue,
@@ -208,9 +233,10 @@ class CommonStatGraphWidget extends StatelessWidget {
                   final int index = value.toInt();
 
                   if (index >= 0 && index < labels.length) {
-                    final bool isToday = isMonthly
-                        ? index == getCurrentDateIndex()
-                        : index == maxXForWeek;
+                    final bool isToday =
+                        isMonthly
+                            ? index == getCurrentDateIndex()
+                            : index == todayIndex;
 
                     return Padding(
                       padding: const EdgeInsets.only(top: 6),
@@ -219,10 +245,11 @@ class CommonStatGraphWidget extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 9,
                           fontWeight:
-                          isToday ? FontWeight.bold : FontWeight.normal,
-                          color: isToday
-                              ? AppColors.primaryColor
-                              : Colors.grey.shade600,
+                              isToday ? FontWeight.bold : FontWeight.normal,
+                          color:
+                              isToday
+                                  ? AppColors.primaryColor
+                                  : Colors.grey.shade600,
                         ),
                       ),
                     );
@@ -230,7 +257,6 @@ class CommonStatGraphWidget extends StatelessWidget {
 
                   return const SizedBox.shrink();
                 },
-
               ),
             ),
             leftTitles: AxisTitles(
