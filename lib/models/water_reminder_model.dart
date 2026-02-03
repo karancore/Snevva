@@ -1,7 +1,7 @@
 import 'package:alarm/model/alarm_settings.dart';
 
 class WaterReminderModel {
-  final String id; // Unique identifier for this water reminder group
+  final int id; // Unique identifier for this water reminder group
   final String title;
   final String category;
   final List<AlarmSettings> alarms;

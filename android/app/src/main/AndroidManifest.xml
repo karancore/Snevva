@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+
     xmlns:tools="http://schemas.android.com/tools">
 
 
@@ -61,19 +62,6 @@
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
-
-<!--        &lt;!&ndash; ⚙️ Google Sign-In / Credential Manager disables &ndash;&gt;-->
-<!--        <meta-data-->
-<!--            android:name="com.google.android.gms.credentials.API_ENABLED"-->
-<!--            android:value="false" />-->
-
-<!--        <meta-data-->
-<!--            android:name="com.google.android.gms.credentials.CredentialPickerConfig"-->
-<!--            android:value="false" />-->
-
-<!--        <meta-data-->
-<!--            android:name="androidx.credentials.CREDENTIAL_SERVICE_ENABLED"-->
-<!--            android:value="false" />-->
 
         <activity
             android:name=".MainActivity"

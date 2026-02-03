@@ -264,24 +264,23 @@ class NotificationService {
         android: AndroidNotificationDetails(
           'STOP_ALARM',
           'Wake Alarm',
-          subText: 'Click on STOP to turn off alarm',
           channelDescription: 'Wake-up alerts',
           playSound: true,
-          sound: RawResourceAndroidNotificationSound('alarm'),
+          //sound: RawResourceAndroidNotificationSound('alarm'),
           audioAttributesUsage: AudioAttributesUsage.alarm,
           importance: Importance.max,
           priority: Priority.max,
           fullScreenIntent: true,
 
           autoCancel: false,
-          actions: const [
-            AndroidNotificationAction(
-              'STOP_ALARM',
-              'Stop',
-              cancelNotification: true,
-
-            ),
-          ],
+          // actions: const [
+          //   AndroidNotificationAction(
+          //     'STOP_ALARM',
+          //     'Stop',
+          //     cancelNotification: true,
+          //
+          //   ),
+          // ],
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,

@@ -35,8 +35,8 @@ class ApiService {
       
       headers['X-Device-Info'] = deviceInfoHeader;
 
-      debugPrint("📱 X-Device-Info: $deviceInfoHeader");
-      debugPrint("📦 Headers: $headers");
+      // debugPrint("📱 X-Device-Info: $deviceInfoHeader");
+      // debugPrint("📦 Headers: $headers");
 
       final encryptedRequestBody = jsonEncode({
         'data': encrypted['encryptedData'],
@@ -91,9 +91,9 @@ class ApiService {
       final deviceInfoHeader =
           await DeviceTokenService().buildDeviceInfoHeader();
       headers['X-Device-Info'] = deviceInfoHeader;
-
-      debugPrint("📱 X-Device-Info: $deviceInfoHeader");
-      debugPrint("📦 Headers: $headers");
+      //
+      // debugPrint("📱 X-Device-Info: $deviceInfoHeader");
+      // debugPrint("📦 Headers: $headers");
 
       final response = await http.post(
         uri,

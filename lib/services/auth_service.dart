@@ -8,6 +8,10 @@ import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
 import 'package:snevva/Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_questions_controller.dart';
+import 'package:snevva/Controllers/Reminder/event_controller.dart';
+import 'package:snevva/Controllers/Reminder/meal_controller.dart';
+import 'package:snevva/Controllers/Reminder/medicine_controller.dart';
+import 'package:snevva/Controllers/Reminder/water_controller.dart';
 import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
@@ -157,6 +161,11 @@ class AuthService {
     Get.delete<MentalWellnessController>();
     Get.delete<MoodController>();
     Get.delete<MoodQuestionController>();
+    Get.delete<WaterController>();
+    Get.delete<MedicineController>();
+    Get.delete<EventController>();
+    Get.delete<MealController>();
+
     Get.delete<SleepController>();
     Get.delete<StepCounterController>();
     Get.delete<VitalsController>();

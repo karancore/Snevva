@@ -77,9 +77,11 @@ Future<Map<String, DecisionNode>> loadDecisionTree() async {
     } else {
       throw FormatException("Response does not contain 'data'");
     }
-  } catch (e) {
-    print("API failed, loading cached decision tree…");
-    return {};
+  } catch (e, stack) {
+    print("❌ API FAILED in loadDecisionTree");
+    print(e);
+    print(stack);
+    rethrow; // TEMP: let it crash so you see the real issue
   }
 }
 

@@ -50,8 +50,8 @@ class SignInController extends GetxService {
           await DeviceTokenService().buildDeviceInfoHeader();
       headers['X-Device-Info'] = deviceInfoHeader;
 
-      debugPrint("📱 X-Device-Info: $deviceInfoHeader");
-      debugPrint("📦 Headers: $headers");
+      // debugPrint("📱 X-Device-Info: $deviceInfoHeader");
+      // debugPrint("📦 Headers: $headers");
 
       // debugPrint("extra headers $extraHeaders");
       // debugPrint("devive headers ${headers['X-Device-Info']}");
@@ -340,8 +340,8 @@ class SignInController extends GetxService {
           await DeviceTokenService().buildDeviceInfoHeader();
       headers['X-Device-Info'] = deviceInfoHeader;
 
-      debugPrint("📱 X-Device-Info: $deviceInfoHeader");
-      debugPrint("📦 Headers: $headers");
+      // debugPrint("📱 X-Device-Info: $deviceInfoHeader");
+      // debugPrint("📦 Headers: $headers");
 
       final encryptedRequestBody = jsonEncode({
         'data': encryptedPhone['encryptedData'],

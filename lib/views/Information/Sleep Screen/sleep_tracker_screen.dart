@@ -211,7 +211,8 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              sleepController.deepSleepDuration.value == null
+                              sleepController.deepSleepDuration.value
+                                  == null
                                   ? "No data"
                                   : fmtDuration(
                                     sleepController.deepSleepDuration.value ?? Duration.zero,
@@ -248,11 +249,21 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                 alignment: Alignment.center,
                 children: [
                   Obx(() {
-                    const int maxSleepMinutes = 720;
+
                     double getDeepSleepPercent(Duration? deepSleep) {
-                      final minutes =
-                          deepSleep?.inMinutes.clamp(0, maxSleepMinutes) ?? 0;
-                      return minutes / maxSleepMinutes;
+                      // 1. Convert everything to the same unit (minutes)
+                      final int goalInMinutes = sleepController.sleepGoalInitial.value.inHours * 60;
+
+                      // 2. Prevent division by zero if the goal is somehow set to 0
+                      if (goalInMinutes <= 0) return 0.0;
+
+                      // 3. Get actual minutes, defaulting to 0 if null
+                      final int actualMinutes = deepSleep?.inMinutes ?? 0;
+
+                      // 4. Clamp and divide using the same units
+                      final int clampedMinutes = actualMinutes.clamp(0, goalInMinutes);
+
+                      return clampedMinutes / goalInMinutes;
                     }
 
                     return LinearProgressIndicator(
@@ -281,7 +292,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                                 width: 26,
                               ),
                               Text(
-                                "2:30h",
+                                "2:30 hr",
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
@@ -297,7 +308,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                           ),
                         ),
                         Text(
-                          "2:30h",
+                          "5:00 hr",
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
@@ -315,7 +326,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                                 width: 26,
                               ),
                               Text(
-                                "3:00h",
+                                "7:00 hr",
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,

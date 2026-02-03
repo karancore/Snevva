@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_instance/src/extension_instance.dart';
 import 'package:screen_state/screen_state.dart';
+import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 
 class SleepNoticingService {
   static const Duration minSleepGap = Duration(minutes: 3);
 
   StreamSubscription<ScreenStateEvent>? _subscription;
+
 
 
   final Screen _screen = Screen();
@@ -107,6 +111,7 @@ class SleepNoticingService {
 
   Duration calculateDeepSleep(DateTime newBedtime, DateTime wakeTime) {
     Duration deepSleep = wakeTime.difference(newBedtime);
+
     print("DeepSleep : $deepSleep");
     return deepSleep;
   }

@@ -13,20 +13,21 @@ class LocalStorageManager extends GetxService {
 
   final DeviceTokenService _deviceTokenService = DeviceTokenService();
 
-  // @override
-  // void onInit() {
-  //   super.onInit();
-  //   reloadUserMap();
-  // }
-
-  // Optional: use this if you need async init
   @override
-  Future<void> onReady() async {
-    await reloadUserMap();
+  void onInit() {
+    super.onInit();
+    reloadUserMap();
   }
+
+  // // Optional: use this if you need async init
+  // @override
+  // Future<void> onReady() async {
+  //   await reloadUserMap();
+  // }
   Future<bool> hasValidSession() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
+    print("hasValidSession $token");
     return token != null && token.isNotEmpty;
   }
 

@@ -31,6 +31,9 @@ class DecisionTreeService {
     _isLoading = true;
     try {
       final tree = await loadDecisionTree();
+      print("🌳 Tree size after load: ${tree.length}");
+      print("🌳 Tree keys: ${tree.keys.toList()}");
+
       _cachedTree = tree;
       print("🌐 Decision tree loaded");
       return tree;

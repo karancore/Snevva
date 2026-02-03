@@ -8,8 +8,9 @@ import '../Controllers/signupAndSignIn/sign_in_controller.dart';
 import '../consts/consts.dart';
 import '../models/medicine_reminder_model.dart';
 
+//Interval - hours
 enum Option { times, interval }
-
+enum ReminderCategory { medicine , water , meal , event}
 const String reminderBox = 'reminders_box';
 const String medicineKey = 'medicine_list';
 const String waterKey = 'water_model';
@@ -126,7 +127,10 @@ int daysInMonth(int year, int month) {
 
 String _dateKey(DateTime d) => "${d.year}-${d.month}-${d.day}";
 int getCurrentDateIndex() {
-  return DateTime.now().day - 1;
+  final index = DateTime.now().day - 1;
+
+  return index;
+
 }
 List<String> generateMonthLabels(DateTime month) {
 
@@ -283,19 +287,19 @@ DateTime buildDateTime(DateTime date, TimeOfDay time) {
   return DateTime(date.year, date.month, date.day, time.hour, time.minute);
 }
 
-String buildMedicineText(dynamic medicineList) {
-  if (medicineList == null || medicineList is! List) return '';
-
-  return medicineList
-      .map((e) {
-        if (e is MedicineItem) return e.name;
-        if (e is String) return e;
-        if (e is Map && e['name'] != null) return e['name'];
-        return '';
-      })
-      .where((e) => e.isNotEmpty)
-      .join(', ');
-}
+// String buildMedicineText(dynamic medicineList) {
+//   if (medicineList == null || medicineList is! List) return '';
+//
+//   return medicineList
+//       .map((e) {
+//         if (e is MedicineItem) return e.name;
+//         if (e is String) return e;
+//         if (e is Map && e['name'] != null) return e['name'];
+//         return '';
+//       })
+//       .where((e) => e.isNotEmpty)
+//       .join(', ');
+// }
 
 Map<String, dynamic> deepNormalizeMap(Map raw) {
   return raw.map((key, value) {

@@ -2,9 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:snevva/Controllers/DietPlan/diet_plan_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
-import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/models/diet_tags_response.dart';
-import 'package:snevva/views/DietPlan/celebrity_diet_plan.dart';
+import 'package:snevva/views/DietPlan/diet_details_screen.dart';
 
 import '../../common/loader.dart';
 import '../../consts/consts.dart';
@@ -60,7 +59,12 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
   @override
   void initState() {
     super.initState();
-    fetchSuggestions();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await dietController.getCelebrity(context,);
+      await dietController.getAllSuggestions(context,);
+      await dietController.getAllDiets(context, "Vegetarian");
+      // logLong("Celebrity Diet Response:" ,  celebrity.toString());
+    });
 
     // // Load default/general diets when screen opens
     // WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -78,6 +82,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     final mediaQuery = MediaQuery.of(context);
 
     height = mediaQuery.size.height;
+    print("Height of Diet Plan Screen: $height");
     width = mediaQuery.size.width;
 
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -123,30 +128,82 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Obx(() {
-                if (dietController.isLoading.value) {
+                if (dietController.isCategoryLoading.value) {
                   return const Loader();
                 }
+
 
                 final data = dietController.suggestionsResponse.value.data;
 
                 if (data == null || data.isEmpty) {
-                  return const Text("No suggestions");
+                  return Center(child: const Text("No data available"));
                 }
                 return SizedBox(
-                  height: 165,
+                  height: 170,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: data.length,
                     separatorBuilder: (_, __) => SizedBox(width: defaultSize),
                     itemBuilder: (context, index) {
                       final item = data[index];
-                      logLong("Meals Item is ", item.toJson().toString());
+
                       print(
                         "Runtime Type of meal plan is: ${item.runtimeType}",
                       );
 
                       return KeyedSubtree(
                         key: ValueKey(item.id ?? index), // if id exists, use it
+                        child: suggestedItem(
+                          item: item,
+                          width: width,
+                          heading: item.heading ?? "",
+                          subHeading: item.title ?? "",
+                          dietImg: item.thumbnailMedia ?? dietPlaceholder,
+                          isDarkMode: isDarkMode,
+                        ),
+                      );
+                    },
+                  ),
+                );
+              }),
+            ),
+
+            SizedBox(height: defaultSize - 10),
+
+            // NEW Celebrity Section
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: AutoSizeText(
+                'Celebrity',
+                minFontSize: 20,
+                maxLines: 1,
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+              ),
+            ),
+            SizedBox(height: defaultSize - 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Obx(() {
+                if (dietController.isCelebrityLoading.value) {
+                  return const Loader();
+                }
+
+                final data = dietController.celebrityList;
+                if (data.isEmpty) {
+                  return const Text("No celebrity plans available");
+                }
+
+                return SizedBox(
+                  height: 170,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: data.length,
+                    separatorBuilder: (_, __) => SizedBox(width: defaultSize),
+                    itemBuilder: (context, index) {
+                      final item = data[index];
+
+                      return KeyedSubtree(
+                        key: ValueKey(item.id ?? index),
                         child: suggestedItem(
                           item: item,
                           width: width,
@@ -189,40 +246,46 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
 
             SizedBox(height: defaultSize - 20),
             Obx(() {
-              final categoryIndex = dietController.selectedCategoryIndex.value;
-              final list = [];
+              if (dietController.isCategoryLoading.value) {
+                return const Loader();
+              }
 
-              if (list.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Text("No data available"),
-                );
+
+              final data = dietController.categoryResponse.value.data;
+
+              if (data == null || data.isEmpty) {
+                return Center(child: const Text("No data available"));
               }
 
               return SafeArea(
                 child: GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: list.length,
+                  itemCount: data.length,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
                     vertical: 8,
                   ),
-
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
                   ),
                   itemBuilder: (context, index) {
-                    final item = list[index];
-                    return dietContainer(
-                      width,
-                      item[0],
-                      item[1],
-                      item[2],
-                      isDarkMode,
-                      index,
+                    final item = data[index];
+                    return SizedBox(
+                      height: 170,
+                      child: KeyedSubtree(
+                        key: ValueKey(item.id ?? index), // if id exists, use it
+                        child: suggestedItem(
+                          item: item,
+                          width: width,
+                          heading: item.heading ?? "",
+                          subHeading: item.title ?? "",
+                          dietImg: item.thumbnailMedia ?? dietPlaceholder,
+                          isDarkMode: isDarkMode,
+                        ),
+                      ),
                     );
                   },
                 ),
@@ -292,7 +355,9 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
       borderRadius: BorderRadius.circular(4),
       child: InkWell(
         onTap: () {
-          Get.to(CelebrityDietPlan(diet: item));
+          final daysList = item.mealPlan ?? [];
+
+          Get.to(DietDetailsScreen(diet: item , daysList: daysList,));
         },
         child: Container(
           width: width * 0.43,
@@ -371,7 +436,8 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
             mealPlan: [],
             tags: [],
           );
-          Get.to(CelebrityDietPlan(diet: diet));
+
+          Get.to(DietDetailsScreen(diet: diet, daysList: [],));
         },
         child: Container(
           width: width * 0.43,

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
+import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
@@ -58,6 +59,7 @@ final localStorageManager = Get.put(LocalStorageManager());
 final womenhealthController = Get.put(WomenHealthController());
 final moodcontroller = Get.put(MoodController());
 final bottomsheetcontroller = Get.put(BottomSheetController());
+final reminderController = Get.put(ReminderController());
 
 
 class _SignInScreenState extends State<SignInScreen> {
@@ -152,6 +154,8 @@ class _SignInScreenState extends State<SignInScreen> {
 
 
 
+
+
     // UI
     //WOmen
     if (!Get.isRegistered<BottomSheetController>()) {
@@ -160,8 +164,9 @@ class _SignInScreenState extends State<SignInScreen> {
     if (!Get.isRegistered<ThemeController>()) {
       Get.lazyPut(() => ThemeController(), fenix: true);
     }
-
-
+    if (!Get.isRegistered<ReminderController>()) {
+      Get.lazyPut(() => ReminderController(), fenix: true);
+    }
 
   }
 
@@ -205,6 +210,7 @@ class _SignInScreenState extends State<SignInScreen> {
     );
 
     localStorageManager.registerDeviceFCMIfNeeded();
+    await reminderController.getReminderFromAPI(context);
 
     // await bottomsheetcontroller.loaddatafromAPI();
     // await womenhealthController.lastPeriodDatafromAPI();

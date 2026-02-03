@@ -3,34 +3,39 @@ import 'package:alarm/model/alarm_settings.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Controllers/Reminder/water_controller.dart';
 import 'package:snevva/consts/consts.dart';
+import 'package:snevva/models/hive_models/reminder_payload_model.dart';
 
 import '../../common/custom_snackbar.dart';
 import '../../common/global_variables.dart';
 
 class MealController extends GetxController {
-  ReminderController get reminderController => Get.find<ReminderController>();
+  ReminderController get reminderController =>
+      Get.find<ReminderController>(tag: 'reminder');
+
   WaterController get waterController => Get.find<WaterController>();
 
   var mealsList = <Map<String, AlarmSettings>>[].obs;
 
-  Future<void> addMealAlarm(
-    DateTime scheduledTime,
-    BuildContext context,
-  ) async {
+  Future<void> addMealAlarm(DateTime scheduledTime,
+      BuildContext context,) async {
     final id = alarmsId();
     final title = reminderController.titleController.text.trim();
     final notes = reminderController.notesController.text.trim();
-    Map<String , dynamic> mealData = {
-      "alarmId": id,
-      "category" : "MEAL",
-      "title": title.isNotEmpty ? title : "MEAL REMINDER",
-      "notes": notes.isNotEmpty ? notes : "",
-      "scheduledTime": scheduledTime,
-      "before" : {
-        "int" : waterController.timesPerDayController.text,
-        "time" : reminderController.selectedValue.value
-      }
-    };
+    // Map<String, dynamic> mealData = {
+    //   "alarmId": id,
+    //   "category": "MEAL",
+    //   "title": title.isNotEmpty ? title : "MEAL REMINDER",
+    //   "notes": notes.isNotEmpty ? notes : "",
+    //   "scheduledTime": scheduledTime.toIso8601String(),
+    // };
+    final mealData = ReminderPayloadModel(id: alarmsId(),
+        category: ReminderCategory.meal.toString(),
+        title: title,
+        notes: notes.isNotEmpty ? notes : "" ,
+      customReminder: CustomReminder(
+        timesPerDay: TimesPerDay(count: 1.toString(), list: [scheduledTime.toString()])
+      )
+    );
     print("Meal Data: $mealData");
     final alarmSettings = AlarmSettings(
       id: id,
@@ -45,9 +50,9 @@ class MealController extends GetxController {
       ),
       notificationSettings: NotificationSettings(
         title:
-            title.isNotEmpty
-                ? reminderController.titleController.text
-                : 'MEAL REMINDER',
+        title.isNotEmpty
+            ? reminderController.titleController.text
+            : 'MEAL REMINDER',
         body: notes,
         stopButton: 'Stop',
         icon: 'alarm',
@@ -81,11 +86,9 @@ class MealController extends GetxController {
     }
   }
 
-  Future<void> updateMealAlarm(
-    DateTime scheduledTime,
-    BuildContext context,
-    int alarmId,
-  ) async {
+  Future<void> updateMealAlarm(DateTime scheduledTime,
+      BuildContext context,
+      int alarmId,) async {
     // Use same AlarmSettings logic as _addMealAlarm but with alarmId
     final alarmSettings = AlarmSettings(
       id: alarmId,
@@ -100,13 +103,13 @@ class MealController extends GetxController {
       ),
       notificationSettings: NotificationSettings(
         title:
-            reminderController.titleController.text.isNotEmpty
-                ? reminderController.titleController.text
-                : 'MEAL REMINDER',
+        reminderController.titleController.text.isNotEmpty
+            ? reminderController.titleController.text
+            : 'MEAL REMINDER',
         body:
-            reminderController.notesController.text.isNotEmpty
-                ? reminderController.notesController.text
-                : '',
+        reminderController.notesController.text.isNotEmpty
+            ? reminderController.notesController.text
+            : '',
         stopButton: 'Stop',
         icon: 'alarm',
         iconColor: AppColors.primaryColor,

@@ -17,6 +17,9 @@ import 'package:snevva/Controllers/DietPlan/diet_plan_controller.dart';
 import 'package:snevva/Controllers/HealthTips/healthtips_controller.dart';
 import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
+import 'package:snevva/Controllers/Reminder/event_controller.dart';
+import 'package:snevva/Controllers/Reminder/meal_controller.dart';
+import 'package:snevva/Controllers/Reminder/medicine_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/otp_verification_controller.dart';
@@ -30,6 +33,7 @@ import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
 import 'Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import 'Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
+import 'Controllers/Reminder/water_controller.dart';
 import 'Controllers/SleepScreen/sleep_controller.dart';
 import 'Controllers/StepCounter/step_counter_controller.dart';
 import 'Controllers/WomenHealth/bottom_sheet_controller.dart';
@@ -78,23 +82,25 @@ Future<void> ensureFirebaseInitialized() async {
 /// 🔔 Notification action handler
 /// ------------------------------------------------------------
 @pragma('vm:entry-point')
-Future<void> notificationBackgroundHandler(NotificationResponse response) async {
+Future<void> notificationBackgroundHandler(
+    NotificationResponse response,
+    ) async {
   // Use the ID from the response if available, otherwise fallback to constant
   final int notificationId = response.id ?? WAKE_NOTIFICATION_ID;
+  final fln = FlutterLocalNotificationsPlugin();
+  await fln.cancel(notificationId);
 
-  if (response.actionId == 'STOP_ALARM') {
-    // 1. Mark as stopped for the main app to see later
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('stop_alarm_pending', true);
-
-    // 2. Manual cancel (as a safety backup to cancelNotification: true)
-    final fln = FlutterLocalNotificationsPlugin();
-    await fln.cancel(notificationId);
-
-    debugPrint('🛑 Alarm $notificationId stopped in background');
-  }
+  // if (response.actionId == 'STOP_ALARM') {
+  //   // 1. Mark as stopped for the main app to see later
+  //   final prefs = await SharedPreferences.getInstance();
+  //   await prefs.setBool('stop_alarm_pending', true);
+  //
+  //   // 2. Manual cancel (as a safety backup to cancelNotification: true)
+  //
+  //
+  //   debugPrint('🛑 Alarm $notificationId stopped in background');
+  // }
 }
-
 
 /// ------------------------------------------------------------
 /// 🔔 Firebase background handler (separate isolate)
@@ -134,17 +140,51 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 /// 🚀 MAIN
 /// ------------------------------------------------------------
 void main() async {
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    logLong('ERROR WIDGET', details.toString());
+    return Scaffold(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(errorIcon, scale: 2),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Oops! Something went wrong.',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    // const SizedBox(height: 10),
+                    // // Optionally show a basic message for the user,
+                    // // or log the full details to a service.
+                    // Text(
+                    //   'An error occurred: $details',
+                    //   textAlign: TextAlign.center,
+                    //   style: const TextStyle(color: Colors.black54),
+                    // ),
+                    // if (onRetry != null) ...[
+                    //   const SizedBox(height: 20),
+                    //   ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+                    // ],
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  };
   WidgetsFlutterBinding.ensureInitialized();
-
-  await initialiseGetxServicesAndControllers();
-
-  await setupHive();
-
-
-  await ensureFirebaseInitialized();
-
-  // 🔥 Flutter framework errors
   FlutterError.onError = (FlutterErrorDetails details) {
+    logLong("FlutterError caught stack :" , details.stack.toString());
     //
     // ExceptionLogger.log(
     //   exception: details.exception,
@@ -152,17 +192,15 @@ void main() async {
     //   methodName: 'FlutterError.onError',
     //   className: 'main.dart',
     // );
-
-    if (kReleaseMode) {
-      ErrorPlaceholder(details: details.toString());
-    } else if (kDebugMode) {
-      ErrorPlaceholder(details: details.toString());
-    }
+    //return ErrorPlaceholder(details: details.toString());
   };
-
+  await ensureFirebaseInitialized();
+  await setupHive();
+  await initialiseGetxServicesAndControllers();
+  // 🔥 Flutter framework errors
   // 🔥 Dart / async / isolate errors
   runZonedGuarded(
-    () async {
+        () async {
       FirebaseMessaging.onBackgroundMessage(
         _firebaseMessagingBackgroundHandler,
       );
@@ -172,7 +210,7 @@ void main() async {
 
       runApp(MyApp(isRemembered: isRemembered));
     },
-    (error, stack) {
+        (error, stack) {
       // ExceptionLogger.log(
       //   exception: error.toString(),
       //   stackTrace: stack,
@@ -186,73 +224,74 @@ void main() async {
 }
 
 Future<void> initialiseGetxServicesAndControllers() async {
-  await Get.putAsync<LocalStorageManager>(() async {
-    final service = LocalStorageManager();
-    return service;
-  }, permanent: true);
-  await Get.putAsync<AlertsController>(() async {
-    final service = AlertsController();
-    return service;
-  }, permanent: true);
-  await Get.putAsync<SignInController>(() async {
-    final service = SignInController();
-    return service;
-  }, permanent: false);
-  await Get.putAsync<SignUpController>(() async {
-    final service = SignUpController();
-    return service;
-  }, permanent: false);
-  await Get.putAsync<OTPVerificationController>(() async {
-    final service = OTPVerificationController();
-    return service;
-  }, permanent: false);
-  await Get.putAsync<UpdateOldPasswordController>(() async {
-    final service = UpdateOldPasswordController();
-    return service;
-  }, permanent: false);
-  await Get.putAsync<CreatePasswordController>(() async {
-    final service = CreatePasswordController();
-    return service;
-  }, permanent: false);
-  await Get.putAsync<ProfileSetupController>(() async {
-    final service = ProfileSetupController();
-    return service;
-  }, permanent: false);
-  await Get.putAsync<VitalsController>(() async {
-    final service = VitalsController();
-    return service;
-  }, permanent: false);
-  await Get.putAsync<HydrationStatController>(() async {
-    final service = HydrationStatController();
-    return service;
-  }, permanent: false);
-  await Get.putAsync<MoodController>(() async {
-    final service = MoodController();
-    return service;
-  }, permanent: false);
-  await Get.putAsync<EditprofileController>(() async {
-    final service = EditprofileController();
-    return service;
-  }, permanent: true);
+  // Parallel async controllers
+  await Future.wait([
+    Get.putAsync<LocalStorageManager>(() async {
+      final service = LocalStorageManager();
+      await service
+          .reloadUserMap(); // ensure data is loaded before anyone uses it
+      return service;
+    }, permanent: true),
+    Get.putAsync<AlertsController>(
+          () async => AlertsController(),
+      permanent: true,
+    ),
+    Get.putAsync<SignInController>(
+          () async => SignInController(),
+      permanent: false,
+    ),
+    Get.putAsync<SleepController>(
+          () async => SleepController(),
+      permanent: false,
+    ),
+    Get.putAsync<SignUpController>(
+          () async => SignUpController(),
+      permanent: false,
+    ),
+    Get.putAsync<OTPVerificationController>(
+          () async => OTPVerificationController(),
+      permanent: false,
+    ),
+    Get.putAsync<UpdateOldPasswordController>(
+          () async => UpdateOldPasswordController(),
+      permanent: false,
+    ),
+    Get.putAsync<CreatePasswordController>(
+          () async => CreatePasswordController(),
+      permanent: false,
+    ),
+    Get.putAsync<ProfileSetupController>(
+          () async => ProfileSetupController(),
+      permanent: false,
+    ),
+    Get.putAsync<VitalsController>(
+          () async => VitalsController(),
+      permanent: false,
+    ),
+    Get.putAsync<HydrationStatController>(
+          () async => HydrationStatController(),
+      permanent: false,
+    ),
+    Get.putAsync<MoodController>(
+          () async => MoodController(),
+      permanent: false,
+    ),
+    Get.putAsync<EditprofileController>(
+          () async => EditprofileController(),
+      permanent: true,
+    ),
+    Get.putAsync<BmiController>(() async => BmiController(), permanent: true),
+    Get.putAsync<DietPlanController>(
+          () async => DietPlanController(),
+      permanent: true,
+    ),
+    Get.putAsync<HealthTipsController>(
+          () async => HealthTipsController(),
+      permanent: true,
+    ),
+  ]);
 
-  // await Get.putAsync<StepCounterController>(() async {
-  //   final service = StepCounterController();
-  //   return service;
-  // }, permanent: true);
-  Get.put(StepCounterController(), permanent: true);
-  await Get.putAsync<BmiController>(() async {
-    final service = BmiController();
-    return service;
-  }, permanent: true);
-  await Get.putAsync<DietPlanController>(() async {
-    final service = DietPlanController();
-    return service;
-  }, permanent: true);
-   Get.put(DietPlanController());
-  await Get.putAsync<HealthTipsController>(() async {
-    final service = HealthTipsController();
-    return service;
-  }, permanent: true);
+  // Synchronous controllers, lazy-loaded if not registered
   if (!Get.isRegistered<MentalWellnessController>()) {
     Get.lazyPut(() => MentalWellnessController(), fenix: true);
   }
@@ -265,6 +304,18 @@ Future<void> initialiseGetxServicesAndControllers() async {
   if (!Get.isRegistered<WomenHealthController>()) {
     Get.lazyPut(() => WomenHealthController(), fenix: true);
   }
+
+  // Permanent controllers not async
+  if (!Get.isRegistered<StepCounterController>())
+    Get.put(StepCounterController(), permanent: true);
+  if (!Get.isRegistered<WaterController>())
+    Get.put(WaterController(), permanent: true);
+  if (!Get.isRegistered<MedicineController>())
+    Get.put(MedicineController(), permanent: true);
+  if (!Get.isRegistered<EventController>())
+    Get.put(EventController(), permanent: true);
+  if (!Get.isRegistered<MealController>())
+    Get.put(MealController(), permanent: true);
 }
 
 /// ------------------------------------------------------------
@@ -355,10 +406,10 @@ class _MyAppState extends State<MyApp> {
       await initializeApp().timeout(const Duration(seconds: 10));
 
       final hasSession =
-          await Get.find<LocalStorageManager>().hasValidSession();
+      await Get.find<LocalStorageManager>().hasValidSession();
 
       if (!hasSession) {
-        Get.offAll(() => SignInScreen());
+        Get.offAll(() => HomeWrapper());
         return;
       }
 
@@ -391,20 +442,20 @@ class _MyAppState extends State<MyApp> {
       getPages: [
         GetPage(name: '/home', page: () => HomeWrapper()),
         GetPage(name: '/reminder', page: () => ReminderScreen()),
-        GetPage(name: '/mood', page: () => MoodTrackerScreen())
+        GetPage(name: '/mood', page: () => MoodTrackerScreen()),
       ],
       home:
-          _initState == AppInitState.loading
-              ? const InitializationSplash()
-              : _initState == AppInitState.success
-              ? HomeWrapper()
-              : ErrorPlaceholder(
-                onRetry: () {
-                  _startTimeout();
-                  _initializeAppAsync();
-                },
-                details: '',
-              ),
+      _initState == AppInitState.loading
+          ? const InitializationSplash()
+          : _initState == AppInitState.success
+          ? HomeWrapper()
+          : ErrorPlaceholder(
+        onRetry: () {
+          _startTimeout();
+          _initializeAppAsync();
+        },
+        details: '',
+      ),
     );
   }
 }

@@ -1,0 +1,8 @@
+<resources>
+    <string name="default_web_client_id">
+        760082000923-v6lm2bqqroimspg8f1am01ntbio5mbn0.apps.googleusercontent.com
+    </string>
+    <string name="default_android_client_id">
+        760082000923-krrjuslugvq1cp3865ohoinccr0ig105.apps.googleusercontent.com
+    </string>
+</resources>

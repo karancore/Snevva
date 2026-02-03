@@ -10,26 +10,28 @@ import '../../common/loader.dart';
 import '../../consts/consts.dart';
 import '../../env/env.dart';
 
-class CelebrityDietPlan extends StatefulWidget {
+class DietDetailsScreen extends StatefulWidget {
   final DietTagData diet;
+  final  List<MealPlanItem> daysList;
 
-  const CelebrityDietPlan({super.key, required this.diet});
+
+  const DietDetailsScreen({super.key, required this.diet, required this.daysList});
 
   @override
-  State<CelebrityDietPlan> createState() => _CelebrityDietPlanState();
+  State<DietDetailsScreen> createState() => _DietDetailsScreenState();
 }
 
-class _CelebrityDietPlanState extends State<CelebrityDietPlan> {
+class _DietDetailsScreenState extends State<DietDetailsScreen> {
   final dietController = Get.put(DietPlanController());
 
-  //List<String> daysList = [];
-  List<MealPlanItem> daysList = [];
+
+
+
   late final PageController _pageController;
 
   @override
   void initState() {
     super.initState();
-    daysList = widget.diet.mealPlan;
     fetchDietTagData();
   }
 
@@ -50,6 +52,7 @@ class _CelebrityDietPlanState extends State<CelebrityDietPlan> {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
+    final daysList = widget.daysList;
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: PreferredSize(
@@ -184,61 +187,62 @@ class _CelebrityDietPlanState extends State<CelebrityDietPlan> {
               );
             }),
           ),
+          if (daysList.isEmpty) Center(child: Text("No diet plans available")),
           Expanded(
-            child: Obx(() {
-              // if (dietController.isLoading.value) {
-              //   return Center(child: CircularProgressIndicator());
-              // }
+            child: PageView.builder(
+              controller: dietController.celebrityPageController,
+              onPageChanged: dietController.onCelebrityPageChanged,
+              itemCount: daysList.length, // <-- Number of days
+              itemBuilder: (context, index) {
+                final dayMeal = daysList[index];
 
-              final meals = dietController.dietTagsDataResponse.value.mealPlan;
-              if (meals.isEmpty) {
-                return Center(child: Text("No diet plans available"));
-              }
-
-              // Select first diet plan
-              // final plan = plans[0];
-              // final meals = plan.mealPlan ?? [];
-
-              return PageView.builder(
-                controller: dietController.celebrityPageController,
-                onPageChanged: dietController.onCelebrityPageChanged,
-                itemCount: meals.length, // <-- Number of days
-                itemBuilder: (context, index) {
-                  final dayMeal = meals[index];
-
-                  return SingleChildScrollView(
-                    child: Column(
-                      children: [
+                return SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      if ((dayMeal.breakFast ?? '').isNotEmpty)
                         dietDish(
                           'Breakfast',
                           dayMeal.breakFastMedia ?? dietPlaceholder,
-                          dayMeal.breakFast ?? "N/A",
+                          dayMeal.breakFast!,
                           "",
-                        ),
+                        )
+                      else
+                        const SizedBox.shrink(),
+
+                      if ((dayMeal.lunch ?? '').isNotEmpty)
                         dietDish(
                           'Lunch',
                           dayMeal.lunchMedia ?? dietPlaceholder,
-                          dayMeal.lunch ?? "N/A",
+                          dayMeal.lunch!,
                           "",
-                        ),
+                        )
+                      else
+                        const SizedBox.shrink(),
+
+                      if ((dayMeal.evening ?? '').isNotEmpty)
                         dietDish(
                           'Snacks',
                           dayMeal.eveningMedia ?? dietPlaceholder,
-                          dayMeal.evening ?? "N/A",
+                          dayMeal.evening!,
                           "",
-                        ),
+                        )
+                      else
+                        const SizedBox.shrink(),
+
+                      if ((dayMeal.dinner ?? '').isNotEmpty)
                         dietDish(
                           'Dinner',
-                          dayMeal.breakFastMedia ?? dietPlaceholder,
-                          dayMeal.dinner ?? "N/A",
+                          dayMeal.dinnerMedia ?? dietPlaceholder,
+                          dayMeal.dinner!,
                           "",
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            }),
+                        )
+                      else
+                        const SizedBox.shrink(),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),

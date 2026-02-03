@@ -88,15 +88,30 @@ class EditprofileController extends GetxService {
         address = value;
         break;
       case 'DayOfBirth':
-      case 'MonthOfBirth':
-      case 'YearOfBirth':
-        final day = localStorageManager.userMap['DayOfBirth'];
-        final month = localStorageManager.userMap['MonthOfBirth'];
-        final year = localStorageManager.userMap['YearOfBirth'];
-        dob = DateTime(year, month, day);
+        updateDob(day: value);
         break;
+
+      case 'MonthOfBirth':
+        updateDob(month: value);
+        break;
+
+      case 'YearOfBirth':
+        updateDob(year: value);
+        break;
+
     }
   }
+
+  void updateDob({int? day, int? month, int? year}) {
+    final current = dob ?? DateTime.now();
+
+    dob = DateTime(
+      year ?? current.year,
+      month ?? current.month,
+      day ?? current.day,
+    );
+  }
+
 
   void startResendTimer({int seconds = 30}) {
     isResendEnabled.value = false;
@@ -926,6 +941,18 @@ class EditprofileController extends GetxService {
     );
   }
 
+  DateTime safeInitialDate(DateTime? date) {
+    final firstDate = DateTime(1900);
+    final lastDate = DateTime.now();
+
+    if (date == null) return lastDate;
+
+    if (date.isBefore(firstDate)) return firstDate;
+    if (date.isAfter(lastDate)) return lastDate;
+
+    return date;
+  }
+
   void showDOBDialog(BuildContext context, {VoidCallback? onUpdated}) {
     final mediaQuery = MediaQuery.of(context);
     // ✅ Listens to the app's current theme command
@@ -969,7 +996,7 @@ class EditprofileController extends GetxService {
                         final picked = await showDatePicker(
                           // ⚡ use root context (not dialogContext)
                           context: context,
-                          initialDate: selectedDate ?? DateTime(2000),
+                          initialDate: safeInitialDate(selectedDate),
                           firstDate: DateTime(1900),
                           lastDate: DateTime.now(),
                         );
@@ -1133,15 +1160,16 @@ class EditprofileController extends GetxService {
 
   /// Optional: if DOB requires special payload, you can create a custom function for DOB below.
   Future<bool> saveDOB(DateTime date, BuildContext context) async {
-    Map<String, dynamic> payload = {
-      'DayOfBirth': date.day,
-      'MonthOfBirth': date.month,
-      'YearOfBirth': date.year,
-    };
-
     try {
+      Map<String, dynamic> payload = {
+        'DayOfBirth': date.day,
+        'MonthOfBirth': date.month,
+        'YearOfBirth': date.year,
+      };
+      print('🚀 [Save DOB] Payload: $payload');
+
       final response = await ApiService.post(
-        userDobApi, // replace with your correct API endpoint
+        userDobApi,
         payload,
         withAuth: true,
         encryptionRequired: true,
@@ -1155,6 +1183,7 @@ class EditprofileController extends GetxService {
         );
         return false;
       }
+
       CustomSnackbar.showSuccess(
         context: context,
         title: 'Success',

@@ -73,6 +73,12 @@ Future<void> setupHive() async {
 
   var directory = await getApplicationDocumentsDirectory();
   await Hive.initFlutter(directory.path);
+
+  // DEV ONLY: CLEAR HIVE ON RESTART
+  // bool isDev = true;
+  // if (isDev) await Hive.deleteFromDisk();
+
+
   if (Hive.isBoxOpen('step_history') &&
       Hive.isBoxOpen('sleep_log') &&
       Hive.isBoxOpen('medicine_list') &&
@@ -91,14 +97,32 @@ Future<void> setupHive() async {
   if (!Hive.isAdapterRegistered(StepEntryAdapter().typeId)) {
     Hive.registerAdapter(StepEntryAdapter());
   }
-
-
   if (!Hive.isAdapterRegistered(SleepLogAdapter().typeId)) {
     Hive.registerAdapter(SleepLogAdapter());
   }
   if (!Hive.isAdapterRegistered(ReminderPayloadModelAdapter().typeId)) {
     Hive.registerAdapter(ReminderPayloadModelAdapter());
   }
+  if (!Hive.isAdapterRegistered(DosageAdapter().typeId)) {
+    Hive.registerAdapter(DosageAdapter());
+  }
+
+  if (!Hive.isAdapterRegistered(CustomReminderAdapter().typeId)) {
+    Hive.registerAdapter(CustomReminderAdapter());
+  }
+
+  if (!Hive.isAdapterRegistered(TimesPerDayAdapter().typeId)) {
+    Hive.registerAdapter(TimesPerDayAdapter());
+  }
+
+  if (!Hive.isAdapterRegistered(EveryXHoursAdapter().typeId)) {
+    Hive.registerAdapter(EveryXHoursAdapter());
+  }
+
+  if (!Hive.isAdapterRegistered(RemindBeforeAdapter().typeId)) {
+    Hive.registerAdapter(RemindBeforeAdapter());
+  }
+
 
 
   // ✅ Only open boxes if not already open

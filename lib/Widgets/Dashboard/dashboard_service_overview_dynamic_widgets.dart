@@ -38,12 +38,12 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
 
     final localstorage = Get.find<LocalStorageManager>();
     final userInfo = localstorage.userMap;
-    print('userInfo: $userInfo');
+    debugPrint('userInfo: $userInfo');
 
     // final userActiveData = signInController.userGoalData ?? {};
 
     final userActiveData = localstorage.userGoalDataMap;
-    print('userActiveData: $userActiveData');
+    debugPrint('userActiveData: $userActiveData');
     final womentracking = userActiveData['TrackWomenData'];
     final stepgoal = userActiveData['StepGoalData']?['Count'];
     final SleepGoalData = userActiveData['SleepGoalData'];

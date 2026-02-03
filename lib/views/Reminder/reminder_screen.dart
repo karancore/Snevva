@@ -4,6 +4,7 @@ import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/common/loader.dart';
 import 'package:snevva/consts/consts.dart';
+import 'package:snevva/models/hive_models/reminder_payload_model.dart';
 import 'package:snevva/views/Reminder/add_reminder_screen.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../common/custom_snackbar.dart';
@@ -17,7 +18,7 @@ class ReminderScreen extends StatefulWidget {
 }
 
 class _ReminderScreenState extends State<ReminderScreen> {
-  final ReminderController controller = Get.put(ReminderController());
+  final ReminderController controller = Get.find<ReminderController>(tag:  'reminder',);
   bool showReminderBar = true;
 
   @override
@@ -30,7 +31,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
   }
 
   Future<void> _loadData() async {
-    await controller.getReminders(context);
+    //await controller.getReminders(context);
     await controller.loadAllReminderLists();
   }
 
@@ -85,7 +86,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
                   padding: EdgeInsets.only(left: 16, right: 16, bottom: 16),
                   children: [
                     ...controller.reminders.map((reminder) {
-                      final category = reminder['Category'] ?? 'Unknown';
+                      final category = reminder.category;
                       return Card(
                         color: isDarkMode ? darkGray : Colors.white,
                         shape: RoundedRectangleBorder(
@@ -113,18 +114,18 @@ class _ReminderScreenState extends State<ReminderScreen> {
                                   SizedBox(width: 10),
                                   Expanded(
                                     child: Text(
-                                      reminder['Title'] != null &&
-                                              reminder['Title']
+                                      reminder.title != null &&
+                                              reminder.title
                                                   .toString()
                                                   .isNotEmpty
-                                          ? reminder['Title']
+                                          ? reminder.title
                                           : 'No Title',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w500,
                                         fontSize: 18,
                                         color:
-                                            reminder['Title'] != null &&
-                                                    reminder['Title']
+                                            reminder.title != null &&
+                                                    reminder.title
                                                         .toString()
                                                         .isNotEmpty
                                                 ? (Theme.of(
@@ -191,7 +192,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
     );
   }
 
-  void _showDeleteConfirmation(Map<String, dynamic> reminder) {
+  void _showDeleteConfirmation(ReminderPayloadModel reminder) {
     Get.defaultDialog(
       title: "Delete Reminder",
       middleText: "Are you sure you want to delete this reminder?",
@@ -207,17 +208,13 @@ class _ReminderScreenState extends State<ReminderScreen> {
     );
   }
 
-  Widget _buildCategoryContent(Map<String, dynamic> reminder, String category) {
+  Widget _buildCategoryContent(ReminderPayloadModel reminder, String category) {
     final int frequencyHour =
-        int.tryParse(reminder['RemindFrequencyHour']?.toString() ?? '0') ?? 0;
-    final int freqHour =
-        reminder['RemindFrequencyHour'] is int
-            ? reminder['RemindFrequencyHour']
-            : int.tryParse(
-                  reminder['RemindFrequencyHour']?.toString() ?? '0',
-                ) ??
-                0;
-
+        int.tryParse(reminder.customReminder?.everyXHours?.hours.toString() ?? '0') ?? 0;
+    final int freqHour = int.tryParse(
+      reminder.customReminder?.timesPerDay?.count?.toString() ?? '1',
+    ) ??
+        1;
     logLong(" Reminder Screen ", reminder.toString());
 
     switch (category) {
@@ -225,15 +222,15 @@ class _ReminderScreenState extends State<ReminderScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (reminder['MedicineName'] != null)
+            if (reminder.medicineName != null)
+              // Text(
+              //   'Medicine : {buildMedicineText(reminder['MedicineName'])}',
+              //   style: TextStyle(fontSize: 12, color: Color(0xff878787)),
+              // ),
+            if (reminder.notes != null &&
+                reminder.notes.toString().isNotEmpty)
               Text(
-                'Medicine : ${buildMedicineText(reminder['MedicineName'])}',
-                style: TextStyle(fontSize: 12, color: Color(0xff878787)),
-              ),
-            if (reminder['Description'] != null &&
-                reminder['Description'].toString().isNotEmpty)
-              Text(
-                "Note : ${reminder['Description']}",
+                "Note : ${reminder.notes}",
                 style: TextStyle(fontSize: 12, color: Color(0xff878787)),
               )
             else
@@ -250,7 +247,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  formatReminderTime(reminder['RemindTime'] ?? []),
+                  formatReminderTime(reminder.customReminder.timesPerDay!.list),
                   style: TextStyle(fontSize: 12, color: Color(0xff878787)),
                 ),
                 Spacer(),
@@ -290,10 +287,9 @@ class _ReminderScreenState extends State<ReminderScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (reminder['RemindFrequencyCount'] != null &&
-                    reminder['RemindFrequencyCount'] > 0)
+                if (reminder.customReminder.timesPerDay?.count != null)
                   Text(
-                    "Times per day: ${reminder['RemindFrequencyCount']}",
+                    "Times per day: ${reminder.customReminder.timesPerDay?.count}",
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontSize: 12, color: Color(0xff878787)),
@@ -327,7 +323,6 @@ class _ReminderScreenState extends State<ReminderScreen> {
                 size: 18,
                 color: Color(0xff878787),
               ),
-
             ),
             const SizedBox(width: 14),
           ],
@@ -347,7 +342,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
             const SizedBox(width: 4),
 
             Text(
-              formatReminderTime(reminder['RemindTime'] ?? []),
+              formatReminderTime(reminder.customReminder?.timesPerDay?.list ?? []),
               style: TextStyle(fontSize: 12, color: Color(0xff878787)),
             ),
             Spacer(),
@@ -395,7 +390,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  formatReminderTime(reminder['RemindTime'] ?? []),
+                  formatReminderTime(reminder.customReminder!.timesPerDay!.list ?? []),
                   style: TextStyle(fontSize: 12, color: Color(0xff878787)),
                 ),
                 Spacer(),

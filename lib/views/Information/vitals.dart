@@ -346,7 +346,7 @@ class _VitalScreenState extends State<VitalScreen> {
                             decoration: InputDecoration(
                               hintText: heartRate > 0 ? '$heartRate' : '72',
                               hintStyle: TextStyle(
-                                color: textColor.withOpacity(0.5),
+                                color: textColor.withOpacity(0.3),
                               ),
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
@@ -419,7 +419,7 @@ class _VitalScreenState extends State<VitalScreen> {
                               decoration: InputDecoration(
                                 hintText: '$systolic',
                                 hintStyle: TextStyle(
-                                  color: textColor.withOpacity(0.5),
+                                  color: textColor.withOpacity(0.3),
                                   fontSize: 14,
                                 ),
                                 border: InputBorder.none,
@@ -444,7 +444,7 @@ class _VitalScreenState extends State<VitalScreen> {
                               decoration: InputDecoration(
                                 hintText: '$diastolic',
                                 hintStyle: TextStyle(
-                                  color: textColor.withOpacity(0.5),
+                                  color: textColor.withOpacity(0.3),
                                   fontSize: 14,
                                 ),
                                 border: InputBorder.none,
@@ -489,7 +489,7 @@ class _VitalScreenState extends State<VitalScreen> {
                               decoration: InputDecoration(
                                 hintText: '$bloodGlucose',
                                 hintStyle: TextStyle(
-                                  color: textColor.withOpacity(0.5),
+                                  color: textColor.withOpacity(0.3),
                                   fontSize: 14,
                                 ),
                                 border: InputBorder.none,
