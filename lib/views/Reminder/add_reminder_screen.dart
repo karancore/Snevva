@@ -9,8 +9,6 @@ import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
-import 'package:snevva/models/medicine_reminder_model.dart';
-import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import 'package:snevva/widgets/reminder/horizontal_selectable_card_row.dart';
 import '../../Controllers/Reminder/meal_controller.dart';
 import '../../Controllers/Reminder/medicine_controller.dart';
