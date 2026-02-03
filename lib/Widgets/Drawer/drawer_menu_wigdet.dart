@@ -61,6 +61,7 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
         debugPrint('⚠️ Failed to stop background service: $e');
         // DO NOT block logout
       }
+      bool _apiSuccess = false;
 
       // ==========================================================
       // 2️⃣ CALL LOGOUT API (BEST EFFORT)
@@ -78,11 +79,13 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
           debugPrint('❌ Logout API failed: ${response.statusCode}');
         } else {
           debugPrint('✅ Logout API success');
+          _apiSuccess = true;
         }
       } catch (e, st) {
         debugPrint('🔥 Exception during logout API');
         debugPrint('Error: $e');
         debugPrint('StackTrace: $st');
+        _apiSuccess = true;
         // 🔥 NEVER rethrow on logout
       }
 
@@ -161,9 +164,12 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
       // ==========================================================
       // 8️⃣ NAVIGATE (ALWAYS)
       // ==========================================================
+      if(_apiSuccess){
       debugPrint('➡️ Navigating to SignInScreen');
       Get.offAll(() => SignInScreen());
-
+      }else {
+      debugPrint('⚠️ Skipping navigation due to logout API failure');
+    }
       debugPrint('🏁 Logout completed successfully');
     } catch (e) {
       debugPrint('🔥 Logout failed: $e');
