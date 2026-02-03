@@ -41,12 +41,9 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
 
     debugPrint('📦 Hive ready in BG isolate');
 
-    // Now it is safe to use Hive
-    service.on('save_sleep').listen((event) {
-      debugPrint('💾 Saving sleep from BG');
-
-      sleepBox.add(SleepLog(date: DateTime.now(), durationMinutes: 30));
-    });
+    // ⚠️ REMOVED: save_sleep listener - SleepController is the single source of truth
+    // Sleep logs should only be saved by SleepController at configured wake time,
+    // not by background services on screen events or service invocations.
 
     // Foreground service (Android)
     if (service is AndroidServiceInstance) {
@@ -171,38 +168,21 @@ void _handleScreenStateChange(
   Box<SleepLog> sleepBox,
   SharedPreferences prefs,
 ) async {
-
+  // ⚠️ ARCHITECTURE: SleepController is the single source of truth for sleep persistence.
+  // This handler only tracks screen state for potential future phone usage detection.
+  // Sleep logs are saved by SleepController at configured wake time, not on screen events.
 
   if (event == ScreenStateEvent.SCREEN_ON) {
     print("☀️ [BG] Screen ON at ${now.hour}:${now.minute}");
 
-    // CASE 1: Waking from sleep
+    // Do not persist sleep here. Only update usage state.
     if (_sleepStartTime != null && !_isUserUsingPhone) {
-      final sleepDuration = now.difference(_sleepStartTime!);
-      print("😴 [BG] Woke up! Sleep duration: ${sleepDuration.inMinutes} mins");
-
-      // Save sleep log to Hive
-      final todayKey = "${now.year}-${now.month}-${now.day}";
-      final sleepLog = SleepLog(
-        date: _sleepStartTime!,
-        durationMinutes: sleepDuration.inMinutes,
-      );
-
-      await sleepBox.put(todayKey, sleepLog);
-
-      // Notify UI
-      service.invoke("sleep_updated", {
-        "sleep_duration_minutes": sleepDuration.inMinutes,
-        "bedtime": _sleepStartTime?.toString(),
-        "waketime": now.toString(),
-      });
-
+      // Transition from sleep to usage
       _sleepStartTime = null;
       _isUserUsingPhone = true;
-      return;
     }
 
-    // CASE 2: Normal phone usage resumed
+    // Normal phone usage resumed
     _usageStartTime = now;
     _isUserUsingPhone = true;
     print("📱 [BG] Phone usage started");

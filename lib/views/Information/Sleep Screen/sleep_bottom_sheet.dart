@@ -373,7 +373,8 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
                 await controller.startMonitoring();
                 debugPrint("Alarm scheduled for wake time at sleep bottom sheet");
             
-                await notificationService.scheduleWakeNotification(dateTime: wt);
+                // Notification disabled: tracking runs purely by configured window.
+                // await notificationService.scheduleWakeNotification(dateTime: wt);
             
                 Get.snackbar(
                   'Sleep Monitoring Started',

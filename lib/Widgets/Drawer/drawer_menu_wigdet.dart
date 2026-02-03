@@ -19,157 +19,160 @@ import 'package:snevva/env/env.dart';
 import 'package:http/http.dart' as http;
 import 'package:snevva/bindings/initial_bindings.dart';
 import 'package:snevva/services/api_service.dart';
-import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/services/background_pedometer_service.dart';
 import 'package:snevva/services/decisiontree_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
-import '../../Controllers/BMI/bmi_controller.dart';
-import '../../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
-import '../../Controllers/Reminder/event_controller.dart';
-import '../../Controllers/Reminder/meal_controller.dart';
-import '../../Controllers/Reminder/medicine_controller.dart';
-import '../../Controllers/Reminder/water_controller.dart';
-import '../../Controllers/WomenHealth/bottom_sheet_controller.dart';
-import '../../Controllers/WomenHealth/women_health_controller.dart';
-import '../../Controllers/alerts/alerts_controller.dart';
-import '../../Controllers/signupAndSignIn/create_password_controller.dart';
-import '../../Controllers/signupAndSignIn/forgot_password_controller.dart';
-import '../../Controllers/signupAndSignIn/sign_up_controller.dart';
-import '../../Controllers/signupAndSignIn/update_old_password_controller.dart';
 import '../../consts/consts.dart';
 import '../../models/hive_models/steps_model.dart';
 import '../home_wrapper.dart';
 import 'drawer_menu_item.dart';
 
-class DrawerMenuWidget extends StatelessWidget {
+class DrawerMenuWidget extends StatefulWidget {
   const DrawerMenuWidget({super.key, this.height, this.width});
 
   final double? height;
   final double? width;
 
-  Future<void> performLogout() async {
-  debugPrint('🚪 Logout started');
-
-  // ==========================================================
-  // 1️⃣ STOP BACKGROUND SERVICES (FIRST — VERY IMPORTANT)
-  // ==========================================================
-  try {
-    debugPrint('🛑 Stopping background services...');
-    await stopBackgroundService(); // <-- YOUR SERVICE STOPPER
-    debugPrint('✅ Background services stopped');
-  } catch (e) {
-    debugPrint('⚠️ Failed to stop background service: $e');
-    // DO NOT block logout
-  }
-
-  // ==========================================================
-  // 2️⃣ CALL LOGOUT API (BEST EFFORT)
-  // ==========================================================
-  try {
-    debugPrint('📡 Calling logout API...');
-    final response = await ApiService.post(
-      logout,
-      null,
-      withAuth: true,
-      encryptionRequired: true,
-    );
-
-    if (response is http.Response) {
-      debugPrint('❌ Logout API failed: ${response.statusCode}');
-    } else {
-      debugPrint('✅ Logout API success');
-    }
-  } catch (e, st) {
-    debugPrint('🔥 Exception during logout API');
-    debugPrint('Error: $e');
-    debugPrint('StackTrace: $st');
-    // 🔥 NEVER rethrow on logout
-  }
-
-  // ==========================================================
-  // 3️⃣ CLEAR SHARED PREFS (AUTH FIRST)
-  // ==========================================================
-  debugPrint('🧹 Clearing SharedPreferences...');
-  final prefs = await SharedPreferences.getInstance();
-
-  // Explicit auth flags first (prevents service restart)
-  await prefs.setBool('remember_me', false);
-  await prefs.remove('access_token');
-  await prefs.remove('refresh_token');
-
-  // Then wipe rest
-  await prefs.clear();
-  debugPrint('✅ SharedPreferences cleared');
-
-  // ==========================================================
-  // 4️⃣ CLEAR HIVE (ONLY USER DATA)
-  // ==========================================================
-  debugPrint('🗄️ Clearing Hive step_history...');
-  try {
-    if (Hive.isBoxOpen('step_history')) {
-      await Hive.box<StepEntry>('step_history').clear();
-      debugPrint('✅ step_history cleared');
-    }
-  } catch (e) {
-    debugPrint('❌ Failed to clear step_history: $e');
-  }
-
-  // ==========================================================
-  // 5️⃣ CLEAR IN-MEMORY STATE
-  // ==========================================================
-  debugPrint('🧠 Resetting LocalStorageManager...');
-  if (Get.isRegistered<LocalStorageManager>()) {
-    final localStorageManager = Get.find<LocalStorageManager>();
-
-    localStorageManager.userMap.value = {};
-    localStorageManager.userGoalDataMap.value = {};
-
-    localStorageManager.userMap.refresh();
-    localStorageManager.userGoalDataMap.refresh();
-  }
-  debugPrint('✅ LocalStorageManager reset');
-
-  // // ==========================================================
-  // // 6️⃣ CLEAR SINGLETON CACHES (IMPORTANT)
-  // // ==========================================================
-  // if (Get.isRegistered<DecisionTreeController>()) {
-  //   Get.find<DecisionTreeController>().clear();
-  //   Get.delete<DecisionTreeController>();
-  //   debugPrint('🧹 DecisionTree cache cleared');
-  // }
-
-  debugPrint('🧠 Clearing DecisionTreeService...');
-  await DecisionTreeService().clearAll();
-
-
-  // ==========================================================
-  // 7️⃣ DELETE GETX CONTROLLERS
-  // ==========================================================
-  debugPrint('🗑️ Deleting GetX controllers...');
-  Get.delete<DietPlanController>(force: true);
-  Get.delete<HealthTipsController>(force: true);
-  Get.delete<HydrationStatController>(force: true);
-  Get.delete<OTPVerificationController>(force: true);
-  Get.delete<MentalWellnessController>(force: true);
-  Get.delete<MoodController>(force: true);
-  Get.delete<SignInController>(force: true);
-  Get.delete<MoodQuestionController>(force: true);
-  Get.delete<SleepController>(force: true);
-  Get.delete<StepCounterController>(force: true);
-  Get.delete<VitalsController>(force: true);
-  debugPrint('✅ Controllers deleted');
-
-  // ==========================================================
-  // 8️⃣ NAVIGATE (ALWAYS)
-  // ==========================================================
-  debugPrint('➡️ Navigating to SignInScreen');
-  Get.offAll(() => SignInScreen());
-
-  debugPrint('🏁 Logout completed successfully');
+  @override
+  State<DrawerMenuWidget> createState() => _DrawerMenuWidgetState();
 }
 
+class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
+  bool isLoading = false;
+
+  Future<void> performLogout() async {
+    debugPrint('🚪 Logout started');
+
+    if (isLoading) return;
+
+    setState(() => isLoading = true);
+
+    try {
+      // ==========================================================
+      // 1️⃣ STOP BACKGROUND SERVICES (FIRST — VERY IMPORTANT)
+      // ==========================================================
+      try {
+        debugPrint('🛑 Stopping background services...');
+        await stopBackgroundService(); // <-- YOUR SERVICE STOPPER
+        debugPrint('✅ Background services stopped');
+      } catch (e) {
+        debugPrint('⚠️ Failed to stop background service: $e');
+        // DO NOT block logout
+      }
+
+      // ==========================================================
+      // 2️⃣ CALL LOGOUT API (BEST EFFORT)
+      // ==========================================================
+      try {
+        debugPrint('📡 Calling logout API...');
+        final response = await ApiService.post(
+          logout,
+          null,
+          withAuth: true,
+          encryptionRequired: true,
+        );
+
+        if (response is http.Response) {
+          debugPrint('❌ Logout API failed: ${response.statusCode}');
+        } else {
+          debugPrint('✅ Logout API success');
+        }
+      } catch (e, st) {
+        debugPrint('🔥 Exception during logout API');
+        debugPrint('Error: $e');
+        debugPrint('StackTrace: $st');
+        // 🔥 NEVER rethrow on logout
+      }
+
+      // ==========================================================
+      // 3️⃣ CLEAR SHARED PREFS (AUTH FIRST)
+      // ==========================================================
+      debugPrint('🧹 Clearing SharedPreferences...');
+      final prefs = await SharedPreferences.getInstance();
+
+      // Explicit auth flags first (prevents service restart)
+      await prefs.setBool('remember_me', false);
+      await prefs.remove('access_token');
+      await prefs.remove('refresh_token');
+
+      // Then wipe rest
+      await prefs.clear();
+      debugPrint('✅ SharedPreferences cleared');
+
+      // ==========================================================
+      // 4️⃣ CLEAR HIVE (ONLY USER DATA)
+      // ==========================================================
+      debugPrint('🗄️ Clearing Hive step_history...');
+      try {
+        if (Hive.isBoxOpen('step_history')) {
+          await Hive.box<StepEntry>('step_history').clear();
+          debugPrint('✅ step_history cleared');
+        }
+      } catch (e) {
+        debugPrint('❌ Failed to clear step_history: $e');
+      }
+
+      // ==========================================================
+      // 5️⃣ CLEAR IN-MEMORY STATE
+      // ==========================================================
+      debugPrint('🧠 Resetting LocalStorageManager...');
+      if (Get.isRegistered<LocalStorageManager>()) {
+        final localStorageManager = Get.find<LocalStorageManager>();
+
+        localStorageManager.userMap.value = {};
+        localStorageManager.userGoalDataMap.value = {};
+
+        localStorageManager.userMap.refresh();
+        localStorageManager.userGoalDataMap.refresh();
+      }
+      debugPrint('✅ LocalStorageManager reset');
+
+      // // ==========================================================
+      // // 6️⃣ CLEAR SINGLETON CACHES (IMPORTANT)
+      // // ==========================================================
+      // if (Get.isRegistered<DecisionTreeController>()) {
+      //   Get.find<DecisionTreeController>().clear();
+      //   Get.delete<DecisionTreeController>();
+      //   debugPrint('🧹 DecisionTree cache cleared');
+      // }
+
+      debugPrint('🧠 Clearing DecisionTreeService...');
+      await DecisionTreeService().clearAll();
+
+      // ==========================================================
+      // 7️⃣ DELETE GETX CONTROLLERS
+      // ==========================================================
+      debugPrint('🗑️ Deleting GetX controllers...');
+      Get.delete<DietPlanController>(force: true);
+      Get.delete<HealthTipsController>(force: true);
+      Get.delete<HydrationStatController>(force: true);
+      Get.delete<OTPVerificationController>(force: true);
+      Get.delete<MentalWellnessController>(force: true);
+      Get.delete<MoodController>(force: true);
+      Get.delete<SignInController>(force: true);
+      Get.delete<MoodQuestionController>(force: true);
+      Get.delete<SleepController>(force: true);
+      Get.delete<StepCounterController>(force: true);
+      Get.delete<VitalsController>(force: true);
+      debugPrint('✅ Controllers deleted');
+
+      // ==========================================================
+      // 8️⃣ NAVIGATE (ALWAYS)
+      // ==========================================================
+      debugPrint('➡️ Navigating to SignInScreen');
+      Get.offAll(() => SignInScreen());
+
+      debugPrint('🏁 Logout completed successfully');
+    } catch (e) {
+      debugPrint('🔥 Logout failed: $e');
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -312,36 +315,56 @@ class DrawerMenuWidget extends StatelessWidget {
                       ],
                     ),
                     child: OutlinedButton(
-                      onPressed: () async {
-                        await performLogout();
-                      },
+                      onPressed: isLoading ? null : performLogout,
                       style: OutlinedButton.styleFrom(
-                        backgroundColor: Color(0xFFF0E5FF),
-                        side: BorderSide(color: Colors.transparent),
-                        fixedSize: Size(width!, 40),
+                        backgroundColor: const Color(0xFFF0E5FF),
+                        side: const BorderSide(color: Colors.transparent),
+                        minimumSize: const Size(double.infinity, 40),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        padding: EdgeInsets.zero,
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SvgPicture.asset(logoutIcon, width: 24, height: 24),
-                          SizedBox(width: 10),
-                          Text(
-                            "Log Out",
-                            style: TextStyle(
-                              fontSize: 18,
-                              foreground:
-                                  Paint()
-                                    ..shader = AppColors.primaryGradient
-                                        .createShader(
-                                          Rect.fromLTWH(0, 0, 200, 70),
-                                        ),
-                            ),
-                          ),
-                        ],
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child:
+                            isLoading
+                                ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: Colors.deepPurple,
+                                  ),
+                                )
+                                : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SvgPicture.asset(
+                                      logoutIcon,
+                                      width: 24,
+                                      height: 24,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      "Log Out",
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        foreground:
+                                            Paint()
+                                              ..shader = AppColors
+                                                  .primaryGradient
+                                                  .createShader(
+                                                    const Rect.fromLTWH(
+                                                      0,
+                                                      0,
+                                                      200,
+                                                      70,
+                                                    ),
+                                                  ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                       ),
                     ),
                   ),

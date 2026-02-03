@@ -60,41 +60,21 @@ void _handleScreenStateChange(
   Box<SleepLog> box,
   SharedPreferences prefs,
 ) async {
-
+  // ⚠️ ARCHITECTURE: SleepController is the single source of truth for sleep persistence.
+  // This handler only tracks screen state for potential future phone usage detection.
+  // Sleep logs are saved by SleepController at configured wake time, not on screen events.
 
   if (event == ScreenStateEvent.SCREEN_ON) {
     // Screen turned ON
     print("☀️ [BG Sleep] Screen ON at ${now.hour}:${now.minute}");
 
-    // CASE 1: Waking from sleep
+    // Do not persist sleep here. Only update usage state.
     if (_sleepStartTime != null && !_isUserUsingPhone) {
-      final sleepDuration = now.difference(_sleepStartTime!);
-      print(
-        "😴 [BG Sleep] Woke up! Sleep duration: ${sleepDuration.inMinutes} mins",
-      );
-
-      // Save sleep log to Hive
-      final todayKey = "${now.year}-${now.month}-${now.day}";
-      final sleepLog = SleepLog(
-        date: _sleepStartTime!,
-        durationMinutes: sleepDuration.inMinutes,
-      );
-
-      await box.put(todayKey, sleepLog);
-
-      // Notify UI
-      service.invoke("sleep_updated", {
-        "sleep_duration_minutes": sleepDuration.inMinutes,
-        "bedtime": _sleepStartTime?.toString(),
-        "waketime": now.toString(),
-      });
-
       _sleepStartTime = null;
       _isUserUsingPhone = true;
-      return;
     }
 
-    // CASE 2: Normal phone usage resumed
+    // Normal phone usage resumed
     _usageStartTime = now;
     _isUserUsingPhone = true;
     print("📱 [BG Sleep] Phone usage started at ${now.hour}:${now.minute}");
