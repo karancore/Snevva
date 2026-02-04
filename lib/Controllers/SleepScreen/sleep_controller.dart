@@ -856,6 +856,12 @@ class SleepController extends GetxService {
       _sleepState = SleepState.sleeping;
       await prefs.setString(_sleepCandidateStartKey, bt.toIso8601String());
       await prefs.setBool(_sleepCandidateHadPhoneUsageKey, false);
+      
+      // Clear any old sleep intervals for this sleep date
+      final sleepDateKey = dateKey(bt);
+      await prefs.remove('sleep_intervals_$sleepDateKey');
+      await prefs.remove('last_screen_off_$sleepDateKey');
+      debugPrint('🧹 Cleared old sleep intervals for $sleepDateKey');
     }
 
     await _scheduleWakeStop();
@@ -906,6 +912,143 @@ class SleepController extends GetxService {
   // AUTO SLEEP (NO PHONE)
   // ─────────────────────────────────────────────
 
+  /// Calculate total sleep duration from screen OFF intervals stored in SharedPreferences
+  /// Also handles the case where screen is still OFF at wakeup time
+  Future<Duration> _calculateSleepDurationFromIntervals(DateTime sleepStart) async {
+    final prefs = await SharedPreferences.getInstance();
+    final sleepDateKey = dateKey(sleepStart);
+    final intervalsKey = 'sleep_intervals_$sleepDateKey';
+    
+    final sleepEnd = resolveSleepEnd(sleepStart);
+    
+    // Check if there's an open interval (screen still OFF)
+    // We'll check the background service state by looking for a recent screen OFF event
+    // For now, we'll close any open interval at wakeup time
+    final now = DateTime.now();
+    if (now.isAfter(sleepEnd) || now.isAtSameMomentAs(sleepEnd)) {
+      // Wakeup time reached, close any open interval
+      final lastScreenOffKey = 'last_screen_off_$sleepDateKey';
+      final lastScreenOffString = prefs.getString(lastScreenOffKey);
+      
+      if (lastScreenOffString != null) {
+        try {
+          final lastScreenOff = DateTime.parse(lastScreenOffString);
+          // If screen was OFF before wakeup and we're past wakeup, close the interval
+          if (lastScreenOff.isBefore(sleepEnd) || lastScreenOff.isAtSameMomentAs(sleepEnd)) {
+            // Load existing intervals
+            final existingIntervals = prefs.getString(intervalsKey);
+            List<String> intervalStrings = [];
+            if (existingIntervals != null && existingIntervals.isNotEmpty) {
+              intervalStrings = existingIntervals.split(',');
+            }
+            
+            // Check if last interval is still open (no end time or end is before wakeup)
+            bool hasOpenInterval = false;
+            if (intervalStrings.isNotEmpty) {
+              final lastInterval = intervalStrings.last.split('|');
+              if (lastInterval.length == 2) {
+                try {
+                  final lastEnd = DateTime.parse(lastInterval[1]);
+                  if (lastEnd.isBefore(sleepEnd)) {
+                    hasOpenInterval = true;
+                  }
+                } catch (e) {
+                  // Invalid format, treat as open
+                  hasOpenInterval = true;
+                }
+              } else {
+                hasOpenInterval = true;
+              }
+            } else {
+              // No intervals yet, create one from last screen off to wakeup
+              hasOpenInterval = true;
+            }
+            
+            if (hasOpenInterval) {
+              // Close the interval at wakeup time
+              final clampedStart = lastScreenOff.isBefore(sleepStart) ? sleepStart : lastScreenOff;
+              final clampedEnd = sleepEnd;
+              
+              if (clampedStart.isBefore(clampedEnd)) {
+                intervalStrings.add('${clampedStart.toIso8601String()}|${clampedEnd.toIso8601String()}');
+                await prefs.setString(intervalsKey, intervalStrings.join(','));
+                debugPrint('📊 Closed open interval at wakeup: ${clampedStart.hour}:${clampedStart.minute} - ${clampedEnd.hour}:${clampedEnd.minute}');
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('⚠️ Failed to parse last screen off time: $e');
+        }
+      }
+    }
+    
+    final intervalsString = prefs.getString(intervalsKey);
+    if (intervalsString == null || intervalsString.isEmpty) {
+      debugPrint('📊 No sleep intervals found for $sleepDateKey');
+      return Duration.zero;
+    }
+
+    // Parse intervals: format is "start1|end1,start2|end2,..."
+    final intervalStrings = intervalsString.split(',');
+    final List<MapEntry<DateTime, DateTime>> intervals = [];
+    
+    for (final intervalStr in intervalStrings) {
+      final parts = intervalStr.split('|');
+      if (parts.length == 2) {
+        try {
+          final start = DateTime.parse(parts[0]);
+          final end = DateTime.parse(parts[1]);
+          intervals.add(MapEntry(start, end));
+        } catch (e) {
+          debugPrint('⚠️ Failed to parse interval: $intervalStr');
+        }
+      }
+    }
+
+    if (intervals.isEmpty) {
+      debugPrint('📊 No valid sleep intervals found');
+      return Duration.zero;
+    }
+
+    // Sort intervals by start time
+    intervals.sort((a, b) => a.key.compareTo(b.key));
+
+    // Merge overlapping intervals and calculate total duration
+    Duration totalDuration = Duration.zero;
+    DateTime? currentStart;
+    DateTime? currentEnd;
+
+    for (final interval in intervals) {
+      if (currentStart == null) {
+        // First interval
+        currentStart = interval.key;
+        currentEnd = interval.value;
+      } else {
+        // Check if intervals overlap or are adjacent (within 5 minutes)
+        if (interval.key.isBefore(currentEnd!.add(const Duration(minutes: 5)))) {
+          // Merge intervals
+          if (interval.value.isAfter(currentEnd)) {
+            currentEnd = interval.value;
+          }
+        } else {
+          // Add previous interval to total
+          totalDuration += currentEnd.difference(currentStart);
+          // Start new interval
+          currentStart = interval.key;
+          currentEnd = interval.value;
+        }
+      }
+    }
+
+    // Add the last interval
+    if (currentStart != null && currentEnd != null) {
+      totalDuration += currentEnd.difference(currentStart);
+    }
+
+    debugPrint('📊 Calculated sleep duration from intervals: ${totalDuration.inMinutes} minutes');
+    return totalDuration;
+  }
+
   Future<void> _handleSleepWithoutPhoneUsage() async {
     // Compute a robust duration using tonight's configured bed/wake, normalize across midnight.
     if (bedtime.value == null || waketime.value == null) {
@@ -917,7 +1060,15 @@ class SleepController extends GetxService {
     final bt = resolveSleepStart(DateTime.now());
     final wt = resolveSleepEnd(bt);
 
-    final deep = wt.difference(bt);
+    // Calculate sleep duration from screen OFF intervals
+    Duration deep = await _calculateSleepDurationFromIntervals(bt);
+    
+    // If no intervals found, fall back to full window duration
+    if (deep == Duration.zero) {
+      deep = wt.difference(bt);
+      debugPrint('📊 Using full window duration as fallback: ${deep.inMinutes} minutes');
+    }
+
     if (deep.inMinutes < 10) {
       debugPrint(
         '⛔ Skipping save: calculated duration too small (${deep.inMinutes}m)',
@@ -925,14 +1076,20 @@ class SleepController extends GetxService {
       return;
     }
 
-    //deepSleepDuration.value = deep;
     newBedtime.value = bt;
+    deepSleepDuration.value = deep;
 
     // Save against bed date for consistent history keys
     await saveDeepSleepData(bt, deep);
 
     // Push correct normalized times to server
     await uploadsleepdatatoServer(bt, wt);
+    
+    // Clear sleep intervals after saving
+    final prefs = await SharedPreferences.getInstance();
+    final sleepDateKey = dateKey(bt);
+    await prefs.remove('sleep_intervals_$sleepDateKey');
+    
     debugPrint('✅ Auto-saved sleep without phone usage: $deep');
   }
 
@@ -1005,12 +1162,18 @@ class SleepController extends GetxService {
     final sleepStart = _activeSleepStart!;
     final sleepEnd = resolveSleepEnd(sleepStart);
 
-    // If a sleep segment is still open, add its remainder up to sleepEnd
-    if (_sleepState == SleepState.sleeping && _currentSleepSegmentStart != null) {
-      _accumulatedDeepSleep += sleepEnd.difference(_currentSleepSegmentStart!);
+    // Calculate sleep duration from screen OFF intervals
+    Duration deepSleep = await _calculateSleepDurationFromIntervals(sleepStart);
+    
+    // If intervals exist, use them; otherwise use accumulated deep sleep
+    if (deepSleep == Duration.zero) {
+      // Fall back to accumulated deep sleep logic
+      if (_sleepState == SleepState.sleeping && _currentSleepSegmentStart != null) {
+        _accumulatedDeepSleep += sleepEnd.difference(_currentSleepSegmentStart!);
+      }
+      deepSleep = _accumulatedDeepSleep;
     }
 
-    final deepSleep = _accumulatedDeepSleep;
     deepSleepDuration.value = deepSleep;
 
     // guard: too short or negative
@@ -1028,6 +1191,11 @@ class SleepController extends GetxService {
     await saveDeepSleepData(sleepStart, deepSleep);
     deepSleepDuration.value = deepSleep;
     await uploadsleepdatatoServer(sleepStart, sleepEnd);
+
+    // Clear sleep intervals after saving
+    final prefs = await SharedPreferences.getInstance();
+    final sleepDateKey = dateKey(sleepStart);
+    await prefs.remove('sleep_intervals_$sleepDateKey');
 
     // clear runtime state for next cycle
     phoneUsageIntervals.clear();

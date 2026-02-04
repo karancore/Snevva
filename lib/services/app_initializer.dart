@@ -18,6 +18,7 @@ import 'package:snevva/services/notification_service.dart';
 
 import '../models/hive_models/sleep_log.dart';
 import '../models/hive_models/steps_model.dart';
+import '../common/agent_debug_logger.dart';
 
 // ====================================================================
 // 0️⃣ NOTIFICATION CHANNEL SETUP (CRITICAL FOR ANDROID 12+)
@@ -184,6 +185,46 @@ Future<void> initBackgroundService() async {
     print("❌ Failed to start background service: $e");
     // Don't throw - let app continue without background service
   }
+}
+
+Future<void> stopUnifiedBackgroundService() async {
+  final service = FlutterBackgroundService();
+
+  // #region agent log
+  AgentDebugLogger.log(
+    runId: 'auth-bg',
+    hypothesisId: 'C',
+    location: 'app_initializer.dart:stopUnifiedBackgroundService:entry',
+    message: 'Stopping unified background service',
+    data: const {},
+  );
+  // #endregion
+
+  final isRunning = await service.isRunning();
+  if (!isRunning) {
+    // #region agent log
+    AgentDebugLogger.log(
+      runId: 'auth-bg',
+      hypothesisId: 'C',
+      location: 'app_initializer.dart:stopUnifiedBackgroundService:not_running',
+      message: 'Unified background service not running',
+      data: const {},
+    );
+    // #endregion
+    return;
+  }
+
+  service.invoke('stopService');
+
+  // #region agent log
+  AgentDebugLogger.log(
+    runId: 'auth-bg',
+    hypothesisId: 'C',
+    location: 'app_initializer.dart:stopUnifiedBackgroundService:invoked',
+    message: 'Invoked stopService on unified background service',
+    data: const {},
+  );
+  // #endregion
 }
 
 bool _isInitialized = false;

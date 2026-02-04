@@ -21,6 +21,8 @@ import 'package:snevva/bindings/initial_bindings.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/services/background_pedometer_service.dart';
 import 'package:snevva/services/decisiontree_service.dart';
+import 'package:snevva/services/app_initializer.dart';
+import 'package:snevva/common/agent_debug_logger.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
@@ -55,7 +57,30 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
       // ==========================================================
       try {
         debugPrint('🛑 Stopping background services...');
-        await stopBackgroundService(); // <-- YOUR SERVICE STOPPER
+        // #region agent log
+        AgentDebugLogger.log(
+          runId: 'auth-bg',
+          hypothesisId: 'C',
+          location: 'drawer_menu_wigdet.dart:performLogout:before_stop',
+          message: 'Logout requested, stopping unified background service',
+          data: const {},
+        );
+        // #endregion
+
+        await stopUnifiedBackgroundService();
+
+        // Back-compat safety: if anything else is wired to old stopper.
+        await stopBackgroundService();
+
+        // #region agent log
+        AgentDebugLogger.log(
+          runId: 'auth-bg',
+          hypothesisId: 'C',
+          location: 'drawer_menu_wigdet.dart:performLogout:after_stop',
+          message: 'Stop background service calls completed',
+          data: const {},
+        );
+        // #endregion
         debugPrint('✅ Background services stopped');
       } catch (e) {
         debugPrint('⚠️ Failed to stop background service: $e');

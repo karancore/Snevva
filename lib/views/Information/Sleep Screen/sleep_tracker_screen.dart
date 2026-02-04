@@ -352,16 +352,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
               ),
               const SizedBox(height: 4),
-              Obx(
-                () => Text(
-                  "Adjusted Bedtime: ${sleepController.newBedtime.value == null ? "--" : _fmtDt(sleepController.newBedtime.value!)}",
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
+            
 
               // ========== BEDTIME AND WAKE UP SETTINGS ==========
               Material(
@@ -592,43 +583,6 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
               const SizedBox(height: 30),
             ],
-          ),
-        ),
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-
-        child: SafeArea(
-          child: CustomOutlinedButton(
-            width: width,
-            isDarkMode: isDarkMode,
-            backgroundColor: AppColors.primaryColor,
-            buttonName: "Save",
-            onTap: () {
-              // Check if bedtime and wake time are selected
-              if (sleepController.bedtime.value != null &&
-                  sleepController.waketime.value != null) {
-                // sleepController.startMonitoring(); // START SERVICE
-
-                CustomSnackbar.showSnackbar(
-                  context: context,
-                  title: "Sleep Monitoring Started",
-                  message: '',
-                );
-
-                Navigator.pop(context);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      "Missing Data : Please select bedtime & wake time.",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    backgroundColor: AppColors.primaryColor,
-                  ),
-                );
-              }
-            },
           ),
         ),
       ),

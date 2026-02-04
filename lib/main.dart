@@ -57,6 +57,7 @@ import 'services/app_initializer.dart';
 import 'services/device_token_service.dart';
 import 'services/notification_channel.dart';
 import 'services/notification_service.dart';
+import 'common/agent_debug_logger.dart';
 
 import 'utils/theme.dart';
 
@@ -412,6 +413,18 @@ class _MyAppState extends State<MyApp> {
         Get.offAll(() => HomeWrapper());
         return;
       }
+
+      // If user session exists (auto-login), ensure background tracking is running.
+      // #region agent log
+      AgentDebugLogger.log(
+        runId: 'auth-bg',
+        hypothesisId: 'A',
+        location: 'main.dart:_initializeAppAsync:hasSession_true',
+        message: 'Valid session detected, starting unified background service',
+        data: const {},
+      );
+      // #endregion
+      await initBackgroundService();
 
       _timeoutTimer?.cancel();
 

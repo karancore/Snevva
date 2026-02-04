@@ -209,86 +209,86 @@ class NotificationService {
     hasNewNotification.value = true;
   }
 
-  // Future<void> scheduleWakeNotification(DateTime wakeDateTime) async {
+  // // Future<void> scheduleWakeNotification(DateTime wakeDateTime) async {
+  // //   await notificationsPlugin.zonedSchedule(
+  // //     999, // fixed ID for wake alarm
+  // //     'Wake Time',
+  // //     'Stopping sleep monitoring',
+  // //     tz.TZDateTime.from(wakeDateTime, tz.local),
+  // //     const NotificationDetails(
+  // //       android: AndroidNotificationDetails(
+  // //         'wake_channel',
+  // //         'Wake Alarm',
+  // //         importance: Importance.max,
+  // //         priority: Priority.high,
+  // //       ),
+  // //     ),
+  // //     androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+  // //     matchDateTimeComponents: DateTimeComponents.time,
+  // //   );
+  // // }
+
+  // // Future<void> showWakeNotification() async {
+  // //   await notificationsPlugin.show(
+  // //     WAKE_NOTIFICATION_ID,
+  // //     'Wake Up',
+  // //     'Tap STOP to turn off alarm',
+  // //     NotificationDetails(
+  // //       android: AndroidNotificationDetails(
+  // //         'alarm_channel',
+  // //         'Alarm',
+  // //         importance: Importance.max,
+  // //         priority: Priority.high,
+  // //         fullScreenIntent: true,
+  // //         actions: [
+  // //           AndroidNotificationAction(
+  // //             'STOP_ALARM',
+  // //             'Stop Alarm',
+  // //             cancelNotification: true,
+  // //           ),
+  // //         ],
+  // //       ),
+  // //     ),
+  // //   );
+  // // }
+  // Future<void> scheduleWakeNotification({required DateTime dateTime}) async {
+  //   final scheduledDate =
+  //   nextInstanceOfTime(dateTime.hour, dateTime.minute);
+
   //   await notificationsPlugin.zonedSchedule(
-  //     999, // fixed ID for wake alarm
+  //     WAKE_NOTIFICATION_ID,
   //     'Wake Time',
-  //     'Stopping sleep monitoring',
-  //     tz.TZDateTime.from(wakeDateTime, tz.local),
-  //     const NotificationDetails(
+  //     'Wake up! Time to start your day.',
+  //     scheduledDate,
+  //     NotificationDetails(
   //       android: AndroidNotificationDetails(
-  //         'wake_channel',
+  //         'STOP_ALARM',
   //         'Wake Alarm',
+  //         channelDescription: 'Wake-up alerts',
+  //         playSound: true,
+  //         //sound: RawResourceAndroidNotificationSound('alarm'),
+  //         audioAttributesUsage: AudioAttributesUsage.alarm,
   //         importance: Importance.max,
-  //         priority: Priority.high,
+  //         priority: Priority.max,
+  //         fullScreenIntent: true,
+
+  //         autoCancel: false,
+  //         // actions: const [
+  //         //   AndroidNotificationAction(
+  //         //     'STOP_ALARM',
+  //         //     'Stop',
+  //         //     cancelNotification: true,
+  //         //
+  //         //   ),
+  //         // ],
   //       ),
   //     ),
   //     androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-  //     matchDateTimeComponents: DateTimeComponents.time,
   //   );
   // }
 
-  // Future<void> showWakeNotification() async {
-  //   await notificationsPlugin.show(
-  //     WAKE_NOTIFICATION_ID,
-  //     'Wake Up',
-  //     'Tap STOP to turn off alarm',
-  //     NotificationDetails(
-  //       android: AndroidNotificationDetails(
-  //         'alarm_channel',
-  //         'Alarm',
-  //         importance: Importance.max,
-  //         priority: Priority.high,
-  //         fullScreenIntent: true,
-  //         actions: [
-  //           AndroidNotificationAction(
-  //             'STOP_ALARM',
-  //             'Stop Alarm',
-  //             cancelNotification: true,
-  //           ),
-  //         ],
-  //       ),
-  //     ),
-  //   );
+
+  // Future<void> cancelWakeNotification() async {
+  //   await notificationsPlugin.cancel(WAKE_NOTIFICATION_ID); // Changed from 999 to 998
   // }
-  Future<void> scheduleWakeNotification({required DateTime dateTime}) async {
-    final scheduledDate =
-    nextInstanceOfTime(dateTime.hour, dateTime.minute);
-
-    await notificationsPlugin.zonedSchedule(
-      WAKE_NOTIFICATION_ID,
-      'Wake Time',
-      'Wake up! Time to start your day.',
-      scheduledDate,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          'STOP_ALARM',
-          'Wake Alarm',
-          channelDescription: 'Wake-up alerts',
-          playSound: true,
-          //sound: RawResourceAndroidNotificationSound('alarm'),
-          audioAttributesUsage: AudioAttributesUsage.alarm,
-          importance: Importance.max,
-          priority: Priority.max,
-          fullScreenIntent: true,
-
-          autoCancel: false,
-          // actions: const [
-          //   AndroidNotificationAction(
-          //     'STOP_ALARM',
-          //     'Stop',
-          //     cancelNotification: true,
-          //
-          //   ),
-          // ],
-        ),
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-    );
-  }
-
-
-  Future<void> cancelWakeNotification() async {
-    await notificationsPlugin.cancel(WAKE_NOTIFICATION_ID); // Changed from 999 to 998
-  }
 }

@@ -21,6 +21,7 @@ import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart'
 import 'package:snevva/views/ProfileAndQuestionnaire/questionnaire_screen.dart';
 import 'package:snevva/views/SignUp/forgot_password.dart';
 import 'package:snevva/widgets/home_wrapper.dart';
+import 'package:snevva/common/agent_debug_logger.dart';
 
 import '../../Controllers/BMI/bmi_controller.dart';
 import '../../Controllers/DietPlan/diet_plan_controller.dart';
@@ -186,7 +187,27 @@ class _SignInScreenState extends State<SignInScreen> {
       prefs.setString('user_credential', emailOrPhone);
     }
 
+    // #region agent log
+    AgentDebugLogger.log(
+      runId: 'auth-bg',
+      hypothesisId: 'B',
+      location: 'sign_in_screen.dart:_handleSuccessfulSignIn:before_start',
+      message: 'Successful sign-in, starting unified background service',
+      data: const {},
+    );
+    // #endregion
+
     await initBackgroundService();
+
+    // #region agent log
+    AgentDebugLogger.log(
+      runId: 'auth-bg',
+      hypothesisId: 'B',
+      location: 'sign_in_screen.dart:_handleSuccessfulSignIn:after_start',
+      message: 'initBackgroundService returned after sign-in',
+      data: const {},
+    );
+    // #endregion
 
 
     await stepController.loadStepsfromAPI(

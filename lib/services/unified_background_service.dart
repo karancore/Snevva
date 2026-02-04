@@ -10,6 +10,7 @@ import '../common/global_variables.dart';
 import '../consts/consts.dart';
 import '../models/hive_models/sleep_log.dart';
 import '../models/hive_models/steps_model.dart';
+import '../common/agent_debug_logger.dart';
 
 
 // Global references for step counting
@@ -20,6 +21,8 @@ StreamSubscription<ScreenStateEvent>? _screenStateSubscription;
 DateTime? _sleepStartTime;
 DateTime? _usageStartTime;
 bool _isUserUsingPhone = false;
+DateTime? _currentScreenOffStart; // Track when screen turned OFF
+List<Map<String, String>> _sleepIntervals = []; // Store sleep intervals as ISO strings
 
 @pragma("vm:entry-point")
 Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
@@ -27,6 +30,16 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
     DartPluginRegistrant.ensureInitialized();
 
     debugPrint('🧵 BG isolate started');
+
+    // #region agent log
+    AgentDebugLogger.log(
+      runId: 'auth-bg',
+      hypothesisId: 'B',
+      location: 'unified_background_service.dart:unifiedBackgroundEntry:start',
+      message: 'Unified background entry started',
+      data: const {},
+    );
+    // #endregion
 
     // 🔥 REQUIRED: init Hive for THIS isolate
     await Hive.initFlutter();
@@ -147,10 +160,23 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
     // ════════════════════════════════════════════════════
     service.on('stopService').listen((_) {
       print("🛑 Stopping unified background service...");
+
+      // #region agent log
+      AgentDebugLogger.log(
+        runId: 'auth-bg',
+        hypothesisId: 'C',
+        location: 'unified_background_service.dart:stopService:listener',
+        message: 'Received stopService in background isolate',
+        data: const {},
+      );
+      // #endregion
+
       _pedometerSubscription?.cancel();
       _screenStateSubscription?.cancel();
       _sleepStartTime = null;
       _usageStartTime = null;
+      _currentScreenOffStart = null;
+      _sleepIntervals.clear();
       service.stopSelf();
     });
 
@@ -168,28 +194,150 @@ void _handleScreenStateChange(
   Box<SleepLog> sleepBox,
   SharedPreferences prefs,
 ) async {
-  // ⚠️ ARCHITECTURE: SleepController is the single source of truth for sleep persistence.
-  // This handler only tracks screen state for potential future phone usage detection.
-  // Sleep logs are saved by SleepController at configured wake time, not on screen events.
+  // Get bedtime and wakeup time from SharedPreferences
+  final bedtimeMinutes = prefs.getInt('user_bedtime_ms');
+  final waketimeMinutes = prefs.getInt('user_waketime_ms');
+  
+  if (bedtimeMinutes == null || waketimeMinutes == null) {
+    // Bedtime/waketime not set, use old behavior
+    _handleScreenStateChangeLegacy(event, service, sleepBox, prefs);
+    return;
+  }
+
+  // Convert minutes to TimeOfDay
+  final bedtimeHour = bedtimeMinutes ~/ 60;
+  final bedtimeMin = bedtimeMinutes % 60;
+  final waketimeHour = waketimeMinutes ~/ 60;
+  final waketimeMin = waketimeMinutes % 60;
+
+  // Calculate bedtime and wakeup DateTime for today
+  DateTime bedtimeToday = DateTime(now.year, now.month, now.day, bedtimeHour, bedtimeMin);
+  DateTime waketimeToday = DateTime(now.year, now.month, now.day, waketimeHour, waketimeMin);
+  
+  // If wakeup time is before bedtime, wakeup is next day
+  if (waketimeToday.isBefore(bedtimeToday) || waketimeToday.isAtSameMomentAs(bedtimeToday)) {
+    waketimeToday = waketimeToday.add(const Duration(days: 1));
+  }
+  
+  // If bedtime is in the future (more than 1 hour), it's from yesterday
+  if (bedtimeToday.isAfter(now.add(const Duration(hours: 1)))) {
+    bedtimeToday = bedtimeToday.subtract(const Duration(days: 1));
+    waketimeToday = waketimeToday.subtract(const Duration(days: 1));
+  }
 
   if (event == ScreenStateEvent.SCREEN_ON) {
     print("☀️ [BG] Screen ON at ${now.hour}:${now.minute}");
 
-    // Do not persist sleep here. Only update usage state.
+    // If screen was OFF and now ON, end the sleep interval if within sleep window
+    if (_currentScreenOffStart != null) {
+      // Check if the screen OFF period was within the sleep window
+      final screenOffStart = _currentScreenOffStart!;
+      final screenOnTime = now;
+      
+      // Clamp times to sleep window boundaries
+      final clampedStart = screenOffStart.isBefore(bedtimeToday) ? bedtimeToday : screenOffStart;
+      final clampedEnd = screenOnTime.isAfter(waketimeToday) ? waketimeToday : screenOnTime;
+      
+      // Only record if the interval is within or overlaps the sleep window
+      if (clampedStart.isBefore(clampedEnd) && 
+          clampedStart.isBefore(waketimeToday) && 
+          clampedEnd.isAfter(bedtimeToday)) {
+        // Load existing intervals
+        final sleepDateKey = _getSleepDateKey(bedtimeToday);
+        final existingIntervals = prefs.getString('sleep_intervals_$sleepDateKey');
+        if (existingIntervals != null && existingIntervals.isNotEmpty) {
+          final intervalStrings = existingIntervals.split(',');
+          _sleepIntervals = intervalStrings.map((s) {
+            final parts = s.split('|');
+            return {'start': parts[0], 'end': parts[1]};
+          }).toList();
+        } else {
+          _sleepIntervals = [];
+        }
+        
+        final interval = {
+          'start': clampedStart.toIso8601String(),
+          'end': clampedEnd.toIso8601String(),
+        };
+        _sleepIntervals.add(interval);
+        
+        // Save to SharedPreferences
+        final intervalsJson = _sleepIntervals.map((i) => '${i['start']}|${i['end']}').join(',');
+        await prefs.setString('sleep_intervals_$sleepDateKey', intervalsJson);
+        
+        print("💤 [BG] Recorded sleep interval: ${clampedStart.hour}:${clampedStart.minute} - ${clampedEnd.hour}:${clampedEnd.minute}");
+      }
+      
+      _currentScreenOffStart = null;
+    }
+
+    // Update usage state
     if (_sleepStartTime != null && !_isUserUsingPhone) {
-      // Transition from sleep to usage
       _sleepStartTime = null;
       _isUserUsingPhone = true;
     }
 
-    // Normal phone usage resumed
+    _usageStartTime = now;
+    _isUserUsingPhone = true;
+    print("📱 [BG] Phone usage started");
+    
+  } else if (event == ScreenStateEvent.SCREEN_OFF) {
+    print("🌙 [BG] Screen OFF at ${now.hour}:${now.minute}");
+
+    // Only track if we're within the sleep window
+    if (now.isAfter(bedtimeToday.subtract(const Duration(minutes: 30))) && 
+        now.isBefore(waketimeToday.add(const Duration(minutes: 30)))) {
+      _currentScreenOffStart = now;
+      
+      // Store last screen OFF time for closing intervals at wakeup
+      final sleepDateKey = _getSleepDateKey(bedtimeToday);
+      await prefs.setString('last_screen_off_$sleepDateKey', now.toIso8601String());
+      
+      print("😴 [BG] Screen OFF recorded, sleep tracking active");
+    }
+
+    // Legacy state tracking
+    if (_usageStartTime == null) {
+      _sleepStartTime = now;
+      _isUserUsingPhone = false;
+      return;
+    }
+
+    if (_isUserUsingPhone) {
+      final usageDuration = now.difference(_usageStartTime!);
+      print("📵 [BG] Phone put away. Usage: ${usageDuration.inMinutes} mins");
+      _sleepStartTime = now;
+      _isUserUsingPhone = false;
+    }
+  }
+}
+
+// Helper function to get sleep date key (based on bedtime date)
+String _getSleepDateKey(DateTime bedtime) {
+  return "${bedtime.year}-${bedtime.month.toString().padLeft(2, '0')}-${bedtime.day.toString().padLeft(2, '0')}";
+}
+
+// Legacy handler for when bedtime/waketime is not set
+void _handleScreenStateChangeLegacy(
+  ScreenStateEvent event,
+  ServiceInstance service,
+  Box<SleepLog> sleepBox,
+  SharedPreferences prefs,
+) {
+  if (event == ScreenStateEvent.SCREEN_ON) {
+    print("☀️ [BG] Screen ON at ${now.hour}:${now.minute}");
+
+    if (_sleepStartTime != null && !_isUserUsingPhone) {
+      _sleepStartTime = null;
+      _isUserUsingPhone = true;
+    }
+
     _usageStartTime = now;
     _isUserUsingPhone = true;
     print("📱 [BG] Phone usage started");
   } else if (event == ScreenStateEvent.SCREEN_OFF) {
     print("🌙 [BG] Screen OFF at ${now.hour}:${now.minute}");
 
-    // CASE 1: No usage start time → phone was idle, now sleeping
     if (_usageStartTime == null) {
       _sleepStartTime = now;
       _isUserUsingPhone = false;
@@ -197,11 +345,9 @@ void _handleScreenStateChange(
       return;
     }
 
-    // CASE 2: Had usage time → phone is being put away
     if (_isUserUsingPhone) {
       final usageDuration = now.difference(_usageStartTime!);
       print("📵 [BG] Phone put away. Usage: ${usageDuration.inMinutes} mins");
-
       _sleepStartTime = now;
       _isUserUsingPhone = false;
     }
