@@ -13,6 +13,7 @@ import 'package:snevva/env/env.dart';
 import 'package:snevva/models/awake_interval.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/services/notification_service.dart';
+import 'package:snevva/common/agent_debug_logger.dart';
 
 import '../../common/global_variables.dart';
 
@@ -27,6 +28,7 @@ class SleepController extends GetxService {
   String WAKETIME_KEY = 'user_waketime_ms';
   static const _sleepCandidateStartKey = "sleep_candidate_start";
   static const _sleepCandidateHadPhoneUsageKey = "sleep_candidate_had_phone";
+  static const _correctedSleepMinutesPrefix = "sleep_corrected_minutes_";
 
   /// User bedtime & waketime
   final Rxn<TimeOfDay> bedtime = Rxn<TimeOfDay>();
@@ -221,6 +223,18 @@ class SleepController extends GetxService {
 
   String dateKey(DateTime d) =>
       "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+
+  String _correctedPrefKeyForDateKey(String dayKey) =>
+      "$_correctedSleepMinutesPrefix$dayKey";
+
+  /// Corrected sleep duration for a given day (pref overrides Hive if present).
+  Future<Duration> getCorrectedSleepForDate(DateTime date) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = dateKey(DateUtils.dateOnly(date));
+    final mins = prefs.getInt(_correctedPrefKeyForDateKey(key));
+    if (mins != null) return Duration(minutes: mins);
+    return weeklyDeepSleepHistory[key] ?? Duration.zero;
+  }
 
   bool hasSleepDataForDate(DateTime date) {
     return weeklyDeepSleepHistory.containsKey(dateKey(date));
@@ -438,21 +452,40 @@ class SleepController extends GetxService {
     debugPrint("📥 [loadDeepSleepData] START");
 
     weeklyDeepSleepHistory.clear();
+    final prefs = await SharedPreferences.getInstance();
 
     debugPrint("📦 Hive entries count: ${_box.length}");
 
     for (final log in _box.values) {
       final key = dateKey(log.date);
-      final duration = Duration(minutes: log.durationMinutes);
+      // Prefer corrected minutes stored in prefs (if any), else use Hive minutes.
+      final correctedMins = prefs.getInt(_correctedPrefKeyForDateKey(key));
+      final duration = Duration(minutes: correctedMins ?? log.durationMinutes);
 
       weeklyDeepSleepHistory[key] = duration;
-      deepSleepDuration.value = duration;
 
       print("loadDeepSleepData ${deepSleepDuration.value}");
 
       debugPrint("   💤 Weekly ← Hive: $key → ${duration.inMinutes} min");
     }
-    //deepSleepDuration.value = weeklyDeepSleepHistory[getCurrentDayKey()];
+
+    // 🔥 Set UI value for *today* (not last Hive entry)
+    final todayKey = getCurrentDayKey();
+    deepSleepDuration.value = weeklyDeepSleepHistory[todayKey] ?? Duration.zero;
+
+    // #region agent log
+    AgentDebugLogger.log(
+      runId: 'sleep-ui',
+      hypothesisId: 'UI',
+      location: 'sleep_controller.dart:loadDeepSleepData:today_value',
+      message: 'Loaded sleep durations and set today deepSleepDuration',
+      data: {
+        'todayKey': todayKey,
+        'todayMinutes': deepSleepDuration.value.inMinutes,
+        'entries': _box.length,
+      },
+    );
+    // #endregion
 
     print(
       "loadDeepSleepData deepSleepDuration.value ${deepSleepDuration.value}",
@@ -518,6 +551,7 @@ class SleepController extends GetxService {
     required int year,
   }) async {
     try {
+      final prefs = await SharedPreferences.getInstance();
       final payload = {"Month": month, "Year": year};
 
       final response = await ApiService.post(
@@ -568,6 +602,8 @@ class SleepController extends GetxService {
 
         final key = dateKey(DateTime(year, month, day));
         monthlyDeepSleepHistory[key] = duration;
+        // Persist corrected minutes for this day so UI can show the corrected value.
+        await prefs.setInt(_correctedPrefKeyForDateKey(key), duration.inMinutes);
         final currentWeekStart = DateTime.now().subtract(
           Duration(days: DateTime.now().weekday - 1),
         );
@@ -747,6 +783,20 @@ class SleepController extends GetxService {
     );
 
     print("✅ HIVE SAVED: $key → ${duration.inMinutes} min");
+
+    // Persist corrected minutes in SharedPreferences for quick UI access.
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_correctedPrefKeyForDateKey(key), duration.inMinutes);
+
+    // #region agent log
+    AgentDebugLogger.log(
+      runId: 'sleep-ui',
+      hypothesisId: 'PREF',
+      location: 'sleep_controller.dart:saveDeepSleepData:persist_corrected',
+      message: 'Saved corrected sleep minutes to prefs',
+      data: {'key': key, 'minutes': duration.inMinutes},
+    );
+    // #endregion
 
     weeklyDeepSleepHistory[key] = duration;
     weeklyDeepSleepHistory.refresh();
