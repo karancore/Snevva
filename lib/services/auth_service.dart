@@ -102,15 +102,14 @@ class AuthService {
     return token;
   }
 
-  static Future<void> logExceptionToServer(Map<String , dynamic> exceptionDetails) async {
+  static Future<void> logExceptionToServer(dynamic exceptionDetails) async {
     try{
-      final payload = {'ExceptionDetails': exceptionDetails};
 
       debugPrint("🚨 Logging exception to server: $exceptionDetails");
 
       final response = await ApiService.post(
         logexception,
-        payload,
+        exceptionDetails,
         withAuth: true,
         encryptionRequired: true,
       );
