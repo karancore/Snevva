@@ -146,8 +146,6 @@ void main() async {
     ExceptionLogger.log(
       exception: details.exception,
       stackTrace: details.stack,
-      methodName: 'ErrorWidget.builder',
-      className: 'main.dart',
     );
 
     return Scaffold(
@@ -200,8 +198,6 @@ void main() async {
       await ExceptionLogger.log(
         exception: error,
         stackTrace: stack,
-        methodName: 'runZonedGuarded',
-        className: 'main.dart',
       );
     },
   );

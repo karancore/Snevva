@@ -13,6 +13,13 @@ class ExceptionLogger {
     String? className,
   }) async {
     try {
+      final extracted = stackTrace != null
+          ? _extractFromStack(stackTrace)
+          : {};
+
+      print("Logging exception: ${exception.toString()}");
+      print("extracted methodName: ${extracted['methodName']}, className: ${extracted['className']}");
+
       final log = ExceptionLog(
         dataCode: DateTime.now().millisecondsSinceEpoch.toString(),
         userId: await _getUserId(),
@@ -22,16 +29,34 @@ class ExceptionLogger {
         stringException: exception.runtimeType.toString(),
         stackTrace: stackTrace?.toString(),
         innerException: null,
-        methodName: methodName,
-        className: className,
+        methodName: methodName ?? extracted['methodName'],
+        className: className ?? extracted['className'],
       );
 
       AuthService.logExceptionToServer(log.toJson());
+    } catch (_) {}
+  }
 
-      print('✅ Exception logged to server');
-    } catch (e) {
-      print('❌ Failed to log exception: $e');
-    }
+  static Map<String, String?> _extractFromStack(StackTrace stackTrace) {
+    final lines = stackTrace.toString().split('\n');
+
+    // Skip framework lines
+    final line = lines.firstWhere(
+      (l) =>
+          !l.contains('ExceptionLogger') &&
+          !l.contains('runZonedGuarded') &&
+          !l.contains('ErrorWidget'),
+      orElse: () => '',
+    );
+
+    // #0   AuthService.login (package:app/services/auth_service.dart:42:10)
+    final methodMatch = RegExp(r'#\d+\s+(.+?)\s+\(').firstMatch(line);
+    final fileMatch = RegExp(r'\((.+?):\d+:\d+\)').firstMatch(line);
+
+    return {
+      'methodName': methodMatch?.group(1),
+      'className': fileMatch?.group(1),
+    };
   }
 
   static Future<String?> _getUserId() async {
