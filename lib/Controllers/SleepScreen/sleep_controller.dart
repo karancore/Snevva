@@ -1270,11 +1270,27 @@ class SleepController extends GetxService {
 
   void setBedtime(TimeOfDay time) {
     bedtime.value = time;
-    getStorage.write(BEDTIME_KEY, timeOfDayToMinutes(time));
+    final minutes = timeOfDayToMinutes(time);
+    getStorage.write(BEDTIME_KEY, minutes);
+
+    // Mirror into SharedPreferences so background isolate can read it.
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setInt(BEDTIME_KEY, minutes);
+    });
+
+    debugPrint('🛏️ Bedtime set → $time ($minutes min since midnight)');
   }
 
   void setWakeTime(TimeOfDay time) {
     waketime.value = time;
-    getStorage.write(WAKETIME_KEY, timeOfDayToMinutes(time));
+    final minutes = timeOfDayToMinutes(time);
+    getStorage.write(WAKETIME_KEY, minutes);
+
+    // Mirror into SharedPreferences so background isolate can read it.
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setInt(WAKETIME_KEY, minutes);
+    });
+
+    debugPrint('⏰ Waketime set → $time ($minutes min since midnight)');
   }
 }
