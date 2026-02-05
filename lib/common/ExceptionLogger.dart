@@ -26,7 +26,7 @@ class ExceptionLogger {
         className: className,
       );
 
-      AuthService.logexceptiontoServer(log.toString());
+      AuthService.logexceptiontoServer(log.toJson());
 
       print('✅ Exception logged to server');
     } catch (e) {
@@ -36,6 +36,6 @@ class ExceptionLogger {
 
   static Future<String?> _getUserId() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('userId');
+    return prefs.getString('PatientCode');
   }
 }

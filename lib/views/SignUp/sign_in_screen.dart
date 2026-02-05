@@ -247,6 +247,9 @@ class _SignInScreenState extends State<SignInScreen> {
     await prefs.setString('userdata', jsonEncode(userData));
     localStorageManager.userMap.value = userData ?? {};
 
+    final PatientCode = userData['PatientCode']?.toString() ?? '';
+    await prefs.setString('PatientCode', PatientCode);
+
     final nameValid = userData['Name']?.toString().trim().isNotEmpty ?? false;
     final genderValid =
         userData['Gender']?.toString().trim().isNotEmpty ?? false;

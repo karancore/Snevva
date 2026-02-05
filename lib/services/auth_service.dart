@@ -119,9 +119,9 @@ class AuthService {
         throw Exception('API Error: ${response.statusCode}');
       }
 
-      print('✅ Successfully logged exception to server');
+      print('Successfully logged exception to server');
   }catch(e){
-      print('❌ Error during log exception API call: $e');
+      print('Error during log exception API call: $e');
     }
   }
   static Future<void> forceLogout() async {

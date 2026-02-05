@@ -40,7 +40,6 @@ class ExceptionLog {
   @override
   String toString() {
     return '''
-ExceptionLog(
   DataCode: $dataCode,
   UserId: $userId,
   UserInput: $userInput,
@@ -51,7 +50,6 @@ ExceptionLog(
   InnerException: $innerException,
   MethodName: $methodName,
   ClassName: $className
-)
 ''';
   }
 

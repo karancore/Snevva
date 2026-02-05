@@ -348,14 +348,14 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
   }) {
 
 
-     return Material(
+
+    return Material(
       color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
       elevation: 1,
       borderRadius: BorderRadius.circular(4),
       child: InkWell(
         onTap: () {
           dietController.dietTagsDataResponse.value = item;
-
           final daysList = item.mealPlan ?? [];
 
           Get.to(DietDetailsScreen(diet: item, daysList: daysList));
