@@ -84,8 +84,8 @@ Future<void> ensureFirebaseInitialized() async {
 /// ------------------------------------------------------------
 @pragma('vm:entry-point')
 Future<void> notificationBackgroundHandler(
-    NotificationResponse response,
-    ) async {
+  NotificationResponse response,
+) async {
   // Use the ID from the response if available, otherwise fallback to constant
   final int notificationId = response.id ?? WAKE_NOTIFICATION_ID;
   final fln = FlutterLocalNotificationsPlugin();
@@ -142,66 +142,38 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 /// ------------------------------------------------------------
 void main() async {
   ErrorWidget.builder = (FlutterErrorDetails details) {
-    logLong('ERROR WIDGET', details.toString());
+    // fire-and-forget
+    ExceptionLogger.log(
+      exception: details.exception,
+      stackTrace: details.stack,
+      methodName: 'ErrorWidget.builder',
+      className: 'main.dart',
+    );
+
     return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Image.asset(errorIcon, scale: 2),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Oops! Something went wrong.',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    // const SizedBox(height: 10),
-                    // // Optionally show a basic message for the user,
-                    // // or log the full details to a service.
-                    // Text(
-                    //   'An error occurred: $details',
-                    //   textAlign: TextAlign.center,
-                    //   style: const TextStyle(color: Colors.black54),
-                    // ),
-                    // if (onRetry != null) ...[
-                    //   const SizedBox(height: 20),
-                    //   ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
-                    // ],
-                  ],
-                ),
-              ),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.error, size: 64),
+            SizedBox(height: 10),
+            Text(
+              'Oops! Something went wrong.',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   };
-  WidgetsFlutterBinding.ensureInitialized();
-  FlutterError.onError = (FlutterErrorDetails details) {
-    logLong("FlutterError caught stack :" , details.stack.toString());
-    //
-    // ExceptionLogger.log(
-    //   exception: details.exception,
-    //   stackTrace: details.stack,
-    //   methodName: 'FlutterError.onError',
-    //   className: 'main.dart',
-    // );
-    //return ErrorPlaceholder(details: details.toString());
-  };
-  await ensureFirebaseInitialized();
-  await setupHive();
-  await initialiseGetxServicesAndControllers();
-  // 🔥 Flutter framework errors
-  // 🔥 Dart / async / isolate errors
   runZonedGuarded(
-        () async {
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+
+      await ensureFirebaseInitialized();
+      await setupHive();
+      await initialiseGetxServicesAndControllers();
+
       FirebaseMessaging.onBackgroundMessage(
         _firebaseMessagingBackgroundHandler,
       );
@@ -211,15 +183,13 @@ void main() async {
 
       runApp(MyApp(isRemembered: isRemembered));
     },
-        (error, stack) {
-      // ExceptionLogger.log(
-      //   exception: error.toString(),
-      //   stackTrace: stack,
-      //   methodName: 'FlutterError.onError',
-      //   className: 'main.dart',
-      // );
-
-      ErrorPlaceholder(details: stack.toString());
+    (error, stack) async {
+      await ExceptionLogger.log(
+        exception: error,
+        stackTrace: stack,
+        methodName: 'runZonedGuarded',
+        className: 'main.dart',
+      );
     },
   );
 }
@@ -234,60 +204,60 @@ Future<void> initialiseGetxServicesAndControllers() async {
       return service;
     }, permanent: true),
     Get.putAsync<AlertsController>(
-          () async => AlertsController(),
+      () async => AlertsController(),
       permanent: true,
     ),
     Get.putAsync<SignInController>(
-          () async => SignInController(),
+      () async => SignInController(),
       permanent: false,
     ),
     Get.putAsync<SleepController>(
-          () async => SleepController(),
+      () async => SleepController(),
       permanent: false,
     ),
     Get.putAsync<SignUpController>(
-          () async => SignUpController(),
+      () async => SignUpController(),
       permanent: false,
     ),
     Get.putAsync<OTPVerificationController>(
-          () async => OTPVerificationController(),
+      () async => OTPVerificationController(),
       permanent: false,
     ),
     Get.putAsync<UpdateOldPasswordController>(
-          () async => UpdateOldPasswordController(),
+      () async => UpdateOldPasswordController(),
       permanent: false,
     ),
     Get.putAsync<CreatePasswordController>(
-          () async => CreatePasswordController(),
+      () async => CreatePasswordController(),
       permanent: false,
     ),
     Get.putAsync<ProfileSetupController>(
-          () async => ProfileSetupController(),
+      () async => ProfileSetupController(),
       permanent: false,
     ),
     Get.putAsync<VitalsController>(
-          () async => VitalsController(),
+      () async => VitalsController(),
       permanent: false,
     ),
     Get.putAsync<HydrationStatController>(
-          () async => HydrationStatController(),
+      () async => HydrationStatController(),
       permanent: false,
     ),
     Get.putAsync<MoodController>(
-          () async => MoodController(),
+      () async => MoodController(),
       permanent: false,
     ),
     Get.putAsync<EditprofileController>(
-          () async => EditprofileController(),
+      () async => EditprofileController(),
       permanent: true,
     ),
     Get.putAsync<BmiController>(() async => BmiController(), permanent: true),
     Get.putAsync<DietPlanController>(
-          () async => DietPlanController(),
+      () async => DietPlanController(),
       permanent: true,
     ),
     Get.putAsync<HealthTipsController>(
-          () async => HealthTipsController(),
+      () async => HealthTipsController(),
       permanent: true,
     ),
   ]);
@@ -407,7 +377,7 @@ class _MyAppState extends State<MyApp> {
       await initializeApp().timeout(const Duration(seconds: 10));
 
       final hasSession =
-      await Get.find<LocalStorageManager>().hasValidSession();
+          await Get.find<LocalStorageManager>().hasValidSession();
 
       if (!hasSession) {
         Get.offAll(() => HomeWrapper());
@@ -458,17 +428,17 @@ class _MyAppState extends State<MyApp> {
         GetPage(name: '/mood', page: () => MoodTrackerScreen()),
       ],
       home:
-      _initState == AppInitState.loading
-          ? const InitializationSplash()
-          : _initState == AppInitState.success
-          ? HomeWrapper()
-          : ErrorPlaceholder(
-        onRetry: () {
-          _startTimeout();
-          _initializeAppAsync();
-        },
-        details: '',
-      ),
+          _initState == AppInitState.loading
+              ? const InitializationSplash()
+              : _initState == AppInitState.success
+              ? HomeWrapper()
+              : ErrorPlaceholder(
+                onRetry: () {
+                  _startTimeout();
+                  _initializeAppAsync();
+                },
+                details: '',
+              ),
     );
   }
 }

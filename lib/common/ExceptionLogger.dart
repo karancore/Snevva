@@ -2,6 +2,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/models/exception_Log.dart';
 import 'package:snevva/services/api_service.dart';
+import 'package:snevva/services/auth_service.dart';
 
 class ExceptionLogger {
   static Future<void> log({
@@ -25,12 +26,7 @@ class ExceptionLogger {
         className: className,
       );
 
-      await ApiService.post(
-        logexception,
-        log.toJson(),
-        withAuth: false,
-        encryptionRequired: true,
-      );
+      AuthService.logexceptiontoServer(log);
 
       print('✅ Exception logged to server');
     } catch (e) {
