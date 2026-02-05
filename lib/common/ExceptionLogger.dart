@@ -38,26 +38,25 @@ class ExceptionLogger {
   }
 
   static Map<String, String?> _extractFromStack(StackTrace stackTrace) {
-    final lines = stackTrace.toString().split('\n');
+  final lines = stackTrace.toString().split('\n');
 
-    // Skip framework lines
-    final line = lines.firstWhere(
-      (l) =>
-          !l.contains('ExceptionLogger') &&
-          !l.contains('runZonedGuarded') &&
-          !l.contains('ErrorWidget'),
-      orElse: () => '',
-    );
+  // Pick first frame from YOUR app
+  final line = lines.firstWhere(
+    (l) => l.contains('package:snevva/'),
+    orElse: () => '',
+  );
 
-    // #0   AuthService.login (package:app/services/auth_service.dart:42:10)
-    final methodMatch = RegExp(r'#\d+\s+(.+?)\s+\(').firstMatch(line);
-    final fileMatch = RegExp(r'\((.+?):\d+:\d+\)').firstMatch(line);
+  // #10 DietPlanController.getAllDiets (package:snevva/Controllers/DietPlan/diet_plan_controller.dart:84:23)
+  final methodMatch = RegExp(r'#\d+\s+(.+?)\s+\(').firstMatch(line);
+  final fileMatch =
+      RegExp(r'package:snevva\/(.+?):\d+:\d+').firstMatch(line);
 
-    return {
-      'methodName': methodMatch?.group(1),
-      'className': fileMatch?.group(1),
-    };
-  }
+  return {
+    'methodName': methodMatch?.group(1), // DietPlanController.getAllDiets
+    'className': fileMatch?.group(1),    // Controllers/DietPlan/diet_plan_controller.dart
+  };
+}
+
 
   static Future<String?> _getUserId() async {
     final prefs = await SharedPreferences.getInstance();
