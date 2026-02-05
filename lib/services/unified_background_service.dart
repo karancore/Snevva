@@ -194,7 +194,8 @@ void _handleScreenStateChange(
   Box<SleepLog> sleepBox,
   SharedPreferences prefs,
 ) async {
-  // Get bedtime and wakeup time from SharedPreferences
+  // Get bedtime and wakeup time from SharedPreferences.
+  // Keys match SleepController.BEDTIME_KEY / WAKETIME_KEY.
   final bedtimeMinutes = prefs.getInt('user_bedtime_ms');
   final waketimeMinutes = prefs.getInt('user_waketime_ms');
   

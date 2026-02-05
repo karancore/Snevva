@@ -403,7 +403,7 @@ class _MyAppState extends State<MyApp> {
         data: const {},
       );
       // #endregion
-      await initBackgroundService();
+      // await initBackgroundService();
 
       _timeoutTimer?.cancel();
 

@@ -80,12 +80,7 @@ class SleepController extends GetxService {
   @override
   void onInit() {
     super.onInit();
-    _sleepService.onAwakeSegmentDetected = _onSleepDetected;
-    _sleepService.onSleepResumed = (DateTime time) {
-      _currentSleepSegmentStart = time;
-      _sleepState = SleepState.sleeping;
-    };
-
+        
 
     loadDeepSleepData();
     loadUserSleepTimes();
