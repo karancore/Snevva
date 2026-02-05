@@ -60,8 +60,8 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await dietController.getCelebrity(context,);
-      await dietController.getAllSuggestions(context,);
+      await dietController.getCelebrity(context);
+      await dietController.getAllSuggestions(context);
       await dietController.getAllDiets(context, "Vegetarian");
       // logLong("Celebrity Diet Response:" ,  celebrity.toString());
     });
@@ -131,7 +131,6 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                 if (dietController.isCategoryLoading.value) {
                   return const Loader();
                 }
-
 
                 final data = dietController.suggestionsResponse.value.data;
 
@@ -250,7 +249,6 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                 return const Loader();
               }
 
-
               final data = dietController.categoryResponse.value.data;
 
               if (data == null || data.isEmpty) {
@@ -348,16 +346,19 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     required String dietImg,
     required bool isDarkMode,
   }) {
-    dietController.dietTagsDataResponse.value = item;
-    return Material(
+
+
+     return Material(
       color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
       elevation: 1,
       borderRadius: BorderRadius.circular(4),
       child: InkWell(
         onTap: () {
+          dietController.dietTagsDataResponse.value = item;
+
           final daysList = item.mealPlan ?? [];
 
-          Get.to(DietDetailsScreen(diet: item , daysList: daysList,));
+          Get.to(DietDetailsScreen(diet: item, daysList: daysList));
         },
         child: Container(
           width: width * 0.43,
@@ -437,7 +438,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
             tags: [],
           );
 
-          Get.to(DietDetailsScreen(diet: diet, daysList: [],));
+          Get.to(DietDetailsScreen(diet: diet, daysList: []));
         },
         child: Container(
           width: width * 0.43,

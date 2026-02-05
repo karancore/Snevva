@@ -103,11 +103,11 @@ class AuthService {
   }
 
   static Future<void> logexceptiontoServer(dynamic exceptionDetails) async {
-    try{      
-
-      
-      
+    try{
       final payload = {'ExceptionDetails': exceptionDetails};
+
+      debugPrint("🚨 Logging exception to server: $exceptionDetails");
+
       final response = await ApiService.post(
         logexception,
         payload,

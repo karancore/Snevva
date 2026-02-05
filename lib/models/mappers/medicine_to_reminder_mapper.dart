@@ -7,6 +7,7 @@ extension MedicineToReminderMapper on MedicineReminderModel {
       id: id,
       title: title,
       category: category,
+      whenToTake: whenToTake,
 
       medicineName: medicineName,
       medicineType: medicineType,

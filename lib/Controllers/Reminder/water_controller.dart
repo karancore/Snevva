@@ -24,7 +24,6 @@ class WaterController extends GetxController {
   final startWaterTimeController = TextEditingController();
   final endWaterTimeController = TextEditingController();
   var waterList = <WaterReminderModel>[].obs;
-  var selectedOption = Option.times.obs;
   var savedTimes = 0.obs;
   final everyXhours = 1.obs;
 
@@ -223,6 +222,9 @@ class WaterController extends GetxController {
 
     print('water reminder title is ${reminderController.titleController.text}');
 
+    print("startWaterTimeController ${startWaterTimeController.text.trim()}");
+    print("endWaterTimeController ${endWaterTimeController.text.trim()}");
+
     final model = WaterReminderModel(
       id: waterReminderId,
       title:
@@ -230,6 +232,10 @@ class WaterController extends GetxController {
               ? reminderController.titleController.text
               : 'WATER REMINDER',
       alarms: createdAlarms,
+      waterReminderStartTime: startWaterTimeController.text.trim(),
+      waterReminderEndTime: endWaterTimeController.text.trim(),
+      notes: reminderController.notesController.text.trim(),
+      type: Option.times,
       timesPerDay: times.toString(),
       category: "Water",
     );
@@ -244,7 +250,8 @@ class WaterController extends GetxController {
     await reminderController.saveReminderList(waterList, "water_list");
     await reminderController.loadAllReminderLists();
 
-    List<String> list = createdAlarms.map((e) => e.toJson().toString()).toList();
+    List<String> list =
+        createdAlarms.map((e) => e.toJson().toString()).toList();
 
     // final waterData = {
     //   "id": waterReminderId,
@@ -258,15 +265,21 @@ class WaterController extends GetxController {
     //   "intervalHours": null,
     //   "isActive": true,
     // };
+
+    print("startWaterTimeController ${startWaterTimeController.text.trim()}");
+    print("endWaterTimeController ${endWaterTimeController.text.trim()}");
+
     final waterData = ReminderPayloadModel(
       id: waterReminderId,
       category: ReminderCategory.water.toString(),
       title: model.title,
-      notes: reminderController.notesController.text ,
+      notes: reminderController.notesController.text,
       reminderFrequencyType: Option.times.toString(),
       customReminder: CustomReminder(
-        timesPerDay: TimesPerDay(count: times.toString(), list: list)
-      )
+        timesPerDay: TimesPerDay(count: times.toString(), list: list),
+      ),
+      startWaterTime: startWaterTimeController.text.trim(),
+      endWaterTime: endWaterTimeController.text.trim(),
     );
 
     print("Water Data setWaterAlarm: $waterData");
@@ -389,6 +402,9 @@ class WaterController extends GetxController {
     }
     final waterReminderId = DateTime.now().millisecondsSinceEpoch;
 
+    print("startWaterTimeController ${startWaterTimeController.text.trim()}");
+    print("endWaterTimeController ${endWaterTimeController.text.trim()}");
+
     final model = WaterReminderModel(
       id: waterReminderId,
       title:
@@ -397,6 +413,10 @@ class WaterController extends GetxController {
               : '',
       alarms: [],
       timesPerDay: '',
+      notes: reminderController.notesController.text.trim(),
+      waterReminderStartTime: startWaterTimeController.text.trim(),
+      waterReminderEndTime: endWaterTimeController.text.trim(),
+      type: Option.interval,
       interval: '$intervalHours',
       category: "Water",
     );
@@ -423,6 +443,10 @@ class WaterController extends GetxController {
     //   "intervalHours": intervalHours,
     //   "isActive": true,
     // };
+
+    print("startWaterTimeController ${startWaterTimeController.text.trim()}");
+    print("endWaterTimeController ${endWaterTimeController.text.trim()}");
+
     final waterData = ReminderPayloadModel(
       id: waterReminderId,
       category: "WATER",
@@ -436,6 +460,8 @@ class WaterController extends GetxController {
           endTime: endWaterTimeController.text,
         ),
       ),
+      startWaterTime: startWaterTimeController.text.trim(),
+      endWaterTime: endWaterTimeController.text.trim(),
     );
     print("Water Data setIntervalReminders: $waterData");
 
@@ -559,8 +585,12 @@ class WaterController extends GetxController {
             title: entry.key,
             id: alarmsId(),
             alarms: [],
+            notes: reminderController.notesController.text.trim(),
+            type: waterReminderOption.value,
             timesPerDay: timesPerDayController.text,
             category: "Water",
+            waterReminderStartTime: startWaterTimeController.text.trim(),
+            waterReminderEndTime: endWaterTimeController.text.trim(),
           );
 
           loadedList.add(fallbackModel);
@@ -573,11 +603,17 @@ class WaterController extends GetxController {
     return loadedList;
   }
 
-  Future<void> deleteWaterReminder(String id) async {
+  Future<void> deleteWaterReminder(int id) async {
+    debugPrint('🗑️ deleteWaterReminder called with id=$id');
+
     int index = -1;
 
-    // Find the reminder by id
     for (int i = 0; i < waterList.length; i++) {
+      debugPrint(
+        '🔍 Checking waterList[$i] → storedId=${waterList[i].id} '
+        '(type=${waterList[i].id.runtimeType})',
+      );
+
       if (waterList[i].id == id) {
         index = i;
         break;
@@ -585,14 +621,20 @@ class WaterController extends GetxController {
     }
 
     if (index != -1) {
+      debugPrint('✅ Water reminder found at index=$index');
+
       for (var alarm in waterList[index].alarms) {
+        debugPrint('⏹️ Stopping alarm id=${alarm.id}');
         await Alarm.stop(alarm.id);
       }
 
       waterList.removeAt(index);
+      debugPrint('🗑️ Removed water reminder. Remaining=${waterList.length}');
+
       await reminderController.saveReminderList(waterList, "water_list");
+      debugPrint('💾 Water list saved to Hive');
     } else {
-      debugPrint('No water reminder found with id: $id');
+      debugPrint('❌ No water reminder found with id=$id');
     }
   }
 

@@ -16,8 +16,10 @@ class MealController extends GetxController {
 
   var mealsList = <Map<String, AlarmSettings>>[].obs;
 
-  Future<void> addMealAlarm(DateTime scheduledTime,
-      BuildContext context,) async {
+  Future<void> addMealAlarm(
+    DateTime scheduledTime,
+    BuildContext context,
+  ) async {
     final id = alarmsId();
     final title = reminderController.titleController.text.trim();
     final notes = reminderController.notesController.text.trim();
@@ -28,13 +30,17 @@ class MealController extends GetxController {
     //   "notes": notes.isNotEmpty ? notes : "",
     //   "scheduledTime": scheduledTime.toIso8601String(),
     // };
-    final mealData = ReminderPayloadModel(id: alarmsId(),
-        category: ReminderCategory.meal.toString(),
-        title: title,
-        notes: notes.isNotEmpty ? notes : "" ,
+    final mealData = ReminderPayloadModel(
+      id: id,
+      category: ReminderCategory.meal.toString(),
+      title: title,
+      notes: notes.isNotEmpty ? notes : "",
       customReminder: CustomReminder(
-        timesPerDay: TimesPerDay(count: 1.toString(), list: [scheduledTime.toString()])
-      )
+        timesPerDay: TimesPerDay(
+          count: 1.toString(),
+          list: [scheduledTime.toString()],
+        ),
+      ),
     );
     print("Meal Data: $mealData");
     final alarmSettings = AlarmSettings(
@@ -50,9 +56,9 @@ class MealController extends GetxController {
       ),
       notificationSettings: NotificationSettings(
         title:
-        title.isNotEmpty
-            ? reminderController.titleController.text
-            : 'MEAL REMINDER',
+            title.isNotEmpty
+                ? reminderController.titleController.text
+                : 'MEAL REMINDER',
         body: notes,
         stopButton: 'Stop',
         icon: 'alarm',
@@ -65,30 +71,34 @@ class MealController extends GetxController {
       // Reload list from Hive to ensure we have the latest data and don't override
       mealsList.value = await reminderController.loadReminderList("meals_list");
 
-      mealsList.add({
-        reminderController.titleController.text.trim(): alarmSettings,
-      });
-      reminderController.addRemindertoAPI(mealData, context);
-      reminderController.titleController.clear();
-      reminderController.notesController.clear();
+      final reminderId = DateTime.now().millisecondsSinceEpoch;
+      final displayTitle = title.isNotEmpty ? title : 'MEAL REMINDER';
+
+      mealsList.add({displayTitle: alarmSettings});
+
       await reminderController.saveReminderList(mealsList, "meals_list");
 
       // Reload the combined list
       await reminderController.loadAllReminderLists();
+      reminderController.addRemindertoAPI(mealData, context);
 
       // CustomSnackbar.showSuccess(
       //   context: context,
       //   title: 'Success',
       //   message: 'Meal reminder set successfully!',
       // );
+      reminderController.titleController.clear();
+      reminderController.notesController.clear();
       CustomSnackbar().showReminderBar(context);
       Get.back(result: true);
     }
   }
 
-  Future<void> updateMealAlarm(DateTime scheduledTime,
-      BuildContext context,
-      int alarmId,) async {
+  Future<void> updateMealAlarm(
+    DateTime scheduledTime,
+    BuildContext context,
+    int alarmId,
+  ) async {
     // Use same AlarmSettings logic as _addMealAlarm but with alarmId
     final alarmSettings = AlarmSettings(
       id: alarmId,
@@ -103,13 +113,13 @@ class MealController extends GetxController {
       ),
       notificationSettings: NotificationSettings(
         title:
-        reminderController.titleController.text.isNotEmpty
-            ? reminderController.titleController.text
-            : 'MEAL REMINDER',
+            reminderController.titleController.text.isNotEmpty
+                ? reminderController.titleController.text
+                : 'MEAL REMINDER',
         body:
-        reminderController.notesController.text.isNotEmpty
-            ? reminderController.notesController.text
-            : '',
+            reminderController.notesController.text.isNotEmpty
+                ? reminderController.notesController.text
+                : '',
         stopButton: 'Stop',
         icon: 'alarm',
         iconColor: AppColors.primaryColor,

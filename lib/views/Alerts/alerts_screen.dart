@@ -97,9 +97,8 @@ class _AlertsScreenState extends State<AlertsScreen>
           Image.asset(noNotif, width: 180, height: 180),
           const SizedBox(height: 24),
 
-          // 🔕 Title
           Text(
-            'No notification',
+            'No alerts',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,

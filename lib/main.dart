@@ -151,21 +151,34 @@ void main() async {
     );
 
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(Icons.error, size: 64),
-            SizedBox(height: 10),
-            Text(
-              'Oops! Something went wrong.',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(errorIcon, scale: 2),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Oops! Something went wrong.',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   };
+
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
@@ -380,7 +393,7 @@ class _MyAppState extends State<MyApp> {
           await Get.find<LocalStorageManager>().hasValidSession();
 
       if (!hasSession) {
-        Get.offAll(() => HomeWrapper());
+        Get.offAll(() => SignInScreen());
         return;
       }
 

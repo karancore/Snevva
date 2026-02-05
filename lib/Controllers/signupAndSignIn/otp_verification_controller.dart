@@ -1,4 +1,3 @@
-import 'package:sms_autofill/sms_autofill.dart';
 
 import '../../common/custom_snackbar.dart';
 import '../../consts/consts.dart';
@@ -25,7 +24,7 @@ class OTPVerificationController extends GetxService {
   @override
   void onReady() {
     super.onReady();
-    _startSmsAutofill();
+    //_startSmsAutofill();
   }
 
 
@@ -37,13 +36,13 @@ class OTPVerificationController extends GetxService {
     super.onClose();
   }
 
-  void _startSmsAutofill() {
-    try {
-      SmsAutoFill().listenForCode();
-    } catch (e) {
-      debugPrint('sms_autofill error: $e');
-    }
-  }
+  // void _startSmsAutofill() {
+  //   try {
+  //     SmsAutoFill().listenForCode();
+  //   } catch (e) {
+  //     debugPrint('sms_autofill error: $e');
+  //   }
+  // }
 
   bool verifyOtp(String enteredOtp, String responseOtpp, BuildContext context) {
     debugPrint('🔐 [verifyOtp] CALLED');

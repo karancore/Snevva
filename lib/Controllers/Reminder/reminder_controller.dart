@@ -6,7 +6,6 @@ import 'package:alarm/alarm.dart';
 import 'package:alarm/model/alarm_settings.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:snevva/Controllers/Reminder/event_controller.dart';
@@ -53,6 +52,7 @@ class ReminderController extends GetxController {
   var enableNotifications = true.obs;
   var soundVibrationToggle = true.obs;
   final RxnInt remindMeBefore = RxnInt();
+  static const int maxTitleLength = 45;
 
   Rx<DateTime?> startDate = Rx<DateTime?>(null);
   Rx<DateTime?> endDate = Rx<DateTime?>(null);
@@ -71,19 +71,17 @@ class ReminderController extends GetxController {
     mealController = Get.find<MealController>();
     eventGetxController = Get.find<EventController>();
     startDate.value = DateTime.now();
-    checkAndroidNotificationPermission();
+    initAlarmListener();
+
     startDateString.value = "Start Date";
     endDateString.value = "End Date";
 
-    checkAndroidScheduleExactAlarmPermission();
-    initAlarmListener();
-    // Defer heavy loading until after first frame to avoid UI freeze
-    // WidgetsBinding.instance.addPostFrameCallback((_) async {
-    //   await loadAlarms();
-    //   await loadAllReminderLists();
-    // });
-    Future.microtask(() {
-      Future.wait([loadAlarms(), loadAllReminderLists()]);
+    Future.microtask(() async {
+      await checkAndroidNotificationPermission();
+      await checkAndroidScheduleExactAlarmPermission();
+      await cleanupExpiredBeforeAlarms();
+      await loadAlarms();
+      await loadAllReminderLists();
     });
 
     // WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -101,6 +99,14 @@ class ReminderController extends GetxController {
 
     super.onClose();
   }
+
+  // BoxShadow(
+  // color: Colors.grey.withOpacity(0.4), // Shadow color
+  // spreadRadius: 2, // How widely the shadow spreads
+  // blurRadius: 6, // How blurry the shadow is
+
+  // offset: Offset(0, 0), // Horizontal and vertical offset
+  // ),
 
   Future<void> handleRemindMeBefore({
     required RxnInt option,
@@ -238,6 +244,11 @@ class ReminderController extends GetxController {
         stopButton: "Stop",
         icon: "alarm",
       ),
+      payload: jsonEncode({
+        "type": "before",
+        "category": selectedCategory.value,
+        "mainTime": mainTime.toIso8601String(),
+      }),
       volumeSettings: VolumeSettings.fade(
         fadeDuration: const Duration(seconds: 2),
       ),
@@ -245,6 +256,25 @@ class ReminderController extends GetxController {
 
     // 6️⃣ Set alarm
     await Alarm.set(alarmSettings: alarmSettings);
+  }
+
+  Future<void> cleanupExpiredBeforeAlarms() async {
+    final alarms = await Alarm.getAlarms();
+    final now = DateTime.now();
+    for (final alarm in alarms) {
+      final payload = alarm.payload;
+      if (payload == null) continue;
+      final decoded = jsonDecode(payload);
+      if (decoded['type'] == 'before') {
+        final mainTime = DateTime.parse(decoded['mainTime']);
+        if (now.isAfter(mainTime)) {
+          debugPrint(
+            "Cancelling expired before-alarm ${alarm.notificationSettings.title}",
+          );
+          await Alarm.stop(alarm.id);
+        }
+      }
+    }
   }
 
   DateTime calculateBeforeReminder() {
@@ -482,42 +512,56 @@ class ReminderController extends GetxController {
     final id = reminder.id;
     final category = reminder.category;
 
-    if (id == null) {
-      return;
-    }
+    debugPrint(
+      '🗑️ deleteReminder START → '
+      'category=$category, id=$id (type=${id.runtimeType})',
+    );
 
     switch (category) {
       case 'Medicine':
+        debugPrint('➡️ Deleting Medicine');
         await _deleteFromListById(
           medicineGetxController.medicineList,
-          reminder.id,
+          id,
           "medicine_list",
         );
         break;
+
       case 'Meal':
+        debugPrint('➡️ Deleting Meal');
         await _deleteFromListById(mealController.mealsList, id, "meals_list");
         break;
+
       case 'Event':
+        debugPrint('➡️ Deleting Event');
         await _deleteFromListById(
           eventGetxController.eventList,
           id,
           "event_list",
         );
         break;
+
       case 'Water':
-        if (id is String) {
-          await waterController.deleteWaterReminder(id.toString());
-        }
+        debugPrint('➡️ Deleting Water');
+        //"water_list";
+        await waterController.deleteWaterReminder(id);
+
         break;
+
+      default:
+        debugPrint('⚠️ Unknown category: $category');
     }
+
+    debugPrint('🔄 Reloading all reminder lists');
     await loadAllReminderLists();
+    debugPrint('✅ deleteReminder END');
   }
 
   Future<void> _deleteFromListById(
-      RxList<dynamic> list,
-      int id,
-      String keyName,
-      ) async {
+    RxList<dynamic> list,
+    int id,
+    String keyName,
+  ) async {
     debugPrint('🗑️ Delete requested → id: $id | key: $keyName');
     debugPrint('📦 List length: ${list.length}');
 
@@ -538,7 +582,6 @@ class ReminderController extends GetxController {
           break;
         }
       }
-
       // Handle MedicineReminderModel
       else if (item is medicine_payload.MedicineReminderModel) {
         debugPrint('   MedicineReminderModel ID: ${item.id}');
@@ -635,6 +678,8 @@ class ReminderController extends GetxController {
               'id=${item.id}, '
               'title=${item.title}, '
               'alarms=${item.alarms.length}, '
+              'waterReminderStartTime=${item.waterReminderStartTime}, '
+              'waterReminderEndTime=${item.waterReminderEndTime}, '
               'timesPerDay=${item.timesPerDay}',
             );
             return jsonEncode(item.toJson());
@@ -683,6 +728,13 @@ class ReminderController extends GetxController {
             id: item.id,
             category: "Medicine",
             title: item.title,
+            whenToTake: item.whenToTake,
+            medicineName: item.medicineName,
+            dosage: reminder_payload.Dosage(
+              value: item.dosage.value,
+              unit: item.dosage.unit,
+            ),
+            medicineType: item.medicineType,
             notes: item.notes,
             medicineFrequencyPerDay: item.medicineFrequencyPerDay,
             customReminder: reminder_payload.CustomReminder(
@@ -703,6 +755,7 @@ class ReminderController extends GetxController {
               id: alarm.id,
               category: "Meal",
               title: title,
+              notes: alarm.notificationSettings.body,
               customReminder: reminder_payload.CustomReminder(
                 timesPerDay: reminder_payload.TimesPerDay(
                   count: 1.toString(),
@@ -741,27 +794,43 @@ class ReminderController extends GetxController {
           'id=${item.id}, '
           'title=${item.title}, '
           'alarms=${item.alarms.length}, '
-          'timesPerDay=${item.timesPerDay} , '
-          'interval= ${item.interval}',
+          'start_water_time=${item.waterReminderStartTime}, '
+          'end_water_time=${item.waterReminderEndTime}, '
+          'timesPerDay=${item.timesPerDay}, '
+          'interval=${item.interval}, '
+          'type=${item.type.name}',
         );
+
+        final bool isTimesBased = item.type == Option.times;
+        final bool isIntervalBased = item.type == Option.interval;
 
         combined.add(
           reminder_payload.ReminderPayloadModel(
             id: item.id,
             category: "Water",
-            title: titleController.text.trim(),
+            title: item.title,
+            // ✅ FIXED
             customReminder: reminder_payload.CustomReminder(
-              timesPerDay: reminder_payload.TimesPerDay(
-                count: item.timesPerDay,
-                list: [],
-              ),
-
-              everyXHours: reminder_payload.EveryXHours(
-                hours: int.parse(item.interval ?? ''),
-                startTime: '',
-                endTime: '',
-              ),
+              type: item.type, // ✅ FIXED
+              timesPerDay:
+                  isTimesBased
+                      ? reminder_payload.TimesPerDay(
+                        count: item.timesPerDay,
+                        list: [],
+                      )
+                      : null,
+              everyXHours:
+                  isIntervalBased
+                      ? reminder_payload.EveryXHours(
+                        hours: int.parse(item.interval ?? ''),
+                        // SAFE because type enforces it
+                        startTime: '',
+                        endTime: '',
+                      )
+                      : null,
             ),
+            startWaterTime: item.waterReminderStartTime,
+            endWaterTime: item.waterReminderEndTime,
           ),
         );
       }
@@ -881,14 +950,6 @@ class ReminderController extends GetxController {
     required BuildContext context,
     num? dosage,
   }) async {
-    if (titleController.text.trim().isEmpty) {
-      CustomSnackbar.showSnackbar(
-        context: context,
-        title: "Title Missing",
-        message: "Add a title for ${selectedCategory.value} reminder",
-      );
-      return false;
-    }
     final isSelected =
         medicineGetxController.medicineRemindMeBeforeOption.value == 0;
 
@@ -899,8 +960,8 @@ class ReminderController extends GetxController {
         timeController: xTimeUnitController,
         unitController: selectedValue,
         category: "Medicine",
-        title: "Reminder before your medicine",
-        body: "Your medicine is coming in ",
+        title: "Upcoming Medicine Reminde",
+        body: "It’s almost time to take your medicine in ",
       );
     }
     final isSelectedEvent = eventGetxController.eventRemindMeBefore.value == 0;
@@ -911,23 +972,50 @@ class ReminderController extends GetxController {
         timeOfDay: pickedTime.value,
         timeController: xTimeUnitController,
         unitController: selectedValue,
-        title: "Reminder before your event",
-        body: "Your event is coming in ",
+        title: "Upcoming Event Reminder",
+        body: "Your scheduled event will start in ",
         category: "Event",
       );
     }
 
-    if (pickedTime.value == null &&
-        (selectedCategory.value == "Medicine" ||
-            selectedCategory.value == "Meal" ||
-            selectedCategory.value == "Event")) {
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'Please select a ${selectedCategory.value.toLowerCase()} time',
+    // 🔒 Always validate inputs first
+    if (titleController.text.trim().isEmpty) {
+      Get.snackbar(
+        "Almost there",
+        "Add a title for your ${selectedCategory.value} reminder",
+        snackPosition: SnackPosition.TOP,
+        colorText: white,
+        backgroundColor: AppColors.primaryColor,
+        duration: const Duration(seconds: 2),
       );
       return false;
     }
+    if (titleController.text.trim().length >= maxTitleLength) {
+      Get.snackbar(
+        "Title too long",
+        "You can keep the title short and add extra details in Notes",
+        snackPosition: SnackPosition.TOP,
+        colorText: white,
+        backgroundColor: AppColors.primaryColor,
+        duration: const Duration(seconds: 2),
+      );
+      return false;
+    }
+
+
+    if (pickedTime.value == null) {
+      Get.snackbar(
+        "Almost there",
+        "Pick a time for your ${selectedCategory.value} reminder",
+        snackPosition: SnackPosition.TOP,
+        colorText: white,
+        backgroundColor: AppColors.primaryColor,
+        duration: const Duration(seconds: 2),
+      );
+
+      return false;
+    }
+
     if (editingId.value != null) {
       updateReminderFromLocal(
         context,
@@ -940,10 +1028,13 @@ class ReminderController extends GetxController {
 
     if (selectedCategory.value == "Medicine") {
       if (dosage == null || dosage <= 0) {
-        CustomSnackbar.showError(
-          context: context,
-          title: 'Error',
-          message: 'Please enter a valid dosage',
+        Get.snackbar(
+          "Oops!",
+          "That dosage doesn’t look right. Please enter a valid one.",
+          snackPosition: SnackPosition.TOP,
+          colorText: white,
+          backgroundColor: AppColors.primaryColor,
+          duration: const Duration(seconds: 2),
         );
         return false;
       }
@@ -951,12 +1042,29 @@ class ReminderController extends GetxController {
 
     switch (selectedCategory.value) {
       case "Medicine":
-        CustomSnackbar.showSnackbar(
-          context: context,
-          title: "Work In Progress",
-          message: "",
-        );
+        final int expectedTimes =
+            medicineGetxController.getEffectiveTimesPerDay();
 
+        final int filledTimes =
+            medicineGetxController.timeControllers
+                .where((ctrl) => ctrl.text.trim().isNotEmpty)
+                .length;
+
+        if (filledTimes < expectedTimes) {
+          final missing = expectedTimes - filledTimes;
+
+          Get.snackbar(
+            "Missing time${missing > 1 ? 's' : ''}",
+            "You selected '${medicineGetxController.selectedFrequency.value}'. "
+                "Please add $missing more time${missing > 1 ? 's' : ''}.",
+            snackPosition: SnackPosition.TOP,
+            colorText: white,
+            backgroundColor: AppColors.primaryColor,
+            duration: const Duration(seconds: 3),
+          );
+
+          return false;
+        }
         medicineGetxController.addMedicineAlarm(
           context: context,
           dosage: dosage,
@@ -1070,14 +1178,15 @@ class ReminderController extends GetxController {
       medicineGetxController.medicineController.text =
           reminder.medicineName ?? '';
       debugPrint(
-          "→ medicineController.text: ${medicineGetxController.medicineController.text}");
+        "→ medicineController.text: ${medicineGetxController.medicineController.text}",
+      );
     }
 
     // Start date (SAFE)
     startDate.value =
-    reminder.startDate != null && reminder.startDate!.isNotEmpty
-        ? DateTime.tryParse(reminder.startDate!)
-        : null;
+        reminder.startDate != null && reminder.startDate!.isNotEmpty
+            ? DateTime.tryParse(reminder.startDate!)
+            : null;
     debugPrint("→ startDate.value: ${startDate.value}");
 
     // Water reminder
@@ -1089,14 +1198,16 @@ class ReminderController extends GetxController {
         waterController.everyHourController.text =
             custom?.everyXHours?.hours.toString() ?? '';
         debugPrint(
-            "→ everyHourController.text: ${waterController.everyHourController.text}");
+          "→ everyHourController.text: ${waterController.everyHourController.text}",
+        );
       }
 
       if (waterController.waterReminderOption.value == Option.times) {
         waterController.timesPerDayController.text =
             custom?.timesPerDay?.count.toString() ?? '';
         debugPrint(
-            "→ timesPerDayController.text: ${waterController.timesPerDayController.text}");
+          "→ timesPerDayController.text: ${waterController.timesPerDayController.text}",
+        );
       }
     }
     debugPrint("━━━━━━━━━━ END LOAD REMINDER DATA ━━━━━━━━━━");

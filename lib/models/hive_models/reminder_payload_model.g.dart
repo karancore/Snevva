@@ -30,13 +30,16 @@ class ReminderPayloadModelAdapter extends TypeAdapter<ReminderPayloadModel> {
       startDate: fields[10] as String?,
       endDate: fields[11] as String?,
       notes: fields[12] as String?,
+      whenToTake: fields[13] as String?,
+      startWaterTime: fields[14] as String?,
+      endWaterTime: fields[15] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, ReminderPayloadModel obj) {
     writer
-      ..writeByte(13)
+      ..writeByte(16)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -62,7 +65,13 @@ class ReminderPayloadModelAdapter extends TypeAdapter<ReminderPayloadModel> {
       ..writeByte(11)
       ..write(obj.endDate)
       ..writeByte(12)
-      ..write(obj.notes);
+      ..write(obj.notes)
+      ..writeByte(13)
+      ..write(obj.whenToTake)
+      ..writeByte(14)
+      ..write(obj.startWaterTime)
+      ..writeByte(15)
+      ..write(obj.endWaterTime);
   }
 
   @override
@@ -87,7 +96,7 @@ class DosageAdapter extends TypeAdapter<Dosage> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return Dosage(
-      value: fields[0] as int,
+      value: fields[0] as num,
       unit: fields[1] as String,
     );
   }
@@ -124,18 +133,21 @@ class CustomReminderAdapter extends TypeAdapter<CustomReminder> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return CustomReminder(
-      timesPerDay: fields[0] as TimesPerDay?,
-      everyXHours: fields[1] as EveryXHours?,
+      type: fields[0] as Option?,
+      timesPerDay: fields[1] as TimesPerDay?,
+      everyXHours: fields[2] as EveryXHours?,
     );
   }
 
   @override
   void write(BinaryWriter writer, CustomReminder obj) {
     writer
-      ..writeByte(2)
+      ..writeByte(3)
       ..writeByte(0)
-      ..write(obj.timesPerDay)
+      ..write(obj.type)
       ..writeByte(1)
+      ..write(obj.timesPerDay)
+      ..writeByte(2)
       ..write(obj.everyXHours);
   }
 

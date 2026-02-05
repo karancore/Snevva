@@ -16,7 +16,7 @@ import '../../views/Information/StepCounter/step_counter_bottom_sheet.dart';
 import '../../views/Information/vitals.dart';
 import 'dashboard_container_widget.dart';
 
-class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
+class DashboardServiceOverviewDynamicWidgets extends StatefulWidget {
   const DashboardServiceOverviewDynamicWidgets({
     super.key,
     required this.width,
@@ -29,25 +29,38 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
   final bool isDarkMode;
 
   @override
+  State<DashboardServiceOverviewDynamicWidgets> createState() =>
+      _DashboardServiceOverviewDynamicWidgetsState();
+}
+
+class _DashboardServiceOverviewDynamicWidgetsState
+    extends State<DashboardServiceOverviewDynamicWidgets> {
+  late SleepController sleepController;
+  late StepCounterController stepController;
+  late VitalsController vitalController;
+  late HydrationStatController waterController;
+  late LocalStorageManager localStorage;
+  Map<String, dynamic> userActiveData = {};
+  int? stepgoal;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    stepController = Get.put(StepCounterController());
+    sleepController = Get.put(SleepController());
+    waterController = Get.find<HydrationStatController>();
+    vitalController = Get.find<VitalsController>();
+    localStorage = Get.find<LocalStorageManager>();
+
+    userActiveData = localStorage.userGoalDataMap ?? {};
+    stepgoal = userActiveData['StepGoalData']?['Count'];
+    debugPrint('userActiveData $userActiveData');
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final stepController = Get.put(StepCounterController());
-    final waterController = Get.find<HydrationStatController>();
-    final vitalController = Get.find<VitalsController>();
-    final sleepController = Get.put(SleepController());
-    bool _loaded = false;
-
-    final localstorage = Get.find<LocalStorageManager>();
-    final userInfo = localstorage.userMap;
-    debugPrint('userInfo: $userInfo');
-
-    // final userActiveData = signInController.userGoalData ?? {};
-
-    final userActiveData = localstorage.userGoalDataMap;
-    debugPrint('userActiveData: $userActiveData');
-    final womentracking = userActiveData['TrackWomenData'];
-    final stepgoal = userActiveData['StepGoalData']?['Count'];
-    final SleepGoalData = userActiveData['SleepGoalData'];
-
     if (!_loaded) {
       _loaded = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -73,7 +86,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                   if (!isGoalSet) {
                     final goal = await showStepCounterBottomSheet(
                       context,
-                      isDarkMode,
+                      widget.isDarkMode,
                     );
 
                     if (goal != null) {
@@ -83,9 +96,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                       if (!context.mounted) return;
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => HydrationScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => HydrationScreen()),
                       );
 
                       Future.microtask(() async {
@@ -93,20 +104,17 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                       });
                     }
                   } else {
-
                     if (!context.mounted) return;
 
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => HydrationScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => HydrationScreen()),
                     );
                   }
                 },
                 widgetIcon: waterTrackingIcon,
-                width: width,
-                height: height,
+                width: widget.width,
+                height: widget.height,
                 valueText: Obx(
                   () => RichText(
                     text: TextSpan(
@@ -134,7 +142,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                       child: Image.asset(
                         hydrationEleBottom,
                         height: 80,
-                        width: width / 2.3,
+                        width: widget.width / 2.3,
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -146,18 +154,18 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                       child: Image.asset(
                         hydrationDashboardEle,
                         height: 150,
-                        width: width / 4,
+                        width: widget.width / 4,
                       ),
                     ),
                   ],
                 ),
-                isDarkMode: isDarkMode,
+                isDarkMode: widget.isDarkMode,
               ),
             ),
             SizedBox(width: defaultSize - 10),
             Expanded(
               child: DashboardContainerWidget(
-                isDarkMode: isDarkMode,
+                isDarkMode: widget.isDarkMode,
                 widgetName: 'Heart',
                 widgetIcon: vitalIcon,
                 onTap: () async {
@@ -177,8 +185,8 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                     Get.to(VitalScreen());
                   }
                 },
-                width: width,
-                height: height,
+                width: widget.width,
+                height: widget.height,
                 valueText: Obx(() {
                   return RichText(
                     text: TextSpan(
@@ -238,50 +246,50 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
           children: [
             Expanded(
               child: DashboardContainerWidget(
-               onTap: () async {
-                final prefs = await SharedPreferences.getInstance();
-                final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
+                onTap: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
 
-                if (stepgoal == null || !isGoalSet) {
-                  final goal = await showStepCounterBottomSheet(
-                    context,
-                    isDarkMode,
-                  );
+                  if (stepgoal == null || !isGoalSet) {
+                    final goal = await showStepCounterBottomSheet(
+                      context,
+                      widget.isDarkMode,
+                    );
 
-                  if (goal != null) {
-                    await prefs.setBool('isStepGoalSet', true);
-                    await prefs.setInt('stepGoalValue', goal);
+                    if (goal != null) {
+                      await prefs.setBool('isStepGoalSet', true);
+                      await prefs.setInt('stepGoalValue', goal);
+
+                      if (!context.mounted) return;
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => StepCounter(customGoal: goal),
+                        ),
+                      );
+
+                      Future.microtask(() async {
+                        await stepController.updateStepGoal(goal);
+                      });
+                    }
+                  } else {
+                    final goal = prefs.getInt('stepGoalValue') ?? 10000;
 
                     if (!context.mounted) return;
+
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => StepCounter(customGoal: goal),
                       ),
                     );
-
-                    Future.microtask(() async {
-                      await stepController.updateStepGoal(goal);
-                    });
                   }
-                } else {
-                  final goal = prefs.getInt('stepGoalValue') ?? 10000;
-
-                  if (!context.mounted) return;
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => StepCounter(customGoal: goal),
-                    ),
-                  );
-                }
-              },                
-                isDarkMode: isDarkMode,
+                },
+                isDarkMode: widget.isDarkMode,
                 widgetName: 'Steps',
                 widgetIcon: stepsTrackingIcon,
-                width: width,
-                height: height,
+                width: widget.width,
+                height: widget.height,
                 valuePraisingText: '',
                 valueText: Obx(() {
                   final steps = stepController.todaySteps.value;
@@ -307,7 +315,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                       child: Image.asset(
                         stepsImgBottom,
                         height: 80,
-                        width: width / 2.3,
+                        width: widget.width / 2.3,
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -318,7 +326,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                       child: Image.asset(
                         stepImg2,
                         height: 150,
-                        width: width / 4,
+                        width: widget.width / 4,
                       ),
                     ),
                   ],
@@ -329,49 +337,43 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
             Expanded(
               child: DashboardContainerWidget(
                 onTap: () async {
-                final prefs = await SharedPreferences.getInstance();
-                final isFirstSleep =
-                    prefs.getBool('sleepGoalbool') ?? false;
+                  final prefs = await SharedPreferences.getInstance();
+                  final isFirstSleep = prefs.getBool('sleepGoalbool') ?? false;
 
-                if (!isFirstSleep) {
-                  final agreed = await showSleepBottomSheetModal(
-                    context: context,
-                    isDarkMode: isDarkMode,
-                    height: height,
-                    isNavigating: true,
-                  );
-
-                 if (agreed != null) {
-                    await prefs.setBool('sleepGoalbool', true);
-
-                    if (!context.mounted) return;
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => SleepTrackerScreen(),
-                      ),
+                  if (!isFirstSleep) {
+                    final agreed = await showSleepBottomSheetModal(
+                      context: context,
+                      isDarkMode: widget.isDarkMode,
+                      height: widget.height,
+                      isNavigating: true,
                     );
 
-                    Future.microtask(() async {
-                      await sleepController.savesleepToLocalStorage();
-                    });
+                    if (agreed != null) {
+                      await prefs.setBool('sleepGoalbool', true);
+
+                      if (!context.mounted) return;
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => SleepTrackerScreen()),
+                      );
+
+                      Future.microtask(() async {
+                        await sleepController.savesleepToLocalStorage();
+                      });
+                    }
+                  } else {
+                    if (!context.mounted) return;
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => SleepTrackerScreen()),
+                    );
                   }
-                } else {
-
-                  if (!context.mounted) return;
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => SleepTrackerScreen(),
-                    ),
-                  );
-                }
-              },
-                isDarkMode: isDarkMode,
+                },
+                isDarkMode: widget.isDarkMode,
                 widgetName: 'Sleep',
                 widgetIcon: sleepTrackerIcon,
-                width: width,
+                width: widget.width,
                 valueText: Obx(() {
                   final d = sleepController.deepSleepDuration.value;
                   return RichText(
@@ -390,7 +392,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                 valuePraisingText: sleepController.getSleepStatus(
                   sleepController.deepSleepDuration.value,
                 ),
-                height: height,
+                height: widget.height,
                 content: Align(
                   alignment: Alignment.bottomCenter,
                   child: Stack(
@@ -402,7 +404,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                         child: Image.asset(
                           sleepEleBottom,
                           height: 80,
-                          width: width / 2.3,
+                          width: widget.width / 2.3,
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -414,7 +416,7 @@ class DashboardServiceOverviewDynamicWidgets extends StatelessWidget {
                         child: Image.asset(
                           sleepEle2,
                           height: 150,
-                          width: width / 4,
+                          width: widget.width / 4,
                         ),
                       ),
                     ],

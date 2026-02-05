@@ -18,7 +18,7 @@ class EventController extends GetxController {
 
   var eventList = <Map<String, AlarmSettings>>[].obs;
 
-  final RxnInt eventRemindMeBefore = RxnInt();
+  RxnInt eventRemindMeBefore = RxnInt();
   final eventTimeBeforeController = TextEditingController();
   RxString eventUnit = 'minutes'.obs;
 
@@ -29,31 +29,92 @@ class EventController extends GetxController {
     final id = alarmsId();
     final title = reminderController.titleController.text.trim();
     final notes = reminderController.notesController.text.trim();
-    // final eventData = {
-    //   "alarmId": id,
-    //   "category": "EVENT",
-    //   "title": title.isNotEmpty ? title : "EVENT REMINDER",
-    //   "notes": notes.isNotEmpty ? notes : "",
-    //   "scheduledTime": scheduledTime.toIso8601String(),
-    //   "before": {
-    //     "int": int.parse(reminderController.xTimeUnitController.text),
-    //     "time": reminderController.selectedValue.value,
-    //   },
-    // };
+    RemindBefore? remindBefore;
+    debugPrint('🟡 RemindMeBefore value: ${eventRemindMeBefore.value}');
+
+    if (eventRemindMeBefore.value != null) {
+      debugPrint('🟢 Entered remindBefore block');
+
+      final rawTime = eventTimeBeforeController.text.trim();
+      debugPrint(
+        '🕒remind before "$rawTime ${reminderController.selectedValue.value} $scheduledTime"',
+      );
+
+      int? time;
+      try {
+        time = int.parse(rawTime);
+        debugPrint('🔢 Parsed time: $time');
+      } catch (e) {
+        debugPrint('❌ int.parse failed: $e');
+
+        Get.snackbar(
+          'Invalid Input',
+          'Please enter a valid remainder time',
+          snackPosition: SnackPosition.TOP,
+          colorText: white,
+          backgroundColor: AppColors.primaryColor,
+          duration: const Duration(seconds: 2),
+        );
+        return;
+      }
+
+      if (time <= 0) {
+        debugPrint('🚫 Invalid time (<= 0) detected');
+
+        Get.snackbar(
+          "Almost there",
+          "Reminder time should be greater than zero",
+          snackPosition: SnackPosition.TOP,
+          colorText: white,
+          backgroundColor: AppColors.primaryColor,
+          duration: const Duration(seconds: 2),
+        );
+        return;
+      }
+
+      debugPrint('✅ Time valid, creating RemindBefore');
+      debugPrint('📏 Unit selected: ${reminderController.selectedValue.value}');
+
+      remindBefore = RemindBefore(
+        time: time,
+        unit: reminderController.selectedValue.value,
+      );
+
+      final timeOfDay = TimeOfDay(
+        hour: scheduledTime.hour,
+        minute: scheduledTime.minute,
+      );
+
+      await reminderController.handleRemindMeBefore(
+        option: eventRemindMeBefore,
+        timeOfDay: timeOfDay,
+        timeController: reminderController.xTimeUnitController,
+        unitController: reminderController.selectedValue,
+        title: "Reminder before your event",
+        body: "Your event is coming in ",
+        category: "Event",
+      );
+
+      debugPrint('🎯 RemindBefore object created: $remindBefore');
+    } else {
+      debugPrint('⚠️ eventRemindMeBefore is NULL — block skipped');
+    }
+    final reminderId = DateTime.now().millisecondsSinceEpoch;
+
     final eventData = ReminderPayloadModel(
-      id: alarmsId(),
-      title:  title,
+      id: reminderId,
+      title: title,
       notes: notes.isNotEmpty ? notes : "",
       category: ReminderCategory.event.toString(),
       customReminder: CustomReminder(
-        timesPerDay: TimesPerDay(count: 1.toString(), list: [scheduledTime.toString()]),
+        timesPerDay: TimesPerDay(
+          count: 1.toString(),
+          list: [scheduledTime.toString()],
+        ),
       ),
-      remindBefore: RemindBefore(
-        time: int.parse(reminderController.xTimeUnitController.text),
-        unit: reminderController.selectedValue.value,
-      ),
+      remindBefore: remindBefore,
     );
-    print("Event Data: $eventData");
+    debugPrint("Event Data: $eventData");
     final alarmSettings = AlarmSettings(
       id: id,
       dateTime: scheduledTime,
@@ -77,23 +138,26 @@ class EventController extends GetxController {
     if (success) {
       // Reload list from Hive to ensure we have the latest data and don't override
       eventList.value = await reminderController.loadReminderList("event_list");
+      final displayTitle =
+      title.isNotEmpty ? title : 'MEAL REMINDER';
 
-      eventList.add({
-        reminderController.titleController.text.trim(): alarmSettings,
-      });
-      reminderController.addRemindertoAPI(eventData, context);
-      reminderController.titleController.clear();
-      reminderController.notesController.clear();
+
+
+      eventList.add({displayTitle : alarmSettings});
+
       await reminderController.saveReminderList(eventList, "event_list");
+      await reminderController.loadAllReminderLists();
 
       // Reload the combined list
       await reminderController.loadAllReminderLists();
+      reminderController.addRemindertoAPI(eventData, context);
 
-      CustomSnackbar.showSuccess(
-        context: context,
-        title: 'Success',
-        message: 'Event reminder set successfully!',
-      );
+      reminderController.titleController.clear();
+      reminderController.notesController.clear();
+      eventTimeBeforeController.clear();
+      eventRemindMeBefore.value = null;
+
+      CustomSnackbar().showReminderBar(context);
       Get.back(result: true);
     }
   }

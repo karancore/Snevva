@@ -211,11 +211,11 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              sleepController.deepSleepDuration.value
-                                  == null
+                              sleepController.deepSleepDuration.value == null
                                   ? "No data"
                                   : fmtDuration(
-                                    sleepController.deepSleepDuration.value ?? Duration.zero,
+                                    sleepController.deepSleepDuration.value ??
+                                        Duration.zero,
                                   ),
                               style: TextStyle(
                                 fontSize: 24,
@@ -223,8 +223,9 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                                 color:
                                     fmtDuration(
                                               sleepController
-                                                  .deepSleepDuration
-                                                  .value ?? Duration.zero,
+                                                      .deepSleepDuration
+                                                      .value ??
+                                                  Duration.zero,
                                             ) ==
                                             "0h 00m"
                                         ? grey
@@ -249,10 +250,10 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                 alignment: Alignment.center,
                 children: [
                   Obx(() {
-
                     double getDeepSleepPercent(Duration? deepSleep) {
                       // 1. Convert everything to the same unit (minutes)
-                      final int goalInMinutes = sleepController.sleepGoalInitial.value.inHours * 60;
+                      final int goalInMinutes =
+                          sleepController.sleepGoalInitial.value.inHours * 60;
 
                       // 2. Prevent division by zero if the goal is somehow set to 0
                       if (goalInMinutes <= 0) return 0.0;
@@ -261,7 +262,10 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                       final int actualMinutes = deepSleep?.inMinutes ?? 0;
 
                       // 4. Clamp and divide using the same units
-                      final int clampedMinutes = actualMinutes.clamp(0, goalInMinutes);
+                      final int clampedMinutes = actualMinutes.clamp(
+                        0,
+                        goalInMinutes,
+                      );
 
                       return clampedMinutes / goalInMinutes;
                     }
@@ -352,7 +356,6 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
               ),
               const SizedBox(height: 4),
-            
 
               // ========== BEDTIME AND WAKE UP SETTINGS ==========
               Material(
@@ -484,49 +487,52 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
               ),
 
               const SizedBox(height: 16),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    sleepController.isMonthlyView.value
-                        ? "Monthly Sleep Report"
-                        : "Weekly Sleep Report",
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+              Obx(() {
+                final isMonthly = sleepController.isMonthlyView.value;
+
+                return Column(
+                  children: [
+                    Text(
+                      isMonthly
+                          ? "Monthly Sleep Report"
+                          : "Weekly Sleep Report",
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        if (sleepController.isMonthlyView.value) ...[
-                          IconButton(
-                            icon: const Icon(Icons.chevron_left),
-                            onPressed: () => _changeMonth(-1),
-                          ),
-                          Text(
-                            DateFormat('MMMM yyyy').format(_selectedMonth),
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.chevron_right),
-                            onPressed: () => _changeMonth(1),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          if (isMonthly) ...[
+                            IconButton(
+                              icon: const Icon(Icons.chevron_left),
+                              onPressed: () => _changeMonth(-1),
+                            ),
+                            Text(
+                              DateFormat('MMMM yyyy').format(_selectedMonth),
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.chevron_right),
+                              onPressed: () => _changeMonth(1),
+                            ),
+                          ],
+                          TextButton(
+                            onPressed: _toggleView,
+                            child: Text(
+                              isMonthly
+                                  ? "Switch to Weekly"
+                                  : "Switch to Monthly",
+                            ),
                           ),
                         ],
-                        TextButton(
-                          onPressed: _toggleView,
-                          child: Text(
-                            sleepController.isMonthlyView.value
-                                ? "Switch to Weekly"
-                                : "Switch to Monthly",
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                );
+              }),
               const SizedBox(height: 10),
               SizedBox(
                 height: height * 0.41,

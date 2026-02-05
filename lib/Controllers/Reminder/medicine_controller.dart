@@ -75,7 +75,7 @@ class MedicineController extends GetxController {
   final timeControllers = <TextEditingController>[].obs;
   RxList<DateTime> scheduledTimes = <DateTime>[].obs;
 
-  var selectedOption = 'Before food'.obs;
+  var selectedWhenToTake = 'Before food'.obs;
 
   int get selectedFrequencyValue {
     return frequencyNum[selectedFrequency.value] ?? 0;
@@ -141,27 +141,6 @@ class MedicineController extends GetxController {
     }
   }
 
-  // void addMedicine(BuildContext context) {
-  //   final name = medicineController.text.trim();
-  //
-  //   medicines.add(MedicineItem(name: name, times: []));
-  //   selectedMedicineIndex.value = medicines.length - 1;
-  //   //medicines.add(medicineController.text);
-  //   medicineController.clear();
-  // }
-
-  // void addTimeToMedicine(TimeOfDay time) {
-  //   if (selectedMedicineIndex.value == -1) return;
-  //
-  //   medicines[selectedMedicineIndex.value].times.add(MedicineTime(time: time));
-  //
-  //   medicines.refresh();
-  // }
-
-  // void removeMedicine(int index) {
-  //   medicines.removeAt(index);
-  // }
-
   String buildMedicineNotificationText({
     required String medicineName,
     required num dosage,
@@ -173,7 +152,6 @@ class MedicineController extends GetxController {
     switch (type) {
       case 'Tablet':
         return 'Take $dosage $medicineName tablet$plural.';
-
       case 'Syrup':
         return 'Take $dosage $unit of $medicineName.';
 
@@ -238,33 +216,36 @@ class MedicineController extends GetxController {
     return true;
   }
 
+  int getEffectiveTimesPerDay() {
+    if (selectedFrequency.value == "Custom") {
+      return int.tryParse(timesPerDayController.text) ?? timeControllers.length;
+    }
+    return frequencyNum[selectedFrequency.value] ?? timeControllers.length;
+  }
+
   Future<bool> addMedicineAlarm({
     required BuildContext context,
     required num? dosage,
   }) async {
     final medicineName = medicineController.text.trim();
+    print("medicineName $medicineName");
+
     if (medicineName.isEmpty) {
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'Please enter a medicine name',
+      Get.snackbar(
+        "Medicine name missing",
+        "Please enter the medicine name to continue.",
+        snackPosition: SnackPosition.TOP,
+        colorText: white,
+        backgroundColor: AppColors.primaryColor,
+        duration: const Duration(seconds: 2),
       );
       return false;
     }
 
     final List<AlarmSettings> alarms = [];
-    // List<DateTime> scheduledTimes = scheduledTimesTimeOfDay.map(
-    //   (e) => DateTime(
-    //     DateTime.now().year,
-    //     DateTime.now().month,
-    //     DateTime.now().day,
-    //     e.hour,
-    //     e.minute,
-    //   ),
-    // ).toList();
 
     for (final scheduledTime in scheduledTimes) {
-      final alarmId = alarmsId(); // Generate unique ID for each alarm
+      final alarmId = alarmsId();
 
       final alarmSettings = AlarmSettings(
         id: alarmId,
@@ -294,19 +275,23 @@ class MedicineController extends GetxController {
       );
 
       final success = await Alarm.set(alarmSettings: alarmSettings);
+
       if (success) {
         alarms.add(alarmSettings);
       }
     }
 
-    if (alarms.isEmpty) return false;
+    if (alarms.isEmpty) {
+      return false;
+    }
+
     final id = alarms.first.id;
     final title = reminderController.titleController.text.trim();
+
     final notes = reminderController.notesController.text.trim();
     final medicineType = selectedType.value;
     final unit = typeToDosage[medicineType] ?? 'DROP';
-
-    final timesPerDay = timesPerDayController.text.trim();
+    final timesPerDay = getEffectiveTimesPerDay();
     final everyXHours = everyHourController.text.trim();
     final reminderFrequencyType = selectedFrequency.value;
     final medicineFrequencyPerDay =
@@ -315,11 +300,12 @@ class MedicineController extends GetxController {
     final endTime = endMedicineTimeController.text.trim();
     final list =
         timeControllers.map((controller) => controller.text.trim()).toList();
+
     CustomReminder customReminder;
     if (medicineReminderOption.value == Option.times) {
       customReminder = CustomReminder(
         type: Option.times,
-        timesPerDay: TimesPerDay(count: timesPerDay, list: list),
+        timesPerDay: TimesPerDay(count: timesPerDay.toString(), list: list),
         everyXHours: null,
       );
     } else {
@@ -333,12 +319,14 @@ class MedicineController extends GetxController {
         ),
       );
     }
+
     final medicine = MedicineReminderModel(
       id: id,
       title: title,
       category: "MEDICINE",
       medicineName: medicineName,
       medicineType: medicineType,
+      whenToTake: selectedWhenToTake.value,
       dosage: Dosage(value: dosage ?? 0, unit: unit),
       medicineFrequencyPerDay: medicineFrequencyPerDay,
       reminderFrequencyType: reminderFrequencyType,
@@ -350,14 +338,15 @@ class MedicineController extends GetxController {
     );
 
     medicineList.add(medicine);
-
-    await saveMedicineReminderList("medicine_list", medicineList);
+    //await saveMedicineReminderList("medicine_list", medicineList);
+    await reminderController.saveReminderList(medicineList, "medicine_list");
+    await reminderController.loadAllReminderLists();
 
     await reminderController.addRemindertoAPI(
       medicine.toReminderPayload(),
       context,
     );
-
+    CustomSnackbar().showReminderBar(context);
     Get.back(result: true);
     return true;
   }
@@ -376,36 +365,90 @@ class MedicineController extends GetxController {
     );
   }
 
+  // Future<void> saveMedicineReminderList(
+  //   String key,
+  //   List<MedicineReminderModel> list,
+  // ) async {
+  //   final box = Hive.box(reminderBox);
+  //
+  //   debugPrint('━━━━━━━━ SAVE MEDICINE ━━━━━━━━');
+  //   debugPrint('🧹 Clearing Hive box → medicine_list');
+  //   debugPrint('📦 Items before clear: ${box.length}');
+  //
+  //   await box.clear();
+  //
+  //   debugPrint('📦 Items after clear: ${box.length}');
+  //   debugPrint('💾 Saving ${list.length} medicine reminders');
+  //
+  //
+  //   for (int i = 0; i < list.length; i++) {
+  //     final item = list[i];
+  //     final json = item.toJson();
+  //
+  //     debugPrint('➡ Saving index $i');
+  //     debugPrint('   🆔 id: ${item.id}');
+  //     debugPrint('   💊 name: ${item.medicineName}');
+  //     debugPrint('   🔁 freqType: ${item.reminderFrequencyType}');
+  //     debugPrint('   ⏰ timesPerDay.count: ${item.customReminder?.timesPerDay?.count}');
+  //
+  //     box.put(item.id, json);
+  //   }
+  //
+  //   debugPrint('✅ Save completed. Hive count = ${box.length}');
+  // }
+  // ---------------------------------------------------------
+  //  PASTE THIS INSIDE MedicineController class
+  // ---------------------------------------------------------
+
   Future<void> saveMedicineReminderList(
     String key,
+    // internal call should pass "medicine_list"
     List<MedicineReminderModel> list,
   ) async {
+    final box = Hive.box(reminderBox); // Uses your constant
+
+    // ❌ DELETED: await box.clear();  <-- THIS WAS THE BUG
+    // We do NOT want to clear water reminders when saving medicine.
+
+    // Convert list of models -> List of JSON Strings
+    List<String> stringList =
+        list.map((item) {
+          return jsonEncode(item.toJson());
+        }).toList();
+
+    // Save the whole list under the key "medicine_list"
+    await box.put(key, stringList);
+
+    debugPrint('✅ Saved ${stringList.length} medicines to Hive key: $key');
+  }
+
+  Future<List<MedicineReminderModel>> loadMedicineReminderList(
+    String key,
+  ) async {
+    debugPrint('📦 Loading medicine reminders from Hive Key: $key');
     final box = Hive.box(reminderBox);
 
-    debugPrint('━━━━━━━━ SAVE MEDICINE ━━━━━━━━');
-    debugPrint('🧹 Clearing Hive box → medicine_list');
-    debugPrint('📦 Items before clear: ${box.length}');
+    // Get the list of strings (safely)
+    final List<dynamic>? storedList = box.get(key);
 
-    await box.clear();
+    if (storedList == null) return [];
 
-    debugPrint('📦 Items after clear: ${box.length}');
-    debugPrint('💾 Saving ${list.length} medicine reminders');
+    final List<MedicineReminderModel> loadedList = [];
 
-
-    for (int i = 0; i < list.length; i++) {
-      final item = list[i];
-      final json = item.toJson();
-
-      debugPrint('➡ Saving index $i');
-      debugPrint('   🆔 id: ${item.id}');
-      debugPrint('   💊 name: ${item.medicineName}');
-      debugPrint('   🔁 freqType: ${item.reminderFrequencyType}');
-      debugPrint('   ⏰ timesPerDay.count: ${item.customReminder?.timesPerDay?.count}');
-
-      box.put(item.id, json);
+    for (var item in storedList) {
+      try {
+        // Decode JSON String -> Map -> Model
+        if (item is String) {
+          final Map<String, dynamic> decoded = jsonDecode(item);
+          final model = MedicineReminderModel.fromJson(decoded);
+          loadedList.add(model);
+        }
+      } catch (e) {
+        debugPrint('❌ Error parsing medicine: $e');
+      }
     }
 
-    debugPrint('✅ Save completed. Hive count = ${box.length}');
+    return loadedList;
   }
 
   Future<void> updateMedicineAlarm(
@@ -444,7 +487,6 @@ class MedicineController extends GetxController {
     // 2. Update the List in Hive
     medicineList.value = await loadMedicineReminderList("medicine_list");
 
-
     final id = alarmId;
     final title = reminderController.titleController.text.trim();
     final notes = reminderController.notesController.text.trim();
@@ -462,7 +504,10 @@ class MedicineController extends GetxController {
     final endTime = endMedicineTimeController.text.trim();
     final list =
         timeControllers.map((controller) => controller.text.trim()).toList();
-    final medicineName = medicineController.text.trim();
+    final oldModel = medicineList.firstWhereOrNull((e) => e.id == alarmId);
+
+    final medicineName =
+        oldModel?.medicineName ?? medicineController.text.trim();
     CustomReminder customReminder;
     if (medicineReminderOption.value == Option.times) {
       customReminder = CustomReminder(
@@ -489,6 +534,7 @@ class MedicineController extends GetxController {
       category: "MEDICINE",
       medicineName: medicineName,
       medicineType: medicineType,
+      whenToTake: selectedWhenToTake.value,
       dosage: Dosage(value: dosageMed, unit: unit),
       medicineFrequencyPerDay: medicineFrequencyPerDay,
       reminderFrequencyType: reminderFrequencyType,
@@ -518,6 +564,9 @@ class MedicineController extends GetxController {
       "medicine_list",
       medicineList,
     );
+
+    CustomSnackbar().showReminderBar(context);
+    Get.back(result: true);
   }
 
   // Future<List<MedicineReminderModel>> loadMedicineReminderList(
@@ -591,61 +640,96 @@ class MedicineController extends GetxController {
   //   return loadedList;
   // }
 
-  Future<List<MedicineReminderModel>> loadMedicineReminderList(
-    String key,
-  ) async {
-    debugPrint('📦 Loading medicine reminders from Hive');
-    final box = Boxes.getData();
-
-    debugPrint('📊 Hive raw values count: ${box.values.length}');
-    debugPrint('📦 Raw Hive values: ${box.values}');
-
-    final List<MedicineReminderModel> loadedList = [];
-
-    int index = 0;
-    for (final raw in box.values) {
-      debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      debugPrint('🔍 Reading item #$index');
-      debugPrint('➡ raw runtimeType: ${raw.runtimeType}');
-      debugPrint('➡ raw value: $raw');
-
-      try {
-        if (raw is! Map) {
-          debugPrint('⚠️ Skipped: not a Map');
-          continue;
-        }
-
-        if (raw.isEmpty) {
-          debugPrint('⚠️ Skipped: empty Map');
-          continue;
-        }
-
-        final normalized = deepNormalizeMap(raw);
-
-        debugPrint('🧪 Normalized Map: $normalized');
-        debugPrint('⏰ remindBefore in map: ${normalized['remindBefore']}');
-
-        final model = MedicineReminderModel.fromJson(normalized);
-
-        debugPrint('✅ Parsed model');
-        debugPrint('🆔 id: ${model.id}');
-        debugPrint('💊 medicineName: ${model.medicineName}');
-        debugPrint(
-          '⏰ remindBefore: ${model.remindBefore != null ? model.remindBefore!.toJson() : "NULL"}',
-        );
-
-        loadedList.add(model);
-      } catch (e, s) {
-        debugPrint('❌ Error parsing reminder: $e');
-        debugPrint(s.toString());
-      }
-
-      index++;
-    }
-
-    debugPrint('🎉 Load completed. Loaded ${loadedList.length} reminders');
-    return loadedList;
-  }
+  // Future<List<MedicineReminderModel>> loadMedicineReminderList(
+  //   String key,
+  // ) async {
+  //   debugPrint('📦 Loading medicine reminders from Hive');
+  //   final box = Boxes.getData();
+  //
+  //   debugPrint('📊 Hive raw values count: ${box.values.length}');
+  //   debugPrint('📦 Raw Hive values: ${box.values}');
+  //
+  //   final List<MedicineReminderModel> loadedList = [];
+  //
+  //   int index = 0;
+  //   for (final raw in box.values) {
+  //     debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  //     debugPrint('🔍 Reading item #$index');
+  //     debugPrint('➡ raw runtimeType: ${raw.runtimeType}');
+  //     debugPrint('➡ raw value: $raw');
+  //
+  //     try {
+  //       if (raw is! Map) {
+  //         debugPrint('⚠️ Skipped: not a Map');
+  //         continue;
+  //       }
+  //
+  //       if (raw.isEmpty) {
+  //         debugPrint('⚠️ Skipped: empty Map');
+  //         continue;
+  //       }
+  //
+  //       final normalized = deepNormalizeMap(raw);
+  //
+  //       debugPrint('🧪 Normalized Map: $normalized');
+  //       debugPrint('⏰ remindBefore in map: ${normalized['remindBefore']}');
+  //
+  //       final model = MedicineReminderModel.fromJson(normalized);
+  //
+  //       debugPrint('✅ Parsed model');
+  //       debugPrint('🆔 id: ${model.id}');
+  //       debugPrint('💊 medicineName: ${model.medicineName}');
+  //       debugPrint(
+  //         '⏰ remindBefore: ${model.remindBefore != null ? model.remindBefore!.toJson() : "NULL"}',
+  //       );
+  //
+  //       loadedList.add(model);
+  //     } catch (e, s) {
+  //       debugPrint('❌ Error parsing reminder: $e');
+  //       debugPrint(s.toString());
+  //     }
+  //
+  //     index++;
+  //   }
+  //
+  //   debugPrint('🎉 Load completed. Loaded ${loadedList.length} reminders');
+  //   return loadedList;
+  // }
+  // Future<List<MedicineReminderModel>> loadMedicineReminderList(
+  //     String key, // This will be passed as "medicine_list"
+  //     ) async {
+  //   debugPrint('📦 Loading medicine reminders from Hive Key: $key');
+  //
+  //   // 1. Open the specific shared box
+  //   final box = Hive.box('reminders_box');
+  //
+  //   // 2. Retrieve the specific list (List<String>)
+  //   final List<dynamic>? storedList = box.get(key);
+  //
+  //   if (storedList == null) {
+  //     debugPrint('⚠️ No medicine list found for key: $key');
+  //     return [];
+  //   }
+  //
+  //   final List<MedicineReminderModel> loadedList = [];
+  //
+  //   // 3. Iterate and decode
+  //   for (var item in storedList) {
+  //     try {
+  //       if (item is String) {
+  //         final Map<String, dynamic> decoded = jsonDecode(item);
+  //         // Normalize if needed, or parse directly
+  //         final model = MedicineReminderModel.fromJson(decoded);
+  //         loadedList.add(model);
+  //       }
+  //     } catch (e) {
+  //       debugPrint('❌ Error parsing medicine reminder: $e');
+  //     }
+  //   }
+  //
+  //   debugPrint('🎉 Loaded ${loadedList.length} medicine reminders');
+  //   return loadedList;
+  // }
 
   @override
   void onClose() {

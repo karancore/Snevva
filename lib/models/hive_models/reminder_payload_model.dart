@@ -1,5 +1,7 @@
 import 'package:hive/hive.dart';
 
+import '../../common/global_variables.dart';
+
 part 'reminder_payload_model.g.dart';
 
 @HiveType(typeId: 20)
@@ -43,6 +45,15 @@ class ReminderPayloadModel {
   @HiveField(12)
   final String? notes;
 
+  @HiveField(13)
+  final String? whenToTake;
+
+  @HiveField(14)
+  final String ? startWaterTime;
+
+  @HiveField(15)
+  final String ? endWaterTime;
+
   const ReminderPayloadModel({
     required this.id,
     required this.title,
@@ -57,6 +68,9 @@ class ReminderPayloadModel {
     this.startDate,
     this.endDate,
     this.notes,
+    this.whenToTake,
+    this.startWaterTime,
+    this.endWaterTime,
   });
 
   Map<String, dynamic> toJson() {
@@ -88,9 +102,10 @@ class ReminderPayloadModel {
       medicineFrequencyPerDay: json['medicineFrequencyPerDay'],
       reminderFrequencyType: json['reminderFrequencyType'],
       customReminder: CustomReminder.fromJson(json['customReminder']),
-      remindBefore: json['remindBefore'] != null
-          ? RemindBefore.fromJson(json['remindBefore'])
-          : null,
+      remindBefore:
+          json['remindBefore'] != null
+              ? RemindBefore.fromJson(json['remindBefore'])
+              : null,
       startDate: json['startDate'],
       endDate: json['endDate'],
       notes: json['notes'],
@@ -101,53 +116,62 @@ class ReminderPayloadModel {
 @HiveType(typeId: 21)
 class Dosage {
   @HiveField(0)
-  final int value;
+  final num value;
 
   @HiveField(1)
   final String unit;
 
-  const Dosage({
-    required this.value,
-    required this.unit,
-  });
+  const Dosage({required this.value, required this.unit});
 
-  Map<String, dynamic> toJson() => {
-    'value': value,
-    'unit': unit,
-  };
+  Map<String, dynamic> toJson() => {'value': value, 'unit': unit};
 
-  factory Dosage.fromJson(Map<String, dynamic> json) => Dosage(
-    value: json['value'],
-    unit: json['unit'],
-  );
+  factory Dosage.fromJson(Map<String, dynamic> json) =>
+      Dosage(value: json['value'], unit: json['unit']);
 }
 
 @HiveType(typeId: 22)
 class CustomReminder {
   @HiveField(0)
-  final TimesPerDay? timesPerDay;
+  final Option? type;
 
   @HiveField(1)
+  final TimesPerDay? timesPerDay;
+
+  @HiveField(2)
   final EveryXHours? everyXHours;
 
-  const CustomReminder({
-    this.timesPerDay,
-    this.everyXHours,
-  });
+  const CustomReminder({this.type, this.timesPerDay, this.everyXHours});
 
-  Map<String, dynamic> toJson() => {
-    'timesPerDay': timesPerDay?.toJson(),
-    'everyXHours': everyXHours?.toJson(),
-  };
+  factory CustomReminder.fromJson(Map<String, dynamic> json) {
+    final type = Option.values.firstWhere(
+      (e) => e.name == json['type'],
+      orElse: () => Option.times,
+    );
 
-  factory CustomReminder.fromJson(Map<String, dynamic> json) => CustomReminder(
-    timesPerDay: json['timesPerDay'] != null
-        ? TimesPerDay.fromJson(json['timesPerDay'])
-        : null,
-    everyXHours: json['everyXHours'] != null
-        ? EveryXHours.fromJson(json['everyXHours'])
-        : null,
-  );
+    switch (type) {
+      case Option.times:
+        return CustomReminder(
+          type: type,
+          timesPerDay: TimesPerDay.fromJson(json['timesPerDay'] ?? {}),
+        );
+      case Option.interval:
+        return CustomReminder(
+          type: type,
+          everyXHours: EveryXHours.fromJson(json['everyXHours'] ?? {}),
+        );
+    }
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = {'type': type?.name};
+    if (timesPerDay != null) {
+      data['timesPerDay'] = timesPerDay!.toJson();
+    }
+    if (everyXHours != null) {
+      data['everyXHours'] = everyXHours!.toJson();
+    }
+    return data;
+  }
 }
 
 @HiveType(typeId: 23)
@@ -158,15 +182,9 @@ class TimesPerDay {
   @HiveField(1)
   final List<String> list;
 
-  const TimesPerDay({
-    required this.count,
-    required this.list,
-  });
+  const TimesPerDay({required this.count, required this.list});
 
-  Map<String, dynamic> toJson() => {
-    'count': count,
-    'list': list,
-  };
+  Map<String, dynamic> toJson() => {'count': count, 'list': list};
 
   factory TimesPerDay.fromJson(Map<String, dynamic> json) => TimesPerDay(
     count: json['count'],
@@ -212,18 +230,10 @@ class RemindBefore {
   @HiveField(1)
   final String unit;
 
-  const RemindBefore({
-    required this.time,
-    required this.unit,
-  });
+  const RemindBefore({required this.time, required this.unit});
 
-  Map<String, dynamic> toJson() => {
-    'time': time,
-    'unit': unit,
-  };
+  Map<String, dynamic> toJson() => {'time': time, 'unit': unit};
 
-  factory RemindBefore.fromJson(Map<String, dynamic> json) => RemindBefore(
-    time: json['time'],
-    unit: json['unit'],
-  );
+  factory RemindBefore.fromJson(Map<String, dynamic> json) =>
+      RemindBefore(time: json['time'], unit: json['unit']);
 }

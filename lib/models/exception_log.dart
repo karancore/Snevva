@@ -37,4 +37,24 @@ class ExceptionLog {
       "ClassName": className,
     };
   }
+  @override
+  String toString() {
+    return '''
+ExceptionLog(
+  DataCode: $dataCode,
+  UserId: $userId,
+  UserInput: $userInput,
+  ErrorMessage: $errorMessage,
+  OccuredAt: $occuredAt,
+  StringException: $stringException,
+  StackTrace: $stackTrace,
+  InnerException: $innerException,
+  MethodName: $methodName,
+  ClassName: $className
+)
+''';
+  }
+
+
+
 }

@@ -8,6 +8,7 @@ class MedicineReminderModel {
   final String category;
   final String medicineName;
   final String medicineType;
+  final String whenToTake;
   final Dosage dosage;
   final String medicineFrequencyPerDay;
   final String reminderFrequencyType;
@@ -31,6 +32,7 @@ class MedicineReminderModel {
     required this.startDate,
     required this.endDate,
     required this.notes,
+    required this.whenToTake,
   });
 
   factory MedicineReminderModel.fromJson(Map<String, dynamic> json) {
@@ -38,6 +40,7 @@ class MedicineReminderModel {
       id: json['id'] ?? 0,
       title: json['title'] ?? '',
       category: json['category'] ?? '',
+      whenToTake: json['whenToTake'] ?? '',
       medicineName: json['medicineName'] ?? '',
       medicineType: json['medicineType'] ?? '',
       dosage: Dosage.fromJson(json['dosage'] ?? {}),
@@ -61,6 +64,7 @@ class MedicineReminderModel {
       'category': category,
       'medicineName': medicineName,
       'medicineType': medicineType,
+      'whenToTake' : whenToTake,
       'dosage': dosage.toJson(),
       'medicineFrequencyPerDay': medicineFrequencyPerDay,
       'reminderFrequencyType': reminderFrequencyType,

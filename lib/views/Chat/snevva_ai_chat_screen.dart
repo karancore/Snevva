@@ -41,7 +41,7 @@ Future<Map<String, DecisionNode>> loadDecisionTree() async {
   try {
     final response = await ApiService.post(
       ellychat,
-      {},
+      null,
       withAuth: true,
       encryptionRequired: true,
     );

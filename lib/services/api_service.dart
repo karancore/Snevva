@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'dart:math';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 import 'package:snevva/common/debug_logger.dart';
 import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/services/device_token_service.dart';
@@ -13,74 +13,79 @@ class ApiService {
   static const String _baseUrl = baseUrl;
 
   static Future<Object> post(
-    String endpoint,
-    Map<String, dynamic>? plainBody, {
-    bool withAuth = false,
-    bool encryptionRequired = true,
-  }) async {
-    // Get base headers
+      String endpoint,
+      Map<String, dynamic>? plainBody, {
+        bool withAuth = false,
+        bool encryptionRequired = true,
+      }) async {
     final headers = await AuthHeaderHelper.getHeaders(withAuth: withAuth);
-
     final uri = Uri.parse("$_baseUrl$endpoint");
+
+    debugPrint('\n🚀 API REQUEST');
+    debugPrint('➡️ URL: $_baseUrl$endpoint');
+    debugPrint('➡️ With Auth: $withAuth');
+    debugPrint('➡️ Encryption: $encryptionRequired');
+    debugPrint('➡️ Plain Body: $plainBody');
 
     if (encryptionRequired && plainBody != null) {
       final jsonString = jsonEncode(plainBody);
       final encrypted = EncryptionService.encryptData(jsonString);
 
-      headers['x-data-hash'] = encrypted['Hash']!;
+      headers['x-data-hash'] = encrypted['Hash'] ?? '';
 
-      // ✅ Always set device info
       final deviceInfoHeader =
-          await DeviceTokenService().buildDeviceInfoHeader();
-      
+      await DeviceTokenService().buildDeviceInfoHeader();
       headers['X-Device-Info'] = deviceInfoHeader;
 
-      // debugPrint("📱 X-Device-Info: $deviceInfoHeader");
-      // debugPrint("📦 Headers: $headers");
+      debugPrint('🔐 ENCRYPTED REQUEST');
+      debugPrint('➡️ Hash: ${encrypted['Hash']}');
+      debugPrint('➡️ Encrypted Data: ${encrypted['encryptedData']}');
+      debugPrint('➡️ Headers: $headers');
 
       final encryptedRequestBody = jsonEncode({
         'data': encrypted['encryptedData'],
       });
 
-    
       final response = await http.post(
         uri,
         headers: headers,
         body: encryptedRequestBody,
       );
 
-      // _handleErrors(response);
+      debugPrint('\n⬅️ API RAW RESPONSE [$endpoint]');
+      debugPrint('➡️ Status: ${response.statusCode}');
+      debugPrint('➡️ Headers: ${response.headers}');
+      debugPrint('➡️ Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         final encryptedBody = responseBody['data'];
-        final responseHash = response.headers['x-data-hash']!;
 
-        final decrypted = EncryptionService.decryptData(
-          encryptedBody,
-          responseHash,
-        );
-        
-        if (decrypted == null) {
-          throw Exception("Failed to decrypt response data");
+        final responseHash = response.headers['x-data-hash'];
+        if (responseHash == null) {
+          debugPrint('❌ x-data-hash header missing');
+          throw Exception('Missing x-data-hash header');
         }
-        
-        final Map<String, dynamic> responseData = jsonDecode(decrypted);
 
-        // DebugLogger().log(
-        //   "⬅️ API RESPONSE [$endpoint]: $responseData",
-        //   type: "API",
-        // );
+        debugPrint('🔓 DECRYPTING RESPONSE');
+        debugPrint('➡️ Encrypted Body: $encryptedBody');
+        debugPrint('➡️ Response Hash: $responseHash');
 
-        return responseData;
-      }
-      else if (response.statusCode == 401 || response.statusCode == 403) {
-        // Handle unauthorized access
+        final decrypted =
+        EncryptionService.decryptData(encryptedBody, responseHash);
+
+        if (decrypted == null) {
+          throw Exception('Failed to decrypt response');
+        }
+
+        debugPrint('✅ DECRYPTED RESPONSE');
+        debugPrint('➡️ Decrypted JSON: $decrypted');
+
+        return jsonDecode(decrypted);
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
         await AuthService.forceLogout();
-        throw Exception("Unauthorized");
-      }
-
-      else {
+        throw Exception('Unauthorized');
+      } else {
         _handleErrors(response, endpoint);
         return response;
       }
@@ -89,11 +94,12 @@ class ApiService {
       if (plainBody != null) bodyPayload = jsonEncode(plainBody);
 
       final deviceInfoHeader =
-          await DeviceTokenService().buildDeviceInfoHeader();
+      await DeviceTokenService().buildDeviceInfoHeader();
       headers['X-Device-Info'] = deviceInfoHeader;
-      //
-      // debugPrint("📱 X-Device-Info: $deviceInfoHeader");
-      // debugPrint("📦 Headers: $headers");
+
+      debugPrint('📦 NON-ENCRYPTED REQUEST');
+      debugPrint('➡️ Headers: $headers');
+      debugPrint('➡️ Body: $bodyPayload');
 
       final response = await http.post(
         uri,
@@ -101,72 +107,63 @@ class ApiService {
         body: bodyPayload,
       );
 
+      debugPrint('\n⬅️ API RAW RESPONSE [$endpoint]');
+      debugPrint('➡️ Status: ${response.statusCode}');
+      debugPrint('➡️ Headers: ${response.headers}');
+      debugPrint('➡️ Body: ${response.body}');
+
       _handleErrors(response, endpoint);
 
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         final encryptedBody = responseBody['data'];
-        final responseHash = response.headers['x-data-hash']!;
 
-        final decrypted = EncryptionService.decryptData(
-          encryptedBody,
-          responseHash,
-        );
-        final Map<String, dynamic> responseData = jsonDecode(decrypted!);
-        // DebugLogger().log(
-        //   "⬅️ API RESPONSE [$endpoint]: $responseData",
-        //   type: "API",
-        // );
+        final responseHash = response.headers['x-data-hash'];
+        if (responseHash == null) {
+          throw Exception('Missing x-data-hash header');
+        }
 
-        return responseData;
+        final decrypted =
+        EncryptionService.decryptData(encryptedBody, responseHash);
+
+        debugPrint('✅ DECRYPTED RESPONSE');
+        debugPrint('➡️ Decrypted JSON: $decrypted');
+
+        return jsonDecode(decrypted!);
       }
       return response;
     }
   }
 
   static void _handleErrors(http.Response response, String endpoint) {
-    debugPrint('🔍 _handleErrors called');
-    debugPrint('➡️ Status code: ${response.statusCode}');
+    debugPrint('\n🔍 _handleErrors called for [$endpoint]');
+    debugPrint('➡️ Status Code: ${response.statusCode}');
     debugPrint('➡️ Headers: ${response.headers}');
-    debugPrint('➡️ Raw body: ${response.body}');
+    debugPrint('➡️ Raw Body: ${response.body}');
 
     if (response.statusCode >= 400) {
-      debugPrint('⚠️ Error response detected');
-
       try {
-        debugPrint('🧩 Attempting JSON decode...');
         final body = jsonDecode(response.body);
-        debugPrint('✅ JSON decoded: $body');
 
         if (body['data'] != null) {
-          debugPrint('🔐 Encrypted data found');
-          debugPrint('➡️ Encrypted payload: ${body['data']}');
-          debugPrint(
-            '➡️ x-data-hash header: ${response.headers['x-data-hash']}',
-          );
-
+          final responseHash = response.headers['x-data-hash'];
           final decrypted = EncryptionService.decryptData(
             body['data'],
-            response.headers['x-data-hash']!,
+            responseHash ?? '',
           );
 
-          DebugLogger().log("🔐 Error response [$endpoint]: $decrypted", type: "API");
-
-          debugPrint('✅ Decrypted error message: $decrypted');
+          DebugLogger().log(
+            '❌ API ERROR [$endpoint]: $decrypted',
+            type: 'API',
+          );
 
           throw Exception('HTTP ${response.statusCode}: $decrypted');
-        } else {
-          debugPrint('ℹ️ No "data" field in response body');
         }
-      } catch (e, stack) {
-        debugPrint('❌ Error while handling HTTP error');
-        debugPrint('➡️ Exception: $e');
-        debugPrint('➡️ StackTrace: $stack');
-
-        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      } catch (e) {
+        throw Exception(
+          'HTTP ${response.statusCode}: ${response.body}',
+        );
       }
-    } else {
-      debugPrint('✅ Response OK, no error handling needed');
     }
   }
 }

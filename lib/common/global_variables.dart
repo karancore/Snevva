@@ -12,10 +12,7 @@ import '../models/medicine_reminder_model.dart';
 enum Option { times, interval }
 enum ReminderCategory { medicine , water , meal , event}
 const String reminderBox = 'reminders_box';
-const String medicineKey = 'medicine_list';
-const String waterKey = 'water_model';
-const String eventKey = 'event_map';
-const String mealKey = 'meal_map';
+
 
 //to access medicne do (reminderBox)[medicineKey];
 
