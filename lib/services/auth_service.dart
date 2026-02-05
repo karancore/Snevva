@@ -102,7 +102,7 @@ class AuthService {
     return token;
   }
 
-  static Future<void> logexceptiontoServer(dynamic exceptionDetails) async {
+  static Future<void> logExceptionToServer(Map<String , dynamic> exceptionDetails) async {
     try{
       final payload = {'ExceptionDetails': exceptionDetails};
 

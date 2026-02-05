@@ -26,7 +26,7 @@ class ExceptionLogger {
         className: className,
       );
 
-      AuthService.logexceptiontoServer(log.toJson());
+      AuthService.logExceptionToServer(log.toJson());
 
       print('✅ Exception logged to server');
     } catch (e) {

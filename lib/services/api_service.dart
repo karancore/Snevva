@@ -13,11 +13,11 @@ class ApiService {
   static const String _baseUrl = baseUrl;
 
   static Future<Object> post(
-      String endpoint,
-      Map<String, dynamic>? plainBody, {
-        bool withAuth = false,
-        bool encryptionRequired = true,
-      }) async {
+    String endpoint,
+    Map<String, dynamic>? plainBody, {
+    bool withAuth = false,
+    bool encryptionRequired = true,
+  }) async {
     final headers = await AuthHeaderHelper.getHeaders(withAuth: withAuth);
     final uri = Uri.parse("$_baseUrl$endpoint");
 
@@ -34,7 +34,7 @@ class ApiService {
       headers['x-data-hash'] = encrypted['Hash'] ?? '';
 
       final deviceInfoHeader =
-      await DeviceTokenService().buildDeviceInfoHeader();
+          await DeviceTokenService().buildDeviceInfoHeader();
       headers['X-Device-Info'] = deviceInfoHeader;
 
       debugPrint('🔐 ENCRYPTED REQUEST');
@@ -71,8 +71,10 @@ class ApiService {
         debugPrint('➡️ Encrypted Body: $encryptedBody');
         debugPrint('➡️ Response Hash: $responseHash');
 
-        final decrypted =
-        EncryptionService.decryptData(encryptedBody, responseHash);
+        final decrypted = EncryptionService.decryptData(
+          encryptedBody,
+          responseHash,
+        );
 
         if (decrypted == null) {
           throw Exception('Failed to decrypt response');
@@ -94,7 +96,7 @@ class ApiService {
       if (plainBody != null) bodyPayload = jsonEncode(plainBody);
 
       final deviceInfoHeader =
-      await DeviceTokenService().buildDeviceInfoHeader();
+          await DeviceTokenService().buildDeviceInfoHeader();
       headers['X-Device-Info'] = deviceInfoHeader;
 
       debugPrint('📦 NON-ENCRYPTED REQUEST');
@@ -123,8 +125,10 @@ class ApiService {
           throw Exception('Missing x-data-hash header');
         }
 
-        final decrypted =
-        EncryptionService.decryptData(encryptedBody, responseHash);
+        final decrypted = EncryptionService.decryptData(
+          encryptedBody,
+          responseHash,
+        );
 
         debugPrint('✅ DECRYPTED RESPONSE');
         debugPrint('➡️ Decrypted JSON: $decrypted');
@@ -152,17 +156,12 @@ class ApiService {
             responseHash ?? '',
           );
 
-          DebugLogger().log(
-            '❌ API ERROR [$endpoint]: $decrypted',
-            type: 'API',
-          );
+          DebugLogger().log('❌ API ERROR [$endpoint]: $decrypted', type: 'API');
 
           throw Exception('HTTP ${response.statusCode}: $decrypted');
         }
       } catch (e) {
-        throw Exception(
-          'HTTP ${response.statusCode}: ${response.body}',
-        );
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
       }
     }
   }
