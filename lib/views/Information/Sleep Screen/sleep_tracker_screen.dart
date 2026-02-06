@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
+import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
@@ -188,16 +189,10 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                         ),
                       ),
                     Obx(() {
-                      final deepSleep =
-                          (sleepController.deepSleepDuration.value?.inMinutes ??
-                                  0)
-                              .toDouble();
-                      print("sleeptrackerscreen $deepSleep");
-                      final ideal =
-                          (sleepController.idealWakeupDuration?.inMinutes ?? 1)
-                              .toDouble();
-
-                      final percent = (deepSleep / ideal).clamp(0.0, 1.0);
+                      final d = sleepController.deepSleepDuration.value;
+                      final deepMin = d.inMinutes.toDouble();
+                      final idealMin = (sleepController.idealWakeupDuration?.inMinutes ?? 720).toDouble();
+                      final percent = idealMin <= 0 ? 0.0 : (deepMin / idealMin).clamp(0.0, 1.0);
 
                       return CircularPercentIndicator(
                         radius: 120,
@@ -210,28 +205,23 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                         center: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              sleepController.deepSleepDuration.value == null
-                                  ? "No data"
-                                  : fmtDuration(
-                                    sleepController.deepSleepDuration.value ??
-                                        Duration.zero,
+                            (d.inMinutes > 0)
+                                ? Text(
+                                    fmtDuration(d),
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDarkMode ? white : black,
+                                    ),
+                                  )
+                                : Text(
+                                    "No data",
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w600,
+                                      color: grey,
+                                    ),
                                   ),
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w600,
-                                color:
-                                    fmtDuration(
-                                              sleepController
-                                                      .deepSleepDuration
-                                                      .value ??
-                                                  Duration.zero,
-                                            ) ==
-                                            "0h 00m"
-                                        ? grey
-                                        : (isDarkMode ? white : black),
-                              ),
-                            ),
                             Text(
                               "Sleep",
                               style: TextStyle(fontSize: 14, color: mediumGrey),
