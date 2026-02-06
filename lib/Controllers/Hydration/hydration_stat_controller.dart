@@ -288,6 +288,8 @@ class HydrationStatController extends GetxService {
       final waterGoalData = resbody['data']['WaterGoalData'];
       if (waterGoalData != null && waterGoalData['Value'] != null) {
         waterGoal.value = waterGoalData['Value'];
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isWaterGoalSet', true);
       } else {
         waterGoal.value = 0; // or keep previous value, or handle as needed
       }
