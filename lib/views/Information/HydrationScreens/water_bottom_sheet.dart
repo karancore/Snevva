@@ -64,7 +64,7 @@ class _WaterBottomSheetState extends State<WaterBottomSheet> {
     // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return CommonQuestionBottomSheet(
-      img: widget.image,
+      img: bottomSheetImg,
       wheel: wheel,
       isDarkMode: isDarkMode,
       unit: widget.unit,

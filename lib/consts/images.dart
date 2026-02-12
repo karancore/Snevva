@@ -69,9 +69,11 @@ const sleepEle = "assets/Dashboard/sleepy-ele1.png";
 const sleepEle2 = "assets/Images/sleepy-ele2.png";
 const sleepEleBottom = "assets/Dashboard/Rectangle 12.png";
 const hydrationDashboardEle = "assets/Dashboard/elle-drink-water 1.png";
+const waterBottomSheet = "assets/Images/hydrationEle.svg";
 const hydrationEleBottom = "assets/Dashboard/Rectangle 31.png";
 const heartImg = "assets/Dashboard/Frame 148.png";
 const drawerImg = "assets/Dashboard/drawerImg.png";
+
 //Icons
 // Dashboard_containers
 const waterIcon = "assets/Icons/shield-cross-fill.png";
@@ -234,7 +236,10 @@ const cyclePhaseIcon2 = "assets/Icons/WomenHealth/Vegan.svg";
 const cyclePhaseIcon3 = "assets/Icons/WomenHealth/Rectangle.svg";
 const quoteIcon1 = "assets/Images/WomenHealth/tips1.png";
 const quoteIcon2 = "assets/Images/WomenHealth/tips2.png";
-const bottomSheetImg = "assets/Images/WomenHealth/game-img02.svg";
+//const bottomSheetImg = "assets/Images/WomenHealth/game-img02.svg";
+const bottomSheetImg = "assets/Images/WomenHealth/bottom_sheet.webp";
+
+
 const symptomsIcon = "assets/Icons/WomenHealth/Rectangle.png";
 const periodsIcon = "assets/Icons/WomenHealth/Rectangle-2.png";
 

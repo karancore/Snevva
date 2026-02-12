@@ -210,7 +210,7 @@ class _CommonQuestionBottomSheetState extends State<CommonQuestionBottomSheet> {
                   top: widget.topPosition,
                   left: 0,
                   right: 0,
-                  child: SvgPicture.asset(widget.img, height: 150, width: 150),
+                  child: Image.asset(widget.img, height: 150, width: 150),
                 ),
               ],
             ),

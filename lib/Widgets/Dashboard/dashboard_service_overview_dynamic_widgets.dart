@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
+import 'package:snevva/views/Information/HydrationScreens/water_bottom_sheet.dart';
 import '../../Controllers/SleepScreen/sleep_controller.dart';
 import '../../Controllers/StepCounter/step_counter_controller.dart';
 import '../../common/global_variables.dart';
@@ -62,7 +63,7 @@ class _DashboardServiceOverviewDynamicWidgetsState
 
   @override
   Widget build(BuildContext context) {
-    final height = MediaQuery.of(context).size.height;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     if (!_loaded) {
       _loaded = true;
@@ -87,10 +88,10 @@ class _DashboardServiceOverviewDynamicWidgetsState
                   final watercontroller = Get.find<HydrationStatController>();
 
                   if (!isGoalSet) {
-                    final goal = await showHydrationBottomSheetModal(
-                      context,
-                      widget.isDarkMode,
-                      height,
+                    final goal = await showWaterBottomSheet(
+                      context: context,
+                      isDarkMode: isDarkMode,
+                      onConfirm: (int value) {},
                     );
 
                     if (goal != null) {

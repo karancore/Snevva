@@ -9,7 +9,7 @@ import 'package:snevva/Widgets/CommonWidgets/common_question_bottom_sheet.dart';
 import '../vitals.dart';
 
 class StepCounterBottomSheet extends StatelessWidget {
-  StepCounterBottomSheet({
+  const StepCounterBottomSheet({
     super.key,
     this.unit = "Steps",
     this.image = "assets/Images/Steps/walk-ele.svg",
@@ -43,7 +43,7 @@ class StepCounterBottomSheet extends StatelessWidget {
     // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return CommonQuestionBottomSheet(
-      img: image,
+      img: bottomSheetImg,
       wheel: wheel,
       isDarkMode: isDarkMode,
       unit: unit,
