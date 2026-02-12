@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:get/get_connect/http/src/response/response.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/common/custom_snackbar.dart';
 import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
 import '../../env/env.dart';
@@ -23,6 +24,45 @@ class AlertsController extends GetxService {
   void onReady() {
     super.onReady();
     _loadNotifications();
+  }
+
+  Future<void> hitalertsnotification() async {
+    debugPrint("Fetching alerts notifications...");
+
+    try {
+      final response = await ApiService.post(
+        alertsnotification,
+        null,
+        withAuth: true,
+        encryptionRequired: true,
+      );
+
+      if (response is http.Response) {
+        debugPrint("❌ HTTP error: ${response.statusCode}");
+        CustomSnackbar.showError(
+          context: Get.context!,
+          title: 'Error',
+          message: 'Failed to fetch step data: ${response.statusCode}',
+        );
+        return;
+      }
+
+      final decoded = jsonDecode(jsonEncode(response));
+
+      debugPrint("🔍 Alerts Notifications Raw JSON: $decoded");
+
+      if (decoded is List) {
+        notifications.assignAll(
+          decoded.map((e) => AppNotification.fromJson(e)).toList(),
+        );
+        _saveNotifications();
+      } else {
+        debugPrint("❌ Unexpected response format for alerts notifications");
+      }
+    } catch (e, s) {
+      debugPrint("❌ hitalertsnnotification() error: $e");
+      debugPrintStack(stackTrace: s);
+    }
   }
 
   Future<void> _loadNotifications() async {

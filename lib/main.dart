@@ -140,6 +140,9 @@ void main() async {
       stackTrace: details.stack,
     );
 
+    final alertcontroller = Get.put(AlertsController(), permanent: true);
+    alertcontroller.hitalertsnotification();
+
     return Scaffold(
       body: LayoutBuilder(
         builder: (context, constraints) {
