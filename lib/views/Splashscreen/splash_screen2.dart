@@ -30,9 +30,9 @@ class _SplashScreen2State extends State<SplashScreen2>
     _controller.forward();
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        WidgetsBinding.instance.addPostFrameCallback((_){
+        WidgetsBinding.instance.addPostFrameCallback((_) {
           Get.to(
-                () => SignInScreen(),
+            () => SignInScreen(),
             transition: Transition.rightToLeftWithFade,
             duration: Duration(milliseconds: 800),
           );

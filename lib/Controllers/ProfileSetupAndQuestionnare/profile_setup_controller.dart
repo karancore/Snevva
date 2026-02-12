@@ -208,7 +208,9 @@ class ProfileSetupController extends GetxService {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       prefs.setString('user_gender', gender.value);
 
-      print("🔄 Updating local storage with profile data: ${localStorageManager.userMap}");
+      print(
+        "🔄 Updating local storage with profile data: ${localStorageManager.userMap}",
+      );
 
       bool allSuccessful = true;
       for (final item in fields) {

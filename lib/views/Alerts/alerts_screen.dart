@@ -18,7 +18,6 @@ class AlertsScreen extends StatefulWidget {
 
 class _AlertsScreenState extends State<AlertsScreen>
     with SingleTickerProviderStateMixin {
-
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
 
   @override
@@ -62,7 +61,6 @@ class _AlertsScreenState extends State<AlertsScreen>
         appbarText: 'Alerts',
         showCloseButton: false,
         showDrawerIcon: false,
-
       ),
 
       body: SafeArea(

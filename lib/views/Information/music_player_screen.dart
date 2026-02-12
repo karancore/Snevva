@@ -197,8 +197,6 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
     return list;
   }
 
-
-
   // Future<void> playFromIndex(int index) async {
   //   if (shuffledCdnUrls.isEmpty) return;
   //

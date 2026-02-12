@@ -2,7 +2,7 @@ import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Chat/snevva_ai_chat_screen.dart';
 import 'package:snevva/views/DietPlan/diet_plan_screen.dart';
-import 'package:snevva/views/Information/BMI/bmi_cal.dart';
+
 import 'package:snevva/views/Information/HydrationScreens/hydration_screen.dart';
 import 'package:snevva/views/Information/Health%20Tips/health_tips.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_bottom_sheet.dart';
@@ -15,11 +15,13 @@ import 'package:snevva/views/Information/mental_wellness_screen.dart';
 import 'package:get/get.dart';
 import 'package:snevva/views/Reminder/reminder_wrapper.dart';
 import 'package:snevva/views/WomenHealth/women_health_screen.dart';
+
 import '../../Controllers/StepCounter/step_counter_controller.dart';
 import '../../Widgets/CommonWidgets/custom_appbar.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../Widgets/menu_item_widget.dart';
 import '../../common/statement_of_use_bottom_sheet.dart';
+import '../Information/BMI/bmi_cal.dart';
 import '../WomenHealth/women_bottom_sheets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -343,8 +345,7 @@ Widget _buildMenuGrid(
               // Handle Sleep Tracker
               else if (item.title == "Sleep Tracker") {
                 final prefs = await SharedPreferences.getInstance();
-                final isFirstTime =
-                    prefs.getBool('sleepGoalbool') ?? false;
+                final isFirstTime = prefs.getBool('sleepGoalbool') ?? false;
 
                 if (!isFirstTime) {
                   final agreed = await showSleepBottomSheetModal(

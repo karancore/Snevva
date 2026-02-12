@@ -179,11 +179,11 @@ class SymptomsBottomSheet extends StatelessWidget {
                           bottomSheetController.selectedSymptoms.toList(),
                           noteController.text.trim(),
                         );
-                    
+
                         // Clear selected symptoms and note after Save
                         bottomSheetController.selectedSymptoms.clear();
                         noteController.clear();
-                    
+
                         Get.back();
                       },
                       style: OutlinedButton.styleFrom(

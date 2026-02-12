@@ -19,6 +19,10 @@ class _BmiCalState extends State<BmiCal> {
   int weight = 52;
   double height = 158;
 
+  final double itemWidth = 60; // width of each number
+
+  bool isSelected = false;
+
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
@@ -229,40 +233,61 @@ class _BmiCalState extends State<BmiCal> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
+                              // Minus button
                               IconButton(
                                 icon: const Icon(Icons.remove_circle_outline),
-                                onPressed:
-                                    () => setState(
-                                      () =>
-                                          weight = weight > 1 ? weight - 1 : 1,
-                                    ),
+                                onPressed: () {
+                                  if (weight <= 1) return; // prevent going below 1
+                                  setState(() => weight--);
+                                },
                               ),
 
-                              for (int i = weight - 2; i <= weight + 2; i++)
-                                if (i > 0)
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 2,
-                                    ),
-                                    child: AutoSizeText(
-                                      "$i",
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                        color:
-                                            i == weight
+                              // Horizontal list of numbers 1-100
+                              SizedBox(
+                                height: 100,
+                                width: 220,
+                                child: ListView.separated(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: 100,
+                                  itemBuilder: (context, index) {
+                                    final number = index + 1;
+                                    final isSelected = weight == number; // highlight selected number
+
+                                    return GestureDetector(
+                                      onTap: () {
+                                        setState(() => weight = number);
+                                      },
+                                      child: Container(
+                                        alignment: Alignment.center,
+                                        width: 30, // make each number have some space
+                                        child: AutoSizeText(
+                                          '$number',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                            color: isSelected
                                                 ? AppColors.primaryColor
                                                 : mediumGrey,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ),
+                                    );
+                                  },
+                                  separatorBuilder: (context, index) => const SizedBox(width: 8),
+                                ),
+                              ),
 
+                              // Plus button
                               IconButton(
                                 icon: const Icon(Icons.add_circle_outline),
-                                onPressed: () => setState(() => weight++),
+                                onPressed: () {
+                                  if (weight >= 100) return; // prevent going above 100
+                                  setState(() => weight++);
+                                },
                               ),
                             ],
-                          ),
+                          )
+
                         ],
                       ),
                     ),

@@ -67,7 +67,6 @@ class CommonStatGraphWidget extends StatelessWidget {
     //final bool isMonthly = labels.length > 7;
     final bool isMonthly = isMonthlyView;
 
-
     // Handle "today" index highlighting only for weekly data
     int todayIndex = 0;
     if (!isMonthly && labels.length == 7) {
@@ -76,15 +75,15 @@ class CommonStatGraphWidget extends StatelessWidget {
 
     // Clamp Y values to graph max
     final clampedPoints =
-    points.map((p) {
-      double y = p.y;
-      if (y > yAxisMaxValue) y = yAxisMaxValue;
-      // if (y < 0) y = 0;
-      return FlSpot(
-        double.parse(p.x.toStringAsFixed(2)),
-        double.parse(y.toStringAsFixed(3)),
-      );
-    }).toList();
+        points.map((p) {
+          double y = p.y;
+          if (y > yAxisMaxValue) y = yAxisMaxValue;
+          // if (y < 0) y = 0;
+          return FlSpot(
+            double.parse(p.x.toStringAsFixed(2)),
+            double.parse(y.toStringAsFixed(3)),
+          );
+        }).toList();
 
     final String formattedDate = DateFormat(
       'd MMM, yyyy',
@@ -92,9 +91,9 @@ class CommonStatGraphWidget extends StatelessWidget {
 
     // Compute X-axis limits dynamically
     final double maxX =
-    clampedPoints.isNotEmpty
-        ? clampedPoints.map((e) => e.x).reduce((a, b) => a > b ? a : b)
-        : 6;
+        clampedPoints.isNotEmpty
+            ? clampedPoints.map((e) => e.x).reduce((a, b) => a > b ? a : b)
+            : 6;
 
     print('--- CommonStatGraphWidget BUILD ---');
     print('isMonthlyView: $isMonthlyView');
@@ -152,23 +151,23 @@ class CommonStatGraphWidget extends StatelessWidget {
             // ===== Graph Section =====
             isMonthlyView
                 ? SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: _buildChart(
-                labels: labels,
-                points: points,
-                context: context,
-                isMonthly: isMonthly,
-                todayIndex: todayIndex,
-              ),
-            )
+                  scrollDirection: Axis.horizontal,
+                  child: _buildChart(
+                    labels: labels,
+                    points: points,
+                    context: context,
+                    isMonthly: isMonthly,
+                    todayIndex: todayIndex,
+                  ),
+                )
                 : _buildChart(
-              labels: labels,
-              context: context,
-              maxXForWeek: maxXForWeek,
-              points: points,
-              isMonthly: isMonthly,
-              todayIndex: todayIndex,
-            ),
+                  labels: labels,
+                  context: context,
+                  maxXForWeek: maxXForWeek,
+                  points: points,
+                  isMonthly: isMonthly,
+                  todayIndex: todayIndex,
+                ),
           ],
         ),
       ),
@@ -185,9 +184,9 @@ class CommonStatGraphWidget extends StatelessWidget {
   }) {
     String formatted = '';
     final double safeMaxX =
-    isMonthly
-        ? max(1, labels.length).toDouble()
-        : max(1, (maxXForWeek ?? labels.length)).toDouble();
+        isMonthly
+            ? max(1, labels.length).toDouble()
+            : max(1, (maxXForWeek ?? labels.length)).toDouble();
 
     print('--- _buildChart ---');
     print('isMonthly: $isMonthly');
@@ -195,7 +194,10 @@ class CommonStatGraphWidget extends StatelessWidget {
     print('safeMaxX: $safeMaxX');
     print('labels.length: ${labels.length}');
 
-    double chartWidth = max(labels.length * 42.0, MediaQuery.of(context).size.width - 40);
+    double chartWidth = max(
+      labels.length * 42.0,
+      MediaQuery.of(context).size.width - 40,
+    );
 
     if (points.isEmpty || labels.isEmpty) {
       return SizedBox(
@@ -212,8 +214,7 @@ class CommonStatGraphWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.only(top: 52),
       height: height * 0.28,
-      width:
-      chartWidth,
+      width: chartWidth,
       child: LineChart(
         key: ValueKey(isMonthlyView),
         LineChartData(
@@ -234,9 +235,7 @@ class CommonStatGraphWidget extends StatelessWidget {
 
                   if (index >= 0 && index < labels.length) {
                     final bool isToday =
-                    isMonthly
-                        ? index == getCurrentDateIndex()
-                        : index == todayIndex;
+                        !isMonthly && todayIndex != -1 && index == todayIndex;
 
                     return Padding(
                       padding: const EdgeInsets.only(top: 6),
@@ -245,11 +244,11 @@ class CommonStatGraphWidget extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 9,
                           fontWeight:
-                          isToday ? FontWeight.bold : FontWeight.normal,
+                              isToday ? FontWeight.bold : FontWeight.normal,
                           color:
-                          isToday
-                              ? AppColors.primaryColor
-                              : Colors.grey.shade600,
+                              isToday
+                                  ? AppColors.primaryColor
+                                  : Colors.grey.shade600,
                         ),
                       ),
                     );
@@ -265,11 +264,11 @@ class CommonStatGraphWidget extends StatelessWidget {
                 interval: yAxisInterval,
                 getTitlesWidget:
                     (value, _) => Text(
-                  value % 1 == 0
-                      ? '${value.toInt()}$measureUnit'
-                      : '${value.toStringAsFixed(1)}$measureUnit',
-                  style: const TextStyle(fontSize: 9),
-                ),
+                      value % 1 == 0
+                          ? '${value.toInt()}$measureUnit'
+                          : '${value.toStringAsFixed(1)}$measureUnit',
+                      style: const TextStyle(fontSize: 9),
+                    ),
               ),
             ),
             rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),

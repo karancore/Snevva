@@ -98,7 +98,6 @@ class EditprofileController extends GetxService {
       case 'YearOfBirth':
         updateDob(year: value);
         break;
-
     }
   }
 
@@ -111,7 +110,6 @@ class EditprofileController extends GetxService {
       day ?? current.day,
     );
   }
-
 
   void startResendTimer({int seconds = 30}) {
     isResendEnabled.value = false;
@@ -572,7 +570,7 @@ class EditprofileController extends GetxService {
                   defaultPinTheme: defaultPinTheme,
                   focusedPinTheme: focusedPinTheme,
                   submittedPinTheme: submittedPinTheme,
-                  onCompleted: (pin){},
+                  onCompleted: (pin) {},
                   followingPinTheme: followingPinTheme,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   // onCompleted: (pin) async {
@@ -695,14 +693,14 @@ class EditprofileController extends GetxService {
                   followingPinTheme: followingPinTheme,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   onCompleted: (pin) async {
-                   //  otpVerificationStatus = await otpVerificationController
-                   //      .verifyOtp(pin, ctx);
-                   //  if (otpVerificationStatus) {
-                   //    localStorageManager.userMap['PhoneNumber'] = initialValue;
-                   //    phoneNumber = initialValue;
-                   //    await signupController.updatePhone(phoneNumber, ctx);
-                   //    if (onUpdated != null) onUpdated();
-                   // }
+                    //  otpVerificationStatus = await otpVerificationController
+                    //      .verifyOtp(pin, ctx);
+                    //  if (otpVerificationStatus) {
+                    //    localStorageManager.userMap['PhoneNumber'] = initialValue;
+                    //    phoneNumber = initialValue;
+                    //    await signupController.updatePhone(phoneNumber, ctx);
+                    //    if (onUpdated != null) onUpdated();
+                    // }
                   },
                 ),
 

@@ -219,8 +219,7 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
               widgetImg: sleepTrackerIcon,
               onTap: () async {
                 final prefs = await SharedPreferences.getInstance();
-                final isFirstSleep =
-                    prefs.getBool('sleepGoalbool') ?? false;
+                final isFirstSleep = prefs.getBool('sleepGoalbool') ?? false;
 
                 if (!isFirstSleep) {
                   final agreed = await showSleepBottomSheetModal(
@@ -230,15 +229,13 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
                     isNavigating: true,
                   );
 
-                 if (agreed != null) {
+                  if (agreed != null) {
                     await prefs.setBool('sleepGoalbool', true);
 
                     if (!context.mounted) return;
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => SleepTrackerScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => SleepTrackerScreen()),
                     );
 
                     Future.microtask(() async {
@@ -246,14 +243,11 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
                     });
                   }
                 } else {
-
                   if (!context.mounted) return;
 
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => SleepTrackerScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => SleepTrackerScreen()),
                   );
                 }
               },
@@ -276,46 +270,42 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
               DashboardServiceWidgetItems(
                 widgetText: 'Women Health',
                 widgetImg: womenIcon,
-                 onTap: () async {
-                final prefs = await SharedPreferences.getInstance();
-                final isFirstWomen =
-                    prefs.getBool('is_first_time_women') ?? true;
+                onTap: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final isFirstWomen =
+                      prefs.getBool('is_first_time_women') ?? true;
 
-                if (isFirstWomen) {
-                  final agreed = await showWomenBottomSheetsModal(
+                  if (isFirstWomen) {
+                    final agreed = await showWomenBottomSheetsModal(
                       context,
                       isDarkMode,
                       width,
                       height,
                     );
 
-                 if (agreed != null) {
-                    await prefs.setBool('is_first_time_women', false);
+                    if (agreed != null) {
+                      await prefs.setBool('is_first_time_women', false);
 
+                      if (!context.mounted) return;
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => WomenHealthScreen()),
+                      );
+
+                      Future.microtask(() async {
+                        await womenhealthController
+                            .saveWomenHealthToLocalStorage();
+                      });
+                    }
+                  } else {
                     if (!context.mounted) return;
+
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => WomenHealthScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => WomenHealthScreen()),
                     );
-
-                    Future.microtask(() async {
-                      await womenhealthController.saveWomenHealthToLocalStorage();
-                    });
                   }
-                } else {
-
-                  if (!context.mounted) return;
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => WomenHealthScreen(),
-                    ),
-                  );
-                }
-              },
+                },
               ),
 
             if (gender != 'Female')

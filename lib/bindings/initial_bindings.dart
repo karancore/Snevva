@@ -31,8 +31,6 @@ import '../Controllers/signupAndSignIn/update_old_password_controller.dart';
 class InitialBindings extends Bindings {
   @override
   void dependencies() {
-
-
     //   Get.put(LocalStorageManager(), permanent: true);
     //
     // if (!Get.isRegistered<AlertsController>()) {
@@ -105,6 +103,5 @@ class InitialBindings extends Bindings {
     // }
     //
     //
-
   }
 }

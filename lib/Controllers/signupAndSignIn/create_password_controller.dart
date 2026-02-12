@@ -80,7 +80,7 @@ class CreatePasswordController extends GetxService {
 
       final deviceInfoHeader =
           await DeviceTokenService().buildDeviceInfoHeader();
-      
+
       headers['X-Device-Info'] = deviceInfoHeader;
 
       final encryptedBody = jsonEncode({
@@ -171,7 +171,7 @@ class CreatePasswordController extends GetxService {
 
       final deviceInfoHeader =
           await DeviceTokenService().buildDeviceInfoHeader();
-      
+
       headers['X-Device-Info'] = deviceInfoHeader;
 
       final encryptedBody = jsonEncode({

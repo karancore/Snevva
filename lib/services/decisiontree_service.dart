@@ -4,8 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:snevva/views/Chat/snevva_ai_chat_screen.dart';
 
 class DecisionTreeService {
-  static final DecisionTreeService _instance =
-      DecisionTreeService._internal();
+  static final DecisionTreeService _instance = DecisionTreeService._internal();
 
   factory DecisionTreeService() => _instance;
 

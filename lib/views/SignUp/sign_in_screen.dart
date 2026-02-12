@@ -62,12 +62,10 @@ final moodcontroller = Get.put(MoodController());
 final bottomsheetcontroller = Get.put(BottomSheetController());
 final reminderController = Get.put(ReminderController());
 
-
 class _SignInScreenState extends State<SignInScreen> {
   late TextEditingController userEmailOrPhoneField;
   late TextEditingController userPasswordField;
   final controller = Get.put(SignInController());
-
 
   bool rememberMe = true;
   bool visible = true;
@@ -87,12 +85,12 @@ class _SignInScreenState extends State<SignInScreen> {
     userEmailOrPhoneField = TextEditingController();
     userPasswordField = TextEditingController();
 
-    WidgetsBinding.instance.addPostFrameCallback((_){
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       initialiseControllers();
     });
   }
 
-  void initialiseControllers(){
+  void initialiseControllers() {
     Get.put(LocalStorageManager(), permanent: true);
 
     if (!Get.isRegistered<AlertsController>()) {
@@ -121,7 +119,6 @@ class _SignInScreenState extends State<SignInScreen> {
     if (!Get.isRegistered<ProfileSetupController>()) {
       Get.lazyPut(() => ProfileSetupController(), fenix: true);
     }
-
 
     if (!Get.isRegistered<WomenHealthController>()) {
       Get.lazyPut(() => WomenHealthController(), fenix: true);
@@ -153,10 +150,6 @@ class _SignInScreenState extends State<SignInScreen> {
 
     Get.lazyPut(() => MoodQuestionController(), fenix: true);
 
-
-
-
-
     // UI
     //WOmen
     if (!Get.isRegistered<BottomSheetController>()) {
@@ -168,7 +161,6 @@ class _SignInScreenState extends State<SignInScreen> {
     if (!Get.isRegistered<ReminderController>()) {
       Get.lazyPut(() => ReminderController(), fenix: true);
     }
-
   }
 
   @override
@@ -208,7 +200,6 @@ class _SignInScreenState extends State<SignInScreen> {
       data: const {},
     );
     // #endregion
-
 
     await stepController.loadStepsfromAPI(
       month: DateTime.now().month,
@@ -257,7 +248,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
     final gender = userData['Gender']?.toString() ?? 'Unknown';
     print("Gender is $gender");
-    if(gender == 'Female'){
+    if (gender == 'Female') {
       await bottomsheetcontroller.loaddatafromAPI();
       await womenhealthController.lastPeriodDatafromAPI();
     }
@@ -305,11 +296,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
   // Handle sign-in error and show snackbar
   void _handleSignInError(String message) {
-    CustomSnackbar.showError(
-      context: context,
-      title: "",
-      message: message,
-    );
+    CustomSnackbar.showError(context: context, title: "", message: message);
   }
 
   Future<void> onSignInButtonClick(BuildContext context) async {

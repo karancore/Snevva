@@ -310,5 +310,3 @@ const errorIcon = "assets/Images/error.webp";
 const noNotif = "assets/Images/notificon.png";
 const fatty = "assets/Images/BMI/fatty.png";
 const skinny = "assets/Images/BMI/skiiny.png";
-
-

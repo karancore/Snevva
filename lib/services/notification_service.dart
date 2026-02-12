@@ -10,7 +10,6 @@ import '../consts/consts.dart';
 const int NOTIFICATION_ID = 999;
 const int WAKE_NOTIFICATION_ID = 998;
 
-
 class NotificationService {
   final FlutterLocalNotificationsPlugin notificationsPlugin =
       FlutterLocalNotificationsPlugin();
@@ -31,7 +30,8 @@ class NotificationService {
     await notificationsPlugin.initialize(
       initSettings,
       onDidReceiveNotificationResponse: onNotificationAction, // foreground
-      onDidReceiveBackgroundNotificationResponse: notificationBackgroundHandler, // killed
+      onDidReceiveBackgroundNotificationResponse:
+          notificationBackgroundHandler, // killed
     );
 
     // Initialize timezone (very important for scheduling)
@@ -51,7 +51,6 @@ class NotificationService {
       await fln.cancel(response.id ?? WAKE_NOTIFICATION_ID);
     }
   }
-
 
   Future<void> showInstantNotification({
     required int id,
@@ -286,7 +285,6 @@ class NotificationService {
   //     androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
   //   );
   // }
-
 
   // Future<void> cancelWakeNotification() async {
   //   await notificationsPlugin.cancel(WAKE_NOTIFICATION_ID); // Changed from 999 to 998

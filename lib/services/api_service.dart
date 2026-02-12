@@ -21,12 +21,6 @@ class ApiService {
     final headers = await AuthHeaderHelper.getHeaders(withAuth: withAuth);
     final uri = Uri.parse("$_baseUrl$endpoint");
 
-    debugPrint('\n🚀 API REQUEST');
-    debugPrint('➡️ URL: $_baseUrl$endpoint');
-    debugPrint('➡️ With Auth: $withAuth');
-    debugPrint('➡️ Encryption: $encryptionRequired');
-    debugPrint('➡️ Plain Body: $plainBody');
-
     if (encryptionRequired && plainBody != null) {
       final jsonString = jsonEncode(plainBody);
       final encrypted = EncryptionService.encryptData(jsonString);
@@ -36,11 +30,6 @@ class ApiService {
       final deviceInfoHeader =
           await DeviceTokenService().buildDeviceInfoHeader();
       headers['X-Device-Info'] = deviceInfoHeader;
-
-      debugPrint('🔐 ENCRYPTED REQUEST');
-      debugPrint('➡️ Hash: ${encrypted['Hash']}');
-      debugPrint('➡️ Encrypted Data: ${encrypted['encryptedData']}');
-      debugPrint('➡️ Headers: $headers');
 
       final encryptedRequestBody = jsonEncode({
         'data': encrypted['encryptedData'],
@@ -52,24 +41,14 @@ class ApiService {
         body: encryptedRequestBody,
       );
 
-      debugPrint('\n⬅️ API RAW RESPONSE [$endpoint]');
-      debugPrint('➡️ Status: ${response.statusCode}');
-      debugPrint('➡️ Headers: ${response.headers}');
-      debugPrint('➡️ Body: ${response.body}');
-
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         final encryptedBody = responseBody['data'];
 
         final responseHash = response.headers['x-data-hash'];
         if (responseHash == null) {
-          debugPrint('❌ x-data-hash header missing');
           throw Exception('Missing x-data-hash header');
         }
-
-        debugPrint('🔓 DECRYPTING RESPONSE');
-        debugPrint('➡️ Encrypted Body: $encryptedBody');
-        debugPrint('➡️ Response Hash: $responseHash');
 
         final decrypted = EncryptionService.decryptData(
           encryptedBody,
@@ -79,9 +58,6 @@ class ApiService {
         if (decrypted == null) {
           throw Exception('Failed to decrypt response');
         }
-
-        debugPrint('✅ DECRYPTED RESPONSE');
-        debugPrint('➡️ Decrypted JSON: $decrypted');
 
         return jsonDecode(decrypted);
       } else if (response.statusCode == 401 || response.statusCode == 403) {
@@ -99,21 +75,11 @@ class ApiService {
           await DeviceTokenService().buildDeviceInfoHeader();
       headers['X-Device-Info'] = deviceInfoHeader;
 
-      debugPrint('📦 NON-ENCRYPTED REQUEST');
-      debugPrint('➡️ Headers: $headers');
-      debugPrint('➡️ Body: $bodyPayload');
-
       final response = await http.post(
         uri,
         headers: headers,
         body: bodyPayload,
       );
-
-      debugPrint('\n⬅️ API RAW RESPONSE [$endpoint]');
-      debugPrint('➡️ Status: ${response.statusCode}');
-      debugPrint('➡️ Headers: ${response.headers}');
-      debugPrint('➡️ Body: ${response.body}');
-
       _handleErrors(response, endpoint);
 
       if (response.statusCode == 200) {
@@ -130,9 +96,6 @@ class ApiService {
           responseHash,
         );
 
-        debugPrint('✅ DECRYPTED RESPONSE');
-        debugPrint('➡️ Decrypted JSON: $decrypted');
-
         return jsonDecode(decrypted!);
       }
       return response;
@@ -140,11 +103,6 @@ class ApiService {
   }
 
   static void _handleErrors(http.Response response, String endpoint) {
-    debugPrint('\n🔍 _handleErrors called for [$endpoint]');
-    debugPrint('➡️ Status Code: ${response.statusCode}');
-    debugPrint('➡️ Headers: ${response.headers}');
-    debugPrint('➡️ Raw Body: ${response.body}');
-
     if (response.statusCode >= 400) {
       try {
         final body = jsonDecode(response.body);

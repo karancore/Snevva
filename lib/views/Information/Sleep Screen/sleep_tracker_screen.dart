@@ -191,8 +191,14 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                     Obx(() {
                       final d = sleepController.deepSleepDuration.value;
                       final deepMin = d.inMinutes.toDouble();
-                      final idealMin = (sleepController.idealWakeupDuration?.inMinutes ?? 720).toDouble();
-                      final percent = idealMin <= 0 ? 0.0 : (deepMin / idealMin).clamp(0.0, 1.0);
+                      final idealMin =
+                          (sleepController.idealWakeupDuration?.inMinutes ??
+                                  720)
+                              .toDouble();
+                      final percent =
+                          idealMin <= 0
+                              ? 0.0
+                              : (deepMin / idealMin).clamp(0.0, 1.0);
 
                       return CircularPercentIndicator(
                         radius: 120,
@@ -207,21 +213,21 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                           children: [
                             (d.inMinutes > 0)
                                 ? Text(
-                                    fmtDuration(d),
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDarkMode ? white : black,
-                                    ),
-                                  )
-                                : Text(
-                                    "No data",
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w600,
-                                      color: grey,
-                                    ),
+                                  fmtDuration(d),
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDarkMode ? white : black,
                                   ),
+                                )
+                                : Text(
+                                  "No data",
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w600,
+                                    color: grey,
+                                  ),
+                                ),
                             Text(
                               "Sleep",
                               style: TextStyle(fontSize: 14, color: mediumGrey),

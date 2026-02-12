@@ -95,10 +95,7 @@ class DosageAdapter extends TypeAdapter<Dosage> {
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return Dosage(
-      value: fields[0] as num,
-      unit: fields[1] as String,
-    );
+    return Dosage(value: fields[0] as num, unit: fields[1] as String);
   }
 
   @override
@@ -249,10 +246,7 @@ class RemindBeforeAdapter extends TypeAdapter<RemindBefore> {
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return RemindBefore(
-      time: fields[0] as int,
-      unit: fields[1] as String,
-    );
+    return RemindBefore(time: fields[0] as int, unit: fields[1] as String);
   }
 
   @override

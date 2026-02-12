@@ -44,111 +44,111 @@ class MenuItemWidget extends StatelessWidget {
 
     return title == "AI Symptom Checker"
         ? Container(
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        children: [
-          Row(
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+          child: Column(
             children: [
-              // Icon
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: SvgPicture.asset(
-                  imagePath,
-                  fit: BoxFit.cover,
-                  color: disabledColor.withOpacity(1),
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // Title and subtitle
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: disabledColor,
-                      ),
+              Row(
+                children: [
+                  // Icon
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(fontSize: 13, color: disabledColor),
+                    child: SvgPicture.asset(
+                      imagePath,
+                      fit: BoxFit.cover,
+                      color: disabledColor.withOpacity(1),
                     ),
-                  ],
-                ),
-              ),
+                  ),
+                  const SizedBox(width: 12),
 
-              // Arrow icon
-              Icon(Icons.arrow_forward_ios, size: 16, color: disabledColor),
+                  // Title and subtitle
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: disabledColor,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          style: TextStyle(fontSize: 13, color: disabledColor),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Arrow icon
+                  Icon(Icons.arrow_forward_ios, size: 16, color: disabledColor),
+                ],
+              ),
+              const SizedBox(height: 10),
+              const Divider(thickness: border04px, color: mediumGrey),
+              const SizedBox(height: 10),
             ],
           ),
-          const SizedBox(height: 10),
-          const Divider(thickness: border04px, color: mediumGrey),
-          const SizedBox(height: 10),
-        ],
-      ),
-    )
+        )
         : GestureDetector(
-      onTap:
-      onTap ??
+          onTap:
+              onTap ??
               () {
-            if (navigateTo != null) {
-              Get.to(() => navigateTo!);
-            }
-          },
-      child: Container(
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
-        child: Column(
-          children: [
-            Row(
+                if (navigateTo != null) {
+                  Get.to(() => navigateTo!);
+                }
+              },
+          child: Container(
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+            child: Column(
               children: [
-                // Icon
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: SvgPicture.asset(imagePath, fit: BoxFit.cover),
-                ),
-                const SizedBox(width: 12),
-
-                // Title and subtitle
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+                Row(
+                  children: [
+                    // Icon
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      const SizedBox(height: 4),
-                      Text(subtitle, style: const TextStyle(fontSize: 13)),
-                    ],
-                  ),
-                ),
+                      child: SvgPicture.asset(imagePath, fit: BoxFit.cover),
+                    ),
+                    const SizedBox(width: 12),
 
-                // Arrow icon
-                const Icon(Icons.arrow_forward_ios, size: 16),
+                    // Title and subtitle
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(subtitle, style: const TextStyle(fontSize: 13)),
+                        ],
+                      ),
+                    ),
+
+                    // Arrow icon
+                    const Icon(Icons.arrow_forward_ios, size: 16),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const Divider(thickness: border04px, color: mediumGrey),
+                const SizedBox(height: 10),
               ],
             ),
-            const SizedBox(height: 10),
-            const Divider(thickness: border04px, color: mediumGrey),
-            const SizedBox(height: 10),
-          ],
-        ),
-      ),
-    );
+          ),
+        );
   }
 }

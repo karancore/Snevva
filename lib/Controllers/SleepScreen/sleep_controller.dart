@@ -35,13 +35,8 @@ class SleepController extends GetxService {
   final Rxn<TimeOfDay> waketime = Rxn<TimeOfDay>();
   DateTime? _activeSleepStart;
 
-
-
   SleepState _sleepState = SleepState.sleeping;
   DateTime? _currentSleepSegmentStart;
-
-
-
 
   // accumulated deep sleep for this night
   Duration _accumulatedDeepSleep = Duration.zero;
@@ -80,18 +75,12 @@ class SleepController extends GetxService {
   @override
   void onInit() {
     super.onInit();
-        
 
     loadDeepSleepData();
     loadUserSleepTimes();
 
     recoverMissedSleepIfNeeded();
-
   }
-
-
-
-
 
   Future<void> recoverMissedSleepIfNeeded() async {
     final prefs = await SharedPreferences.getInstance();
@@ -147,7 +136,7 @@ class SleepController extends GetxService {
     DateTime sleepEnd,
   ) async {
     final deep = sleepEnd.difference(sleepStart);
-    if (deep.inSeconds < 10) return;
+    if (deep.inMinutes < 10) return;
 
     await saveDeepSleepData(sleepStart, deep);
     await uploadsleepdatatoServer(sleepStart, sleepEnd);
@@ -161,7 +150,7 @@ class SleepController extends GetxService {
   ) async {
     // Without live screen data, we assume worst-case: awake periods lost
     final deep = sleepEnd.difference(sleepStart);
-    if (deep.inSeconds < 10) return;
+    if (deep.inMinutes < 10) return;
 
     await saveDeepSleepData(sleepStart, deep);
     await uploadsleepdatatoServer(sleepStart, sleepEnd);
@@ -393,7 +382,7 @@ class SleepController extends GetxService {
       }
 
       final duration = wake.difference(bedDateTime);
-      if (duration.inSeconds < 10) {
+      if (duration.inMinutes < 10) {
         debugPrint("⛔ Sleep too short, skipping upload");
         return;
       }
@@ -598,7 +587,10 @@ class SleepController extends GetxService {
         final key = dateKey(DateTime(year, month, day));
         monthlyDeepSleepHistory[key] = duration;
         // Persist corrected minutes for this day so UI can show the corrected value.
-        await prefs.setInt(_correctedPrefKeyForDateKey(key), duration.inMinutes);
+        await prefs.setInt(
+          _correctedPrefKeyForDateKey(key),
+          duration.inMinutes,
+        );
         final currentWeekStart = DateTime.now().subtract(
           Duration(days: DateTime.now().weekday - 1),
         );
@@ -678,7 +670,6 @@ class SleepController extends GetxService {
     }
   }
 
-
   void _onSleepDetected(DateTime sleepStart, DateTime wakeUp) async {
     debugPrint("🌙  Sleep detected: $sleepStart → $wakeUp");
     // Do NOT finalize here. This event is triggered for screen-based awake segments.
@@ -706,8 +697,9 @@ class SleepController extends GetxService {
     if (_sleepState == SleepState.sleeping &&
         _currentSleepSegmentStart != null &&
         lastAwakeEnd.isAfter(_currentSleepSegmentStart!)) {
-      final segmentDuration =
-      lastAwakeEnd.difference(_currentSleepSegmentStart!);
+      final segmentDuration = lastAwakeEnd.difference(
+        _currentSleepSegmentStart!,
+      );
 
       deepSleepDuration.value += segmentDuration;
     }
@@ -794,6 +786,8 @@ class SleepController extends GetxService {
     // #endregion
 
     weeklyDeepSleepHistory[key] = duration;
+
+    deepSleepDuration.value = weeklyDeepSleepHistory[key] ?? Duration.zero;
     weeklyDeepSleepHistory.refresh();
     updateDeepSleepSpots();
   }
@@ -823,7 +817,6 @@ class SleepController extends GetxService {
 
       final minutes = weeklyDeepSleepHistory[key]?.inMinutes ?? 0;
       final hours = minutes / 60.0;
-
 
       spots.add(FlSpot(i.toDouble(), hours));
     }
@@ -889,30 +882,39 @@ class SleepController extends GetxService {
   }
 
   Future<void> startMonitoring() async {
+    debugPrint("🟢 [SLEEP-START] startMonitoring called");
+
     phoneUsageIntervals.clear();
     _wasPhoneUsedDuringSleep = false;
+    _accumulatedDeepSleep = Duration.zero;
+
     final prefs = await SharedPreferences.getInstance();
 
     if (bedtime.value != null) {
       final now = DateTime.now();
       final bt = resolveSleepStart(now);
-      _activeSleepStart = bt;                      // <-- important
-      _currentSleepSegmentStart = bt;              // start accumulating deep sleep from bed start
+
+      _activeSleepStart = bt;
+      _currentSleepSegmentStart = bt;
       _sleepState = SleepState.sleeping;
+
+      debugPrint("🛏️ [SLEEP-START] Sleep window started at $bt");
+
       await prefs.setString(_sleepCandidateStartKey, bt.toIso8601String());
       await prefs.setBool(_sleepCandidateHadPhoneUsageKey, false);
-      
-      // Clear any old sleep intervals for this sleep date
+
       final sleepDateKey = dateKey(bt);
       await prefs.remove('sleep_intervals_$sleepDateKey');
       await prefs.remove('last_screen_off_$sleepDateKey');
-      debugPrint('🧹 Cleared old sleep intervals for $sleepDateKey');
+
+      debugPrint("🧹 [SLEEP-START] Cleared old intervals for $sleepDateKey");
     }
 
     await _scheduleWakeStop();
     _startMorningAutoCheck();
     _sleepService.startMonitoring();
   }
+
   Future<void> _scheduleWakeStop() async {
     if (waketime.value == null) return;
 
@@ -938,13 +940,11 @@ class SleepController extends GetxService {
       final sleepStart = _activeSleepStart!;
       final sleepEnd = resolveSleepEnd(sleepStart);
 
-
       if (now.isAfter(sleepEnd)) {
         if (_wasPhoneUsedDuringSleep) {
           await finalizeSleepCycle();
           phoneUsageIntervals.clear();
           _wasPhoneUsedDuringSleep = false;
-
         } else {
           await _handleSleepWithoutPhoneUsage();
         }
@@ -959,139 +959,64 @@ class SleepController extends GetxService {
 
   /// Calculate total sleep duration from screen OFF intervals stored in SharedPreferences
   /// Also handles the case where screen is still OFF at wakeup time
-  Future<Duration> _calculateSleepDurationFromIntervals(DateTime sleepStart) async {
+  Future<Duration> _calculateSleepDurationFromIntervals(
+    DateTime sleepStart,
+  ) async {
+    debugPrint("📊 [INTERVAL-CALC] Start calculation");
+
     final prefs = await SharedPreferences.getInstance();
     final sleepDateKey = dateKey(sleepStart);
     final intervalsKey = 'sleep_intervals_$sleepDateKey';
-    
-    final sleepEnd = resolveSleepEnd(sleepStart);
-    
-    // Check if there's an open interval (screen still OFF)
-    // We'll check the background service state by looking for a recent screen OFF event
-    // For now, we'll close any open interval at wakeup time
-    final now = DateTime.now();
-    if (now.isAfter(sleepEnd) || now.isAtSameMomentAs(sleepEnd)) {
-      // Wakeup time reached, close any open interval
-      final lastScreenOffKey = 'last_screen_off_$sleepDateKey';
-      final lastScreenOffString = prefs.getString(lastScreenOffKey);
-      
-      if (lastScreenOffString != null) {
-        try {
-          final lastScreenOff = DateTime.parse(lastScreenOffString);
-          // If screen was OFF before wakeup and we're past wakeup, close the interval
-          if (lastScreenOff.isBefore(sleepEnd) || lastScreenOff.isAtSameMomentAs(sleepEnd)) {
-            // Load existing intervals
-            final existingIntervals = prefs.getString(intervalsKey);
-            List<String> intervalStrings = [];
-            if (existingIntervals != null && existingIntervals.isNotEmpty) {
-              intervalStrings = existingIntervals.split(',');
-            }
-            
-            // Check if last interval is still open (no end time or end is before wakeup)
-            bool hasOpenInterval = false;
-            if (intervalStrings.isNotEmpty) {
-              final lastInterval = intervalStrings.last.split('|');
-              if (lastInterval.length == 2) {
-                try {
-                  final lastEnd = DateTime.parse(lastInterval[1]);
-                  if (lastEnd.isBefore(sleepEnd)) {
-                    hasOpenInterval = true;
-                  }
-                } catch (e) {
-                  // Invalid format, treat as open
-                  hasOpenInterval = true;
-                }
-              } else {
-                hasOpenInterval = true;
-              }
-            } else {
-              // No intervals yet, create one from last screen off to wakeup
-              hasOpenInterval = true;
-            }
-            
-            if (hasOpenInterval) {
-              // Close the interval at wakeup time
-              final clampedStart = lastScreenOff.isBefore(sleepStart) ? sleepStart : lastScreenOff;
-              final clampedEnd = sleepEnd;
-              
-              if (clampedStart.isBefore(clampedEnd)) {
-                intervalStrings.add('${clampedStart.toIso8601String()}|${clampedEnd.toIso8601String()}');
-                await prefs.setString(intervalsKey, intervalStrings.join(','));
-                debugPrint('📊 Closed open interval at wakeup: ${clampedStart.hour}:${clampedStart.minute} - ${clampedEnd.hour}:${clampedEnd.minute}');
-              }
-            }
-          }
-        } catch (e) {
-          debugPrint('⚠️ Failed to parse last screen off time: $e');
-        }
-      }
-    }
-    
+
     final intervalsString = prefs.getString(intervalsKey);
     if (intervalsString == null || intervalsString.isEmpty) {
-      debugPrint('📊 No sleep intervals found for $sleepDateKey');
+      debugPrint("⚠️ [INTERVAL-CALC] No intervals found");
       return Duration.zero;
     }
 
-    // Parse intervals: format is "start1|end1,start2|end2,..."
     final intervalStrings = intervalsString.split(',');
-    final List<MapEntry<DateTime, DateTime>> intervals = [];
-    
-    for (final intervalStr in intervalStrings) {
-      final parts = intervalStr.split('|');
+    final intervals = <MapEntry<DateTime, DateTime>>[];
+
+    for (final raw in intervalStrings) {
+      final parts = raw.split('|');
       if (parts.length == 2) {
-        try {
-          final start = DateTime.parse(parts[0]);
-          final end = DateTime.parse(parts[1]);
-          intervals.add(MapEntry(start, end));
-        } catch (e) {
-          debugPrint('⚠️ Failed to parse interval: $intervalStr');
+        final s = DateTime.tryParse(parts[0]);
+        final e = DateTime.tryParse(parts[1]);
+        if (s != null && e != null) {
+          intervals.add(MapEntry(s, e));
+          debugPrint("   💤 interval: $s → $e");
         }
       }
     }
 
-    if (intervals.isEmpty) {
-      debugPrint('📊 No valid sleep intervals found');
-      return Duration.zero;
-    }
-
-    // Sort intervals by start time
     intervals.sort((a, b) => a.key.compareTo(b.key));
 
-    // Merge overlapping intervals and calculate total duration
-    Duration totalDuration = Duration.zero;
-    DateTime? currentStart;
-    DateTime? currentEnd;
+    Duration total = Duration.zero;
+    DateTime? cs;
+    DateTime? ce;
 
-    for (final interval in intervals) {
-      if (currentStart == null) {
-        // First interval
-        currentStart = interval.key;
-        currentEnd = interval.value;
+    for (final i in intervals) {
+      if (cs == null) {
+        cs = i.key;
+        ce = i.value;
+      } else if (i.key.isBefore(ce!.add(const Duration(minutes: 5)))) {
+        if (i.value.isAfter(ce)) ce = i.value;
       } else {
-        // Check if intervals overlap or are adjacent (within 5 minutes)
-        if (interval.key.isBefore(currentEnd!.add(const Duration(minutes: 5)))) {
-          // Merge intervals
-          if (interval.value.isAfter(currentEnd)) {
-            currentEnd = interval.value;
-          }
-        } else {
-          // Add previous interval to total
-          totalDuration += currentEnd.difference(currentStart);
-          // Start new interval
-          currentStart = interval.key;
-          currentEnd = interval.value;
-        }
+        total += ce!.difference(cs);
+        debugPrint("   ➕ merged: $cs → $ce");
+        cs = i.key;
+        ce = i.value;
       }
     }
 
-    // Add the last interval
-    if (currentStart != null && currentEnd != null) {
-      totalDuration += currentEnd.difference(currentStart);
+    if (cs != null && ce != null) {
+      total += ce!.difference(cs);
+      debugPrint("   ➕ merged: $cs → $ce");
     }
 
-    debugPrint('📊 Calculated sleep duration from intervals: ${totalDuration.inMinutes} minutes');
-    return totalDuration;
+    debugPrint("✅ [INTERVAL-CALC] Final sleep = ${total.inMinutes} minutes");
+
+    return total;
   }
 
   Future<void> _handleSleepWithoutPhoneUsage() async {
@@ -1107,11 +1032,13 @@ class SleepController extends GetxService {
 
     // Calculate sleep duration from screen OFF intervals
     Duration deep = await _calculateSleepDurationFromIntervals(bt);
-    
+
     // If no intervals found, fall back to full window duration
     if (deep == Duration.zero) {
       deep = wt.difference(bt);
-      debugPrint('📊 Using full window duration as fallback: ${deep.inMinutes} minutes');
+      debugPrint(
+        '📊 Using full window duration as fallback: ${deep.inMinutes} minutes',
+      );
     }
 
     if (deep.inMinutes < 10) {
@@ -1129,12 +1056,12 @@ class SleepController extends GetxService {
 
     // Push correct normalized times to server
     await uploadsleepdatatoServer(bt, wt);
-    
+
     // Clear sleep intervals after saving
     final prefs = await SharedPreferences.getInstance();
     final sleepDateKey = dateKey(bt);
     await prefs.remove('sleep_intervals_$sleepDateKey');
-    
+
     debugPrint('✅ Auto-saved sleep without phone usage: $deep');
   }
 
@@ -1143,30 +1070,33 @@ class SleepController extends GetxService {
   // ─────────────────────────────────────────────
 
   Future<void> onPhoneUsed(DateTime start, DateTime end) async {
-    if (bedtime.value == null || waketime.value == null) return;
+    debugPrint("📱 [AWAKE-DETECTED] Phone used from $start → $end");
 
-    // Prefer the active sleepStart (set when monitoring started). Fallback to resolveSleepStart(now).
     final sleepStart = _activeSleepStart ?? resolveSleepStart(DateTime.now());
     final sleepEnd = resolveSleepEnd(sleepStart);
 
-    // Clamp usage inside sleep window
     final clampedStart = start.isBefore(sleepStart) ? sleepStart : start;
     final clampedEnd = end.isAfter(sleepEnd) ? sleepEnd : end;
 
-    const int minUsageSeconds = 300; // 5 minutes – adjust to taste
-    if (clampedEnd.difference(clampedStart).inSeconds < minUsageSeconds) return;
+    if (_sleepState == SleepState.sleeping &&
+        _currentSleepSegmentStart != null) {
+      final seg = clampedStart.difference(_currentSleepSegmentStart!);
+      _accumulatedDeepSleep += seg;
 
-    // If we were sleeping and had an open sleep segment, close it at clampedStart
-    if (_sleepState == SleepState.sleeping && _currentSleepSegmentStart != null) {
-      // Crucial: use the clampedStart here to avoid overcounting deep sleep
-      _accumulatedDeepSleep += clampedStart.difference(_currentSleepSegmentStart!);
+      debugPrint(
+        "⛔ [SLEEP-SEGMENT] Closed sleep segment: "
+        "${_currentSleepSegmentStart} → $clampedStart "
+        "(${seg.inMinutes} min)",
+      );
+
       _sleepState = SleepState.awake;
     }
 
     _wasPhoneUsedDuringSleep = true;
     phoneUsageIntervals.add(AwakeInterval(clampedStart, clampedEnd));
-
     _currentSleepSegmentStart = clampedEnd;
+
+    debugPrint("🔁 [STATE] Transition → AWAKE");
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_sleepCandidateHadPhoneUsageKey, true);
@@ -1199,57 +1129,52 @@ class SleepController extends GetxService {
     return merged;
   }
 
-
   Future<void> finalizeSleepCycle() async {
-    if (bedtime.value == null || waketime.value == null) return;
-    if (_activeSleepStart == null) return; // safety
+    debugPrint("🌅 [FINALIZE] finalizeSleepCycle called");
+
+    if (_activeSleepStart == null) return;
 
     final sleepStart = _activeSleepStart!;
     final sleepEnd = resolveSleepEnd(sleepStart);
 
-    // Calculate sleep duration from screen OFF intervals
-    Duration deepSleep = await _calculateSleepDurationFromIntervals(sleepStart);
-    
-    // If intervals exist, use them; otherwise use accumulated deep sleep
-    if (deepSleep == Duration.zero) {
-      // Fall back to accumulated deep sleep logic
-      if (_sleepState == SleepState.sleeping && _currentSleepSegmentStart != null) {
-        _accumulatedDeepSleep += sleepEnd.difference(_currentSleepSegmentStart!);
+    Duration deep = await _calculateSleepDurationFromIntervals(sleepStart);
+
+    if (deep == Duration.zero) {
+      debugPrint("⚠️ [FINALIZE] No intervals → fallback to accumulated sleep");
+
+      if (_sleepState == SleepState.sleeping &&
+          _currentSleepSegmentStart != null) {
+        final seg = sleepEnd.difference(_currentSleepSegmentStart!);
+        _accumulatedDeepSleep += seg;
+
+        debugPrint(
+          "➕ [SLEEP-SEGMENT] Final open segment: "
+          "${_currentSleepSegmentStart} → $sleepEnd "
+          "(${seg.inMinutes} min)",
+        );
       }
-      deepSleep = _accumulatedDeepSleep;
+
+      deep = _accumulatedDeepSleep;
     }
 
-    deepSleepDuration.value = deepSleep;
-
-    // guard: too short or negative
-    if (deepSleep.isNegative || deepSleep.inMinutes < 10) {
-      // ensure we clear state to avoid leaking into next cycle
-      phoneUsageIntervals.clear();
-      _wasPhoneUsedDuringSleep = false;
-      _accumulatedDeepSleep = Duration.zero;
-      _currentSleepSegmentStart = null;
-      _sleepState = SleepState.awake;
+    if (deep.inMinutes < 10) {
+      debugPrint("⛔ [FINALIZE] Sleep too short → skipped");
       return;
     }
 
-    // persist
-    await saveDeepSleepData(sleepStart, deepSleep);
-    deepSleepDuration.value = deepSleep;
+    debugPrint("😴 [FINALIZE] Saving sleep: ${deep.inMinutes} min");
+
+    await saveDeepSleepData(sleepStart, deep);
     await uploadsleepdatatoServer(sleepStart, sleepEnd);
 
-    // Clear sleep intervals after saving
-    final prefs = await SharedPreferences.getInstance();
-    final sleepDateKey = dateKey(sleepStart);
-    await prefs.remove('sleep_intervals_$sleepDateKey');
-
-    // clear runtime state for next cycle
+    // reset state
     phoneUsageIntervals.clear();
-    _wasPhoneUsedDuringSleep = false;
     _accumulatedDeepSleep = Duration.zero;
     _currentSleepSegmentStart = null;
     _sleepState = SleepState.awake;
+    _wasPhoneUsedDuringSleep = false;
 
-    debugPrint("😴  Final sleep calculated: $deepSleep");
+    debugPrint("🔁 [STATE] Reset → READY FOR NEXT NIGHT");
   }
   // void onAwakeDetected(DateTime start, DateTime end) {
   //   if (_sleepState == SleepState.sleeping) {
@@ -1257,7 +1182,6 @@ class SleepController extends GetxService {
   //     _sleepState = SleepState.awake;
   //   }
   // }
-
 
   // ─────────────────────────────────────────────
   // SETTERS

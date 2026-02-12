@@ -162,17 +162,14 @@ class CustomSnackbar {
     );
   }
 
-    /// 🚫 SECURITY: Login blocked from unrecognized device
-  static void showDeviceBlocked({
-    required BuildContext context,
-  }) {
+  /// 🚫 SECURITY: Login blocked from unrecognized device
+  static void showDeviceBlocked({required BuildContext context}) {
     _show(
       context: context,
       backgroundColor: Colors.red.shade700,
       icon: Icons.block_outlined,
       title: "Security Alert",
-      message:
-          "Login attempt blocked. This device is not recognized.",
+      message: "Login attempt blocked. This device is not recognized.",
     );
   }
 

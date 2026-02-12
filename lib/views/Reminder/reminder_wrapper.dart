@@ -29,11 +29,7 @@ class ReminderScreenWrapper extends StatelessWidget {
     }
 
     if (!Get.isRegistered<ReminderController>(tag: 'reminder')) {
-      Get.put(
-        ReminderController(),
-        tag: 'reminder',
-        permanent: true,
-      );
+      Get.put(ReminderController(), tag: 'reminder', permanent: true);
     } else {
       Get.find<ReminderController>(tag: 'reminder');
     }

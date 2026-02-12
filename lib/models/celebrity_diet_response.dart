@@ -16,9 +16,10 @@ class CelebrityResponse {
       status: json['status'] ?? false,
       statusType: json['statusType'] ?? '',
       message: json['message'] ?? '',
-      data: (json['data'] as List<dynamic>? ?? [])
-          .map((e) => CelebrityDiet.fromJson(e))
-          .toList(),
+      data:
+          (json['data'] as List<dynamic>? ?? [])
+              .map((e) => CelebrityDiet.fromJson(e))
+              .toList(),
     );
   }
 }
@@ -47,9 +48,10 @@ class CelebrityDiet {
       title: json['Title'] ?? '',
       shortDescription: json['ShortDescription'] ?? '',
       thumbnailUrl: json['ThumbnailMedia']?['CdnUrl'] ?? '',
-      mealPlan: (json['MealPlan'] as List<dynamic>? ?? [])
-          .map((e) => MealPlanItem.fromJson(e))
-          .toList(),
+      mealPlan:
+          (json['MealPlan'] as List<dynamic>? ?? [])
+              .map((e) => MealPlanItem.fromJson(e))
+              .toList(),
     );
   }
 }

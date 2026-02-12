@@ -12,10 +12,13 @@ import '../../env/env.dart';
 
 class DietDetailsScreen extends StatefulWidget {
   final DietTagData diet;
-  final  List<MealPlanItem> daysList;
+  final List<MealPlanItem> daysList;
 
-
-  const DietDetailsScreen({super.key, required this.diet, required this.daysList});
+  const DietDetailsScreen({
+    super.key,
+    required this.diet,
+    required this.daysList,
+  });
 
   @override
   State<DietDetailsScreen> createState() => _DietDetailsScreenState();
@@ -23,9 +26,6 @@ class DietDetailsScreen extends StatefulWidget {
 
 class _DietDetailsScreenState extends State<DietDetailsScreen> {
   final dietController = Get.put(DietPlanController());
-
-
-
 
   late final PageController _pageController;
 

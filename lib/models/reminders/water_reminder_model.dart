@@ -1,6 +1,6 @@
 import 'package:alarm/model/alarm_settings.dart';
 
-import '../common/global_variables.dart';
+import '../../common/global_variables.dart';
 
 class WaterReminderModel {
   final int id; // Unique identifier for this water reminder group
@@ -54,19 +54,30 @@ class WaterReminderModel {
     );
 
     return WaterReminderModel(
-      id: json['id'],
-      title: json['title'],
-      category: json['Category'],
+      id: json['id'] ?? 0,
+
+      title: json['title'] ?? 'Water Reminder',
+
+      // handle old + new key names safely
+      category: json['Category'] ?? json['category'] ?? 'Water',
+
       type: type,
-      notes: json['notes'],
+
+      notes: json['notes'] as String?,
+
       alarms:
-          (json['alarms'] as List)
-              .map((a) => AlarmSettings.fromJson(a))
-              .toList(),
-      timesPerDay: json['timesPerDay'],
-      waterReminderStartTime: json['waterReminderStartTime'],
-      waterReminderEndTime: json['waterReminderEndTime'],
-      interval: json['interval'],
+          (json['alarms'] as List?)
+              ?.map((a) => AlarmSettings.fromJson(a))
+              .toList() ??
+          [],
+
+      timesPerDay: json['timesPerDay'] ?? '0',
+
+      waterReminderStartTime: json['waterReminderStartTime'] ?? '00:00',
+
+      waterReminderEndTime: json['waterReminderEndTime'] ?? '23:59',
+
+      interval: type == Option.interval ? json['interval'] ?? '60' : null,
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:hive/hive.dart';
 
 import '../../common/global_variables.dart';
+import '../../consts/consts.dart';
 
 part 'reminder_payload_model.g.dart';
 
@@ -49,10 +50,10 @@ class ReminderPayloadModel {
   final String? whenToTake;
 
   @HiveField(14)
-  final String ? startWaterTime;
+  final String? startWaterTime;
 
   @HiveField(15)
-  final String ? endWaterTime;
+  final String? endWaterTime;
 
   const ReminderPayloadModel({
     required this.id,
@@ -88,20 +89,27 @@ class ReminderPayloadModel {
       'startDate': startDate,
       'endDate': endDate,
       'notes': notes,
+      'whenToTake': whenToTake,
+      'startWaterTime': startWaterTime,
+      'endWaterTime': endWaterTime,
     };
   }
 
   factory ReminderPayloadModel.fromJson(Map<String, dynamic> json) {
     return ReminderPayloadModel(
-      id: json['id'],
-      title: json['title'],
-      category: json['category'],
+      id: json['id'] ?? 0,
+      title: json['title'] ?? '',
+      category: json['category'] ?? '',
       medicineName: json['medicineName'],
       medicineType: json['medicineType'],
       dosage: json['dosage'] != null ? Dosage.fromJson(json['dosage']) : null,
+      whenToTake: json['whenToTake'],
       medicineFrequencyPerDay: json['medicineFrequencyPerDay'],
       reminderFrequencyType: json['reminderFrequencyType'],
-      customReminder: CustomReminder.fromJson(json['customReminder']),
+      customReminder:
+          json['customReminder'] != null
+              ? CustomReminder.fromJson(json['customReminder'])
+              : const CustomReminder(),
       remindBefore:
           json['remindBefore'] != null
               ? RemindBefore.fromJson(json['remindBefore'])
@@ -109,7 +117,62 @@ class ReminderPayloadModel {
       startDate: json['startDate'],
       endDate: json['endDate'],
       notes: json['notes'],
+      startWaterTime: json['startWaterTime'],
+      endWaterTime: json['endWaterTime'],
     );
+  }
+  @override
+  String toString() {
+    final buffer = StringBuffer();
+
+    buffer.writeln('🔔 ReminderPayloadModel');
+    buffer.writeln('id: $id');
+    buffer.writeln('title: $title');
+    buffer.writeln('category: $category');
+
+    // -------- Medicine --------
+    if (category == "medicine") {
+      buffer.writeln('--- Medicine Info ---');
+      buffer.writeln('medicineName: $medicineName');
+      buffer.writeln('medicineType: $medicineType');
+      buffer.writeln('dosage: ${dosage?.value} ${dosage?.unit}');
+      buffer.writeln('whenToTake: $whenToTake');
+      buffer.writeln('frequency: $medicineFrequencyPerDay');
+    }
+
+    // -------- Water --------
+    if (category == "water") {
+      buffer.writeln('--- Water Info ---');
+      buffer.writeln('startWaterTime: $startWaterTime');
+      buffer.writeln('endWaterTime: $endWaterTime');
+    }
+
+    // -------- Common Reminder --------
+    buffer.writeln('--- Reminder Timing ---');
+    buffer.writeln('reminderType: ${customReminder.type}');
+
+    if (customReminder.timesPerDay != null) {
+      buffer.writeln('timesPerDay count: ${customReminder.timesPerDay!.count}');
+      buffer.writeln('times: ${customReminder.timesPerDay!.list}');
+    }
+
+    if (customReminder.everyXHours != null) {
+      buffer.writeln('intervalHours: ${customReminder.everyXHours!.hours}');
+      buffer.writeln('intervalStart: ${customReminder.everyXHours!.startTime}');
+      buffer.writeln('intervalEnd: ${customReminder.everyXHours!.endTime}');
+    }
+
+    if (remindBefore != null) {
+      buffer.writeln(
+        'remindBefore: ${remindBefore!.time} ${remindBefore!.unit}',
+      );
+    }
+
+    buffer.writeln('startDate: $startDate');
+    buffer.writeln('endDate: $endDate');
+    buffer.writeln('notes: $notes');
+
+    return buffer.toString();
   }
 }
 
@@ -145,7 +208,11 @@ class CustomReminder {
   factory CustomReminder.fromJson(Map<String, dynamic> json) {
     final type = Option.values.firstWhere(
       (e) => e.name == json['type'],
-      orElse: () => Option.times,
+
+      orElse: () {
+        debugPrint("Unknown reminder type:  ${json['type']}");
+        return Option.times;
+      },
     );
 
     switch (type) {
@@ -236,4 +303,70 @@ class RemindBefore {
 
   factory RemindBefore.fromJson(Map<String, dynamic> json) =>
       RemindBefore(time: json['time'], unit: json['unit']);
+}
+
+extension ReminderPayloadSafeAccess on ReminderPayloadModel {
+  // ---------------- MEDICINE ----------------
+
+  String get medicineNameSafe {
+    _ensure('medicine');
+    return medicineName!;
+  }
+
+  String get medicineTypeSafe {
+    _ensure('medicine');
+    return medicineType!;
+  }
+
+  String get whenToTakeSafe {
+    _ensure('medicine');
+    return whenToTake!;
+  }
+
+  Dosage get dosageSafe {
+    _ensure('medicine');
+    return dosage!;
+  }
+
+  List<String> get medicineTimesSafe {
+    _ensure('medicine');
+    return customReminder.timesPerDay!.list;
+  }
+
+  // ---------------- WATER ----------------
+
+  String get waterStartSafe {
+    _ensure('water');
+    return startWaterTime!;
+  }
+
+  String get waterEndSafe {
+    _ensure('water');
+    return endWaterTime!;
+  }
+
+  int get waterTimesCountSafe {
+    _ensure('water');
+    return int.parse(customReminder.timesPerDay!.count);
+  }
+
+  // ---------------- EVENT / MEAL ----------------
+
+  List<String> get timesSafe {
+    final list = customReminder.timesPerDay?.list;
+    if (list == null || list.isEmpty) {
+      throw Exception("Reminder $id has no times");
+    }
+    return list;
+  }
+
+  // ---------------- INTERNAL ----------------
+
+  void _ensure(String expectedCategory) {
+    if (category.toLowerCase() != expectedCategory) {
+      throw Exception(
+        "Tried to access $expectedCategory field on $category reminder (id: $id)",
+      );
+    }
+  }
 }

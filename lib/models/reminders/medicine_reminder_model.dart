@@ -1,9 +1,12 @@
 import 'dart:convert';
 
-import '../common/global_variables.dart';
+import 'package:snevva/models/hive_models/reminder_payload_model.dart';
+
+import '../../common/global_variables.dart';
 
 class MedicineReminderModel {
   final int id;
+  final List<int> alarmIds;
   final String title;
   final String category;
   final String medicineName;
@@ -20,6 +23,7 @@ class MedicineReminderModel {
 
   MedicineReminderModel({
     required this.id,
+    this.alarmIds = const [],
     required this.title,
     required this.category,
     required this.medicineName,
@@ -38,6 +42,8 @@ class MedicineReminderModel {
   factory MedicineReminderModel.fromJson(Map<String, dynamic> json) {
     return MedicineReminderModel(
       id: json['id'] ?? 0,
+      alarmIds:
+          (json['alarmIds'] as List?)?.map((e) => e as int).toList() ?? const [],
       title: json['title'] ?? '',
       category: json['category'] ?? '',
       whenToTake: json['whenToTake'] ?? '',
@@ -60,11 +66,12 @@ class MedicineReminderModel {
   Map<String, dynamic> toJson() {
     Map<String, dynamic> data = {
       'id': id,
+      'alarmIds': alarmIds,
       'title': title,
       'category': category,
       'medicineName': medicineName,
       'medicineType': medicineType,
-      'whenToTake' : whenToTake,
+      'whenToTake': whenToTake,
       'dosage': dosage.toJson(),
       'medicineFrequencyPerDay': medicineFrequencyPerDay,
       'reminderFrequencyType': reminderFrequencyType,
@@ -77,6 +84,7 @@ class MedicineReminderModel {
     if (remindBefore != null) {
       data['remindBefore'] = remindBefore!.toJson();
     }
+
     return data;
   }
 }
@@ -199,4 +207,76 @@ class RemindBefore {
 
 String reminderToString(MedicineReminderModel model) {
   return jsonEncode(model.toJson());
+}
+
+extension ReminderPayLoadValidation on ReminderPayloadModel {
+  void validate() {
+    switch (category.toLowerCase()) {
+      case 'medicine':
+        _validateMedicine();
+        break;
+
+      case 'water':
+        _validateWater();
+        break;
+
+      case 'meal':
+        _validateMeal();
+        break;
+
+      case 'event':
+        _validateEvent();
+        break;
+    }
+  }
+
+  void _validateMedicine() {
+    if (medicineName == null || medicineName!.trim().isEmpty) {
+      throw Exception('Medicine reminder $id missing medicineName');
+    }
+
+    if (medicineType == null) {
+      throw Exception('Medicine reminder $id missing medicineType');
+    }
+
+    if (whenToTake == null) {
+      throw Exception('Medicine reminder $id missing whenToTake');
+    }
+
+    if (dosage == null) {
+      throw Exception('Medicine reminder $id missing dosage');
+    }
+
+    final times = customReminder.timesPerDay?.list;
+    if (times == null || times.isEmpty) {
+      throw Exception('Medicine reminder $id has no scheduled times');
+    }
+  }
+
+  void _validateWater() {
+    if (customReminder.timesPerDay == null &&
+        customReminder.everyXHours == null) {
+      throw Exception('Water reminder $id has no frequency');
+    }
+
+    if (customReminder.timesPerDay != null) {
+      if (startWaterTime == null || endWaterTime == null) {
+        throw Exception('Water reminder $id missing start/end time');
+      }
+    }
+  }
+
+  void _validateEvent() {
+    final times = customReminder.timesPerDay?.list;
+    if (times == null || times.isEmpty) {
+      throw Exception('Event reminder $id has no time');
+    }
+  }
+
+  void _validateMeal() {
+    final times = customReminder.timesPerDay?.list;
+    if (times == null || times.isEmpty) {
+      throw Exception('Meal reminder $id has no time');
+    }
+  }
 }

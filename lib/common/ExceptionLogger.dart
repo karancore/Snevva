@@ -13,12 +13,12 @@ class ExceptionLogger {
     String? className,
   }) async {
     try {
-      final extracted = stackTrace != null
-          ? _extractFromStack(stackTrace)
-          : {};
+      final extracted = stackTrace != null ? _extractFromStack(stackTrace) : {};
 
       print("Logging exception: ${exception.toString()}");
-      print("extracted methodName: ${extracted['methodName']}, className: ${extracted['className']}");
+      print(
+        "extracted methodName: ${extracted['methodName']}, className: ${extracted['className']}",
+      );
 
       final log = ExceptionLog(
         dataCode: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -38,25 +38,25 @@ class ExceptionLogger {
   }
 
   static Map<String, String?> _extractFromStack(StackTrace stackTrace) {
-  final lines = stackTrace.toString().split('\n');
+    final lines = stackTrace.toString().split('\n');
 
-  // Pick first frame from YOUR app
-  final line = lines.firstWhere(
-    (l) => l.contains('package:snevva/'),
-    orElse: () => '',
-  );
+    // Pick first frame from YOUR app
+    final line = lines.firstWhere(
+      (l) => l.contains('package:snevva/'),
+      orElse: () => '',
+    );
 
-  // #10 DietPlanController.getAllDiets (package:snevva/Controllers/DietPlan/diet_plan_controller.dart:84:23)
-  final methodMatch = RegExp(r'#\d+\s+(.+?)\s+\(').firstMatch(line);
-  final fileMatch =
-      RegExp(r'package:snevva\/(.+?):\d+:\d+').firstMatch(line);
+    // #10 DietPlanController.getAllDiets (package:snevva/Controllers/DietPlan/diet_plan_controller.dart:84:23)
+    final methodMatch = RegExp(r'#\d+\s+(.+?)\s+\(').firstMatch(line);
+    final fileMatch = RegExp(r'package:snevva\/(.+?):\d+:\d+').firstMatch(line);
 
-  return {
-    'methodName': methodMatch?.group(1), // DietPlanController.getAllDiets
-    'className': fileMatch?.group(1),    // Controllers/DietPlan/diet_plan_controller.dart
-  };
-}
-
+    return {
+      'methodName': methodMatch?.group(1), // DietPlanController.getAllDiets
+      'className': fileMatch?.group(
+        1,
+      ), // Controllers/DietPlan/diet_plan_controller.dart
+    };
+  }
 
   static Future<String?> _getUserId() async {
     final prefs = await SharedPreferences.getInstance();

@@ -84,27 +84,29 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                 return SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
-                    children: List.generate(generalMusic.length - 1, (index) {
+                    children: List.generate(generalMusic.length, (index) {
                       final item = generalMusic[index];
 
                       return Padding(
                         padding: EdgeInsets.only(
                           right: index == generalMusic.length - 1 ? 0 : 16,
                         ),
-                        child: MentalWellnessHeaderWidget(
-                          height: 180 * heightFactor,
-                          musicItem: item,
-                          width: 280 * widthFactor ,
-                          playText: '',
-                          wellnessContainerImage:
-                              generalMusic[index].thumbnailMedia ??
-                                  generalImageUrls[Random().nextInt(index + 1)],
-                          heading: generalMusic[index].title,
-                          subHeading:
-                              generalMusic[index].artistName == "Unknown"
-                                  ? ""
-                                  : generalMusic[index].artistName,
-                          boxFit: BoxFit.cover,
+                        child: InkWell(
+                          child: MentalWellnessHeaderWidget(
+                            height: 180 * heightFactor,
+                            musicItem: item,
+                            width: 280 * widthFactor,
+                            playText: '',
+                            wellnessContainerImage:
+                                generalMusic[index].thumbnailMedia ??
+                                generalImageUrls[Random().nextInt(index + 1)],
+                            heading: generalMusic[index].title,
+                            subHeading:
+                                generalMusic[index].artistName == "Unknown"
+                                    ? ""
+                                    : generalMusic[index].artistName,
+                            boxFit: BoxFit.cover,
+                          ),
                         ),
                       );
                     }),
@@ -120,7 +122,7 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Meditation for You',
+                    ' Meditation for You',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                   ),
                   SizedBox(height: 18),
@@ -154,7 +156,9 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                               playText: "Play",
                               wellnessContainerImage:
                                   meditationMusic[index].thumbnailMedia ??
-                                      meditationImageUrls[Random().nextInt(index + 3)],
+                                  meditationImageUrls[Random().nextInt(
+                                    index + 3,
+                                  )],
                               heading: meditationMusic[index].title,
                               subHeading:
                                   meditationMusic[index].artistName == "Unknown"
@@ -208,7 +212,8 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                           return MentalWellnessFooterWidget(
                             musicItem: item,
                             wellnessContainerImage:
-                                item.thumbnailMedia ?? natureImageUrls[Random().nextInt(index + 2)],
+                                item.thumbnailMedia ??
+                                natureImageUrls[Random().nextInt(index + 2)],
                             heading: item.title,
                             subHeading:
                                 item.artistName == "Unknown"

@@ -20,7 +20,6 @@ class SignInController extends GetxService {
 
   final localStorage = Get.put(LocalStorageManager());
 
-
   Future<bool> signInUsingEmail(
     String email,
     String password,
@@ -542,7 +541,6 @@ class SignInController extends GetxService {
               },
 
               onRejectDevice: () {
-
                 CustomSnackbar.showDeviceBlocked(context: context);
                 Navigator.pop(context);
 

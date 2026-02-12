@@ -35,18 +35,19 @@ class CustomRadio extends StatelessWidget {
               width: strokeWidth,
             ),
           ),
-          child: selected
-              ? Center(
-            child: Container(
-              width: size * 0.5,
-              height: size * 0.5,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: activeColor,
-              ),
-            ),
-          )
-              : null,
+          child:
+              selected
+                  ? Center(
+                    child: Container(
+                      width: size * 0.5,
+                      height: size * 0.5,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: activeColor,
+                      ),
+                    ),
+                  )
+                  : null,
         ),
       ),
     );

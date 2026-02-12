@@ -279,11 +279,11 @@ class _ReminderDetailsCardState extends State<ReminderDetailsCard>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   //_buildDivider(),
-                  if (widget.reminder.category == 'Medicine')
+                  if (widget.reminder.category == 'medicine')
                     _buildMedicineDetails(),
-                  if (widget.reminder.category == 'Water') _buildWaterDetails(),
-                  if (widget.reminder.category == 'Meal') _buildMealDetails(),
-                  if (widget.reminder.category == 'Event') _buildEventDetails(),
+                  if (widget.reminder.category == 'water') _buildWaterDetails(),
+                  if (widget.reminder.category == 'meal') _buildMealDetails(),
+                  if (widget.reminder.category == 'event') _buildEventDetails(),
                 ],
               ),
             ),

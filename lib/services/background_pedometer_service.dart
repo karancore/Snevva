@@ -51,7 +51,6 @@ Future<bool> backgroundEntry(ServiceInstance service) async {
     // Listen to pedometer
     _pedometerSubscription = Pedometer.stepCountStream.listen(
       (StepCount event) async {
-
         final todayKey = "${now.year}-${now.month}-${now.day}";
 
         // Get last raw step count
@@ -127,7 +126,6 @@ Future<void> stopBackgroundService() async {
   // Small delay to allow isolate cleanup
   await Future.delayed(const Duration(milliseconds: 300));
 }
-
 
 // /// Initialize the background service
 // Future<void> initBackgroundService() async {

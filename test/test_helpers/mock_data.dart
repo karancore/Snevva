@@ -38,10 +38,7 @@ class MockSleepData {
     final baseTime = DateTime(2026, 1, 23, 1, 0);
 
     return [
-      AwakeInterval(
-        baseTime,
-        baseTime.add(Duration(minutes: 15)),
-      ),
+      AwakeInterval(baseTime, baseTime.add(Duration(minutes: 15))),
       AwakeInterval(
         baseTime.add(Duration(hours: 2)),
         baseTime.add(Duration(hours: 2, minutes: 30)),

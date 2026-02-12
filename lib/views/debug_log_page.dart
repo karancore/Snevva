@@ -35,9 +35,10 @@ class DebugLogPage extends StatelessWidget {
                 title: Text(
                   "[${log.type}] ${log.message}",
                   style: TextStyle(
-                    color: log.type == "ERROR"
-                        ? Colors.red
-                        : log.type == "API"
+                    color:
+                        log.type == "ERROR"
+                            ? Colors.red
+                            : log.type == "API"
                             ? Colors.blue
                             : Colors.black,
                   ),

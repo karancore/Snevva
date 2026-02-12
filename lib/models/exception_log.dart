@@ -37,6 +37,7 @@ class ExceptionLog {
       "ClassName": className,
     };
   }
+
   @override
   String toString() {
     return '''
@@ -52,7 +53,4 @@ class ExceptionLog {
   ClassName: $className
 ''';
   }
-
-
-
 }

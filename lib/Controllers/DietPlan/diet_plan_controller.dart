@@ -100,7 +100,7 @@ class DietPlanController extends GetxController {
         debugPrint("❌ [API - getAllDiets] Failed: HTTP ${response.statusCode}");
         return null;
       }
-     // if(categoryText == "Celebrity"){
+      // if(categoryText == "Celebrity"){
       //
       //   categoryResponse.value = DietTagsResponse.fromJson(parsed);
       // }
@@ -117,7 +117,7 @@ class DietPlanController extends GetxController {
       );
     } catch (e) {
       debugPrint("🔥 [API - getAllDiets] Exception: $e");
-    }finally {
+    } finally {
       isCategoryLoading.value = false;
     }
     return null;
@@ -130,7 +130,8 @@ class DietPlanController extends GetxController {
       return media.isEmpty ? null : media;
     }
     if (media is Map) {
-      final cdn = media['CdnUrl'] ?? media['cdnUrl'] ?? media['Url'] ?? media['url'];
+      final cdn =
+          media['CdnUrl'] ?? media['cdnUrl'] ?? media['Url'] ?? media['url'];
       if (cdn == null) return null;
       final cdnStr = cdn.toString();
       if (cdnStr.startsWith('http')) return cdnStr;
@@ -160,54 +161,66 @@ class DietPlanController extends GetxController {
         return;
       }
 
-      final Map<String, dynamic> parsed = Map<String, dynamic>.from(response as Map);
+      final Map<String, dynamic> parsed = Map<String, dynamic>.from(
+        response as Map,
+      );
       final List<dynamic> data = parsed['data'] ?? [];
 
-      final List<DietTagData> parsedList = data.map((item) {
-        final Map<String, dynamic> it = Map<String, dynamic>.from(item as Map);
+      final List<DietTagData> parsedList =
+          data.map((item) {
+            final Map<String, dynamic> it = Map<String, dynamic>.from(
+              item as Map,
+            );
 
-        // Convert meal plan
-        final mealPlanRaw = it['MealPlan'] as List? ?? [];
-        final List<MealPlanItem> mealPlan = mealPlanRaw.map((mp) {
-          final Map<String, dynamic> mpMap = Map<String, dynamic>.from(mp as Map);
-          return MealPlanItem(
-            day: mpMap['Day'] ?? 0,
-            breakFast: (mpMap['BreakFast'] ?? '').toString(),
-            breakFastMedia: _extractMediaUrl(mpMap['BreakFastMedia']),
-            lunch: (mpMap['Lunch'] ?? '').toString(),
-            lunchMedia: _extractMediaUrl(mpMap['LunchMedia']),
-            evening: (mpMap['Evening'] ?? '').toString(),
-            eveningMedia: _extractMediaUrl(mpMap['EveningMedia']),
-            dinner: (mpMap['Dinner'] ?? '').toString(),
-            dinnerMedia: _extractMediaUrl(mpMap['DinnerMedia']),
-          );
-        }).toList();
+            // Convert meal plan
+            final mealPlanRaw = it['MealPlan'] as List? ?? [];
+            final List<MealPlanItem> mealPlan =
+                mealPlanRaw.map((mp) {
+                  final Map<String, dynamic> mpMap = Map<String, dynamic>.from(
+                    mp as Map,
+                  );
+                  return MealPlanItem(
+                    day: mpMap['Day'] ?? 0,
+                    breakFast: (mpMap['BreakFast'] ?? '').toString(),
+                    breakFastMedia: _extractMediaUrl(mpMap['BreakFastMedia']),
+                    lunch: (mpMap['Lunch'] ?? '').toString(),
+                    lunchMedia: _extractMediaUrl(mpMap['LunchMedia']),
+                    evening: (mpMap['Evening'] ?? '').toString(),
+                    eveningMedia: _extractMediaUrl(mpMap['EveningMedia']),
+                    dinner: (mpMap['Dinner'] ?? '').toString(),
+                    dinnerMedia: _extractMediaUrl(mpMap['DinnerMedia']),
+                  );
+                }).toList();
 
-        return DietTagData(
-          id: it['Id'],
-          dataCode: it['DataCode']?.toString(),
-          thumbnailMedia: _extractMediaUrl(it['ThumbnailMedia']),
-          heading: it['Heading']?.toString(),
-          title: it['Title']?.toString(),
-          shortDescription: it['ShortDescription']?.toString(),
-          mealPlan: mealPlan,
-          tags: List<String>.from(it['Tags'] ?? []),
-          isActive: it['IsActive'],
-        );
-      }).toList();
+            return DietTagData(
+              id: it['Id'],
+              dataCode: it['DataCode']?.toString(),
+              thumbnailMedia: _extractMediaUrl(it['ThumbnailMedia']),
+              heading: it['Heading']?.toString(),
+              title: it['Title']?.toString(),
+              shortDescription: it['ShortDescription']?.toString(),
+              mealPlan: mealPlan,
+              tags: List<String>.from(it['Tags'] ?? []),
+              isActive: it['IsActive'],
+            );
+          }).toList();
 
       celebrityList.value = parsedList;
 
-      logLong('celebrityList', celebrityList.map((e) => e.toJson()).toList().toString());
+      logLong(
+        'celebrityList',
+        celebrityList.map((e) => e.toJson()).toList().toString(),
+      );
 
-      debugPrint("✅ [API - getCelebrity] Success. Celebrity items: ${celebrityList.length}");
+      debugPrint(
+        "✅ [API - getCelebrity] Success. Celebrity items: ${celebrityList.length}",
+      );
     } catch (e, stack) {
       debugPrint("🔥 [API - getCelebrity] Exception: $e\n$stack");
     } finally {
       isCelebrityLoading.value = false;
     }
   }
-
 
   Future<DietTagsResponse?> getAllSuggestions(BuildContext context) async {
     debugPrint("🧠 [Suggestions] Generating tags for user profile...");
@@ -242,7 +255,7 @@ class DietPlanController extends GetxController {
         tags.add("Age 13 to 18");
       } else if (age >= 19 && age <= 25) {
         tags.add("Age 19 to 25");
-      }else if (age > 25 && age <= 60) {
+      } else if (age > 25 && age <= 60) {
         tags.add("Age 25 to 60");
       }
       debugPrint("🚀 [Suggestions] Final Tag List: $tags");

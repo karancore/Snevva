@@ -1,4 +1,3 @@
-
 import '../../consts/consts.dart';
 
 class CreateProfileHeaderWidget extends StatelessWidget {
@@ -18,7 +17,6 @@ class CreateProfileHeaderWidget extends StatelessWidget {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
-
         Image.asset(mascot2, height: 100),
         SizedBox(height: 16),
         Text(

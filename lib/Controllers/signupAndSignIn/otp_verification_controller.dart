@@ -1,4 +1,3 @@
-
 import '../../common/custom_snackbar.dart';
 import '../../consts/consts.dart';
 import '../../views/SignUp/create_new_password.dart';
@@ -26,7 +25,6 @@ class OTPVerificationController extends GetxService {
     super.onReady();
     //_startSmsAutofill();
   }
-
 
   @override
   void onClose() {

@@ -28,10 +28,8 @@ import 'device_token_service.dart';
 import 'encryption_service.dart';
 
 class AuthService {
-
   static bool _isLoggingOut = false;
 
-  
   Future<String> login(String username, String password) async {
     final response = await http.post(
       Uri.parse('$baseUrl/login'),
@@ -48,8 +46,7 @@ class AuthService {
   }
 
   static Future<void> devicelogout(String deviceId) async {
-    try{      
-      
+    try {
       final payload = {'DeviceId': deviceId};
       final response = await ApiService.post(
         deleteDeviceApi,
@@ -63,12 +60,8 @@ class AuthService {
       }
 
       print('✅ Successfully logged out from server');
-      CustomSnackbar.showOtherDeviceLogoutSuccess(
-        context: Get.context!,
-      );
-
-
-    }catch(e){
+      CustomSnackbar.showOtherDeviceLogoutSuccess(context: Get.context!);
+    } catch (e) {
       print('❌ Error during logout API call: $e');
     }
   }
@@ -82,7 +75,7 @@ class AuthService {
     final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
     headers['x-data-hash'] = encryptedEmail['Hash']!;
     headers['X-Device-Info'] =
-    await DeviceTokenService().buildDeviceInfoHeader();
+        await DeviceTokenService().buildDeviceInfoHeader();
 
     final response = await http.post(
       uri,
@@ -103,8 +96,7 @@ class AuthService {
   }
 
   static Future<void> logExceptionToServer(dynamic exceptionDetails) async {
-    try{
-
+    try {
       debugPrint("🚨 Logging exception to server: $exceptionDetails");
 
       final response = await ApiService.post(
@@ -119,60 +111,59 @@ class AuthService {
       }
 
       print('Successfully logged exception to server');
-  }catch(e){
+    } catch (e) {
       print('Error during log exception API call: $e');
     }
   }
+
   static Future<void> forceLogout() async {
     if (_isLoggingOut) return;
     _isLoggingOut = true;
 
     try {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
 
-    try {
-
-      await Hive.box<StepEntry>('step_history').clear();
-    } catch (e) {
-      print('❌ Failed to clear step_history on logout: $e');
       try {
-       await Hive.box<StepEntry>('step_history').clear();
-      } catch (e2) {
-        print('❌ Second attempt to clear step_history failed: $e2');
+        await Hive.box<StepEntry>('step_history').clear();
+      } catch (e) {
+        print('❌ Failed to clear step_history on logout: $e');
+        try {
+          await Hive.box<StepEntry>('step_history').clear();
+        } catch (e2) {
+          print('❌ Second attempt to clear step_history failed: $e2');
+        }
       }
-    }
 
-    final localStorageManager = Get.find<LocalStorageManager>();
-    localStorageManager.userMap.value = {};
-    localStorageManager.userMap.refresh();
+      final localStorageManager = Get.find<LocalStorageManager>();
+      localStorageManager.userMap.value = {};
+      localStorageManager.userMap.refresh();
 
-    localStorageManager.userGoalDataMap.value = {};
-    localStorageManager.userGoalDataMap.refresh();
+      localStorageManager.userGoalDataMap.value = {};
+      localStorageManager.userGoalDataMap.refresh();
 
-    // ❌ REMOVE THIS
-    // Get.deleteAll(force: true);
+      // ❌ REMOVE THIS
+      // Get.deleteAll(force: true);
 
-    // ✅ Delete only app controllers
-    Get.delete<DietPlanController>();
-    Get.delete<HealthTipsController>();
-    Get.delete<HydrationStatController>();
-    Get.delete<MentalWellnessController>();
-    Get.delete<MoodController>();
-    Get.delete<MoodQuestionController>();
-    Get.delete<WaterController>();
-    Get.delete<MedicineController>();
-    Get.delete<EventController>();
-    Get.delete<MealController>();
+      // ✅ Delete only app controllers
+      Get.delete<DietPlanController>();
+      Get.delete<HealthTipsController>();
+      Get.delete<HydrationStatController>();
+      Get.delete<MentalWellnessController>();
+      Get.delete<MoodController>();
+      Get.delete<MoodQuestionController>();
+      Get.delete<WaterController>();
+      Get.delete<MedicineController>();
+      Get.delete<EventController>();
+      Get.delete<MealController>();
 
-    Get.delete<SleepController>();
-    Get.delete<StepCounterController>();
-    Get.delete<VitalsController>();
+      Get.delete<SleepController>();
+      Get.delete<StepCounterController>();
+      Get.delete<VitalsController>();
 
-    Get.offAll(() => SignInScreen());
+      Get.offAll(() => SignInScreen());
     } finally {
       _isLoggingOut = false;
     }
   }
-
 }

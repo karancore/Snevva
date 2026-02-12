@@ -14,6 +14,7 @@ class MealController extends GetxController {
 
   WaterController get waterController => Get.find<WaterController>();
 
+  final timeController = TextEditingController();
   var mealsList = <Map<String, AlarmSettings>>[].obs;
 
   Future<void> addMealAlarm(
@@ -36,10 +37,7 @@ class MealController extends GetxController {
       title: title,
       notes: notes.isNotEmpty ? notes : "",
       customReminder: CustomReminder(
-        timesPerDay: TimesPerDay(
-          count: 1.toString(),
-          list: [scheduledTime.toString()],
-        ),
+        timesPerDay: TimesPerDay(count: '1', list: [scheduledTime.toString()]),
       ),
     );
     print("Meal Data: $mealData");
@@ -80,7 +78,7 @@ class MealController extends GetxController {
 
       // Reload the combined list
       await reminderController.loadAllReminderLists();
-      reminderController.addRemindertoAPI(mealData, context);
+      //reminderController.addRemindertoAPI(mealData, context);
 
       // CustomSnackbar.showSuccess(
       //   context: context,
@@ -148,5 +146,19 @@ class MealController extends GetxController {
     }
 
     await reminderController.finalizeUpdate(context, "meals_list", mealsList);
+  }
+
+  void resetForm() {
+    timeController.clear();
+    reminderController.titleController.clear();
+    reminderController.notesController.clear();
+
+    debugPrint('🔄 Meal form reset completed');
+  }
+
+  @override
+  void onClose() {
+    timeController.dispose();
+    super.onClose();
   }
 }

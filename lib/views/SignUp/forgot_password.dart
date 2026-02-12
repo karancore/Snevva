@@ -99,7 +99,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
         elevation: 0,
         automaticallyImplyLeading: false,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios , size: 18,),
+          icon: const Icon(Icons.arrow_back_ios, size: 18),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -144,7 +144,11 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: ElevatedButton(
-                  onPressed: isLoading ? null : () => onButtonClick(textFieldController.text.trim()),
+                  onPressed:
+                      isLoading
+                          ? null
+                          : () =>
+                              onButtonClick(textFieldController.text.trim()),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     foregroundColor: Colors.white,

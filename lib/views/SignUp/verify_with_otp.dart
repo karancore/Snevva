@@ -41,9 +41,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
     super.initState();
     print("emailOrPasswordText ${widget.emailOrPasswordText}");
 
-    otpController = Get.put(
-      OTPVerificationController(),
-    );
+    otpController = Get.put(OTPVerificationController());
     otpController.emailOrPasswordText.value = widget.emailOrPasswordText;
 
     _listenForSms();
@@ -148,7 +146,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
         centerTitle: true,
         automaticallyImplyLeading: false,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios , size: 18,),
+          icon: const Icon(Icons.arrow_back_ios, size: 18),
           onPressed: () => Get.back(),
         ),
       ),
@@ -206,11 +204,11 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
                   decorationColor: AppColors.primaryColor,
                   fontWeight: FontWeight.w500,
                   fontSize: 14,
-                  foreground:  Paint()
-                    ..shader = AppColors.primaryGradient.createShader(
-                      const Rect.fromLTWH(0, 0, 200, 20),
-                    ),
-
+                  foreground:
+                      Paint()
+                        ..shader = AppColors.primaryGradient.createShader(
+                          const Rect.fromLTWH(0, 0, 200, 20),
+                        ),
                 ),
               ),
             ),

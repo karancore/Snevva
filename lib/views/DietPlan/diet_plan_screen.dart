@@ -346,9 +346,6 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     required String dietImg,
     required bool isDarkMode,
   }) {
-
-
-
     return Material(
       color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
       elevation: 1,

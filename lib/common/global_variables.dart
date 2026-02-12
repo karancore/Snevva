@@ -6,13 +6,18 @@ import 'package:intl/intl.dart';
 
 import '../Controllers/signupAndSignIn/sign_in_controller.dart';
 import '../consts/consts.dart';
-import '../models/medicine_reminder_model.dart';
+import '../models/reminders/medicine_reminder_model.dart';
 
 //Interval - hours
 enum Option { times, interval }
-enum ReminderCategory { medicine , water , meal , event}
-const String reminderBox = 'reminders_box';
 
+enum ReminderCategory { medicine, water, meal, event }
+double asDouble(num? value) {
+  if (value == null) return 1.0;
+  return value.toDouble();
+}
+
+const String reminderBox = 'reminders_box';
 
 //to access medicne do (reminderBox)[medicineKey];
 
@@ -123,15 +128,14 @@ int daysInMonth(int year, int month) {
 }
 
 String _dateKey(DateTime d) => "${d.year}-${d.month}-${d.day}";
+
 int getCurrentDateIndex() {
   final index = DateTime.now().day - 1;
 
   return index;
-
 }
+
 List<String> generateMonthLabels(DateTime month) {
-
-
   final int totalDays =
       (month.year == now.year && month.month == now.month)
           ? now
@@ -145,17 +149,15 @@ int alarmsId() {
   return DateTime.now().millisecondsSinceEpoch % 2147483647;
 }
 
-int reminderId() {
-  return DateTime.now().microsecondsSinceEpoch % 2147483647;
+int generateWaterAlarmId(int reminderId, int index) {
+  return reminderId * 10 + index;
 }
 
 DateTime combineWithToday(TimeOfDay time) {
-
   return DateTime(now.year, now.month, now.day, time.hour, time.minute);
 }
 
 DateTime toDateTimeToday(TimeOfDay time) {
-
   return DateTime(now.year, now.month, now.day, time.hour, time.minute);
 }
 
@@ -213,13 +215,13 @@ double getListHeight(int itemCount, double itemHeight, double maxHeight) {
 
 String formatTimeFromHourMinute(int hour, int minute) {
   try {
-
     final dateTime = DateTime(now.year, now.month, now.day, hour, minute);
     return DateFormat('hh:mm a').format(dateTime);
   } catch (e) {
     return '$hour:$minute';
   }
 }
+
 double heightFactor = 1.073;
 double widthFactor = 1.047;
 
@@ -244,7 +246,6 @@ double widthFactor = 1.047;
 // Height multiplier: 1.073
 //
 // Width multiplier: 1.047
-
 
 TimeOfDay parseTime(String timeString) {
   final format = DateFormat("hh:mm a");
@@ -335,4 +336,26 @@ List<List<FlSpot>> splitByZero(List<FlSpot> points) {
   }
 
   return segments;
+}
+
+DateTime buildDateTimeFromTimeString({required String time, String? date}) {
+  final now = DateTime.now();
+  final timeParts = time.split(':');
+  final hours = int.parse(timeParts[0]);
+  final minutes = int.parse(timeParts[1]);
+
+  DateTime scheduled;
+  if (date != null && date.isNotEmpty) {
+    final dateParts = date.split('-');
+    final year = int.parse(dateParts[0]);
+    final month = int.parse(dateParts[1]);
+    final day = int.parse(dateParts[2]);
+    scheduled = DateTime(year, month, day, hours, minutes);
+  } else {
+    scheduled = DateTime(now.year, now.month, now.day, hours, minutes);
+    if (scheduled.isBefore(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+  }
+  return scheduled;
 }

@@ -8,8 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:get/get.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
-import 'package:snevva/models/medicine_reminder_model.dart';
-import 'package:snevva/models/water_reminder_model.dart';
+import 'package:snevva/models/reminders/medicine_reminder_model.dart';
+import 'package:snevva/models/reminders/water_reminder_model.dart';
 import 'package:timezone/data/latest.dart';
 import 'package:timezone/timezone.dart';
 
@@ -71,14 +71,12 @@ Future<void> requestAllPermissions() async {
 // 2️⃣ HIVE INITIALIZATION (CHECK IF ALREADY INITIALIZED)
 // ====================================================================
 Future<void> setupHive() async {
-
   var directory = await getApplicationDocumentsDirectory();
   await Hive.initFlutter(directory.path);
 
   // DEV ONLY: CLEAR HIVE ON RESTART
   // bool isDev = true;
   // if (isDev) await Hive.deleteFromDisk();
-
 
   if (Hive.isBoxOpen('step_history') &&
       Hive.isBoxOpen('sleep_log') &&
@@ -88,7 +86,6 @@ Future<void> setupHive() async {
     return;
   }
   print("🧪 Hive initialized: ${Hive.isBoxOpen('step_history')}");
-
 
   // 🔑 OPEN BOXES HERE
   // await Hive.openBox('sleepBox');
@@ -123,8 +120,6 @@ Future<void> setupHive() async {
   if (!Hive.isAdapterRegistered(RemindBeforeAdapter().typeId)) {
     Hive.registerAdapter(RemindBeforeAdapter());
   }
-
-
 
   // ✅ Only open boxes if not already open
   if (!Hive.isBoxOpen('step_history')) {

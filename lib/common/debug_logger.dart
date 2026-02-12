@@ -11,10 +11,10 @@ class DebugLog {
   DebugLog(this.message, this.type, this.time);
 
   Map<String, dynamic> toJson() => {
-        'message': message,
-        'type': type,
-        'time': time.toIso8601String(),
-      };
+    'message': message,
+    'type': type,
+    'time': time.toIso8601String(),
+  };
 
   factory DebugLog.fromJson(Map<String, dynamic> json) {
     return DebugLog(

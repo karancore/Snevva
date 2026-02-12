@@ -30,15 +30,15 @@ class _SplashScreenState extends State<SplashScreen>
       if (status == AnimationStatus.completed) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Get.to(
-                () => SplashScreen2(),
+            () => SplashScreen2(),
             transition: Transition.fadeIn,
             duration: Duration(milliseconds: 600),
           );
         });
       }
-
     });
   }
+
   @override
   void dispose() {
     animationController.dispose();

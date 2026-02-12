@@ -20,7 +20,6 @@ class AlertsController extends GetxService {
     _loadNotifications();
   }
 
-
   Future<void> _loadNotifications() async {
     final prefs = await SharedPreferences.getInstance();
     final String? stored = prefs.getString(_storageKey);

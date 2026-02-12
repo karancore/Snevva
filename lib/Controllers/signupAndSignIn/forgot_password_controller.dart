@@ -46,7 +46,7 @@ class ForgotPasswordController extends GetxService {
 
       final deviceInfoHeader =
           await DeviceTokenService().buildDeviceInfoHeader();
-      
+
       headers['X-Device-Info'] = deviceInfoHeader;
 
       final encryptedBody = jsonEncode({
@@ -156,7 +156,7 @@ class ForgotPasswordController extends GetxService {
 
       final deviceInfoHeader =
           await DeviceTokenService().buildDeviceInfoHeader();
-      
+
       headers['X-Device-Info'] = deviceInfoHeader;
 
       final encryptedBody = jsonEncode({

@@ -10,10 +10,7 @@ class GoogleAuthService {
     try {
       final scopes = ['email', 'profile'];
       // Initialize Google Sign-In
-      await GoogleSignIn.instance.initialize(
-        serverClientId:
-            ANDROID_CLIENT_ID,
-      );
+      await GoogleSignIn.instance.initialize(serverClientId: ANDROID_CLIENT_ID);
 
       // // Optional: sign out before signing in
       // await GoogleSignIn.instance.signOut();

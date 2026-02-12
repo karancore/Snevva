@@ -7,7 +7,6 @@
 // import '../common/global_variables.dart';
 // import '../models/hive_models/sleep_log.dart';
 
-
 // // Global reference to the screen state stream subscription
 // StreamSubscription<ScreenStateEvent>? _screenStateSubscription;
 
@@ -21,7 +20,6 @@
 //   try {
 //     // Initialize plugins
 //     final screen = Screen();
-
 
 //     final box = Hive.box<SleepLog>('sleep_log');
 

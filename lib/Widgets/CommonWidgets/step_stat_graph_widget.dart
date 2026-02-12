@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -13,6 +15,7 @@ class StepStatGraphWidget extends StatelessWidget {
     required this.height,
     required this.points,
     required this.isMonthlyView,
+    required this.yAxisMaxValue,
     this.maxXForWeek,
     this.weekLabels,
     this.graphTitle = '',
@@ -22,6 +25,8 @@ class StepStatGraphWidget extends StatelessWidget {
   final bool isDarkMode;
   final double height;
   final List<FlSpot> points;
+
+  final double yAxisMaxValue;
   final bool isMonthlyView;
   final List<String>? weekLabels;
   final int? maxXForWeek;
@@ -42,7 +47,9 @@ class StepStatGraphWidget extends StatelessWidget {
     // Clamp points so they never exceed maxY
     final clampedPoints =
         points.map((p) {
-          return FlSpot(p.x, p.y > maxY ? maxY : p.y);
+          double y = p.y;
+          if (y > yAxisMaxValue) y = yAxisMaxValue;
+          return FlSpot(p.x, y);
         }).toList();
 
     return Material(
@@ -98,11 +105,13 @@ class StepStatGraphWidget extends StatelessWidget {
                     labels: labels,
                     points: clampedPoints,
                     isMonthly: true,
+                    context: context,
                   ),
                 )
                 : _buildChart(
                   labels: labels,
                   points: clampedPoints,
+                  context: context,
                   isMonthly: false,
                   maxXForWeek: maxXForWeek,
                 ),
@@ -128,28 +137,36 @@ class StepStatGraphWidget extends StatelessWidget {
     return 10000;
   }
 
+  /// Returns a "nice" maximum Y-axis value slightly above the actual max value
+
   Widget _buildChart({
     required List<String> labels,
     required List<FlSpot> points,
     required bool isMonthly,
+    required BuildContext context,
     int? maxXForWeek,
   }) {
     // final double interval = maxY / 5;
     final double interval = getNiceInterval(maxY);
 
-    final double resolvedMaxX =
+    double chartWidth = max(
+      labels.length * 42.0,
+      MediaQuery.of(context).size.width - 40,
+    );
+
+    final safeMaxx =
         isMonthly
-            ? (labels.length).toDouble()
-            : (maxXForWeek ?? labels.length - 1).toDouble();
+            ? max(1, labels.length).toDouble()
+            : max(1, (maxXForWeek ?? labels.length)).toDouble();
 
     return Container(
       padding: const EdgeInsets.only(top: 52),
       height: height * 0.28,
-      width: isMonthly ? labels.length * 42 : null,
+      width: chartWidth,
       child: LineChart(
         LineChartData(
           minX: 0,
-          maxX: resolvedMaxX,
+          maxX: safeMaxx,
           minY: 0,
           maxY: maxY,
           titlesData: FlTitlesData(
@@ -162,9 +179,10 @@ class StepStatGraphWidget extends StatelessWidget {
                   final int index = value.toInt();
 
                   if (index >= 0 && index < labels.length) {
-                    final bool isToday = isMonthly
-                        ? index == getCurrentDateIndex()
-                        : index == maxXForWeek;
+                    final bool isToday =
+                        isMonthly
+                            ? index == getCurrentDateIndex()
+                            : index == maxXForWeek;
 
                     return Padding(
                       padding: const EdgeInsets.only(top: 6),
@@ -173,11 +191,11 @@ class StepStatGraphWidget extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 9,
                           fontWeight:
-                          isToday ? FontWeight.bold : FontWeight.normal,
+                              isToday ? FontWeight.bold : FontWeight.normal,
                           color:
-                          isToday
-                              ? AppColors.primaryColor
-                              : Colors.grey.shade600,
+                              isToday
+                                  ? AppColors.primaryColor
+                                  : Colors.grey.shade600,
                         ),
                       ),
                     );
@@ -263,10 +281,8 @@ class StepStatGraphWidget extends StatelessWidget {
 
               getTooltipItems: (touchedSpots) {
                 return touchedSpots.map((spot) {
-
-
                   return LineTooltipItem(
-                    '${(spot.y).round() } Steps',
+                    '${(spot.y).round()} Steps',
                     const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,

@@ -137,13 +137,12 @@ class _HomeWrapperState extends State<HomeWrapper> {
   //
   // }
 
-
   Future<void> _startupSequence() async {
     // 1️⃣ Permissions first
     await requestAllPermissions();
 
     // 2️⃣ Wait for app to fully resume
-    await Future.delayed(const Duration(seconds: 1));
+    // await Future.delayed(const Duration(seconds: 1));
 
     // 3️⃣ THEN start background service
     // await initBackgroundService();autoStart

@@ -14,7 +14,6 @@ import '../../services/encryption_service.dart';
 class SignUpController extends GetxService {
   var isLoading = false.obs;
 
-
   Future<dynamic> signUpUsingGmail(String email, BuildContext context) async {
     print("⏳ signUpUsingGmail() called with email: $email");
 
@@ -49,7 +48,7 @@ class SignUpController extends GetxService {
 
       final deviceInfoHeader =
           await DeviceTokenService().buildDeviceInfoHeader();
-      
+
       headers['X-Device-Info'] = deviceInfoHeader;
 
       final encryptedBody = jsonEncode({
@@ -73,8 +72,7 @@ class SignUpController extends GetxService {
 
         final encryptedBody = responseBody['data'];
         print("🔐 Encrypted Response Data: $encryptedBody");
-        
-        
+
         // final printedHash = response.headers;
         // print("📋 prinyted: $printedHash");
         final responseHash = response.headers['x-data-hash'];
@@ -179,7 +177,7 @@ class SignUpController extends GetxService {
 
       final deviceInfoHeader =
           await DeviceTokenService().buildDeviceInfoHeader();
-      
+
       headers['X-Device-Info'] = deviceInfoHeader;
 
       final encryptedBody = jsonEncode({
@@ -309,7 +307,7 @@ class SignUpController extends GetxService {
 
       final deviceInfoHeader =
           await DeviceTokenService().buildDeviceInfoHeader();
-      
+
       headers['X-Device-Info'] = deviceInfoHeader;
 
       final encryptedBody = jsonEncode({

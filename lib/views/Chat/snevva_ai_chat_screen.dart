@@ -45,34 +45,34 @@ Future<Map<String, DecisionNode>> loadDecisionTree() async {
       withAuth: true,
       encryptionRequired: true,
     );
-    
+
     print(response);
-    
+
     // Convert to Map
     if (response is Map && response['data'] != null) {
       final res = Map<String, dynamic>.from(response['data']);
       print("API decision tree fetched.");
-    
+
       // Save JSON
       // await _saveDecisionJsonLocally(res);
       // print("Decision tree saved locally.");
       // Parse
       final nodes = <String, DecisionNode>{};
-    
+
       res.forEach((key, value) {
         try {
           final normalized = Map<String, dynamic>.from(
             jsonDecode(jsonEncode(value)),
           );
-    
+
           nodes[key] = DecisionNode.fromJson(normalized);
         } catch (e) {
           print('Error parsing decision node for key $key: $e');
         }
       });
-    
+
       // print("Decision tree parsed from API.");
-    
+
       return nodes;
     } else {
       throw FormatException("Response does not contain 'data'");
@@ -86,7 +86,6 @@ Future<Map<String, DecisionNode>> loadDecisionTree() async {
 }
 
 /// ---------- LOCAL STORAGE ----------
-
 
 /// ---------- CHAT MESSAGE MODEL ----------
 
@@ -124,7 +123,6 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
   Future<void> _initializeTree() async {
     // decisionTree = await loadDecisionTree();
     decisionTree = await DecisionTreeService().getDecisionTree();
-
 
     if (decisionTree.isEmpty) {
       print("❌ decisionTree is EMPTY. Chat cannot load.");
@@ -202,7 +200,7 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: isDarkMode ? black : white,
-        iconTheme: IconThemeData(color: isDarkMode ? white : black,),
+        iconTheme: IconThemeData(color: isDarkMode ? white : black),
         title: Text(
           "Chat with Elly",
           style: TextStyle(
@@ -227,12 +225,17 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
                   child: ListView.builder(
                     controller: _scrollController,
                     // Add top padding to account for AppBar and StatusBar
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+
                     // Add 1 to count if we have options to show them at the end of the list
                     itemCount:
                         messages.length +
-                        (waitingForUser && node != null && node.options.isNotEmpty
+                        (waitingForUser &&
+                                node != null &&
+                                node.options.isNotEmpty
                             ? 1
                             : 0),
                     itemBuilder: (context, i) {
@@ -279,9 +282,9 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
                                   .toList(),
                         );
                       }
-            
+
                       final msg = messages[i];
-            
+
                       return Align(
                         alignment:
                             msg.isUser
@@ -299,7 +302,7 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
                                   "SNEVVAI  ${DateFormat('hh:mm a').format(msg.time)}",
                                   style: TextStyle(fontSize: 10),
                                 ),
-            
+
                             Container(
                               margin: const EdgeInsets.symmetric(vertical: 6),
                               padding: const EdgeInsets.symmetric(
@@ -339,7 +342,9 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
                                 msg.text,
                                 style: TextStyle(
                                   color:
-                                      msg.isUser ? Colors.white : Colors.black87,
+                                      msg.isUser
+                                          ? Colors.white
+                                          : Colors.black87,
                                   fontSize: 16,
                                 ),
                               ),

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -12,6 +13,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/widgets/semi_circular_progress.dart';
 
+import '../../../Widgets/CommonWidgets/common_stat_graph_widget.dart';
 import '../../../common/global_variables.dart';
 import '../../../models/hive_models/steps_model.dart';
 import '../../../widgets/CommonWidgets/custom_appbar.dart';
@@ -46,6 +48,7 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
   DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
 
   late final StreamSubscription<BoxEvent> _hiveSub;
+
   // final service = FlutterBackgroundService();
   // StreamSubscription? _serviceSub;
 
@@ -467,7 +470,7 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
 
                   final points =
                       _isMonthlyView
-                          ? stepController.getMonthlyStepsSpots(_selectedMonth)
+                          ? stepController.getMonthlyStepsSpots(DateTime.now())
                           : stepController.stepSpots
                               .take(daysSinceMonday + 1)
                               .toList();
@@ -489,14 +492,16 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
                               .map((e) => e.y)
                               .reduce((a, b) => a > b ? a : b);
 
-                  final double maxY = getNiceMaxY(rawMax);
-                  final double interval = getNiceInterval(maxY);
+                  final double maxY = getDynamicMaxY(rawMax);
+                  final double interval = getDynamicInterval(maxY);
 
                   return StepStatGraphWidget(
                     isDarkMode: isDarkMode,
                     height: height,
                     points: points,
+
                     weekLabels: labels,
+                    yAxisMaxValue: maxY,
                     maxXForWeek: daysSinceMonday,
                     isMonthlyView: _isMonthlyView,
                     graphTitle: 'Steps',
@@ -530,6 +535,55 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
     if (maxY <= 10000) return 2000;
     if (maxY <= 20000) return 5000;
     return 10000;
+  }
+
+  double getDynamicMaxY(double value, {double paddingFactor = 1.2}) {
+    if (value <= 0) return 1000; // Minimum fallback
+
+    // Apply padding
+    double rawMax = value * paddingFactor;
+
+    // Round to nearest "nice" step: 1, 2, 5, 10, 20, 50, 100, 1000, etc.
+    double magnitude = pow(10, rawMax.floor().toString().length - 1).toDouble();
+    double normalized = rawMax / magnitude;
+
+    double niceNormalized;
+    if (normalized <= 1) {
+      niceNormalized = 1;
+    } else if (normalized <= 2) {
+      niceNormalized = 2;
+    } else if (normalized <= 5) {
+      niceNormalized = 5;
+    } else {
+      niceNormalized = 10;
+    }
+
+    return niceNormalized * magnitude;
+  }
+
+  /// Returns a "nice" interval for Y-axis based on maxY
+  double getDynamicInterval(double maxY, {int targetSteps = 5}) {
+    if (maxY <= 0) return 1000;
+
+    double rawInterval = maxY / targetSteps;
+
+    // Round to nearest "nice" number (1, 2, 5, 10, etc.)
+    double magnitude =
+        pow(10, rawInterval.floor().toString().length - 1).toDouble();
+    double normalized = rawInterval / magnitude;
+
+    double niceNormalized;
+    if (normalized <= 1) {
+      niceNormalized = 1;
+    } else if (normalized <= 2) {
+      niceNormalized = 2;
+    } else if (normalized <= 5) {
+      niceNormalized = 5;
+    } else {
+      niceNormalized = 10;
+    }
+
+    return niceNormalized * magnitude;
   }
 
   List<String> generateShortWeekdays() {

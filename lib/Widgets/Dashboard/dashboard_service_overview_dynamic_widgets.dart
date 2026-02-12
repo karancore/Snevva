@@ -8,6 +8,7 @@ import '../../Controllers/StepCounter/step_counter_controller.dart';
 import '../../common/global_variables.dart';
 import '../../common/statement_of_use_bottom_sheet.dart';
 import '../../consts/consts.dart';
+import '../../views/Information/HydrationScreens/hydration_bottom_sheet.dart';
 import '../../views/Information/HydrationScreens/hydration_screen.dart';
 import '../../views/Information/Sleep Screen/sleep_bottom_sheet.dart';
 import '../../views/Information/Sleep Screen/sleep_tracker_screen.dart';
@@ -61,6 +62,8 @@ class _DashboardServiceOverviewDynamicWidgetsState
 
   @override
   Widget build(BuildContext context) {
+    final height = MediaQuery.of(context).size.height;
+
     if (!_loaded) {
       _loaded = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -84,9 +87,10 @@ class _DashboardServiceOverviewDynamicWidgetsState
                   final watercontroller = Get.find<HydrationStatController>();
 
                   if (!isGoalSet) {
-                    final goal = await showStepCounterBottomSheet(
+                    final goal = await showHydrationBottomSheetModal(
                       context,
                       widget.isDarkMode,
+                      height,
                     );
 
                     if (goal != null) {

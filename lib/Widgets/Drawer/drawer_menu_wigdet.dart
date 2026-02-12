@@ -1,3 +1,4 @@
+import 'package:alarm/alarm.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:share_plus/share_plus.dart';
@@ -145,56 +146,57 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
       // ==========================================================
       // 5️⃣ CLEAR IN-MEMORY STATE
       // ==========================================================
-      debugPrint('🧠 Resetting LocalStorageManager...');
-      if (Get.isRegistered<LocalStorageManager>()) {
-        final localStorageManager = Get.find<LocalStorageManager>();
-
-        localStorageManager.userMap.value = {};
-        localStorageManager.userGoalDataMap.value = {};
-
-        localStorageManager.userMap.refresh();
-        localStorageManager.userGoalDataMap.refresh();
-      }
-      debugPrint('✅ LocalStorageManager reset');
-
-      // // ==========================================================
-      // // 6️⃣ CLEAR SINGLETON CACHES (IMPORTANT)
-      // // ==========================================================
-      // if (Get.isRegistered<DecisionTreeController>()) {
-      //   Get.find<DecisionTreeController>().clear();
-      //   Get.delete<DecisionTreeController>();
-      //   debugPrint('🧹 DecisionTree cache cleared');
-      // }
-
-      debugPrint('🧠 Clearing DecisionTreeService...');
-      await DecisionTreeService().clearAll();
-
-      // ==========================================================
-      // 7️⃣ DELETE GETX CONTROLLERS
-      // ==========================================================
-      debugPrint('🗑️ Deleting GetX controllers...');
-      Get.delete<DietPlanController>(force: true);
-      Get.delete<HealthTipsController>(force: true);
-      Get.delete<HydrationStatController>(force: true);
-      Get.delete<OTPVerificationController>(force: true);
-      Get.delete<MentalWellnessController>(force: true);
-      Get.delete<MoodController>(force: true);
-      Get.delete<SignInController>(force: true);
-      Get.delete<MoodQuestionController>(force: true);
-      Get.delete<SleepController>(force: true);
-      Get.delete<StepCounterController>(force: true);
-      Get.delete<VitalsController>(force: true);
-      debugPrint('✅ Controllers deleted');
 
       // ==========================================================
       // 8️⃣ NAVIGATE (ALWAYS)
       // ==========================================================
-      if(_apiSuccess){
-      debugPrint('➡️ Navigating to SignInScreen');
-      Get.offAll(() => SignInScreen());
-      }else {
-      debugPrint('⚠️ Skipping navigation due to logout API failure');
-    }
+      if (_apiSuccess) {
+        debugPrint('🧠 Resetting LocalStorageManager...');
+        if (Get.isRegistered<LocalStorageManager>()) {
+          final localStorageManager = Get.find<LocalStorageManager>();
+
+          localStorageManager.userMap.value = {};
+          localStorageManager.userGoalDataMap.value = {};
+
+          localStorageManager.userMap.refresh();
+          localStorageManager.userGoalDataMap.refresh();
+        }
+        debugPrint('✅ LocalStorageManager reset');
+
+        // // ==========================================================
+        // // 6️⃣ CLEAR SINGLETON CACHES (IMPORTANT)
+        // // ==========================================================
+        // if (Get.isRegistered<DecisionTreeController>()) {
+        //   Get.find<DecisionTreeController>().clear();
+        //   Get.delete<DecisionTreeController>();
+        //   debugPrint('🧹 DecisionTree cache cleared');
+        // }
+
+        debugPrint('🧠 Clearing DecisionTreeService...');
+        await DecisionTreeService().clearAll();
+
+        // ==========================================================
+        // 7️⃣ DELETE GETX CONTROLLERS
+        // ==========================================================
+        debugPrint('🗑️ Deleting GetX controllers...');
+        Get.delete<DietPlanController>(force: true);
+        Get.delete<HealthTipsController>(force: true);
+        Get.delete<HydrationStatController>(force: true);
+        Get.delete<OTPVerificationController>(force: true);
+        Get.delete<MentalWellnessController>(force: true);
+        Get.delete<MoodController>(force: true);
+        Get.delete<SignInController>(force: true);
+        Get.delete<MoodQuestionController>(force: true);
+        Get.delete<SleepController>(force: true);
+        Get.delete<StepCounterController>(force: true);
+        Get.delete<VitalsController>(force: true);
+        await Alarm.stopAll();
+        debugPrint('✅ Controllers deleted');
+        debugPrint('➡️ Navigating to SignInScreen');
+        Get.offAll(() => SignInScreen());
+      } else {
+        debugPrint('⚠️ Skipping navigation due to logout API failure');
+      }
       debugPrint('🏁 Logout completed successfully');
     } catch (e) {
       debugPrint('🔥 Logout failed: $e');

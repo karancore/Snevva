@@ -154,10 +154,6 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
                         count > secondIndex
                             ? controller.randomTips[secondIndex]
                             : null;
-                    //
-                    print('https://${firstTip?["ThumbnailMedia"]?["CdnUrl"]}');
-                    print('https://${secondTip?["ThumbnailMedia"]?["CdnUrl"]}');
-
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 16.0),
                       child: Row(
@@ -259,6 +255,8 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
             child: Text(
               heading,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           Padding(

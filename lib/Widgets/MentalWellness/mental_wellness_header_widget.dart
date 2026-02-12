@@ -39,81 +39,90 @@ class MentalWellnessHeaderWidget extends StatelessWidget {
               appBarHeading: heading,
             ),
           ),
-      child: Container(
-        height: height,
-        width: width,
-        decoration: BoxDecoration(
-          color: Color(0xFF01021D),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              CachedNetworkImage(
-                imageUrl: wellnessContainerImage,
-                placeholder: (context, url) => Container(color: Colors.black12),
-                errorWidget:
-                    (context, url, error) =>
-                        Image.asset(wellnessContainerImage, fit: boxFit),
-                fit: boxFit,
-              ),
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      heading,
-                      style: TextStyle(
-                        color: white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: SizedBox(
+          height: height,
+          width: width,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                CachedNetworkImage(
+                  imageUrl: wellnessContainerImage,
+                  placeholder:
+                      (context, url) => Container(color: Colors.black12),
+                  errorWidget:
+                      (context, url, error) => Container(
+                        color: Colors.black12,
+                        child: const Icon(
+                          Icons.music_note,
+                          size: 40,
+                          color: Colors.white70,
+                        ),
                       ),
-                    ),
-                    Text(
-                      subHeading,
-                      style: TextStyle(color: white, fontSize: 16),
-                    ),
-                    Spacer(),
-                    playText.isEmpty
-                        ? ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            color: white,
-                            child: const Icon(
-                              Icons.play_arrow,
-                              color: Colors.black,
-                              size: 22,
-                            ),
-                          ),
-                        )
-                        : Container(
-                          padding: EdgeInsets.only(
-                            top: (containerPadding ?? 10) - 7,
-                            left: containerPadding ?? 10,
-                            right: (containerPadding ?? 10) + 5,
-                            bottom: (containerPadding ?? 10) - 7,
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(200),
-                            color: white,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
+                  fit: boxFit,
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        heading,
+                        style: TextStyle(
+                          color: white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        subHeading,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: white, fontSize: 16),
+                      ),
+                      const Spacer(),
+                      playText.isEmpty
+                          ? ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              color: white,
+                              child: const Icon(
                                 Icons.play_arrow,
                                 color: Colors.black,
                                 size: 22,
                               ),
-                              playText.isEmpty
-                                  ? SizedBox.shrink()
-                                  : Padding(
-                                    padding: const EdgeInsets.only(left: 5),
-                                    child: Expanded(
+                            ),
+                          )
+                          : Container(
+                            padding: EdgeInsets.only(
+                              top: (containerPadding ?? 10) - 7,
+                              left: containerPadding ?? 10,
+                              right: (containerPadding ?? 10) + 5,
+                              bottom: (containerPadding ?? 10) - 7,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(200),
+                              color: white,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.play_arrow,
+                                  color: Colors.black,
+                                  size: 22,
+                                ),
+                                playText.isEmpty
+                                    ? SizedBox.shrink()
+                                    : Padding(
+                                      padding: const EdgeInsets.only(left: 5),
                                       child: Text(
                                         playText,
                                         style: TextStyle(
@@ -122,14 +131,14 @@ class MentalWellnessHeaderWidget extends StatelessWidget {
                                         ),
                                       ),
                                     ),
-                                  ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

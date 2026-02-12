@@ -4,25 +4,20 @@ import 'package:alarm/alarm.dart';
 import 'package:alarm/model/alarm_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:hive/hive.dart';
 import 'package:pinput/pinput.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
-import 'package:snevva/Controllers/Reminder/water_controller.dart';
 import 'package:snevva/models/mappers/medicine_to_reminder_mapper.dart';
 
-import '../../boxes/boxes/boxes.dart';
 import '../../common/custom_snackbar.dart';
 import '../../common/global_variables.dart';
 import '../../consts/colors.dart';
 import '../../consts/images.dart';
-import '../../models/medicine_reminder_model.dart';
+import '../../models/reminders/medicine_reminder_model.dart';
 
 class MedicineController extends GetxController {
   ReminderController get reminderController =>
       Get.find<ReminderController>(tag: 'reminder');
-
-  WaterController get waterController => Get.find<WaterController>();
 
   // RxList<MedicineItem> medicines = <MedicineItem>[].obs;
   RxList<String> medicineStrings = <String>[].obs;
@@ -48,6 +43,8 @@ class MedicineController extends GetxController {
   final endMedicineDateController = TextEditingController();
   final remindMeBeforeController = TextEditingController();
 
+  var startDateString = 'Start Date'.obs;
+  var endDateString = 'End Date'.obs;
   final medicineController = TextEditingController();
   var medicineList = <MedicineReminderModel>[].obs;
   var selectedMedicineIndex = (-1).obs;
@@ -166,53 +163,136 @@ class MedicineController extends GetxController {
     }
   }
 
-  num dosageMed = 0.0;
+  Rx<num> dosageMed = 0.0.obs;
 
-  bool addMedicineIntervalAlarm({
+  Future<bool> addMedicineIntervalAlarm({
     required BuildContext context,
-    required DateTime startDateTime,
-    required DateTime endDateTime,
-    required int intervalHours,
     required num? dosage,
-  }) {
-    dosageMed = dosage ?? 0;
+  }) async {
+    dosageMed.value = dosage ?? 0;
     final medicineName = medicineController.text.trim();
-    if (medicineReminderOption.value == Option.interval) {
-      // Interval mode
-      final intervalHours = int.tryParse(everyHourController.text) ?? 0;
-      if (intervalHours <= 0) {
-        CustomSnackbar.showError(
-          context: context,
-          title: 'Error',
-          message: 'Please enter a valid hours interval',
-        );
-        return false;
-      }
-
-      final start = stringToTimeOfDay(startMedicineTimeController.text);
-      final end = stringToTimeOfDay(endMedicineTimeController.text);
-
-      final reminders = waterController.generateEveryXHours(
-        start: start,
-        end: end,
-        intervalHours: intervalHours,
-      );
-
-      if (reminders.isEmpty) {
-        return false;
-      }
-      waterController.setIntervalReminders(
-        intervalReminders: reminders,
-        context: context,
-        intervalHours: intervalHours,
-        title: 'Medicine',
-        body: buildMedicineNotificationText(
-          medicineName: medicineName,
-          dosage: dosage ?? 0,
-        ),
-      );
+    if (medicineReminderOption.value != Option.interval) {
       return true;
     }
+
+    if (medicineName.isEmpty) {
+      Get.snackbar(
+        "Medicine name missing",
+        "Please enter the medicine name to continue.",
+        snackPosition: SnackPosition.TOP,
+        colorText: white,
+        backgroundColor: AppColors.primaryColor,
+        duration: const Duration(seconds: 2),
+      );
+      return false;
+    }
+
+    final parsedIntervalHours = int.tryParse(everyHourController.text) ?? 0;
+    if (parsedIntervalHours <= 0) {
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Please enter a valid hours interval',
+      );
+      return false;
+    }
+
+    final start = stringToTimeOfDay(startMedicineTimeController.text);
+    final end = stringToTimeOfDay(endMedicineTimeController.text);
+    final reminders = generateEveryXHours(
+      start: start,
+      end: end,
+      intervalHours: parsedIntervalHours,
+    );
+
+    if (reminders.isEmpty) {
+      return false;
+    }
+
+    final reminderGroupId = alarmsId();
+    final List<int> alarmIds = [];
+    final title = reminderController.titleController.text.trim();
+    final notes = reminderController.notesController.text.trim();
+    final medicineType = selectedType.value;
+    final unit = typeToDosage[medicineType] ?? 'DROP';
+    final normalizedStartDate =
+        startDateString.value == 'Start Date' ? '' : startDateString.value;
+    final normalizedEndDate =
+        endDateString.value == 'End Date' ? '' : endDateString.value;
+
+    for (final reminderTime in reminders) {
+      final alarmId = alarmsId();
+      final alarmSettings = AlarmSettings(
+        id: alarmId,
+        dateTime: reminderTime,
+        assetAudioPath: alarmSound,
+        loopAudio: true,
+        vibrate: true,
+        androidFullScreenIntent: true,
+        volumeSettings: VolumeSettings.fade(
+          volume: 0.8,
+          fadeDuration: const Duration(seconds: 5),
+          volumeEnforced: true,
+        ),
+        payload: jsonEncode({
+          "groupId": reminderGroupId.toString(),
+          "category": ReminderCategory.medicine.toString(),
+          "type": "interval",
+        }),
+        notificationSettings: NotificationSettings(
+          title: title.isNotEmpty ? title : 'MEDICINE REMINDER',
+          body: buildMedicineNotificationText(
+            medicineName: medicineName,
+            dosage: dosage ?? 0,
+          ),
+          stopButton: 'Stop',
+          icon: 'alarm',
+          iconColor: AppColors.primaryColor,
+        ),
+      );
+      final success = await Alarm.set(alarmSettings: alarmSettings);
+      if (success) {
+        alarmIds.add(alarmId);
+      }
+    }
+
+    if (alarmIds.isEmpty) {
+      return false;
+    }
+
+    final medicine = MedicineReminderModel(
+      id: reminderGroupId,
+      alarmIds: alarmIds,
+      title: title,
+      category: ReminderCategory.medicine.toString(),
+      medicineName: medicineName,
+      medicineType: medicineType,
+      whenToTake: selectedWhenToTake.value,
+      dosage: Dosage(value: dosage ?? 0, unit: unit),
+      medicineFrequencyPerDay:
+          frequencyNum[selectedFrequency.value].toString(),
+      reminderFrequencyType: selectedFrequency.value,
+      customReminder: CustomReminder(
+        type: Option.interval,
+        timesPerDay: null,
+        everyXHours: EveryXHours(
+          hours: parsedIntervalHours.toString(),
+          startTime: startMedicineTimeController.text.trim(),
+          endTime: endMedicineTimeController.text.trim(),
+        ),
+      ),
+      remindBefore: buildRemindBefore(),
+      startDate: normalizedStartDate,
+      endDate: normalizedEndDate,
+      notes: notes,
+    );
+
+    medicineList.value = await loadMedicineReminderList("medicine_list");
+    medicineList.add(medicine);
+    await reminderController.saveReminderList(medicineList, "medicine_list");
+    await reminderController.loadAllReminderLists();
+    CustomSnackbar().showReminderBar(context);
+    Get.back(result: true);
     return true;
   }
 
@@ -228,8 +308,6 @@ class MedicineController extends GetxController {
     required num? dosage,
   }) async {
     final medicineName = medicineController.text.trim();
-    print("medicineName $medicineName");
-
     if (medicineName.isEmpty) {
       Get.snackbar(
         "Medicine name missing",
@@ -242,6 +320,7 @@ class MedicineController extends GetxController {
       return false;
     }
 
+    final reminderGroupId = alarmsId();
     final List<AlarmSettings> alarms = [];
 
     for (final scheduledTime in scheduledTimes) {
@@ -259,6 +338,11 @@ class MedicineController extends GetxController {
           fadeDuration: const Duration(seconds: 5),
           volumeEnforced: true,
         ),
+        payload: jsonEncode({
+          "groupId": reminderGroupId.toString(),
+          "category": ReminderCategory.medicine.toString(),
+          "type": "times",
+        }),
         notificationSettings: NotificationSettings(
           title:
               reminderController.titleController.text.isNotEmpty
@@ -285,12 +369,16 @@ class MedicineController extends GetxController {
       return false;
     }
 
-    final id = alarms.first.id;
+    final id = reminderGroupId;
     final title = reminderController.titleController.text.trim();
 
     final notes = reminderController.notesController.text.trim();
     final medicineType = selectedType.value;
     final unit = typeToDosage[medicineType] ?? 'DROP';
+    final normalizedStartDate =
+        startDateString.value == 'Start Date' ? '' : startDateString.value;
+    final normalizedEndDate =
+        endDateString.value == 'End Date' ? '' : endDateString.value;
     final timesPerDay = getEffectiveTimesPerDay();
     final everyXHours = everyHourController.text.trim();
     final reminderFrequencyType = selectedFrequency.value;
@@ -322,8 +410,9 @@ class MedicineController extends GetxController {
 
     final medicine = MedicineReminderModel(
       id: id,
+      alarmIds: alarms.map((e) => e.id).toList(),
       title: title,
-      category: "MEDICINE",
+      category: ReminderCategory.medicine.toString(),
       medicineName: medicineName,
       medicineType: medicineType,
       whenToTake: selectedWhenToTake.value,
@@ -332,8 +421,8 @@ class MedicineController extends GetxController {
       reminderFrequencyType: reminderFrequencyType,
       customReminder: customReminder,
       remindBefore: buildRemindBefore(),
-      startDate: startDate.value.toString(),
-      endDate: endDate.value.toString(),
+      startDate: normalizedStartDate,
+      endDate: normalizedEndDate,
       notes: notes,
     );
 
@@ -342,10 +431,10 @@ class MedicineController extends GetxController {
     await reminderController.saveReminderList(medicineList, "medicine_list");
     await reminderController.loadAllReminderLists();
 
-    await reminderController.addRemindertoAPI(
-      medicine.toReminderPayload(),
-      context,
-    );
+    // await reminderController.addRemindertoAPI(
+    //   medicine.toReminderPayload(),
+    //   context,
+    // );
     CustomSnackbar().showReminderBar(context);
     Get.back(result: true);
     return true;
@@ -492,9 +581,10 @@ class MedicineController extends GetxController {
     final notes = reminderController.notesController.text.trim();
     final medicineType = selectedType.value;
     final unit = typeToDosage[medicineType] ?? 'DROP';
-    final remindBeforeMainTime = int.parse(medicineTimeBeforeController.text);
-    final reminderMeBeforeValue = reminderController.selectedValue.value;
-
+    final normalizedStartDate =
+        startDateString.value == 'Start Date' ? '' : startDateString.value;
+    final normalizedEndDate =
+        endDateString.value == 'End Date' ? '' : endDateString.value;
     final timesPerDay = timesPerDayController.text.trim();
     final everyXHours = everyHourController.text.trim();
     final reminderFrequencyType = selectedFrequency.value;
@@ -530,18 +620,19 @@ class MedicineController extends GetxController {
     // Create updated model
     final newModel = MedicineReminderModel(
       id: id,
+      alarmIds: [alarmId],
       title: title,
-      category: "MEDICINE",
+      category: ReminderCategory.medicine.toString(),
       medicineName: medicineName,
       medicineType: medicineType,
       whenToTake: selectedWhenToTake.value,
-      dosage: Dosage(value: dosageMed, unit: unit),
+      dosage: Dosage(value: dosageMed.value, unit: unit),
       medicineFrequencyPerDay: medicineFrequencyPerDay,
       reminderFrequencyType: reminderFrequencyType,
       customReminder: customReminder,
       remindBefore: buildRemindBefore(),
-      startDate: startDate.value.toString(),
-      endDate: endDate.value.toString(),
+      startDate: normalizedStartDate,
+      endDate: normalizedEndDate,
       notes: notes,
     );
     //medicineList.add(newModel);
@@ -567,6 +658,149 @@ class MedicineController extends GetxController {
 
     CustomSnackbar().showReminderBar(context);
     Get.back(result: true);
+  }
+
+  Future<void> deleteMedicineReminder(int reminderId) async {
+    medicineList.value = await loadMedicineReminderList("medicine_list");
+    final index = medicineList.indexWhere((e) => e.id == reminderId);
+    if (index == -1) return;
+
+    final model = medicineList[index];
+    final candidateTimes = _candidateReminderTimes(model);
+    final idsToStop = <int>{...model.alarmIds, model.id};
+
+    for (final id in idsToStop) {
+      await Alarm.stop(id);
+    }
+
+    final activeAlarms = await Alarm.getAlarms();
+    for (final alarm in activeAlarms) {
+      final payload = alarm.payload;
+      if (payload == null) continue;
+      try {
+        final decoded = jsonDecode(payload);
+        if (decoded['category'] == ReminderCategory.medicine.toString() &&
+            decoded['groupId'] == reminderId.toString()) {
+          await Alarm.stop(alarm.id);
+        }
+      } catch (_) {}
+    }
+
+    // Backward compatibility for old records that did not persist alarm ids.
+    if (model.alarmIds.isEmpty) {
+      final title = model.title.isNotEmpty ? model.title : 'MEDICINE REMINDER';
+      for (final alarm in activeAlarms) {
+        final matchesTitle = alarm.notificationSettings.title == title;
+        final matchesMedicine = alarm.notificationSettings.body.contains(
+          model.medicineName,
+        );
+        final matchesTime = candidateTimes.any(
+          (t) =>
+              t.hour == alarm.dateTime.hour && t.minute == alarm.dateTime.minute,
+        );
+        if (matchesTitle && matchesMedicine && matchesTime) {
+          await Alarm.stop(alarm.id);
+        }
+      }
+    }
+
+    // Stop "before reminder" alarms that are linked by category + mainTime.
+    for (final alarm in activeAlarms) {
+      final payload = alarm.payload;
+      if (payload == null) continue;
+      try {
+        final decoded = jsonDecode(payload);
+        final isBefore = decoded['type']?.toString() == 'before';
+        final category = decoded['category']?.toString();
+        if (!isBefore || !_isMedicineCategory(category)) continue;
+
+        final mainTimeRaw = decoded['mainTime']?.toString();
+        if (mainTimeRaw == null || mainTimeRaw.isEmpty) continue;
+        final mainTime = DateTime.tryParse(mainTimeRaw);
+        if (mainTime == null) continue;
+
+        final matchesMainTime = candidateTimes.any(
+          (t) => t.hour == mainTime.hour && t.minute == mainTime.minute,
+        );
+
+        if (matchesMainTime) {
+          await Alarm.stop(alarm.id);
+        }
+      } catch (_) {}
+    }
+
+    medicineList.removeAt(index);
+    await reminderController.saveReminderList(medicineList, "medicine_list");
+  }
+
+  List<TimeOfDay> _candidateReminderTimes(MedicineReminderModel model) {
+    if (model.customReminder.type == Option.times) {
+      return model.customReminder.timesPerDay?.list
+              .map((raw) => _parseTimeOfDay(raw))
+              .whereType<TimeOfDay>()
+              .toList() ??
+          const <TimeOfDay>[];
+    }
+
+    final interval = model.customReminder.everyXHours;
+    if (interval == null) return const <TimeOfDay>[];
+    final intervalHours = int.tryParse(interval.hours) ?? 0;
+    if (intervalHours <= 0) return const <TimeOfDay>[];
+
+    try {
+      final start = stringToTimeOfDay(interval.startTime);
+      final end = stringToTimeOfDay(interval.endTime);
+      final generated = generateEveryXHours(
+        start: start,
+        end: end,
+        intervalHours: intervalHours,
+      );
+      return generated
+          .map((dt) => TimeOfDay(hour: dt.hour, minute: dt.minute))
+          .toList();
+    } catch (_) {
+      return const <TimeOfDay>[];
+    }
+  }
+
+  bool _isMedicineCategory(String? category) {
+    if (category == null) return false;
+    return category == 'medicine' ||
+        category == ReminderCategory.medicine.toString();
+  }
+
+  TimeOfDay? _parseTimeOfDay(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return null;
+    try {
+      return stringToTimeOfDay(trimmed);
+    } catch (_) {
+      try {
+        final parsed = DateTime.parse(trimmed);
+        return TimeOfDay.fromDateTime(parsed);
+      } catch (_) {
+        return null;
+      }
+    }
+  }
+
+  List<DateTime> generateEveryXHours({
+    required TimeOfDay start,
+    required TimeOfDay end,
+    required int intervalHours,
+  }) {
+    if (intervalHours <= 0) return [];
+
+    final window = buildTimeWindow(start, end);
+    final reminders = <DateTime>[];
+
+    DateTime current = window.start.add(Duration(hours: intervalHours));
+    while (!current.isAfter(window.end)) {
+      reminders.add(current);
+      current = current.add(Duration(hours: intervalHours));
+    }
+
+    return reminders;
   }
 
   // Future<List<MedicineReminderModel>> loadMedicineReminderList(
@@ -731,20 +965,72 @@ class MedicineController extends GetxController {
   //   return loadedList;
   // }
 
+  void resetForm() {
+    // ---------- Text controllers ----------
+    medicineController.clear();
+    everyHourController.clear();
+    timesPerDayController.clear();
+    remindMeBeforeController.clear();
+    medicineTimeBeforeController.clear();
+    startMedicineTimeController.clear();
+    endMedicineTimeController.clear();
+    startMedicineDateController.clear();
+    endMedicineDateController.clear();
+
+    // ---------- Rx values ----------
+    medicineReminderOption.value = Option.times;
+    medicineRemindMeBefore.value = null;
+    medicineRemindMeBeforeOption.value = null;
+    medicineUnit.value = 'minutes';
+    timeBeforeReminder.value = -1;
+
+    selectedFrequency.value = 'Once';
+    selectedType.value = 'Tablet';
+    selectedWhenToTake.value = 'Before food';
+
+    savedTimes.value = 0;
+    timesListLength.value = 4;
+    everyXhours.value = 1;
+
+    startDate.value = null;
+    endDate.value = null;
+    startDateString.value = 'Start Date';
+    endDateString.value = 'End Date';
+
+    selectedMedicineIndex.value = -1;
+
+    dosageMed.value = 0.0;
+
+    // ---------- Time controllers ----------
+    for (final controller in timeControllers) {
+      controller.clear();
+    }
+    if (timeControllers.isEmpty) {
+      updateTimeControllers(1);
+    } else {
+      timeControllers.removeRange(1, timeControllers.length);
+    }
+
+    scheduledTimes.clear();
+  }
+
   @override
   void onClose() {
     medicineController.dispose();
     everyHourController.dispose();
     timesPerDayController.dispose();
+    startMedicineTimeController.dispose();
+    endMedicineTimeController.dispose();
+    startMedicineDateController.dispose();
+    endMedicineDateController.dispose();
     remindMeBeforeController.dispose();
-    timeControllers.clear();
+    medicineTimeBeforeController.dispose();
+
     for (final controller in timeControllers) {
       controller.dispose();
     }
-    startMedicineDateController.dispose();
-    startMedicineTimeController.dispose();
-    endMedicineTimeController.dispose();
-    endMedicineDateController.dispose();
+    timeControllers.clear();
+
     super.onClose();
   }
 }

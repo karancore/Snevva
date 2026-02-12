@@ -31,8 +31,6 @@ class LocalStorageManager extends GetxService {
     return token != null && token.isNotEmpty;
   }
 
-
-
   /// ✅ Call this AFTER login success
   Future<void> registerDeviceFCMIfNeeded() async {
     await _deviceTokenService.handleDeviceRegistration();

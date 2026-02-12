@@ -54,7 +54,6 @@ class WomenHealthController extends GetxService {
     loadWomenHealthFromLocalStorage();
   }
 
-
   @override
   void onClose() {
     // Save data when controller is disposed

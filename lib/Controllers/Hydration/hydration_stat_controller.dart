@@ -24,7 +24,6 @@ class HydrationStatController extends GetxService {
   final RxList<FlSpot> waterSpots = <FlSpot>[].obs;
   var isLoading = true.obs;
 
-
   @override
   void onReady() {
     super.onReady();
@@ -126,8 +125,6 @@ class HydrationStatController extends GetxService {
   }
 
   List<FlSpot> getMonthlyWaterSpots(DateTime month) {
-
-
     final int totalDays =
         (month.year == now.year && month.month == now.month)
             ? now
@@ -189,7 +186,6 @@ class HydrationStatController extends GetxService {
 
   Future<void> saveWaterRecord(int count, BuildContext context) async {
     try {
-
       final payload = {
         "Day": now.day,
         "Month": now.month,
@@ -239,8 +235,6 @@ class HydrationStatController extends GetxService {
   }
 
   void calculateTodayIntakeFromList(List intakeList) {
-
-
     int todayTotal = 0;
 
     for (var item in intakeList) {

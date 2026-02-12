@@ -12,7 +12,6 @@ import '../models/hive_models/sleep_log.dart';
 import '../models/hive_models/steps_model.dart';
 import '../common/agent_debug_logger.dart';
 
-
 // Global references for step counting
 StreamSubscription<StepCount>? _pedometerSubscription;
 
@@ -22,7 +21,8 @@ DateTime? _sleepStartTime;
 DateTime? _usageStartTime;
 bool _isUserUsingPhone = false;
 DateTime? _currentScreenOffStart; // Track when screen turned OFF
-List<Map<String, String>> _sleepIntervals = []; // Store sleep intervals as ISO strings
+List<Map<String, String>> _sleepIntervals =
+    []; // Store sleep intervals as ISO strings
 
 @pragma("vm:entry-point")
 Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
@@ -105,7 +105,6 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
     await _pedometerSubscription?.cancel();
     _pedometerSubscription = Pedometer.stepCountStream.listen(
       (StepCount event) async {
-
         final todayKey = "${now.year}-${now.month}-${now.day}";
 
         final lastRawSteps = prefs.getInt('lastRawSteps') ?? event.steps;
@@ -198,7 +197,7 @@ void _handleScreenStateChange(
   // Keys match SleepController.BEDTIME_KEY / WAKETIME_KEY.
   final bedtimeMinutes = prefs.getInt('user_bedtime_ms');
   final waketimeMinutes = prefs.getInt('user_waketime_ms');
-  
+
   if (bedtimeMinutes == null || waketimeMinutes == null) {
     // Bedtime/waketime not set, use old behavior
     _handleScreenStateChangeLegacy(event, service, sleepBox, prefs);
@@ -212,14 +211,27 @@ void _handleScreenStateChange(
   final waketimeMin = waketimeMinutes % 60;
 
   // Calculate bedtime and wakeup DateTime for today
-  DateTime bedtimeToday = DateTime(now.year, now.month, now.day, bedtimeHour, bedtimeMin);
-  DateTime waketimeToday = DateTime(now.year, now.month, now.day, waketimeHour, waketimeMin);
-  
+  DateTime bedtimeToday = DateTime(
+    now.year,
+    now.month,
+    now.day,
+    bedtimeHour,
+    bedtimeMin,
+  );
+  DateTime waketimeToday = DateTime(
+    now.year,
+    now.month,
+    now.day,
+    waketimeHour,
+    waketimeMin,
+  );
+
   // If wakeup time is before bedtime, wakeup is next day
-  if (waketimeToday.isBefore(bedtimeToday) || waketimeToday.isAtSameMomentAs(bedtimeToday)) {
+  if (waketimeToday.isBefore(bedtimeToday) ||
+      waketimeToday.isAtSameMomentAs(bedtimeToday)) {
     waketimeToday = waketimeToday.add(const Duration(days: 1));
   }
-  
+
   // If bedtime is in the future (more than 1 hour), it's from yesterday
   if (bedtimeToday.isAfter(now.add(const Duration(hours: 1)))) {
     bedtimeToday = bedtimeToday.subtract(const Duration(days: 1));
@@ -234,41 +246,50 @@ void _handleScreenStateChange(
       // Check if the screen OFF period was within the sleep window
       final screenOffStart = _currentScreenOffStart!;
       final screenOnTime = now;
-      
+
       // Clamp times to sleep window boundaries
-      final clampedStart = screenOffStart.isBefore(bedtimeToday) ? bedtimeToday : screenOffStart;
-      final clampedEnd = screenOnTime.isAfter(waketimeToday) ? waketimeToday : screenOnTime;
-      
+      final clampedStart =
+          screenOffStart.isBefore(bedtimeToday) ? bedtimeToday : screenOffStart;
+      final clampedEnd =
+          screenOnTime.isAfter(waketimeToday) ? waketimeToday : screenOnTime;
+
       // Only record if the interval is within or overlaps the sleep window
-      if (clampedStart.isBefore(clampedEnd) && 
-          clampedStart.isBefore(waketimeToday) && 
+      if (clampedStart.isBefore(clampedEnd) &&
+          clampedStart.isBefore(waketimeToday) &&
           clampedEnd.isAfter(bedtimeToday)) {
         // Load existing intervals
         final sleepDateKey = _getSleepDateKey(bedtimeToday);
-        final existingIntervals = prefs.getString('sleep_intervals_$sleepDateKey');
+        final existingIntervals = prefs.getString(
+          'sleep_intervals_$sleepDateKey',
+        );
         if (existingIntervals != null && existingIntervals.isNotEmpty) {
           final intervalStrings = existingIntervals.split(',');
-          _sleepIntervals = intervalStrings.map((s) {
-            final parts = s.split('|');
-            return {'start': parts[0], 'end': parts[1]};
-          }).toList();
+          _sleepIntervals =
+              intervalStrings.map((s) {
+                final parts = s.split('|');
+                return {'start': parts[0], 'end': parts[1]};
+              }).toList();
         } else {
           _sleepIntervals = [];
         }
-        
+
         final interval = {
           'start': clampedStart.toIso8601String(),
           'end': clampedEnd.toIso8601String(),
         };
         _sleepIntervals.add(interval);
-        
+
         // Save to SharedPreferences
-        final intervalsJson = _sleepIntervals.map((i) => '${i['start']}|${i['end']}').join(',');
+        final intervalsJson = _sleepIntervals
+            .map((i) => '${i['start']}|${i['end']}')
+            .join(',');
         await prefs.setString('sleep_intervals_$sleepDateKey', intervalsJson);
-        
-        print("💤 [BG] Recorded sleep interval: ${clampedStart.hour}:${clampedStart.minute} - ${clampedEnd.hour}:${clampedEnd.minute}");
+
+        print(
+          "💤 [BG] Recorded sleep interval: ${clampedStart.hour}:${clampedStart.minute} - ${clampedEnd.hour}:${clampedEnd.minute}",
+        );
       }
-      
+
       _currentScreenOffStart = null;
     }
 
@@ -281,19 +302,21 @@ void _handleScreenStateChange(
     _usageStartTime = now;
     _isUserUsingPhone = true;
     print("📱 [BG] Phone usage started");
-    
   } else if (event == ScreenStateEvent.SCREEN_OFF) {
     print("🌙 [BG] Screen OFF at ${now.hour}:${now.minute}");
 
     // Only track if we're within the sleep window
-    if (now.isAfter(bedtimeToday.subtract(const Duration(minutes: 30))) && 
+    if (now.isAfter(bedtimeToday.subtract(const Duration(minutes: 30))) &&
         now.isBefore(waketimeToday.add(const Duration(minutes: 30)))) {
       _currentScreenOffStart = now;
-      
+
       // Store last screen OFF time for closing intervals at wakeup
       final sleepDateKey = _getSleepDateKey(bedtimeToday);
-      await prefs.setString('last_screen_off_$sleepDateKey', now.toIso8601String());
-      
+      await prefs.setString(
+        'last_screen_off_$sleepDateKey',
+        now.toIso8601String(),
+      );
+
       print("😴 [BG] Screen OFF recorded, sleep tracking active");
     }
 

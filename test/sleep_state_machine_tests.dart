@@ -25,7 +25,8 @@ class AwakeInterval {
     if (!end.isAfter(start)) throw ArgumentError('end must be after start');
   }
   @override
-  String toString() => 'AwakeInterval(${start.toIso8601String()} → ${end.toIso8601String()})';
+  String toString() =>
+      'AwakeInterval(${start.toIso8601String()} → ${end.toIso8601String()})';
 }
 
 class SleepStateMachine {
@@ -56,7 +57,10 @@ class SleepStateMachine {
       final last = awakeIntervals.last;
       // if overlapping or continuous (no gap) or gap < minAwakeGap, merge
       if (!start.isAfter(last.end.add(minAwakeGap))) {
-        final merged = AwakeInterval(last.start, end.isAfter(last.end) ? end : last.end);
+        final merged = AwakeInterval(
+          last.start,
+          end.isAfter(last.end) ? end : last.end,
+        );
         awakeIntervals[awakeIntervals.length - 1] = merged;
       } else {
         awakeIntervals.add(AwakeInterval(start, end));
@@ -99,7 +103,10 @@ class SleepStateMachine {
     if (phoneUsageIntervals.isNotEmpty) {
       final last = phoneUsageIntervals.last;
       if (!start.isAfter(last.end)) {
-        final merged = AwakeInterval(last.start, end.isAfter(last.end) ? end : last.end);
+        final merged = AwakeInterval(
+          last.start,
+          end.isAfter(last.end) ? end : last.end,
+        );
         phoneUsageIntervals[phoneUsageIntervals.length - 1] = merged;
       } else {
         phoneUsageIntervals.add(AwakeInterval(start, end));
@@ -113,8 +120,11 @@ class SleepStateMachine {
   /// compute the final deep sleep total for the cycle.
   Duration finalizeCycle(DateTime cycleWakeTime) {
     // If currently sleeping, close the last segment at cycleWakeTime
-    if (_currentSleepSegmentStart != null && cycleWakeTime.isAfter(_currentSleepSegmentStart!)) {
-      deepSleepAccumulated += cycleWakeTime.difference(_currentSleepSegmentStart!);
+    if (_currentSleepSegmentStart != null &&
+        cycleWakeTime.isAfter(_currentSleepSegmentStart!)) {
+      deepSleepAccumulated += cycleWakeTime.difference(
+        _currentSleepSegmentStart!,
+      );
       _currentSleepSegmentStart = null;
     }
 
@@ -134,8 +144,14 @@ class SleepStateMachine {
     return {
       'state': state.toString(),
       'currentSleepStart': _currentSleepSegmentStart?.toIso8601String(),
-      'awake': awakeIntervals.map((a) => [a.start.toIso8601String(), a.end.toIso8601String()]).toList(),
-      'phone': phoneUsageIntervals.map((a) => [a.start.toIso8601String(), a.end.toIso8601String()]).toList(),
+      'awake':
+          awakeIntervals
+              .map((a) => [a.start.toIso8601String(), a.end.toIso8601String()])
+              .toList(),
+      'phone':
+          phoneUsageIntervals
+              .map((a) => [a.start.toIso8601String(), a.end.toIso8601String()])
+              .toList(),
       'deep': deepSleepAccumulated.inMilliseconds,
     };
   }
@@ -144,9 +160,13 @@ class SleepStateMachine {
     final s = SleepStateMachine();
     final st = m['state'] as String?;
     if (st != null) {
-      s.state = SleepState.values.firstWhere((e) => e.toString() == st, orElse: () => SleepState.unknown);
+      s.state = SleepState.values.firstWhere(
+        (e) => e.toString() == st,
+        orElse: () => SleepState.unknown,
+      );
     }
-    if (m['currentSleepStart'] != null) s._currentSleepSegmentStart = DateTime.parse(m['currentSleepStart']);
+    if (m['currentSleepStart'] != null)
+      s._currentSleepSegmentStart = DateTime.parse(m['currentSleepStart']);
     final awake = m['awake'] as List<dynamic>?;
     if (awake != null) {
       for (final pair in awake) {
@@ -221,7 +241,10 @@ void main() {
       final t0 = DateTime.utc(2025, 2, 1, 23);
       s.onSleepResumed(t0);
       // flicker of 5s
-      s.onAwakeSegmentDetected(t0.add(Duration(hours: 1)), t0.add(Duration(hours: 1, seconds: 5)));
+      s.onAwakeSegmentDetected(
+        t0.add(Duration(hours: 1)),
+        t0.add(Duration(hours: 1, seconds: 5)),
+      );
       // state should remain sleeping
       expect(s.state, SleepState.sleeping);
       expect(s.awakeIntervals.isEmpty, isTrue);
@@ -243,21 +266,26 @@ void main() {
       expect(s.awakeIntervals.first.end, a2e);
     });
 
-    test('out-of-order resume (sleep-resume reported earlier than last awake end)', () {
-      final s = SleepStateMachine();
-      final t0 = DateTime.utc(2025, 4, 1, 22);
-      s.onSleepResumed(t0);
-      final a1s = t0.add(Duration(hours: 2));
-      final a1e = a1s.add(Duration(minutes: 20));
-      s.onAwakeSegmentDetected(a1s, a1e);
+    test(
+      'out-of-order resume (sleep-resume reported earlier than last awake end)',
+      () {
+        final s = SleepStateMachine();
+        final t0 = DateTime.utc(2025, 4, 1, 22);
+        s.onSleepResumed(t0);
+        final a1s = t0.add(Duration(hours: 2));
+        final a1e = a1s.add(Duration(minutes: 20));
+        s.onAwakeSegmentDetected(a1s, a1e);
 
-      // device reports resume at an earlier timestamp (no later than last awake end)
-      final reportedResume = a1s.add(Duration(minutes: 5)); // earlier than a1e
-      s.onSleepResumed(reportedResume);
-      // internal logic should snap resume forward to last awake end
-      expect(s.state, SleepState.sleeping);
-      expect(s._currentSleepSegmentStart!.isAtSameMomentAs(a1e), isTrue);
-    });
+        // device reports resume at an earlier timestamp (no later than last awake end)
+        final reportedResume = a1s.add(
+          Duration(minutes: 5),
+        ); // earlier than a1e
+        s.onSleepResumed(reportedResume);
+        // internal logic should snap resume forward to last awake end
+        expect(s.state, SleepState.sleeping);
+        expect(s._currentSleepSegmentStart!.isAtSameMomentAs(a1e), isTrue);
+      },
+    );
 
     test('phone usage reduces deep sleep on finalize', () {
       final s = SleepStateMachine();

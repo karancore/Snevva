@@ -11,7 +11,6 @@ import 'package:http/http.dart' as http;
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/env/env.dart';
 
-
 import 'package:snevva/models/queryParamViewModels/step_goal_vm.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/consts/consts.dart';
@@ -139,15 +138,10 @@ class StepCounterController extends GetxController {
   }
 
   @override
-void onClose() {
-  _hivePoller?.cancel();
-  super.onClose();
-}
-
-
-  
-
-
+  void onClose() {
+    _hivePoller?.cancel();
+    super.onClose();
+  }
 
   Future<void> _init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -165,47 +159,44 @@ void onClose() {
   // DAY RESET
   // =======================
   Future<void> _checkDayReset() async {
-  final todayKey = _dayKey(now);
-  final lastDate = _prefs.getString("last_step_date");
+    final todayKey = _dayKey(now);
+    final lastDate = _prefs.getString("last_step_date");
 
-  if (lastDate != null && lastDate != todayKey) {
-    await _forceSyncPreviousDay(lastDate);
+    if (lastDate != null && lastDate != todayKey) {
+      await _forceSyncPreviousDay(lastDate);
+    }
+
+    if (lastDate != todayKey) {
+      print("🌅 New day detected → resetting steps");
+
+      todaySteps.value = 0;
+      lastSteps = 0;
+      lastStepsRx.value = 0;
+      lastPercent = 0.0;
+
+      // 🔥 CRITICAL FIXES
+      stepsHistoryByDate.remove(todayKey);
+      stepsHistoryByDate.refresh();
+      // await _prefs.remove('today_steps');
+      await _prefs.setInt('today_steps', 0);
+
+      await _safePutSteps(
+        todayKey,
+        StepEntry(date: _startOfDay(now), steps: 0),
+      );
+
+      await _prefs.setString("last_step_date", todayKey);
+    }
   }
 
-  if (lastDate != todayKey) {
-    print("🌅 New day detected → resetting steps");
-
-    todaySteps.value = 0;
-    lastSteps = 0;
-    lastStepsRx.value = 0;
-    lastPercent = 0.0;
-
-    // 🔥 CRITICAL FIXES
-    stepsHistoryByDate.remove(todayKey);
-    stepsHistoryByDate.refresh();
-    // await _prefs.remove('today_steps');
-    await _prefs.setInt('today_steps', 0);
-
-
-    await _safePutSteps(
-      todayKey,
-      StepEntry(date: _startOfDay(now), steps: 0),
-    );
-
-    await _prefs.setString("last_step_date", todayKey);
+  void scheduleMidnightReset() {
+    final now = DateTime.now();
+    final nextMidnight = DateTime(now.year, now.month, now.day + 1);
+    Timer(nextMidnight.difference(now), () {
+      _checkDayReset();
+      scheduleMidnightReset();
+    });
   }
-}
-
-void scheduleMidnightReset() {
-  final now = DateTime.now();
-  final nextMidnight = DateTime(now.year, now.month, now.day + 1);
-  Timer(nextMidnight.difference(now), () {
-    _checkDayReset();
-    scheduleMidnightReset();
-  });
-}
-
-
 
   Future<void> _forceSyncPreviousDay(String dayKey) async {
     final alreadySynced = _prefs.getString(_lastSyncedDateKey);
@@ -370,8 +361,6 @@ void scheduleMidnightReset() {
   }
 
   Future<void> calculateTodayStepsFromList(List stepsList) async {
-
-
     int todayTotal = 0;
 
     for (var item in stepsList) {
@@ -493,15 +482,25 @@ void scheduleMidnightReset() {
   }
 
   List<FlSpot> getMonthlyStepsSpots(DateTime month) {
-    final days = DateTime(month.year, month.month + 1, 0).day;
-    final spots = <FlSpot>[];
+    print("📅 [MonthlyGraph] Requested month: ${month.year}-${month.month}");
 
-    // Build a lookup map from API data
+    // Determine the total days to plot (only till today if current month)
+    final int totalDays =
+        (month.year == DateTime.now().year &&
+                month.month == DateTime.now().month)
+            ? DateTime.now().day
+            : DateTime(month.year, month.month + 1, 0).day;
+
+    print("📆 [MonthlyGraph] Total days to plot: $totalDays");
+    print(
+      "🗂️ [MonthlyGraph] stepsHistoryList entries: ${stepsHistoryList.length}",
+    );
+
+    // Build a lookup map from API / stored data
     final Map<int, int> dayToSteps = {};
-
     for (final entry in stepsHistoryList) {
       if (entry.date.year == month.year && entry.date.month == month.month) {
-        // dayToSteps[entry.date.day] = max(dayToSteps[entry.date.day] ?? 0 , entry.steps);
+        // Keep the maximum steps per day if multiple entries exist
         dayToSteps[entry.date.day] = max(
           dayToSteps[entry.date.day] ?? 0,
           entry.steps,
@@ -509,10 +508,24 @@ void scheduleMidnightReset() {
       }
     }
 
-    for (int day = 1; day <= days; day++) {
+    print("📌 [MonthlyGraph] dayToSteps mapping:");
+    dayToSteps.forEach((day, steps) => print("   • Day $day → $steps steps"));
+
+    // Generate FlSpots for the graph
+    List<FlSpot> spots = [];
+    for (int day = 1; day <= totalDays; day++) {
       final steps = dayToSteps[day] ?? 0;
+      print("➡️ [Day $day] Steps: $steps");
+
       spots.add(FlSpot((day - 1).toDouble(), steps.toDouble()));
     }
+
+    print("📈 [MonthlyGraph] Generated FlSpots:");
+    for (final s in spots) {
+      print("   • x=${s.x}, y=${s.y}");
+    }
+
+    print("✅ [MonthlyGraph] Total spots generated: ${spots.length}");
 
     return spots;
   }
@@ -561,7 +574,6 @@ void scheduleMidnightReset() {
   Future<void> _maybeSyncSteps() async {
     if (todaySteps.value <= 0) return;
 
-
     final todayKey = _dayKey(now);
 
     final lastSyncMillis = _prefs.getInt(_lastSyncKey);
@@ -585,7 +597,6 @@ void scheduleMidnightReset() {
 
   Future<void> saveStepRecordToServer() async {
     try {
-
       final date = DateUtils.dateOnly(DateTime.now());
       final steps = todaySteps.value;
 

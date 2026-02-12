@@ -440,7 +440,9 @@ class _VitalScreenState extends State<VitalScreen> {
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
                               style: TextStyle(color: textColor, fontSize: 14),
-                              inputFormatters: [MaxValueTextInputFormatter(120)],
+                              inputFormatters: [
+                                MaxValueTextInputFormatter(120),
+                              ],
                               decoration: InputDecoration(
                                 hintText: '$diastolic',
                                 hintStyle: TextStyle(

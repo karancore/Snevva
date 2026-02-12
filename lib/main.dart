@@ -1,16 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
-
-import 'package:alarm/alarm.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/BMI/bmi_controller.dart';
 import 'package:snevva/Controllers/DietPlan/diet_plan_controller.dart';
@@ -29,7 +24,6 @@ import 'package:snevva/Controllers/signupAndSignIn/update_old_password_controlle
 import 'package:snevva/utils/theme_controller.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
-
 import 'Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import 'Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
@@ -41,7 +35,6 @@ import 'Controllers/alerts/alerts_controller.dart';
 import 'Controllers/local_storage_manager.dart';
 
 import 'Controllers/signupAndSignIn/create_password_controller.dart';
-import 'bindings/initial_bindings.dart';
 
 import 'common/ExceptionLogger.dart';
 import 'common/global_variables.dart';
@@ -54,7 +47,6 @@ import 'firebase_options.dart';
 import 'models/app_notification.dart';
 
 import 'services/app_initializer.dart';
-import 'services/device_token_service.dart';
 import 'services/notification_channel.dart';
 import 'services/notification_service.dart';
 import 'common/agent_debug_logger.dart';
@@ -195,10 +187,7 @@ void main() async {
       runApp(MyApp(isRemembered: isRemembered));
     },
     (error, stack) async {
-      await ExceptionLogger.log(
-        exception: error,
-        stackTrace: stack,
-      );
+      await ExceptionLogger.log(exception: error, stackTrace: stack);
     },
   );
 }
@@ -403,7 +392,7 @@ class _MyAppState extends State<MyApp> {
         data: const {},
       );
       // #endregion
-      // await initBackgroundService();
+      await initBackgroundService();
 
       _timeoutTimer?.cancel();
 

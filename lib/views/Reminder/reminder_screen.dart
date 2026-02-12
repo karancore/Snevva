@@ -208,6 +208,15 @@ class _ReminderScreenState extends State<ReminderScreen>
             buttonName: "+ Add Reminder",
             backgroundColor: AppColors.primaryColor,
             onTap: () async {
+              // Get.snackbar(
+              //   "WIP",
+              //   "Reminder inundation is work in progress.",
+              //   snackPosition: SnackPosition.TOP,
+              //   colorText: white,
+              //   backgroundColor: AppColors.primaryColor,
+              //   duration: const Duration(seconds: 3),
+              // );
+              // return;
               final result = await Get.to(AddReminderScreen());
               // Always reload data when returning, regardless of result
               // The controller already handles the update, but this ensures consistency
@@ -252,7 +261,7 @@ class _ReminderScreenState extends State<ReminderScreen>
         1;
 
     switch (category) {
-      case 'Medicine':
+      case 'medicine':
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -290,6 +299,15 @@ class _ReminderScreenState extends State<ReminderScreen>
                 Spacer(),
                 InkWell(
                   onTap: () {
+                    // Get.snackbar(
+                    //   "WIP",
+                    //   "Reminder inundation is work in progress.",
+                    //   snackPosition: SnackPosition.BOTTOM,
+                    //   colorText: white,
+                    //   backgroundColor: AppColors.primaryColor,
+                    //   duration: const Duration(seconds: 3),
+                    // );
+                    // return;
                     Get.to(AddReminderScreen(reminder: reminder));
                   },
                   child: SvgPicture.asset(
@@ -316,7 +334,7 @@ class _ReminderScreenState extends State<ReminderScreen>
           ],
         );
 
-      case 'Water':
+      case 'water':
         return Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -351,7 +369,18 @@ class _ReminderScreenState extends State<ReminderScreen>
             const Spacer(),
 
             InkWell(
-              onTap: () => Get.to(AddReminderScreen(reminder: reminder)),
+              onTap: () {
+                // Get.snackbar(
+                //   "WIP",
+                //   "Reminder inundation is work in progress.",
+                //   snackPosition: SnackPosition.BOTTOM,
+                //   colorText: white,
+                //   backgroundColor: AppColors.primaryColor,
+                //   duration: const Duration(seconds: 3),
+                // );
+                // return;
+                Get.to(AddReminderScreen(reminder: reminder));
+              },
               child: SvgPicture.asset(
                 pen,
                 width: 18,
@@ -372,7 +401,7 @@ class _ReminderScreenState extends State<ReminderScreen>
           ],
         );
 
-      case 'Meal':
+      case 'meal':
         return Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.start,
@@ -394,6 +423,15 @@ class _ReminderScreenState extends State<ReminderScreen>
             Spacer(),
             InkWell(
               onTap: () {
+                // Get.snackbar(
+                //   "WIP",
+                //   "Reminder inundation is work in progress.",
+                //   snackPosition: SnackPosition.BOTTOM,
+                //   colorText: white,
+                //   backgroundColor: AppColors.primaryColor,
+                //   duration: const Duration(seconds: 3),
+                // );
+                // return;
                 Get.to(AddReminderScreen(reminder: reminder));
               },
               child: SvgPicture.asset(
@@ -420,7 +458,7 @@ class _ReminderScreenState extends State<ReminderScreen>
           ],
         );
 
-      case 'Event':
+      case 'event':
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -447,6 +485,15 @@ class _ReminderScreenState extends State<ReminderScreen>
                 Spacer(),
                 InkWell(
                   onTap: () {
+                    // Get.snackbar(
+                    //   "WIP",
+                    //   "Reminder inundation is work in progress.",
+                    //   snackPosition: SnackPosition.BOTTOM,
+                    //   colorText: white,
+                    //   backgroundColor: AppColors.primaryColor,
+                    //   duration: const Duration(seconds: 3),
+                    // );
+                    // return;
                     Get.to(AddReminderScreen(reminder: reminder));
                   },
                   child: SvgPicture.asset(
