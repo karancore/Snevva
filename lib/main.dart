@@ -8,6 +8,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/BMI/bmi_controller.dart';
+import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
 import 'package:snevva/Controllers/DietPlan/diet_plan_controller.dart';
 import 'package:snevva/Controllers/HealthTips/healthtips_controller.dart';
 import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
@@ -140,8 +141,8 @@ void main() async {
       stackTrace: details.stack,
     );
 
-    final alertcontroller = Get.put(AlertsController(), permanent: true);
-    alertcontroller.hitalertsnotification();
+    // final alertcontroller = Get.put(AlertsController(), permanent: true);
+    // alertcontroller.hitalertsnotification();
 
     return Scaffold(
       body: LayoutBuilder(
@@ -253,6 +254,12 @@ Future<void> initialiseGetxServicesAndControllers() async {
       permanent: true,
     ),
     Get.putAsync<BmiController>(() async => BmiController(), permanent: true),
+    
+    Get.putAsync<BmiUpdateController>(
+      () async => BmiUpdateController(),
+      permanent: true,
+    ),
+
     Get.putAsync<DietPlanController>(
       () async => DietPlanController(),
       permanent: true,
@@ -278,16 +285,21 @@ Future<void> initialiseGetxServicesAndControllers() async {
   }
 
   // Permanent controllers not async
-  if (!Get.isRegistered<StepCounterController>())
+  if (!Get.isRegistered<StepCounterController>()) {
     Get.put(StepCounterController(), permanent: true);
-  if (!Get.isRegistered<WaterController>())
+  }
+  if (!Get.isRegistered<WaterController>()) {
     Get.put(WaterController(), permanent: true);
-  if (!Get.isRegistered<MedicineController>())
+  }
+  if (!Get.isRegistered<MedicineController>()) {
     Get.put(MedicineController(), permanent: true);
-  if (!Get.isRegistered<EventController>())
+  }
+  if (!Get.isRegistered<EventController>()) {
     Get.put(EventController(), permanent: true);
-  if (!Get.isRegistered<MealController>())
+  }
+  if (!Get.isRegistered<MealController>()) {
     Get.put(MealController(), permanent: true);
+  }
 }
 
 /// ------------------------------------------------------------
@@ -395,7 +407,7 @@ class _MyAppState extends State<MyApp> {
         data: const {},
       );
       // #endregion
-      await initBackgroundService();
+      // await initBackgroundService();
 
       _timeoutTimer?.cancel();
 

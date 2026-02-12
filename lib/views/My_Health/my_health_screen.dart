@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:snevva/Controllers/BMI/bmi_controller.dart';
+import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
-
+import 'package:snevva/views/Information/BMI/bmi_updateRes.dart';
 import 'package:snevva/views/Information/HydrationScreens/hydration_screen.dart';
 import 'package:snevva/views/Information/StepCounter/step_counter.dart';
 import 'package:snevva/views/Information/vitals.dart';
@@ -17,7 +17,6 @@ import '../../Controllers/Hydration/hydration_stat_controller.dart';
 import '../../Controllers/StepCounter/step_counter_controller.dart';
 import '../../Controllers/signupAndSignIn/sign_in_controller.dart';
 import '../../widgets/CommonWidgets/custom_appbar.dart';
-import '../information/bmi/bmi_result.dart';
 
 class MyHealthScreen extends StatefulWidget {
   const MyHealthScreen({super.key});
@@ -36,7 +35,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
   String? gender;
   bool isLoading = true;
   final vitalController = Get.find<VitalsController>();
-  final bmiController = Get.find<BmiController>();
+  final bmiController = Get.find<BmiUpdateController>();
   final womenController = Get.find<WomenHealthController>();
   final localStorageManager = Get.find<LocalStorageManager>();
 
@@ -210,7 +209,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
         buttonText: 'BMI Result',
         onPressed:
             () => Get.to(
-              () => BmiResultPage(bmi: bmiController.bmi.value, age: 24),
+              () => BmiUpdateres(bmi: bmiController.bmi.value, age: bmiController.age.value),
             ),
       ),
       TrackerHealthCard(

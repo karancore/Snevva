@@ -3,6 +3,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/instance_manager.dart';
+import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/views/Dashboard/dashboard.dart';
 import 'package:snevva/views/Information/menu_screen.dart';
@@ -47,7 +48,7 @@ class HomeWrapper extends StatefulWidget {
 class _HomeWrapperState extends State<HomeWrapper> {
   int _selectedIndex = 0;
   final localStorageManager = Get.find<LocalStorageManager>();
-  final bmiController = Get.find<BmiController>();
+  final bmiController = Get.find<BmiUpdateController>();
 
   void onTabSelected(int index) {
     setState(() {

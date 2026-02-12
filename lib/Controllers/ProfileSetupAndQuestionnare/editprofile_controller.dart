@@ -74,9 +74,11 @@ class EditprofileController extends GetxService {
         break;
       case 'Height':
         heightValue = value;
+        localStorageManager.userGoalDataMap['HeightData']['Value'] = value;
         break;
       case 'Weight':
         weightValue = value;
+        localStorageManager.userGoalDataMap['WeightData']['Value'] = value;
         break;
       case 'Gender':
         gender = value;

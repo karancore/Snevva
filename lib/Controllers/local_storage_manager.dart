@@ -24,6 +24,7 @@ class LocalStorageManager extends GetxService {
   // Future<void> onReady() async {
   //   await reloadUserMap();
   // }
+
   Future<bool> hasValidSession() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
@@ -58,8 +59,8 @@ class LocalStorageManager extends GetxService {
     userMap.value = _safeDecode(prefs.getString('userdata'));
     userGoalDataMap.value = _safeDecode(prefs.getString('userGoaldata'));
 
-    userMap['Height'] ??= {'Value': null};
-    userMap['Weight'] ??= {'Value': null};
+    userMap['HeightData']?['Value'] ??= {'Value': null};
+    userMap['WeightData']?['Value'] ??= {'Value': null};
   }
 
   Map<String, dynamic> _safeDecode(String? jsonStr) {
