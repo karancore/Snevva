@@ -42,9 +42,7 @@ class NotificationService {
   static void onNotificationAction(NotificationResponse response) async {
     if (response.actionId == 'STOP_ALARM') {
       // 1. Stop UI-based alarm sound/logic
-      if (Get.isRegistered<SleepController>()) {
-        Get.find<SleepController>().stopMonitoring();
-      }
+      
 
       // 2. Cancel the specific notification
       final fln = FlutterLocalNotificationsPlugin();

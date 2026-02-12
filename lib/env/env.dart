@@ -71,7 +71,7 @@ const String savestepGoal = "/api/upsert/stepgoal";
 const String stepRecord = "/api/upsert/addsteprecord";
 const String waterGoalfinal = "/api/upsert/watergoal";
 const String waterRecord = "/api/upsert/addwaterintakerecord";
-const String sleepGoal = "/api/upsert/sleepgoal";
+const String sleepGoalAPI = "/api/upsert/sleepgoal";
 const String sleepRecord = "/api/upsert/addsleeprecord";
 
 const String bloodpressure = '/api/upsert/addbloodpressurerecord';

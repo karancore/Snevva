@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:get/get.dart';
 import 'package:get/get_connect/http/src/response/response.dart' as http;
 import 'package:get_storage/get_storage.dart';
@@ -12,34 +12,46 @@ import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/models/awake_interval.dart';
 import 'package:snevva/services/api_service.dart';
-import 'package:snevva/services/notification_service.dart';
 import 'package:snevva/common/agent_debug_logger.dart';
 
 import '../../common/global_variables.dart';
 
-import '../../consts/images.dart';
 import '../../models/hive_models/sleep_log.dart';
 import '../../services/sleep/sleep_noticing_service.dart';
 
 enum SleepState { sleeping, awake }
 
 class SleepController extends GetxService {
-  String BEDTIME_KEY = 'user_bedtime_ms';
-  String WAKETIME_KEY = 'user_waketime_ms';
+
+  // Storage keys
+  static const String BEDTIME_KEY = 'user_bedtime_ms';
+  static const String WAKETIME_KEY = 'user_waketime_ms';
+  
+  // Observable state
+  final Rx<Duration> currentSleepDuration = Duration.zero.obs;
+  final Rx<Duration> sleepGoal = const Duration(hours: 8).obs;
+  final RxBool isSleeping = false.obs;
+  final Rx<DateTime?> sleepStartTime = Rxn<DateTime>();
+  final RxDouble sleepProgress = 0.0.obs; // 0.0 to 1.0
+  
+  // User sleep schedule
+  final Rxn<TimeOfDay> bedtime = Rxn<TimeOfDay>();
+  final Rxn<TimeOfDay> waketime = Rxn<TimeOfDay>();
+  
+  // Weekly sleep history
+  final RxMap<String, Duration> weeklySleepHistory = <String, Duration>{}.obs;
+  
+  // Background service
+  final _service = FlutterBackgroundService();
+  StreamSubscription? _sleepUpdateSubscription;
+  StreamSubscription? _sleepSavedSubscription;
+  StreamSubscription? _goalReachedSubscription;
+
+
   static const _sleepCandidateStartKey = "sleep_candidate_start";
   static const _sleepCandidateHadPhoneUsageKey = "sleep_candidate_had_phone";
   static const _correctedSleepMinutesPrefix = "sleep_corrected_minutes_";
 
-  /// User bedtime & waketime
-  final Rxn<TimeOfDay> bedtime = Rxn<TimeOfDay>();
-  final Rxn<TimeOfDay> waketime = Rxn<TimeOfDay>();
-  DateTime? _activeSleepStart;
-
-  SleepState _sleepState = SleepState.sleeping;
-  DateTime? _currentSleepSegmentStart;
-
-  // accumulated deep sleep for this night
-  Duration _accumulatedDeepSleep = Duration.zero;
 
   RxBool isMonthlyView = false.obs;
 
@@ -61,61 +73,320 @@ class SleepController extends GetxService {
   final RxList<FlSpot> deepSleepSpots = <FlSpot>[].obs;
   final List<AwakeInterval> phoneUsageIntervals = [];
 
-  final SleepNoticingService _sleepService = SleepNoticingService();
-  Timer? _morningCheckTimer;
-  bool _wasPhoneUsedDuringSleep = false;
-
   static const String _lastUploadedSleepDateKey =
       "last_uploaded_sleep_bed_date";
 
-  var getStorage = GetStorage();
+  var _storage = GetStorage();
 
   // ─────────────────────────────────────────────
 
   @override
   void onInit() {
-    super.onInit();
-
+     super.onInit();
+    _loadUserSleepTimes();
+    _loadWeeklySleepData();
+    _setupBackgroundServiceListeners();
+    _checkIfAlreadySleeping();
     loadDeepSleepData();
     loadUserSleepTimes();
-
-    recoverMissedSleepIfNeeded();
   }
 
-  Future<void> recoverMissedSleepIfNeeded() async {
-    final prefs = await SharedPreferences.getInstance();
+    @override
+  void onClose() {
+    _sleepUpdateSubscription?.cancel();
+    _sleepSavedSubscription?.cancel();
+    _goalReachedSubscription?.cancel();
+    super.onClose();
+  }
 
-    final startIso = prefs.getString(_sleepCandidateStartKey);
-    if (startIso == null) return;
+  
+  // ═══════════════════════════════════════════════════════════════
+  // BACKGROUND SERVICE STREAM SETUP
+  // ═══════════════════════════════════════════════════════════════
 
-    if (bedtime.value == null || waketime.value == null) return;
+  void _setupBackgroundServiceListeners() {
+    // Listen to sleep progress updates (sent every minute)
+    _sleepUpdateSubscription = _service.on("sleep_update").listen((event) {
+      if (event != null) {
+        final elapsedMinutes = event['elapsed_minutes'] as int? ?? 0;
+        final goalMinutes = event['goal_minutes'] as int? ?? 480;
+        final sleeping = event['is_sleeping'] as bool? ?? false;
 
-    final sleepStart = DateTime.parse(startIso);
-    final sleepEnd = resolveSleepEnd(sleepStart);
-    final now = DateTime.now();
+        currentSleepDuration.value = Duration(minutes: elapsedMinutes);
+        sleepGoal.value = Duration(minutes: goalMinutes);
+        isSleeping.value = sleeping;
+        
+        // Calculate progress (0.0 to 1.0)
+        if (goalMinutes > 0) {
+          sleepProgress.value = (elapsedMinutes / goalMinutes).clamp(0.0, 1.0);
+        }
 
-    // Wake time not reached yet
-    if (now.isBefore(sleepEnd)) return;
+        print("💤 Sleep update: ${elapsedMinutes}m / ${goalMinutes}m (${(sleepProgress.value * 100).toInt()}%)");
+      }
+    });
 
-    // Prevent duplicate upload
-    final bedKey = dateKey(sleepStart);
-    final lastUploaded = prefs.getString(_lastUploadedSleepDateKey);
-    if (lastUploaded == bedKey) {
-      await _clearSleepCandidate(prefs);
+    // Listen to sleep saved event
+    _sleepSavedSubscription = _service.on("sleep_saved").listen((event) async {
+      if (event != null) {
+        final duration = event['duration'] as int? ?? 0;
+        final goalMinutes = event['goal_minutes'] as int? ?? 480;
+        final startTime = event['start_time'] as String?;
+        final endTime = event['end_time'] as String?;
+
+        print("✅ Sleep saved: ${duration}m (goal: ${goalMinutes}m)");
+        
+        // Reset state
+        isSleeping.value = false;
+        currentSleepDuration.value = Duration.zero;
+        sleepProgress.value = 0.0;
+        sleepStartTime.value = null;
+
+        // Reload weekly data to show new entry
+        await _loadWeeklySleepData();
+
+        // Show success message
+        Get.snackbar(
+          '😴 Sleep Recorded',
+          'You slept for ${_formatDuration(Duration(minutes: duration))}',
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 3),
+        );
+      }
+    });
+
+    // Listen to goal reached event
+    _goalReachedSubscription = _service.on("sleep_goal_reached").listen((event) {
+      if (event != null) {
+        final elapsedMinutes = event['elapsed_minutes'] as int? ?? 0;
+        final goalMinutes = event['goal_minutes'] as int? ?? 480;
+
+        print("🎉 Sleep goal reached! ${elapsedMinutes}m / ${goalMinutes}m");
+
+        // Show celebration message
+        Get.snackbar(
+          '🎉 Goal Reached!',
+          'You\'ve completed your ${_formatDuration(Duration(minutes: goalMinutes))} sleep goal!',
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 5),
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      }
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // SLEEP CONTROL METHODS
+  // ═══════════════════════════════════════════════════════════════
+
+  /// Start sleep tracking with a goal
+  Future<void> startSleep({Duration? goal}) async {
+    if (isSleeping.value) {
+      print("⚠️ Sleep tracking already active");
       return;
     }
 
-    final hadPhoneUsage =
-        prefs.getBool(_sleepCandidateHadPhoneUsageKey) ?? false;
+    final goalDuration = goal ?? sleepGoal.value;
+    final goalMinutes = goalDuration.inMinutes;
 
-    if (hadPhoneUsage) {
-      await finalizeSleepCycleRetroactive(sleepStart, sleepEnd);
-    } else {
-      await _finalizeSleepWithoutPhoneRetroactive(sleepStart, sleepEnd);
+    // Update local state
+    isSleeping.value = true;
+    sleepStartTime.value = DateTime.now();
+    sleepGoal.value = goalDuration;
+    currentSleepDuration.value = Duration.zero;
+    sleepProgress.value = 0.0;
+
+    // Start background tracking
+    _service.invoke("start_sleep", {
+      "goal_minutes": goalMinutes,
+    });
+
+    print("🌙 Sleep tracking started with goal: ${goalMinutes}m");
+  }
+
+  /// Stop sleep tracking
+  Future<void> stopSleep() async {
+    if (!isSleeping.value) {
+      print("⚠️ No active sleep tracking");
+      return;
     }
 
-    await _clearSleepCandidate(prefs);
+    // Stop background tracking (will trigger save)
+    _service.invoke("stop_sleep");
+
+    print("☀️ Sleep tracking stopped");
   }
+
+  /// Set sleep goal
+  void setSleepGoal(Duration goal) {
+    sleepGoal.value = goal;
+    
+    // If currently sleeping, update the goal in background service
+    if (isSleeping.value) {
+      final prefs = SharedPreferences.getInstance();
+      prefs.then((p) => p.setInt("sleep_goal_minutes", goal.inMinutes));
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // SLEEP SCHEDULE METHODS
+  // ═══════════════════════════════════════════════════════════════
+
+  void setBedtime(TimeOfDay time) {
+    bedtime.value = time;
+    final minutes = _timeOfDayToMinutes(time);
+    _storage.write(BEDTIME_KEY, minutes);
+
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setInt(BEDTIME_KEY, minutes);
+    });
+
+    print('🛏️ Bedtime set → $time');
+  }
+
+  void setWakeTime(TimeOfDay time) {
+    waketime.value = time;
+    final minutes = _timeOfDayToMinutes(time);
+    _storage.write(WAKETIME_KEY, minutes);
+
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setInt(WAKETIME_KEY, minutes);
+    });
+
+    print('⏰ Waketime set → $time');
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // DATA LOADING METHODS
+  // ═══════════════════════════════════════════════════════════════
+
+  void _loadUserSleepTimes() {
+    final bedMin = _storage.read(BEDTIME_KEY);
+    final wakeMin = _storage.read(WAKETIME_KEY);
+
+    if (bedMin != null) {
+      bedtime.value = _minutesToTimeOfDay(bedMin);
+    }
+    if (wakeMin != null) {
+      waketime.value = _minutesToTimeOfDay(wakeMin);
+    }
+  }
+
+  Future<void> _loadWeeklySleepData() async {
+    try {
+      final box = await Hive.openBox<SleepLog>('sleep_log');
+      final now = DateTime.now();
+      final weekStart = now.subtract(Duration(days: now.weekday - 1));
+
+      weeklySleepHistory.clear();
+
+      for (int i = 0; i < 7; i++) {
+        final date = weekStart.add(Duration(days: i));
+        final key = _dateKey(date);
+        final log = box.get(key);
+
+        if (log != null) {
+          weeklySleepHistory[key] = Duration(minutes: log.durationMinutes);
+        }
+      }
+
+      print("📊 Weekly sleep data loaded: ${weeklySleepHistory.length} entries");
+    } catch (e) {
+      print("❌ Error loading weekly sleep data: $e");
+    }
+  }
+
+  Future<void> _checkIfAlreadySleeping() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sleeping = prefs.getBool("is_sleeping") ?? false;
+
+      if (sleeping) {
+        final startString = prefs.getString("sleep_start_time");
+        final goalMinutes = prefs.getInt("sleep_goal_minutes") ?? 480;
+
+        if (startString != null) {
+          final start = DateTime.parse(startString);
+          final elapsed = DateTime.now().difference(start);
+
+          isSleeping.value = true;
+          sleepStartTime.value = start;
+          currentSleepDuration.value = elapsed;
+          sleepGoal.value = Duration(minutes: goalMinutes);
+          sleepProgress.value = (elapsed.inMinutes / goalMinutes).clamp(0.0, 1.0);
+
+          print("🔄 Restored active sleep session: ${elapsed.inMinutes}m / ${goalMinutes}m");
+        }
+      }
+    } catch (e) {
+      print("❌ Error checking sleep state: $e");
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // HELPER METHODS
+  // ═══════════════════════════════════════════════════════════════
+
+  String _dateKey(DateTime d) =>
+      "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+
+  int _timeOfDayToMinutes(TimeOfDay t) => t.hour * 60 + t.minute;
+
+  TimeOfDay _minutesToTimeOfDay(int m) =>
+      TimeOfDay(hour: m ~/ 60, minute: m % 60);
+
+  String _formatDuration(Duration d) {
+    final hours = d.inHours;
+    final minutes = d.inMinutes % 60;
+    
+    if (hours > 0) {
+      return "${hours}h ${minutes}m";
+    } else {
+      return "${minutes}m";
+    }
+  }
+
+  /// Get sleep status label based on duration
+  String getSleepStatus(Duration? duration) {
+    if (duration == null || duration.inMinutes <= 0) return '';
+
+    final hours = duration.inMinutes / 60;
+
+    if (hours < 4) return 'Very Poor';
+    if (hours < 5.5) return 'Poor';
+    if (hours < 7) return 'Okay';
+    if (hours < 8.5) return 'Good';
+    return 'Excellent';
+  }
+
+  /// Get sleep for a specific date
+  Duration? getSleepForDate(DateTime date) {
+    final key = _dateKey(date);
+    return weeklySleepHistory[key];
+  }
+
+  /// Check if there's sleep data for a date
+  bool hasSleepDataForDate(DateTime date) {
+    return weeklySleepHistory.containsKey(_dateKey(date));
+  }
+
+  /// Get average sleep for the week
+  Duration get averageWeeklySleep {
+    if (weeklySleepHistory.isEmpty) return Duration.zero;
+    
+    final total = weeklySleepHistory.values.fold<int>(
+      0,
+      (sum, duration) => sum + duration.inMinutes,
+    );
+    
+    return Duration(minutes: total ~/ weeklySleepHistory.length);
+  }
+
+  /// Refresh sleep data
+  Future<void> refreshData() async {
+    await _loadWeeklySleepData();
+  }
+
 
   DateTime resolveNextWakeDateTime() {
     final wt = waketime.value!;
@@ -182,29 +453,6 @@ class SleepController extends GetxService {
     return DateTime(base.year, base.month, base.day, tod.hour, tod.minute);
   }
 
-  // @override
-  // void onClose() {
-  //   _morningCheckTimer?.cancel();
-  //   _sleepService.stopMonitoring();
-  //   super.onClose();
-  // }
-
-  String getSleepStatus(Duration? duration) {
-    if (duration == null || duration.inMinutes <= 0) return '';
-
-    final hours = duration.inMinutes / 60;
-
-    if (hours < 4) return 'Very Poor';
-    if (hours < 5.5) return 'Poor';
-    if (hours < 7) return 'Okay';
-    if (hours < 8.5) return 'Good';
-    return 'Excellent';
-  }
-
-  // ─────────────────────────────────────────────
-  // HELPERS
-  // ─────────────────────────────────────────────
-
   String dateKey(DateTime d) =>
       "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
 
@@ -218,10 +466,6 @@ class SleepController extends GetxService {
     final mins = prefs.getInt(_correctedPrefKeyForDateKey(key));
     if (mins != null) return Duration(minutes: mins);
     return weeklyDeepSleepHistory[key] ?? Duration.zero;
-  }
-
-  bool hasSleepDataForDate(DateTime date) {
-    return weeklyDeepSleepHistory.containsKey(dateKey(date));
   }
 
   // ─────────────────────────────────────────────
@@ -252,8 +496,8 @@ class SleepController extends GetxService {
   }
 
   void loadUserSleepTimes() {
-    final bedMin = getStorage.read(BEDTIME_KEY);
-    final wakeMin = getStorage.read(WAKETIME_KEY);
+    final bedMin = _storage.read(BEDTIME_KEY);
+    final wakeMin = _storage.read(WAKETIME_KEY);
 
     if (bedMin is int) bedtime.value = minutesToTimeOfDay(bedMin);
     if (wakeMin is int) waketime.value = minutesToTimeOfDay(wakeMin);
@@ -336,7 +580,7 @@ class SleepController extends GetxService {
       debugPrint("🌍 API Endpoint: $sleepGoal");
 
       final response = await ApiService.post(
-        sleepGoal,
+        sleepGoalAPI,
         payload,
         withAuth: true,
         encryptionRequired: true,
@@ -409,7 +653,7 @@ class SleepController extends GetxService {
       debugPrint("🛰️ Uploading sleep payload: $payload");
 
       final response = await ApiService.post(
-        sleepGoal,
+        sleepGoalAPI,
         payload,
         withAuth: true,
         encryptionRequired: true,
@@ -670,65 +914,6 @@ class SleepController extends GetxService {
     }
   }
 
-  void _onSleepDetected(DateTime sleepStart, DateTime wakeUp) async {
-    debugPrint("🌙  Sleep detected: $sleepStart → $wakeUp");
-    // Do NOT finalize here. This event is triggered for screen-based awake segments.
-    // Only process segment-specific logic. Finalization is handled by morning auto-check / alarm.
-    if (_wasPhoneUsedDuringSleep) {
-      // handle phone-usage based saving path when necessary (e.g., record segment)
-      await _handleSleepSegmentDuringPhoneUsage(); // implement as needed
-    } else {
-      // you already have this helper — keep using it
-      await _handleSleepWithoutPhoneUsageCustom(sleepStart, wakeUp);
-    }
-  }
-
-  Future<void> _handleSleepSegmentDuringPhoneUsage() async {
-    if (_activeSleepStart == null) return;
-    if (phoneUsageIntervals.isEmpty) return;
-
-    // 1️⃣ Merge overlapping awake intervals
-    final mergedAwakeIntervals = mergeAwakeIntervals(phoneUsageIntervals);
-
-    // 2️⃣ Latest awake end
-    final lastAwakeEnd = mergedAwakeIntervals.last.end;
-
-    // 3️⃣ Close current sleep segment
-    if (_sleepState == SleepState.sleeping &&
-        _currentSleepSegmentStart != null &&
-        lastAwakeEnd.isAfter(_currentSleepSegmentStart!)) {
-      final segmentDuration = lastAwakeEnd.difference(
-        _currentSleepSegmentStart!,
-      );
-
-      deepSleepDuration.value += segmentDuration;
-    }
-
-    // 4️⃣ Resume sleep after phone usage
-    _currentSleepSegmentStart = lastAwakeEnd;
-    _sleepState = SleepState.sleeping;
-
-    debugPrint(
-      "📵 Phone wake handled → segment added, deepSleepDuration=$deepSleepDuration",
-    );
-  }
-
-  // Helper that allows custom sleep times
-  Future<void> _handleSleepWithoutPhoneUsageCustom(
-    DateTime sleepStart,
-    DateTime sleepEnd,
-  ) async {
-    final deep = sleepEnd.difference(sleepStart);
-    if (deep.inMinutes < 10) return;
-
-    newBedtime.value = sleepStart;
-
-    await saveDeepSleepData(sleepStart, deep);
-    await uploadsleepdatatoServer(sleepStart, sleepEnd);
-
-    debugPrint('✅ Auto-saved sleep without phone usage: $deep');
-  }
-
   Future<void> loadMonthlySleep({required int month, required int year}) async {
     isMonthlyView.value = true;
 
@@ -882,334 +1067,7 @@ class SleepController extends GetxService {
   }
 
   Future<void> startMonitoring() async {
-    debugPrint("🟢 [SLEEP-START] startMonitoring called");
-
-    phoneUsageIntervals.clear();
-    _wasPhoneUsedDuringSleep = false;
-    _accumulatedDeepSleep = Duration.zero;
-
-    final prefs = await SharedPreferences.getInstance();
-
-    if (bedtime.value != null) {
-      final now = DateTime.now();
-      final bt = resolveSleepStart(now);
-
-      _activeSleepStart = bt;
-      _currentSleepSegmentStart = bt;
-      _sleepState = SleepState.sleeping;
-
-      debugPrint("🛏️ [SLEEP-START] Sleep window started at $bt");
-
-      await prefs.setString(_sleepCandidateStartKey, bt.toIso8601String());
-      await prefs.setBool(_sleepCandidateHadPhoneUsageKey, false);
-
-      final sleepDateKey = dateKey(bt);
-      await prefs.remove('sleep_intervals_$sleepDateKey');
-      await prefs.remove('last_screen_off_$sleepDateKey');
-
-      debugPrint("🧹 [SLEEP-START] Cleared old intervals for $sleepDateKey");
-    }
-
-    await _scheduleWakeStop();
-    _startMorningAutoCheck();
-    _sleepService.startMonitoring();
+    
   }
 
-  Future<void> _scheduleWakeStop() async {
-    if (waketime.value == null) return;
-
-    final wakeDateTime = resolveNextWakeDateTime();
-
-    debugPrint("⏰ Wake stop scheduled at $wakeDateTime");
-  }
-
-  void stopMonitoring() {
-    _morningCheckTimer?.cancel();
-    _sleepService.stopMonitoring();
-  }
-
-  void _startMorningAutoCheck() {
-    _morningCheckTimer?.cancel();
-
-    _morningCheckTimer = Timer.periodic(const Duration(minutes: 1), (
-      timer,
-    ) async {
-      final now = DateTime.now();
-      if (bedtime.value == null || waketime.value == null) return;
-
-      final sleepStart = _activeSleepStart!;
-      final sleepEnd = resolveSleepEnd(sleepStart);
-
-      if (now.isAfter(sleepEnd)) {
-        if (_wasPhoneUsedDuringSleep) {
-          await finalizeSleepCycle();
-          phoneUsageIntervals.clear();
-          _wasPhoneUsedDuringSleep = false;
-        } else {
-          await _handleSleepWithoutPhoneUsage();
-        }
-        timer.cancel();
-      }
-    });
-  }
-
-  // ─────────────────────────────────────────────
-  // AUTO SLEEP (NO PHONE)
-  // ─────────────────────────────────────────────
-
-  /// Calculate total sleep duration from screen OFF intervals stored in SharedPreferences
-  /// Also handles the case where screen is still OFF at wakeup time
-  Future<Duration> _calculateSleepDurationFromIntervals(
-    DateTime sleepStart,
-  ) async {
-    debugPrint("📊 [INTERVAL-CALC] Start calculation");
-
-    final prefs = await SharedPreferences.getInstance();
-    final sleepDateKey = dateKey(sleepStart);
-    final intervalsKey = 'sleep_intervals_$sleepDateKey';
-
-    final intervalsString = prefs.getString(intervalsKey);
-    if (intervalsString == null || intervalsString.isEmpty) {
-      debugPrint("⚠️ [INTERVAL-CALC] No intervals found");
-      return Duration.zero;
-    }
-
-    final intervalStrings = intervalsString.split(',');
-    final intervals = <MapEntry<DateTime, DateTime>>[];
-
-    for (final raw in intervalStrings) {
-      final parts = raw.split('|');
-      if (parts.length == 2) {
-        final s = DateTime.tryParse(parts[0]);
-        final e = DateTime.tryParse(parts[1]);
-        if (s != null && e != null) {
-          intervals.add(MapEntry(s, e));
-          debugPrint("   💤 interval: $s → $e");
-        }
-      }
-    }
-
-    intervals.sort((a, b) => a.key.compareTo(b.key));
-
-    Duration total = Duration.zero;
-    DateTime? cs;
-    DateTime? ce;
-
-    for (final i in intervals) {
-      if (cs == null) {
-        cs = i.key;
-        ce = i.value;
-      } else if (i.key.isBefore(ce!.add(const Duration(minutes: 5)))) {
-        if (i.value.isAfter(ce)) ce = i.value;
-      } else {
-        total += ce!.difference(cs);
-        debugPrint("   ➕ merged: $cs → $ce");
-        cs = i.key;
-        ce = i.value;
-      }
-    }
-
-    if (cs != null && ce != null) {
-      total += ce!.difference(cs);
-      debugPrint("   ➕ merged: $cs → $ce");
-    }
-
-    debugPrint("✅ [INTERVAL-CALC] Final sleep = ${total.inMinutes} minutes");
-
-    return total;
-  }
-
-  Future<void> _handleSleepWithoutPhoneUsage() async {
-    // Compute a robust duration using tonight's configured bed/wake, normalize across midnight.
-    if (bedtime.value == null || waketime.value == null) {
-      debugPrint('⚠️ Bed/Wake not set, skipping autosave');
-      return;
-    }
-
-    // Build the bed/wake for the intended cycle relative to bed date
-    final bt = resolveSleepStart(DateTime.now());
-    final wt = resolveSleepEnd(bt);
-
-    // Calculate sleep duration from screen OFF intervals
-    Duration deep = await _calculateSleepDurationFromIntervals(bt);
-
-    // If no intervals found, fall back to full window duration
-    if (deep == Duration.zero) {
-      deep = wt.difference(bt);
-      debugPrint(
-        '📊 Using full window duration as fallback: ${deep.inMinutes} minutes',
-      );
-    }
-
-    if (deep.inMinutes < 10) {
-      debugPrint(
-        '⛔ Skipping save: calculated duration too small (${deep.inMinutes}m)',
-      );
-      return;
-    }
-
-    newBedtime.value = bt;
-    deepSleepDuration.value = deep;
-
-    // Save against bed date for consistent history keys
-    await saveDeepSleepData(bt, deep);
-
-    // Push correct normalized times to server
-    await uploadsleepdatatoServer(bt, wt);
-
-    // Clear sleep intervals after saving
-    final prefs = await SharedPreferences.getInstance();
-    final sleepDateKey = dateKey(bt);
-    await prefs.remove('sleep_intervals_$sleepDateKey');
-
-    debugPrint('✅ Auto-saved sleep without phone usage: $deep');
-  }
-
-  // ─────────────────────────────────────────────
-  // PHONE USAGE
-  // ─────────────────────────────────────────────
-
-  Future<void> onPhoneUsed(DateTime start, DateTime end) async {
-    debugPrint("📱 [AWAKE-DETECTED] Phone used from $start → $end");
-
-    final sleepStart = _activeSleepStart ?? resolveSleepStart(DateTime.now());
-    final sleepEnd = resolveSleepEnd(sleepStart);
-
-    final clampedStart = start.isBefore(sleepStart) ? sleepStart : start;
-    final clampedEnd = end.isAfter(sleepEnd) ? sleepEnd : end;
-
-    if (_sleepState == SleepState.sleeping &&
-        _currentSleepSegmentStart != null) {
-      final seg = clampedStart.difference(_currentSleepSegmentStart!);
-      _accumulatedDeepSleep += seg;
-
-      debugPrint(
-        "⛔ [SLEEP-SEGMENT] Closed sleep segment: "
-        "${_currentSleepSegmentStart} → $clampedStart "
-        "(${seg.inMinutes} min)",
-      );
-
-      _sleepState = SleepState.awake;
-    }
-
-    _wasPhoneUsedDuringSleep = true;
-    phoneUsageIntervals.add(AwakeInterval(clampedStart, clampedEnd));
-    _currentSleepSegmentStart = clampedEnd;
-
-    debugPrint("🔁 [STATE] Transition → AWAKE");
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_sleepCandidateHadPhoneUsageKey, true);
-  }
-
-  List<AwakeInterval> mergeAwakeIntervals(List<AwakeInterval> intervals) {
-    if (intervals.isEmpty) return [];
-
-    // Use a sorted copy so original list isn't mutated elsewhere
-    final sorted = [...intervals]..sort((a, b) => a.start.compareTo(b.start));
-    final List<AwakeInterval> merged = [];
-
-    AwakeInterval current = sorted.first;
-    for (int i = 1; i < sorted.length; i++) {
-      final next = sorted[i];
-
-      // Overlap OR touching intervals → merge
-      if (!next.start.isAfter(current.end)) {
-        current = AwakeInterval(
-          current.start,
-          next.end.isAfter(current.end) ? next.end : current.end,
-        );
-      } else {
-        merged.add(current);
-        current = next;
-      }
-    }
-
-    merged.add(current);
-    return merged;
-  }
-
-  Future<void> finalizeSleepCycle() async {
-    debugPrint("🌅 [FINALIZE] finalizeSleepCycle called");
-
-    if (_activeSleepStart == null) return;
-
-    final sleepStart = _activeSleepStart!;
-    final sleepEnd = resolveSleepEnd(sleepStart);
-
-    Duration deep = await _calculateSleepDurationFromIntervals(sleepStart);
-
-    if (deep == Duration.zero) {
-      debugPrint("⚠️ [FINALIZE] No intervals → fallback to accumulated sleep");
-
-      if (_sleepState == SleepState.sleeping &&
-          _currentSleepSegmentStart != null) {
-        final seg = sleepEnd.difference(_currentSleepSegmentStart!);
-        _accumulatedDeepSleep += seg;
-
-        debugPrint(
-          "➕ [SLEEP-SEGMENT] Final open segment: "
-          "${_currentSleepSegmentStart} → $sleepEnd "
-          "(${seg.inMinutes} min)",
-        );
-      }
-
-      deep = _accumulatedDeepSleep;
-    }
-
-    if (deep.inMinutes < 10) {
-      debugPrint("⛔ [FINALIZE] Sleep too short → skipped");
-      return;
-    }
-
-    debugPrint("😴 [FINALIZE] Saving sleep: ${deep.inMinutes} min");
-
-    await saveDeepSleepData(sleepStart, deep);
-    await uploadsleepdatatoServer(sleepStart, sleepEnd);
-
-    // reset state
-    phoneUsageIntervals.clear();
-    _accumulatedDeepSleep = Duration.zero;
-    _currentSleepSegmentStart = null;
-    _sleepState = SleepState.awake;
-    _wasPhoneUsedDuringSleep = false;
-
-    debugPrint("🔁 [STATE] Reset → READY FOR NEXT NIGHT");
-  }
-  // void onAwakeDetected(DateTime start, DateTime end) {
-  //   if (_sleepState == SleepState.sleeping) {
-  //     _accumulatedDeepSleep += start.difference(_currentSleepSegmentStart!);
-  //     _sleepState = SleepState.awake;
-  //   }
-  // }
-
-  // ─────────────────────────────────────────────
-  // SETTERS
-  // ─────────────────────────────────────────────
-
-  void setBedtime(TimeOfDay time) {
-    bedtime.value = time;
-    final minutes = timeOfDayToMinutes(time);
-    getStorage.write(BEDTIME_KEY, minutes);
-
-    // Mirror into SharedPreferences so background isolate can read it.
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.setInt(BEDTIME_KEY, minutes);
-    });
-
-    debugPrint('🛏️ Bedtime set → $time ($minutes min since midnight)');
-  }
-
-  void setWakeTime(TimeOfDay time) {
-    waketime.value = time;
-    final minutes = timeOfDayToMinutes(time);
-    getStorage.write(WAKETIME_KEY, minutes);
-
-    // Mirror into SharedPreferences so background isolate can read it.
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.setInt(WAKETIME_KEY, minutes);
-    });
-
-    debugPrint('⏰ Waketime set → $time ($minutes min since midnight)');
-  }
 }

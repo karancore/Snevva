@@ -1,7 +1,5 @@
 import 'package:hive/hive.dart';
 
-part 'sleep_log.g.dart';
-
 @HiveType(typeId: 4)
 class SleepLog extends HiveObject {
   @HiveField(0)
@@ -10,5 +8,20 @@ class SleepLog extends HiveObject {
   @HiveField(1)
   int durationMinutes; // Total deep sleep duration in minutes
 
-  SleepLog({required this.date, required this.durationMinutes});
+  @HiveField(2)
+  DateTime? startTime; // When sleep started
+
+  @HiveField(3)
+  DateTime? endTime; // When sleep ended
+
+  @HiveField(4)
+  int? goalMinutes; // Sleep goal in minutes
+
+  SleepLog({
+    required this.date,
+    required this.durationMinutes,
+    this.startTime,
+    this.endTime,
+    this.goalMinutes,
+  });
 }

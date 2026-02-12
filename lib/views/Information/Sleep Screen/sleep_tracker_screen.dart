@@ -1,18 +1,16 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
-import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
-import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_bottom_sheet.dart';
 import '../../../Controllers/SleepScreen/sleep_controller.dart';
 import '../../../Widgets/CommonWidgets/common_stat_graph_widget.dart';
-import '../../../Widgets/CommonWidgets/custom_outlined_button.dart';
 import '../../../common/global_variables.dart';
 
 enum StatViewMode { weekly, monthly }
@@ -38,31 +36,118 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
   bool _loaded = false;
 
   final sleepController = Get.find<SleepController>();
+  final _service = FlutterBackgroundService();
+
+  // Real-time sleep tracking state
+  bool _isSleeping = false;
+  Duration _currentSleepDuration = Duration.zero;
+  Duration _sleepGoal = Duration(hours: 8);
+  double _progress = 0.0;
+
+  StreamSubscription? _sleepUpdateSubscription;
+  StreamSubscription? _sleepSavedSubscription;
+  StreamSubscription? _goalReachedSubscription;
 
   @override
   void initState() {
-    super.initState(); // Always call super.initState() first!
+    super.initState();
 
     toggleSleepCard();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await sleepController.loadDeepSleepData(); // local Hive data
-      sleepController.loadUserSleepTimes();
-      //Testing
-      // await sleepController.saveDeepSleepData(
-      //   DateTime.now().subtract(const Duration(days: 1)),
-      //   const Duration(minutes: 30),
-      // );
+    _checkIfAlreadySleeping();
+    _setupSleepListeners();
 
-      // await sleepController.loadSleepfromAPI(
-      //   month: DateTime.now().month,
-      //   year: DateTime.now().year,
-      // );
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await sleepController.loadDeepSleepData();
+      sleepController.loadUserSleepTimes();
+    });
+  }
+
+  @override
+  void dispose() {
+    _sleepUpdateSubscription?.cancel();
+    _sleepSavedSubscription?.cancel();
+    _goalReachedSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _checkIfAlreadySleeping() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isSleeping = prefs.getBool("is_sleeping") ?? false;
+
+    if (isSleeping) {
+      final startString = prefs.getString("sleep_start_time");
+      final goalMinutes = prefs.getInt("sleep_goal_minutes") ?? 480;
+
+      if (startString != null) {
+        final start = DateTime.parse(startString);
+        final elapsed = DateTime.now().difference(start);
+
+        setState(() {
+          _isSleeping = true;
+          _currentSleepDuration = elapsed;
+          _sleepGoal = Duration(minutes: goalMinutes);
+          _progress = (elapsed.inMinutes / goalMinutes).clamp(0.0, 1.0);
+        });
+      }
+    }
+  }
+
+  void _setupSleepListeners() {
+    // Listen to sleep progress updates
+    _sleepUpdateSubscription = _service.on("sleep_update").listen((event) {
+      if (event != null && mounted) {
+        final elapsedMinutes = event['elapsed_minutes'] as int? ?? 0;
+        final goalMinutes = event['goal_minutes'] as int? ?? 480;
+        final sleeping = event['is_sleeping'] as bool? ?? false;
+
+        setState(() {
+          _isSleeping = sleeping;
+          _currentSleepDuration = Duration(minutes: elapsedMinutes);
+          _sleepGoal = Duration(minutes: goalMinutes);
+          _progress = (elapsedMinutes / goalMinutes).clamp(0.0, 1.0);
+        });
+
+        print("💤 Sleep update in UI: ${elapsedMinutes}m / ${goalMinutes}m");
+      }
     });
 
-    // sleepController.loadSleepfromAPI(
-    //   month: DateTime.now().month,
-    //   year: DateTime.now().year,
-    // );
+    // Listen to sleep saved event
+    _sleepSavedSubscription = _service.on("sleep_saved").listen((event) async {
+      if (event != null && mounted) {
+        final duration = event['duration'] as int? ?? 0;
+
+        setState(() {
+          _isSleeping = false;
+          _currentSleepDuration = Duration.zero;
+          _progress = 0.0;
+        });
+
+        // Reload sleep data
+        await sleepController.loadDeepSleepData();
+        sleepController.updateDeepSleepSpots();
+
+        Get.snackbar(
+          '😴 Sleep Recorded',
+          'You slept for ${_formatDuration(Duration(minutes: duration))}',
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 3),
+        );
+      }
+    });
+
+    // Listen to goal reached event
+    _goalReachedSubscription = _service.on("sleep_goal_reached").listen((event) {
+      if (event != null && mounted) {
+        Get.snackbar(
+          '🎉 Goal Reached!',
+          'You\'ve completed your sleep goal!',
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 5),
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      }
+    });
   }
 
   Future<void> toggleSleepCard() async {
@@ -71,53 +156,46 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
   }
 
   String _fmt(TimeOfDay? dt) {
-    int hour = dt!.hour;
+    if (dt == null) return "Not Set";
+    int hour = dt.hour;
     String ampm = hour >= 12 ? "PM" : "AM";
 
-    hour = hour % 12; // Convert 13–23 → 1–11
-    if (hour == 0) hour = 12; // Convert 0 → 12
+    hour = hour % 12;
+    if (hour == 0) hour = 12;
 
     String minute = dt.minute.toString().padLeft(2, '0');
 
     return "$hour:$minute $ampm";
   }
 
-  String _fmtDt(DateTime? dt) {
-    int hour = dt!.hour;
-    String ampm = hour >= 12 ? "PM" : "AM";
+  String _formatDuration(Duration d) {
+    final hours = d.inHours;
+    final minutes = d.inMinutes % 60;
 
-    hour = hour % 12; // Convert 13–23 → 1–11
-    if (hour == 0) hour = 12; // Convert 0 → 12
-
-    String minute = dt.minute.toString().padLeft(2, '0');
-
-    return "$hour:$minute $ampm";
+    if (hours > 0) {
+      return '${hours}h ${minutes}m';
+    } else {
+      return '${minutes}m';
+    }
   }
 
   double getDeepSleepPercent(Duration? duration) {
     if (duration == null) return 0.0;
 
-    const maxDeepSleepMinutes = 120; // change this to your target
+    const maxDeepSleepMinutes = 120;
     double minutes = duration.inMinutes.toDouble();
 
     return (minutes / maxDeepSleepMinutes).clamp(0.0, 1.0);
   }
 
   void _toggleView() async {
-    print(
-      "sleepController.isMonthlyView.value${sleepController.isMonthlyView.value}",
-    );
     sleepController.isMonthlyView.value = !sleepController.isMonthlyView.value;
-    print(
-      "sleepController.isMonthlyView.value${sleepController.isMonthlyView.value}",
-    );
 
     if (sleepController.isMonthlyView.value) {
       await sleepController.loadSleepfromAPI(
         month: _selectedMonth.month,
         year: _selectedMonth.year,
       );
-      //sleepController.getMonthlyDeepSleepSpots(DateTime.now());
     } else {
       sleepController.updateDeepSleepSpots();
     }
@@ -131,9 +209,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     );
 
     setState(() => _selectedMonth = newMonth);
-    //sleepController.getMonthlyDeepSleepSpots(newMonth);
 
-    // 🔥 LOAD DATA FOR SELECTED MONTH
     await sleepController.loadSleepfromAPI(
       month: newMonth.month,
       year: newMonth.year,
@@ -146,7 +222,6 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
     final width = mediaQuery.size.width;
     final height = mediaQuery.size.height;
-    // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final double size = 210;
     final double center = size / 2;
@@ -167,18 +242,15 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
           padding: const EdgeInsets.all(20.0),
           child: Column(
             children: [
-              //========== ORIGINAL CIRCULAR SLEEP INDICATOR ==========
+              //========== SLEEP TRACKING INDICATOR ==========
               SizedBox(
                 child: Stack(
                   children: [
+                    // Clock numbers
                     for (int i = 1; i <= 12; i++)
                       Positioned(
-                        left:
-                            center +
-                            radius * cos((i * 30 - 90) * pi / 180) +
-                            10,
-                        top:
-                            center + radius * sin((i * 30 - 90) * pi / 180) + 5,
+                        left: center + radius * cos((i * 30 - 90) * pi / 180) + 10,
+                        top: center + radius * sin((i * 30 - 90) * pi / 180) + 5,
                         child: Text(
                           '$i',
                           style: TextStyle(
@@ -188,310 +260,156 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                           ),
                         ),
                       ),
-                    Obx(() {
-                      final d = sleepController.deepSleepDuration.value;
-                      final deepMin = d.inMinutes.toDouble();
-                      final idealMin =
-                          (sleepController.idealWakeupDuration?.inMinutes ??
-                                  720)
-                              .toDouble();
-                      final percent =
-                          idealMin <= 0
-                              ? 0.0
-                              : (deepMin / idealMin).clamp(0.0, 1.0);
 
-                      return CircularPercentIndicator(
-                        radius: 120,
-                        lineWidth: 20,
-                        percent: percent,
-
-                        progressColor: AppColors.primaryColor,
-                        backgroundColor: mediumGrey.withValues(alpha: 0.3),
-                        circularStrokeCap: CircularStrokeCap.round,
-                        center: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            (d.inMinutes > 0)
-                                ? Text(
-                                  fmtDuration(d),
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w600,
-                                    color: isDarkMode ? white : black,
-                                  ),
-                                )
-                                : Text(
-                                  "No data",
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w600,
-                                    color: grey,
-                                  ),
-                                ),
-                            Text(
-                              "Sleep",
-                              style: TextStyle(fontSize: 14, color: mediumGrey),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
+                    // Main circular indicator
+                    _isSleeping
+                        ? _buildActiveSleepIndicator()
+                        : _buildInactiveSleepIndicator(),
                   ],
                 ),
               ),
-              const SizedBox(height: 30),
 
-              // ========== SLEEP PHASES INDICATOR ==========
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  Obx(() {
-                    double getDeepSleepPercent(Duration? deepSleep) {
-                      // 1. Convert everything to the same unit (minutes)
-                      final int goalInMinutes =
-                          sleepController.sleepGoalInitial.value.inHours * 60;
+              const SizedBox(height: 20),
 
-                      // 2. Prevent division by zero if the goal is somehow set to 0
-                      if (goalInMinutes <= 0) return 0.0;
-
-                      // 3. Get actual minutes, defaulting to 0 if null
-                      final int actualMinutes = deepSleep?.inMinutes ?? 0;
-
-                      // 4. Clamp and divide using the same units
-                      final int clampedMinutes = actualMinutes.clamp(
-                        0,
-                        goalInMinutes,
-                      );
-
-                      return clampedMinutes / goalInMinutes;
-                    }
-
-                    return LinearProgressIndicator(
-                      value: getDeepSleepPercent(
-                        sleepController.deepSleepDuration.value,
-                      ),
-                      backgroundColor: mediumGrey.withValues(alpha: 0.3),
-                      color: AppColors.primaryColor,
-                      borderRadius: BorderRadius.circular(20),
-                      minHeight: 35,
-                    );
-                  }),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Row(
+              //========== SLEEP/WAKE TIME CARD ==========
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDarkMode ? darkGray : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        SizedBox(
-                          width: width * 0.32,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Image(
-                                image: AssetImage(moonIcon),
-                                height: 26,
-                                width: 26,
+                        Row(
+                          children: [
+                            const Image(
+                              image: AssetImage(bedIcon),
+                              height: 30,
+                              width: 30,
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              "Bedtime",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
                               ),
+                            ),
+                          ],
+                        ),
+                        Obx(
+                          () => Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
                               Text(
-                                "2:30 hr",
+                                _fmt(sleepController.bedtime.value),
                                 style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
                                 ),
                               ),
-                              Image(
-                                image: AssetImage(bedIcon),
-                                height: 26,
-                                width: 26,
-                              ),
-                            ],
-                          ),
-                        ),
-                        Text(
-                          "5:00 hr",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: white,
-                          ),
-                        ),
-                        SizedBox(
-                          width: width * 0.32,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Image(
-                                image: AssetImage(dreamsIcon),
-                                height: 26,
-                                width: 26,
-                              ),
-                              Text(
-                                "7:00 hr",
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: white,
+                              IconButton(
+                                onPressed: _isSleeping
+                                    ? null
+                                    : () async {
+                                        await showSleepBottomSheetModal(
+                                          context: context,
+                                          isDarkMode: isDarkMode,
+                                          height: height,
+                                          isNavigating: false,
+                                        );
+                                      },
+                                icon: Icon(
+                                  FontAwesomeIcons.angleRight,
+                                  size: 20,
+                                  color: _isSleeping ? Colors.grey : null,
                                 ),
-                              ),
-                              Image(
-                                image: AssetImage(eyeIcon),
-                                height: 26,
-                                width: 26,
                               ),
                             ],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                "Sleep Phases",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
-              ),
-              const SizedBox(height: 4),
-
-              // ========== BEDTIME AND WAKE UP SETTINGS ==========
-              Material(
-                color: isDarkMode ? black : white,
-                elevation: 3,
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: mediumGrey, width: border04px),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              const Image(
-                                image: AssetImage(bedtimeIcon),
-                                height: 30,
-                                width: 30,
+                    const SizedBox(height: 6),
+                    const Divider(thickness: border04px, color: mediumGrey),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Image(
+                              image: AssetImage(clockIcon),
+                              height: 30,
+                              width: 30,
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              "Wake Up",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
                               ),
-                              const SizedBox(width: 10),
+                            ),
+                          ],
+                        ),
+                        Obx(
+                          () => Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
                               Text(
-                                "Bedtime",
+                                _fmt(sleepController.waketime.value),
                                 style: TextStyle(
                                   fontSize: 16,
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: _isSleeping
+                                    ? null
+                                    : () async {
+                                        await showSleepBottomSheetModal(
+                                          context: context,
+                                          isDarkMode: isDarkMode,
+                                          height: height,
+                                          isNavigating: false,
+                                        );
+                                      },
+                                icon: Icon(
+                                  FontAwesomeIcons.angleRight,
+                                  size: 20,
+                                  color: _isSleeping ? Colors.grey : null,
                                 ),
                               ),
                             ],
                           ),
-                          Obx(
-                            () => Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Text(
-                                  sleepController.bedtime.value != null
-                                      ? _fmt(sleepController.bedtime.value)
-                                      : _fmt(TimeOfDay.now()),
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                                IconButton(
-                                  onPressed: () async {
-                                    await showSleepBottomSheetModal(
-                                      context: context,
-                                      isDarkMode: isDarkMode,
-                                      height: height,
-                                      isNavigating: false,
-                                    );
-                                  },
-                                  icon: Icon(
-                                    FontAwesomeIcons.angleRight,
-                                    size: 20,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-
-                      const Divider(thickness: border04px, color: mediumGrey),
-                      const SizedBox(height: 6),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              const Image(
-                                image: AssetImage(clockIcon),
-                                height: 30,
-                                width: 30,
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                "Wake Up",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Obx(
-                            () => Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Text(
-                                  sleepController.waketime.value != null
-                                      ? _fmt(sleepController.waketime.value)
-                                      : _fmt(TimeOfDay.now()),
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                                IconButton(
-                                  onPressed: () async {
-                                    await showSleepBottomSheetModal(
-                                      context: context,
-                                      isDarkMode: isDarkMode,
-                                      height: height,
-                                      isNavigating: false,
-                                    );
-                                  },
-                                  icon: Icon(
-                                    FontAwesomeIcons.angleRight,
-                                    size: 20,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
 
               const SizedBox(height: 16),
+
+              //========== WEEKLY/MONTHLY TOGGLE ==========
               Obx(() {
                 final isMonthly = sleepController.isMonthlyView.value;
 
                 return Column(
                   children: [
                     Text(
-                      isMonthly
-                          ? "Monthly Sleep Report"
-                          : "Weekly Sleep Report",
+                      isMonthly ? "Monthly Sleep Report" : "Weekly Sleep Report",
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -518,9 +436,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                           TextButton(
                             onPressed: _toggleView,
                             child: Text(
-                              isMonthly
-                                  ? "Switch to Weekly"
-                                  : "Switch to Monthly",
+                              isMonthly ? "Switch to Weekly" : "Switch to Monthly",
                             ),
                           ),
                         ],
@@ -529,37 +445,27 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                   ],
                 );
               }),
+
               const SizedBox(height: 10),
+
+              //========== SLEEP GRAPH ==========
               SizedBox(
                 height: height * 0.41,
                 child: Obx(() {
-                  final labels =
-                      sleepController.isMonthlyView.value
-                          ? generateMonthLabels(_selectedMonth)
-                          : generateShortWeekdays();
+                  final labels = sleepController.isMonthlyView.value
+                      ? generateMonthLabels(_selectedMonth)
+                      : generateShortWeekdays();
 
-                  print(
-                    "monthlySleepSpots ${sleepController.monthlySleepSpots}",
-                  );
+                  final points = sleepController.isMonthlyView.value
+                      ? sleepController.getMonthlyDeepSleepSpots(now)
+                      : sleepController.deepSleepSpots
+                          .take(daysSinceMonday + 1)
+                          .toList();
 
-                  print("deepSleepSpots ${sleepController.deepSleepSpots}");
+                  final double rawMax = points.isEmpty
+                      ? 0
+                      : points.map((e) => e.y).reduce((a, b) => a > b ? a : b);
 
-                  final points =
-                      sleepController.isMonthlyView.value
-                          ? sleepController.getMonthlyDeepSleepSpots(now)
-                          : sleepController.deepSleepSpots
-                              .take(daysSinceMonday + 1)
-                              .toList();
-
-                  // 🔥 Find max sleep (in hours)
-                  final double rawMax =
-                      points.isEmpty
-                          ? 0
-                          : points
-                              .map((e) => e.y)
-                              .reduce((a, b) => a > b ? a : b);
-
-                  // 🔥 Apply nice scaling
                   final double maxY = getNiceSleepMaxY(rawMax);
                   final double interval = getNiceSleepInterval(maxY);
 
@@ -571,11 +477,9 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                     maxXForWeek: daysSinceMonday,
                     isMonthlyView: sleepController.isMonthlyView.value,
                     weekLabels: labels,
-
                     yAxisMaxValue: maxY,
                     yAxisInterval: interval,
                     gridLineInterval: interval,
-
                     measureUnit: 'h',
                     isSleepGraph: true,
                     isWaterGraph: false,
@@ -591,20 +495,112 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     );
   }
 
+  Widget _buildActiveSleepIndicator() {
+    return CircularPercentIndicator(
+      radius: 120,
+      lineWidth: 20,
+      percent: _progress,
+      progressColor: AppColors.primaryColor,
+      backgroundColor: mediumGrey.withValues(alpha: 0.3),
+      circularStrokeCap: CircularStrokeCap.round,
+      center: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.bedtime,
+            size: 40,
+            color: AppColors.primaryColor,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _formatDuration(_currentSleepDuration),
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            'of ${_formatDuration(_sleepGoal)}',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${(_progress * 100).toInt()}%',
+            style: const TextStyle(
+              fontSize: 16,
+              color: AppColors.primaryColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInactiveSleepIndicator() {
+    return Obx(() {
+      final d = sleepController.deepSleepDuration.value;
+      final deepMin = d.inMinutes.toDouble();
+      final idealMin =
+          (sleepController.idealWakeupDuration?.inMinutes ?? 720).toDouble();
+      final percent =
+          idealMin <= 0 ? 0.0 : (deepMin / idealMin).clamp(0.0, 1.0);
+
+      return CircularPercentIndicator(
+        radius: 120,
+        lineWidth: 20,
+        percent: percent,
+        progressColor: AppColors.primaryColor,
+        backgroundColor: mediumGrey.withValues(alpha: 0.3),
+        circularStrokeCap: CircularStrokeCap.round,
+        center: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            (d.inMinutes > 0)
+                ? Text(
+                    fmtDuration(d),
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  )
+                : const Text(
+                    "No Data",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey,
+                    ),
+                  ),
+            const SizedBox(height: 8),
+            Text(
+              sleepController.getSleepStatus(d),
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
   List<String> generateShortWeekdays() {
     List<String> shortWeekdays = [];
     DateTime now = DateTime.now();
 
     daysSinceMonday = (now.weekday - DateTime.monday);
 
-    // Remove time part to avoid carrying 12:48:xx everywhere
     DateTime startOfWeek = DateTime(
       now.year,
       now.month,
       now.day,
     ).subtract(Duration(days: daysSinceMonday));
 
-    // 🔥 CHANGE IS HERE
     for (int i = 0; i <= daysSinceMonday; i++) {
       DateTime date = startOfWeek.add(Duration(days: i));
       String dayName = DateFormat('E').format(date);
