@@ -57,14 +57,28 @@ class _MenuScreenState extends State<MenuScreen>
     final prefs = await SharedPreferences.getInstance();
     final localGender = prefs.getString('user_gender');
 
+    final signInController = Get.find<SignInController>();
+    final userInfo = signInController.userProfData ?? {};
+
+    String resolvedGender = 'Not Specified';
+
+    if (localGender != null && localGender.isNotEmpty) {
+      resolvedGender = localGender;
+    } else if (userInfo != null &&
+        userInfo is Map &&
+        userInfo['data'] is Map &&
+        userInfo['data']['Gender'] != null) {
+      resolvedGender = userInfo['data']['Gender'].toString();
+    }
+
+    if (!mounted) return;
+
     setState(() {
-      // gender = localGender ?? 'Not Specified';
-      final signInController = Get.find<SignInController>();
-      final userInfo = signInController.userProfData ?? {};
-      final userData = userInfo['data'];
-      gender = (localGender != null) ? localGender : userData['Gender'];
+      gender = resolvedGender;
       isLoading = false;
     });
+
+    debugPrint('MenuScreen gender = $gender');
 
     _initializeMenuItems();
     _initializeAnimations();
