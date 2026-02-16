@@ -171,6 +171,7 @@ class WaterController extends GetxController {
         start: stringToTimeOfDay(startWaterTimeController.text),
         end: stringToTimeOfDay(endWaterTimeController.text),
         intervalHours: intervalHours,
+
       );
 
       debugPrint("⏰ Generated ${reminders.length} interval alarms");
@@ -185,6 +186,7 @@ class WaterController extends GetxController {
         context: context,
         title: 'Water',
         intervalHours: intervalHours,
+        audioPath: waterSound,
         body: reminderController.notesController.text.trim(),
       );
       return true;
@@ -204,7 +206,7 @@ class WaterController extends GetxController {
         return false;
       }
 
-      await setWaterAlarm(times: times, context: context);
+      await setWaterAlarm(times: times, context: context , audioPath: waterSound);
       return true;
     }
 
@@ -219,6 +221,7 @@ class WaterController extends GetxController {
   Future<void> setWaterAlarm({
     required int? times,
     required BuildContext context,
+    String audioPath = alarmSound
   }) async {
     if (times == null || times <= 0) {
       CustomSnackbar.showError(
@@ -247,7 +250,7 @@ class WaterController extends GetxController {
       final alarmSettings = AlarmSettings(
         id: alarmId,
         dateTime: scheduledTime,
-        assetAudioPath: alarmSound,
+        assetAudioPath: audioPath,
         loopAudio: false,
         androidFullScreenIntent: true,
         volumeSettings: VolumeSettings.fade(
@@ -499,6 +502,7 @@ class WaterController extends GetxController {
     BuildContext? context,
     required String title,
     required String body,
+  String audioPath = alarmSound
   }) async {
     final reminderGroupId = alarmsId();
     final List<AlarmSettings> createdAlarms = [];
@@ -523,7 +527,7 @@ class WaterController extends GetxController {
           "category": ReminderCategory.water.toString(),
         }),
 
-        assetAudioPath: alarmSound,
+        assetAudioPath: audioPath,
         volumeSettings: VolumeSettings.fade(
           volume: 0.8,
           fadeDuration: Duration(seconds: 5),
@@ -640,7 +644,7 @@ class WaterController extends GetxController {
         await reminderController.saveReminderList(waterList, "water_list");
       }
 
-      await setWaterAlarm(times: times, context: context);
+      await setWaterAlarm(times: times, context: context , audioPath: waterSound);
     } catch (e) {
       throw Exception("Error updating WATER reminder: $e");
     }
