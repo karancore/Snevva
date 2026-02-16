@@ -17,6 +17,7 @@ import 'package:snevva/common/agent_debug_logger.dart';
 import '../../common/global_variables.dart';
 
 import '../../models/hive_models/sleep_log.dart';
+import '../../services/app_initializer.dart';
 import '../../services/sleep/sleep_noticing_service.dart';
 
 enum SleepState { sleeping, awake }
@@ -26,7 +27,8 @@ class SleepController extends GetxService {
   // Storage keys
   static const String BEDTIME_KEY = 'user_bedtime_ms';
   static const String WAKETIME_KEY = 'user_waketime_ms';
-  
+
+
   // Observable state
   final Rx<Duration> currentSleepDuration = Duration.zero.obs;
   final Rx<Duration> sleepGoal = const Duration(hours: 8).obs;
@@ -119,6 +121,9 @@ class SleepController extends GetxService {
         // Calculate progress (0.0 to 1.0)
         if (goalMinutes > 0) {
           sleepProgress.value = (elapsedMinutes / goalMinutes).clamp(0.0, 1.0);
+          weeklySleepHistory[getCurrentDayKey()] = currentSleepDuration.value;
+
+          updateDeepSleepSpots();  // Refresh the graph spots
         }
 
         print("💤 Sleep update: ${elapsedMinutes}m / ${goalMinutes}m (${(sleepProgress.value * 100).toInt()}%)");
@@ -1064,10 +1069,6 @@ class SleepController extends GetxService {
     }
 
     return end;
-  }
-
-  Future<void> startMonitoring() async {
-    
   }
 
 }

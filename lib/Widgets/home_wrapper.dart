@@ -60,6 +60,7 @@ class _HomeWrapperState extends State<HomeWrapper> {
   void initState() {
     super.initState();
     bmiController.loadUserBMI();
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _startupSequence();
     });
@@ -140,7 +141,7 @@ class _HomeWrapperState extends State<HomeWrapper> {
 
   Future<void> _startupSequence() async {
     // 1️⃣ Permissions first
-    await requestAllPermissions();
+
 
     // 2️⃣ Wait for app to fully resume
     // await Future.delayed(const Duration(seconds: 1));

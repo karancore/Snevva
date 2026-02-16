@@ -1,10 +1,8 @@
 import 'dart:convert';
-import 'package:path/path.dart';
 import 'package:flutter/material.dart';
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:http/http.dart' as http;
-import 'package:timezone/timezone.dart';
 import '../../common/custom_snackbar.dart';
 import '../../env/env.dart';
 import '../../services/api_service.dart';
@@ -23,27 +21,45 @@ class BmiUpdateController extends GetxService {
   var isLoading = true.obs;
   var hasError = false.obs;
 
-  final localStorageManager = Get.find<LocalStorageManager>();
-  final editprofileController = Get.find<EditprofileController>();
+  late LocalStorageManager localStorageManager;
+  late EditprofileController editprofileController;
 
-
-  Future<void> setvalues(BuildContext context, dynamic age, dynamic height, dynamic weight) async {
-    final flag1 = await editprofileController.saveHeight(context, height, day: DateTime.now().day,
-                                      month: DateTime.now().month,
-                                      year: DateTime.now().year,
-                                      time: TimeOfDay.now().format(context),);
-    final flag2 = await editprofileController.saveWeight(context, weight, day: DateTime.now().day,
-                                      month: DateTime.now().month,
-                                      year: DateTime.now().year,
-                                      time: TimeOfDay.now().format(context),);
+  @override
+  void onInit() {
+    super.onInit();
+    localStorageManager = Get.find<LocalStorageManager>();
+    editprofileController = Get.find<EditprofileController>();
+  }
+  Future<bool> setHeightAndWeight(
+    BuildContext context,
+    dynamic age,
+    dynamic height,
+    dynamic weight,
+  ) async {
+    final flag1 = await editprofileController.saveHeight(
+      context,
+      height,
+      day: DateTime.now().day,
+      month: DateTime.now().month,
+      year: DateTime.now().year,
+      time: TimeOfDay.now().format(context),
+    );
+    final flag2 = await editprofileController.saveWeight(
+      context,
+      weight,
+      day: DateTime.now().day,
+      month: DateTime.now().month,
+      year: DateTime.now().year,
+      time: TimeOfDay.now().format(context),
+    );
 
     if (!flag1 || !flag2) {
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'Failed to save height or weight',
-      );
-      return;
+      // CustomSnackbar.showError(
+      //   context: context,
+      //   title: 'Error',
+      //   message: 'Failed to save height or weight',
+      // );
+      return false;
     }
 
     this.age.value = age;
@@ -52,25 +68,28 @@ class BmiUpdateController extends GetxService {
 
     print('Set Age: ${age}, Height: ${height} cm, Weight: ${weight} kg');
     updatebmivalues();
+    return true;
   }
 
-  Future<void> updatebmivalues() async{
-    print("ht and wt before ${localStorageManager.userGoalDataMap['HeightData']['Value']} and ${localStorageManager.userGoalDataMap['WeightData']['Value']}");
+  Future<void> updatebmivalues() async {
+    print(
+      "ht and wt before ${localStorageManager.userGoalDataMap['HeightData']['Value']} and ${localStorageManager.userGoalDataMap['WeightData']['Value']}",
+    );
     localStorageManager.userGoalDataMap['HeightData']['Value'] = height.value;
     localStorageManager.userGoalDataMap['WeightData']['Value'] = weight.value;
 
     print('Updated Height: ${height.value}, Weight: ${weight.value}');
-    print("ht and wt updated in local storage manager ${localStorageManager.userGoalDataMap['HeightData']['Value']} and ${localStorageManager.userGoalDataMap['WeightData']['Value']}");
+    print(
+      "ht and wt updated in local storage manager ${localStorageManager.userGoalDataMap['HeightData']['Value']} and ${localStorageManager.userGoalDataMap['WeightData']['Value']}",
+    );
     // await localStorageManager.reloadUserMap();
   }
-
 
   Future<void> loadUserBMI() async {
     // // final prefs = await SharedPreferences.getInstance();
     // final savedHeight = prefs.getDouble('height') ?? 0.0; // cm
     // final savedWeight = prefs.getDouble('weight') ?? 0.0; // kg
 
-    
     final savedHeight =
         localStorageManager.userGoalDataMap['HeightData'] != null
             ? double.tryParse(

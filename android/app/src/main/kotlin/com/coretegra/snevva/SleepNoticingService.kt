@@ -4,28 +4,33 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.SharedPreferences
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
+import java.util.*
 
 class SleepNoticingService : Service() {
 
     private var screenReceiver: ScreenReceiver? = null
+    private lateinit var prefs: SharedPreferences
 
-    override fun onBind(intent: Intent?): IBinder? {
-        return null
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        // Use Flutter's SharedPreferences to match Dart code
+        prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        Log.d("SleepNoticingService", "Service created")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d("SleepNoticingService", "Service started")
 
         // Register screen receiver
         if (screenReceiver == null) {
             screenReceiver = ScreenReceiver { event ->
-                // Handle screen events
-                // You can send this to Flutter using MethodChannel or EventChannel
-                val broadcastIntent = Intent("com.coretegra.snevva.SCREEN_EVENT")
-                broadcastIntent.putExtra("event", event)
-                broadcastIntent.putExtra("time", System.currentTimeMillis())
-                sendBroadcast(broadcastIntent)
+                handleScreenEvent(event)
             }
 
             val filter = IntentFilter().apply {
@@ -33,26 +38,146 @@ class SleepNoticingService : Service() {
                 addAction(Intent.ACTION_SCREEN_OFF)
             }
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                registerReceiver(screenReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-            } else {
-                registerReceiver(screenReceiver, filter)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    registerReceiver(screenReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+                } else {
+                    registerReceiver(screenReceiver, filter)
+                }
+                Log.d("SleepNoticingService", "Screen receiver registered")
+            } catch (e: Exception) {
+                Log.e("SleepNoticingService", "Failed to register receiver", e)
             }
         }
 
         return START_STICKY
     }
 
+    private fun handleScreenEvent(event: String) {
+        // Check if sleep tracking is active (use Flutter-prefixed key)
+        val isSleeping = prefs.getBoolean("flutter.is_sleeping", false)
+        if (!isSleeping) {
+            Log.d("SleepNoticingService", "Screen event ignored: sleep tracking not active")
+            return
+        }
+
+        // Get sleep window
+        val window = computeActiveSleepWindow()
+        if (window == null) {
+            Log.w("SleepNoticingService", "No sleep window available")
+            return
+        }
+
+        val now = Date()
+        if (!isWithinWindow(now, window.start, window.end)) {
+            Log.d("SleepNoticingService", "Screen event outside window: ignoring")
+            return
+        }
+
+        val windowKey = window.dateKey
+        val lastOffKey = "flutter.last_screen_off_$windowKey"
+        val intervalsKey = "flutter.sleep_intervals_$windowKey"
+
+        when (event) {
+            "screen_off" -> {
+                // Record the screen off time
+                prefs.edit().putString(lastOffKey, now.toString()).apply()
+                Log.d("SleepNoticingService", "Screen off recorded at $now for window $windowKey")
+            }
+            "screen_on" -> {
+                // Check for pending screen off
+                val lastOffStr = prefs.getString(lastOffKey, null)
+                if (lastOffStr != null) {
+                    try {
+                        val lastOff = Date(lastOffStr)
+
+                        // Clamp interval to window
+                        val start = if (lastOff.before(window.start)) window.start else lastOff
+                        val end = if (now.after(window.end)) window.end else now
+
+                        if (!end.after(start)) {
+                            Log.d("SleepNoticingService", "Invalid interval: $start -> $end")
+                            return
+                        }
+
+                        val durationMinutes = (end.time - start.time) / (1000 * 60)  // Minutes
+                        if (durationMinutes < 3) {  // Minimum gap
+                            Log.d("SleepNoticingService", "Interval too short: $durationMinutes min")
+                            return
+                        }
+
+                        // Save interval in ISO format
+                        val intervalStr = "${start.toInstant().toString()}|${end.toInstant().toString()}"
+                        val existing = prefs.getString(intervalsKey, "") ?: ""
+                        val updated = if (existing.isEmpty()) intervalStr else "$existing,$intervalStr"
+                        prefs.edit().putString(intervalsKey, updated).apply()
+
+                        // Clear pending off time
+                        prefs.edit().remove(lastOffKey).apply()
+
+                        Log.d("SleepNoticingService", "Interval saved: $intervalStr for window $windowKey")
+                    } catch (e: Exception) {
+                        Log.e("SleepNoticingService", "Error processing screen on", e)
+                    }
+                } else {
+                    Log.d("SleepNoticingService", "Screen on: no pending screen off")
+                }
+            }
+        }
+    }
+
+    private fun computeActiveSleepWindow(): SleepWindow? {
+        // Get bedtime/waketime from prefs (Flutter-prefixed keys)
+        val bedMin = prefs.getInt("flutter.user_bedtime_ms", -1)
+        val wakeMin = prefs.getInt("flutter.user_waketime_ms", -1)
+        if (bedMin == -1 || wakeMin == -1) return null
+
+        val bedHour = bedMin / 60
+        val bedMinute = bedMin % 60
+        val wakeHour = wakeMin / 60
+        val wakeMinute = wakeMin % 60
+
+        val now = Calendar.getInstance()
+        val start = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, bedHour.toInt())
+            set(Calendar.MINUTE, bedMinute.toInt())
+        }
+        // If bedtime is in the future, shift to yesterday
+        if (start.after(now)) start.add(Calendar.DAY_OF_MONTH, -1)
+
+        val end = Calendar.getInstance().apply {
+            time = start.time
+            set(Calendar.HOUR_OF_DAY, wakeHour.toInt())
+            set(Calendar.MINUTE, wakeMinute.toInt())
+        }
+        // If wake time is before start, shift to next day
+        if (!end.after(start)) end.add(Calendar.DAY_OF_MONTH, 1)
+
+        // Fixed: Use padStart instead of padLeft
+        val key = "${start.get(Calendar.YEAR)}-${(start.get(Calendar.MONTH) + 1).toString().padStart(2, '0')}-${start.get(Calendar.DAY_OF_MONTH).toString().padStart(2, '0')}"
+        return SleepWindow(start.time, end.time, key)
+    }
+
+    private fun isWithinWindow(t: Date, start: Date, end: Date): Boolean {
+        return !t.before(start) && t.before(end)
+    }
+
     override fun onDestroy() {
         try {
             if (screenReceiver != null) {
                 unregisterReceiver(screenReceiver)
+                Log.d("SleepNoticingService", "Receiver unregistered")
             }
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.e("SleepNoticingService", "Error unregistering receiver", e)
+        }
 
         screenReceiver = null
+        Log.d("SleepNoticingService", "Service destroyed")
         super.onDestroy()
     }
+
+    data class SleepWindow(val start: Date, val end: Date, val dateKey: String)
 }
 
 class ScreenReceiver(private val callback: (String) -> Unit) : android.content.BroadcastReceiver() {

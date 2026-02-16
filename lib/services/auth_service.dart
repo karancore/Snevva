@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:alarm/alarm.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,7 +24,12 @@ import 'package:snevva/models/hive_models/steps_model.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 
+import '../Controllers/signupAndSignIn/otp_verification_controller.dart';
+import '../Controllers/signupAndSignIn/sign_in_controller.dart';
+import 'app_initializer.dart';
 import 'auth_header_helper.dart';
+import 'background_pedometer_service.dart';
+import 'decisiontree_service.dart';
 import 'device_token_service.dart';
 import 'encryption_service.dart';
 
@@ -121,6 +127,20 @@ class AuthService {
     _isLoggingOut = true;
 
     try {
+      try {
+        debugPrint('🛑 Stopping background services...');
+
+        await stopUnifiedBackgroundService();
+
+        // Back-compat safety: if anything else is wired to old stopper.
+        await stopBackgroundService();
+
+        debugPrint('✅ Background services stopped');
+      } catch (e) {
+        debugPrint('⚠️ Failed to stop background service: $e');
+        // DO NOT block logout
+      }
+
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
 
@@ -142,9 +162,13 @@ class AuthService {
       localStorageManager.userGoalDataMap.value = {};
       localStorageManager.userGoalDataMap.refresh();
 
+      debugPrint('🧠 Clearing DecisionTreeService...');
+      await DecisionTreeService().clearAll();
+
+
       // ❌ REMOVE THIS
       // Get.deleteAll(force: true);
-
+      await Alarm.stopAll();
       // ✅ Delete only app controllers
       Get.delete<DietPlanController>();
       Get.delete<HealthTipsController>();
@@ -156,10 +180,12 @@ class AuthService {
       Get.delete<MedicineController>();
       Get.delete<EventController>();
       Get.delete<MealController>();
-
+      Get.delete<SignInController>(force: true);
+      Get.delete<OTPVerificationController>(force: true);
       Get.delete<SleepController>();
       Get.delete<StepCounterController>();
       Get.delete<VitalsController>();
+
 
       Get.offAll(() => SignInScreen());
     } finally {
@@ -167,3 +193,4 @@ class AuthService {
     }
   }
 }
+

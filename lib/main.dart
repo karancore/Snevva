@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
+import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/BMI/bmi_controller.dart';
 import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
@@ -141,9 +142,6 @@ void main() async {
       stackTrace: details.stack,
     );
 
-    // final alertcontroller = Get.put(AlertsController(), permanent: true);
-    // alertcontroller.hitalertsnotification();
-
     return Scaffold(
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -197,6 +195,11 @@ void main() async {
 }
 
 Future<void> initialiseGetxServicesAndControllers() async {
+  if (!Hive.isBoxOpen('step_history')) {
+    print("❌ Hive boxes not ready during controller init - retrying setup");
+    await setupHive();  // Fallback retry
+  }
+
   // Parallel async controllers
   await Future.wait([
     Get.putAsync<LocalStorageManager>(() async {
@@ -205,10 +208,10 @@ Future<void> initialiseGetxServicesAndControllers() async {
           .reloadUserMap(); // ensure data is loaded before anyone uses it
       return service;
     }, permanent: true),
-    Get.putAsync<AlertsController>(
-      () async => AlertsController(),
-      permanent: true,
-    ),
+    // Get.putAsync<AlertsController>(
+    //   () async => AlertsController(),
+    //   permanent: true,
+    // ),
     Get.putAsync<SignInController>(
       () async => SignInController(),
       permanent: false,
@@ -253,12 +256,11 @@ Future<void> initialiseGetxServicesAndControllers() async {
       () async => EditprofileController(),
       permanent: true,
     ),
-    Get.putAsync<BmiController>(() async => BmiController(), permanent: true),
-    
     Get.putAsync<BmiUpdateController>(
       () async => BmiUpdateController(),
       permanent: true,
     ),
+    Get.putAsync<BmiController>(() async => BmiController(), permanent: true),
 
     Get.putAsync<DietPlanController>(
       () async => DietPlanController(),
@@ -274,6 +276,8 @@ Future<void> initialiseGetxServicesAndControllers() async {
   if (!Get.isRegistered<MentalWellnessController>()) {
     Get.lazyPut(() => MentalWellnessController(), fenix: true);
   }
+
+
   if (!Get.isRegistered<BottomSheetController>()) {
     Get.lazyPut(() => BottomSheetController(), fenix: true);
   }
@@ -348,11 +352,6 @@ class _MyAppState extends State<MyApp> {
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) async {
       await ensureFirebaseInitialized();
 
-      final notification = AppNotification.fromRemoteMessage(message);
-
-      if (Get.isRegistered<AlertsController>()) {
-        Get.find<AlertsController>().addNotification(notification);
-      }
     });
 
     _handleInitialMessage();
@@ -392,6 +391,12 @@ class _MyAppState extends State<MyApp> {
       final hasSession =
           await Get.find<LocalStorageManager>().hasValidSession();
 
+      if (hasSession) {
+        if (!Get.isRegistered<AlertsController>()) {
+          Get.lazyPut(() => AlertsController(), fenix: true);
+        }
+      }
+
       if (!hasSession) {
         Get.offAll(() => SignInScreen());
         return;
@@ -407,7 +412,7 @@ class _MyAppState extends State<MyApp> {
         data: const {},
       );
       // #endregion
-      // await initBackgroundService();
+      await initBackgroundService();
 
       _timeoutTimer?.cancel();
 

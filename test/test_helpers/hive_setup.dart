@@ -1,6 +1,7 @@
 import 'package:hive/hive.dart';
 import 'package:hive_test/hive_test.dart';
 import 'package:snevva/models/hive_models/sleep_log.dart';
+import 'package:snevva/models/hive_models/sleep_log_g.dart';
 
 Future<void> setupHiveForTests() async {
   await setUpTestHive();

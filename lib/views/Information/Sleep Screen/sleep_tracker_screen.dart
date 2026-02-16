@@ -136,7 +136,9 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     });
 
     // Listen to goal reached event
-    _goalReachedSubscription = _service.on("sleep_goal_reached").listen((event) {
+    _goalReachedSubscription = _service.on("sleep_goal_reached").listen((
+      event,
+    ) {
       if (event != null && mounted) {
         Get.snackbar(
           '🎉 Goal Reached!',
@@ -249,8 +251,12 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                     // Clock numbers
                     for (int i = 1; i <= 12; i++)
                       Positioned(
-                        left: center + radius * cos((i * 30 - 90) * pi / 180) + 10,
-                        top: center + radius * sin((i * 30 - 90) * pi / 180) + 5,
+                        left:
+                            center +
+                            radius * cos((i * 30 - 90) * pi / 180) +
+                            10,
+                        top:
+                            center + radius * sin((i * 30 - 90) * pi / 180) + 5,
                         child: Text(
                           '$i',
                           style: TextStyle(
@@ -319,16 +325,14 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                                 ),
                               ),
                               IconButton(
-                                onPressed: _isSleeping
-                                    ? null
-                                    : () async {
-                                        await showSleepBottomSheetModal(
-                                          context: context,
-                                          isDarkMode: isDarkMode,
-                                          height: height,
-                                          isNavigating: false,
-                                        );
-                                      },
+                                onPressed:() async {
+                                          await showSleepBottomSheetModal(
+                                            context: context,
+                                            isDarkMode: isDarkMode,
+                                            height: height,
+                                            isNavigating: false,
+                                          );
+                                        },
                                 icon: Icon(
                                   FontAwesomeIcons.angleRight,
                                   size: 20,
@@ -375,16 +379,14 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                                 ),
                               ),
                               IconButton(
-                                onPressed: _isSleeping
-                                    ? null
-                                    : () async {
-                                        await showSleepBottomSheetModal(
-                                          context: context,
-                                          isDarkMode: isDarkMode,
-                                          height: height,
-                                          isNavigating: false,
-                                        );
-                                      },
+                                onPressed:() async {
+                                          await showSleepBottomSheetModal(
+                                            context: context,
+                                            isDarkMode: isDarkMode,
+                                            height: height,
+                                            isNavigating: false,
+                                          );
+                                        },
                                 icon: Icon(
                                   FontAwesomeIcons.angleRight,
                                   size: 20,
@@ -409,7 +411,9 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                 return Column(
                   children: [
                     Text(
-                      isMonthly ? "Monthly Sleep Report" : "Weekly Sleep Report",
+                      isMonthly
+                          ? "Monthly Sleep Report"
+                          : "Weekly Sleep Report",
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -436,7 +440,9 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                           TextButton(
                             onPressed: _toggleView,
                             child: Text(
-                              isMonthly ? "Switch to Weekly" : "Switch to Monthly",
+                              isMonthly
+                                  ? "Switch to Weekly"
+                                  : "Switch to Monthly",
                             ),
                           ),
                         ],
@@ -452,19 +458,24 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
               SizedBox(
                 height: height * 0.41,
                 child: Obx(() {
-                  final labels = sleepController.isMonthlyView.value
-                      ? generateMonthLabels(_selectedMonth)
-                      : generateShortWeekdays();
+                  final labels =
+                      sleepController.isMonthlyView.value
+                          ? generateMonthLabels(_selectedMonth)
+                          : generateShortWeekdays();
 
-                  final points = sleepController.isMonthlyView.value
-                      ? sleepController.getMonthlyDeepSleepSpots(now)
-                      : sleepController.deepSleepSpots
-                          .take(daysSinceMonday + 1)
-                          .toList();
+                  final points =
+                      sleepController.isMonthlyView.value
+                          ? sleepController.getMonthlyDeepSleepSpots(now)
+                          : sleepController.deepSleepSpots
+                              .take(daysSinceMonday + 1)
+                              .toList();
 
-                  final double rawMax = points.isEmpty
-                      ? 0
-                      : points.map((e) => e.y).reduce((a, b) => a > b ? a : b);
+                  final double rawMax =
+                      points.isEmpty
+                          ? 0
+                          : points
+                              .map((e) => e.y)
+                              .reduce((a, b) => a > b ? a : b);
 
                   final double maxY = getNiceSleepMaxY(rawMax);
                   final double interval = getNiceSleepInterval(maxY);
@@ -506,25 +517,15 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
       center: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.bedtime,
-            size: 40,
-            color: AppColors.primaryColor,
-          ),
+          const Icon(Icons.bedtime, size: 40, color: AppColors.primaryColor),
           const SizedBox(height: 8),
           Text(
             _formatDuration(_currentSleepDuration),
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
           ),
           Text(
             'of ${_formatDuration(_sleepGoal)}',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
           ),
           const SizedBox(height: 8),
           Text(
@@ -561,27 +562,24 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
           children: [
             (d.inMinutes > 0)
                 ? Text(
-                    fmtDuration(d),
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  )
-                : const Text(
-                    "No Data",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey,
-                    ),
+                  fmtDuration(d),
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
                   ),
+                )
+                : const Text(
+                  "No Data",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey,
+                  ),
+                ),
             const SizedBox(height: 8),
             Text(
               sleepController.getSleepStatus(d),
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
           ],
         ),

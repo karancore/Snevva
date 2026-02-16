@@ -5,12 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// SleepNoticingService
 ///
-/// DEBUG VERSION
-/// - Logs EVERYTHING related to:
-///   • sleep window calculation
-///   • sleep segment detection (SCREEN_OFF)
-///   • awake detection (SCREEN_ON)
-///   • interval persistence & rejection reasons
+/// Automatically tracks screen off/on events within the user's sleep window
+/// and aggregates sleep intervals for total sleep time calculation.
 class SleepNoticingService {
   static const Duration minSleepGap = Duration(minutes: 3);
 
@@ -19,6 +15,9 @@ class SleepNoticingService {
 
   StreamSubscription<ScreenStateEvent>? _subscription;
   final Screen _screen = Screen();
+
+  // Add this: Track current screen state (assume 'on' initially; first event will correct it)
+  bool _screenIsOn = true;
 
   // ─────────────────────────────────────────────
   // PUBLIC API
@@ -32,13 +31,13 @@ class SleepNoticingService {
         debugPrint('📱 Screen event received: $event');
 
         if (event == ScreenStateEvent.SCREEN_OFF) {
-          print("SCREEN_OFF");
           _onScreenTurnedOff();
         } else if (event == ScreenStateEvent.SCREEN_ON) {
-          print("SCREEN_OFF");
           _onScreenTurnedOn();
         }
       });
+
+      debugPrint('✅ Screen state monitoring started');
     } catch (e) {
       debugPrint('❌ Screen state stream error: $e');
     }
@@ -50,16 +49,41 @@ class SleepNoticingService {
     _subscription = null;
   }
 
+  // Add this new method: Call this when sleep starts (after window is set in the background service)
+  Future<void> initializeForSleepWindow() async {
+    final prefs = await SharedPreferences.getInstance();
+    final window = await _computeActiveSleepWindow(prefs);
+    if (window == null) return;
+
+    final now = DateTime.now();
+    if (_isWithinWindow(now, window.start, window.end) && !_screenIsOn) {
+      final lastOffKey = 'last_screen_off_${window.dateKey}';
+      // Initialize open interval from window start
+      await prefs.setString(lastOffKey, window.start.toIso8601String());
+      debugPrint('🔒 Initialized open interval from window start: ${window.start}');
+    }
+  }
+
   // ─────────────────────────────────────────────
   // SCREEN OFF → POSSIBLE SLEEP START
   // ─────────────────────────────────────────────
 
   Future<void> _onScreenTurnedOff() async {
     debugPrint('🌙 SCREEN_OFF detected');
+    _screenIsOn = false;  // Add this: Update state
 
-    final window = await _computeActiveSleepWindow();
+    final prefs = await SharedPreferences.getInstance();
+
+    // Check if sleep tracking is active
+    final isSleeping = prefs.getBool("is_sleeping") ?? false;
+    if (!isSleeping) {
+      debugPrint('⛔ Sleep tracking not active, ignoring SCREEN_OFF');
+      return;
+    }
+
+    final window = await _computeActiveSleepWindow(prefs);
     if (window == null) {
-      debugPrint('⛔ Sleep window not available (bed/wake missing)');
+      debugPrint('⛔ Sleep window not available');
       return;
     }
 
@@ -73,30 +97,36 @@ class SleepNoticingService {
       return;
     }
 
-    final prefs = await SharedPreferences.getInstance();
     final lastOffKey = 'last_screen_off_${window.dateKey}';
-
     await prefs.setString(lastOffKey, now.toIso8601String());
 
     debugPrint('🔒 SCREEN_OFF saved → $lastOffKey = $now');
   }
 
   // ─────────────────────────────────────────────
-  // SCREEN ON → AWAKE SEGMENT
+  // SCREEN ON → AWAKE SEGMENT, SAVE INTERVAL
   // ─────────────────────────────────────────────
 
   Future<void> _onScreenTurnedOn() async {
     debugPrint('🌞 SCREEN_ON detected');
+    _screenIsOn = true;  // Add this: Update state
 
-    final window = await _computeActiveSleepWindow();
+    final prefs = await SharedPreferences.getInstance();
+
+    // Check if sleep tracking is active
+    final isSleeping = prefs.getBool("is_sleeping") ?? false;
+    if (!isSleeping) {
+      debugPrint('⛔ Sleep tracking not active, ignoring SCREEN_ON');
+      return;
+    }
+
+    final window = await _computeActiveSleepWindow(prefs);
     if (window == null) {
       debugPrint('⛔ Sleep window not available');
       return;
     }
 
     final now = DateTime.now();
-    final prefs = await SharedPreferences.getInstance();
-
     final lastOffKey = 'last_screen_off_${window.dateKey}';
     final intervalsKey = 'sleep_intervals_${window.dateKey}';
 
@@ -142,17 +172,88 @@ class SleepNoticingService {
     final existing = prefs.getString(intervalsKey);
     final newEntry = '${start.toIso8601String()}|${end.toIso8601String()}';
 
-    final updated =
-        (existing == null || existing.isEmpty)
-            ? newEntry
-            : '$existing,$newEntry';
+    final updated = (existing == null || existing.isEmpty)
+        ? newEntry
+        : '$existing,$newEntry';
 
     await prefs.setString(intervalsKey, updated);
     await prefs.remove(lastOffKey);
 
     debugPrint('💾 Interval saved → $intervalsKey');
     debugPrint('   entry: $newEntry');
-    debugPrint('   all intervals: $updated');
+    debugPrint('   total intervals: ${updated.split(',').length}');
+  }
+
+  // ─────────────────────────────────────────────
+  // PUBLIC UTILITY: Get total sleep time
+  // ─────────────────────────────────────────────
+
+  // ... existing code ...
+
+  Future<int> getTotalSleepMinutes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final window = await _computeActiveSleepWindow(prefs);
+
+    if (window == null) return 0;
+
+    final intervalsKey = 'sleep_intervals_${window.dateKey}';
+    final intervalsStr = prefs.getString(intervalsKey);
+
+    int totalMinutes = 0;
+
+    // Count saved intervals
+    if (intervalsStr != null && intervalsStr.isNotEmpty) {
+      final intervals = intervalsStr.split(',');
+      for (final intervalStr in intervals) {
+        final parts = intervalStr.split('|');
+        if (parts.length == 2) {
+          try {
+            final start = DateTime.parse(parts[0]);
+            final end = DateTime.parse(parts[1]);
+            totalMinutes += end.difference(start).inMinutes;
+          } catch (e) {
+            debugPrint('⚠️ Failed to parse interval: $intervalStr');
+          }
+        }
+      }
+    }
+
+    // Check for open interval (screen currently off)
+    final lastOffKey = 'last_screen_off_${window.dateKey}';
+    final lastOffStr = prefs.getString(lastOffKey);
+    if (lastOffStr != null) {
+      try {
+        final lastOff = DateTime.parse(lastOffStr);
+        final now = DateTime.now();
+
+        // Clamp to window
+        DateTime start = lastOff.isBefore(window.start) ? window.start : lastOff;
+        DateTime end = now.isAfter(window.end) ? window.end : now;
+
+        if (end.isAfter(start)) {
+          final openIntervalMinutes = end.difference(start).inMinutes;
+          totalMinutes += openIntervalMinutes;
+          debugPrint('📱 Open interval (screen still off): $openIntervalMinutes mins');
+        }
+      } catch (e) {
+        debugPrint('⚠️ Failed to parse open interval: $e');
+      }
+    }
+
+    debugPrint('📊 Total sleep from intervals + open: $totalMinutes mins');
+    return totalMinutes;
+  }
+
+// ... rest of existing code ...
+  // ─────────────────────────────────────────────
+  // PUBLIC UTILITY: Clear sleep data
+  // ─────────────────────────────────────────────
+
+  Future<void> clearSleepData(String dateKey) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('sleep_intervals_$dateKey');
+    await prefs.remove('last_screen_off_$dateKey');
+    debugPrint('🗑️ Cleared sleep data for $dateKey');
   }
 
   // ─────────────────────────────────────────────
@@ -160,18 +261,28 @@ class SleepNoticingService {
   // ─────────────────────────────────────────────
 
   bool _isWithinWindow(DateTime t, DateTime start, DateTime end) {
-    final inside =
-        (!t.isBefore(start)) && (t.isBefore(end) || t.isAtSameMomentAs(end));
-
-    debugPrint('🧪 isWithinWindow($t) → $inside');
-
+    final inside = (!t.isBefore(start)) && (t.isBefore(end) || t.isAtSameMomentAs(end));
     return inside;
   }
 
-  Future<_SleepWindow?> _computeActiveSleepWindow() async {
+  Future<_SleepWindow?> _computeActiveSleepWindow(SharedPreferences prefs) async {
     debugPrint('🧠 Computing active sleep window');
 
-    final prefs = await SharedPreferences.getInstance();
+    // First try to get from current sleep session
+    final currentWindowStart = prefs.getString("current_sleep_window_start");
+    final currentWindowEnd = prefs.getString("current_sleep_window_end");
+    final currentWindowKey = prefs.getString("current_sleep_window_key");
+
+    if (currentWindowStart != null && currentWindowEnd != null && currentWindowKey != null) {
+      debugPrint('✅ Using current sleep session window');
+      return _SleepWindow(
+        start: DateTime.parse(currentWindowStart),
+        end: DateTime.parse(currentWindowEnd),
+        dateKey: currentWindowKey,
+      );
+    }
+
+    // Fallback to calculating from bedtime/waketime
     final bedMin = prefs.getInt(_bedtimeKey);
     final wakeMin = prefs.getInt(_waketimeKey);
 
@@ -239,9 +350,7 @@ class SleepNoticingService {
   }
 
   String _dateKey(DateTime d) {
-    final key =
-        '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-    debugPrint('🗓️ dateKey computed: $key');
+    final key = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
     return key;
   }
 }

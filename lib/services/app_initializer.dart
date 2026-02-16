@@ -17,6 +17,7 @@ import 'package:snevva/services/unified_background_service.dart';
 import 'package:snevva/services/notification_service.dart';
 
 import '../models/hive_models/sleep_log.dart';
+import '../models/hive_models/sleep_log_g.dart';
 import '../models/hive_models/steps_model.dart';
 import '../common/agent_debug_logger.dart';
 
@@ -71,21 +72,25 @@ Future<void> requestAllPermissions() async {
 // 2️⃣ HIVE INITIALIZATION (CHECK IF ALREADY INITIALIZED)
 // ====================================================================
 Future<void> setupHive() async {
-  var directory = await getApplicationDocumentsDirectory();
-  await Hive.initFlutter(directory.path);
+  try {
+    // ✅ Check if already initialized (across isolates, but mainly for main)
+    if (Hive.isBoxOpen('step_history') &&
+        Hive.isBoxOpen('sleep_log') &&
+        Hive.isBoxOpen('medicine_list') &&
+        Hive.isBoxOpen('reminders_box')) {
+      print("✅ Hive already initialized, skipping setup");
+      return;
+    }
 
-  // DEV ONLY: CLEAR HIVE ON RESTART
-  // bool isDev = true;
-  // if (isDev) await Hive.deleteFromDisk();
+    var directory = await getApplicationDocumentsDirectory();
+    await Hive.initFlutter(directory.path);  // This must be called once per isolate
 
-  if (Hive.isBoxOpen('step_history') &&
-      Hive.isBoxOpen('sleep_log') &&
-      Hive.isBoxOpen('medicine_list') &&
-      Hive.isBoxOpen('reminders_box')) {
-    print("✅ Hive already initialized, skipping setup");
-    return;
-  }
-  print("🧪 Hive initialized: ${Hive.isBoxOpen('step_history')}");
+    print("🧪 Initializing Hive at: ${directory.path}");
+
+    // Register adapters (only if not already registered)
+    if (!Hive.isAdapterRegistered(StepEntryAdapter().typeId)) {
+      Hive.registerAdapter(StepEntryAdapter());
+    }
 
   // 🔑 OPEN BOXES HERE
   // await Hive.openBox('sleepBox');
@@ -125,6 +130,9 @@ Future<void> setupHive() async {
   if (!Hive.isBoxOpen('step_history')) {
     await Hive.openBox<StepEntry>('step_history');
   }
+
+  print("✅ Hive setup complete - boxes opened");
+
   if (!Hive.isBoxOpen('sleep_log')) {
     await Hive.openBox<SleepLog>('sleep_log');
   }
@@ -135,7 +143,13 @@ Future<void> setupHive() async {
     await Hive.openBox('medicine_list');
   }
 
-  print("✅ Hive setup complete");
+    print("✅ Hive setup complete - boxes opened");
+  } catch (e, stackTrace) {
+    print("❌ Hive setup failed: $e");
+    print(stackTrace);
+    // Optionally rethrow or handle (e.g., show error UI)
+    rethrow;  // Let main.dart handle it
+  }
 }
 
 // ====================================================================
