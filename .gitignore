@@ -55,3 +55,11 @@ windows/flutter/generated_plugins.cmake
 *.env
 secrets/key.json
 android/key.properties
+
+
+# Logs (VERY IMPORTANT)
+*.log
+logs
+logs.txt
+logs2
+lib/bin/
