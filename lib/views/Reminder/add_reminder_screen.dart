@@ -884,42 +884,48 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         const SizedBox(height: 20),
 
         //Remind before medicine
-        Obx(
-          () => Row(
+        Obx(() {
+          final isSelected =
+              medicineGetxController.medicineRemindMeBeforeOption.value == 0;
+          return Row(
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              CustomRadio(
-                selected:
-                    medicineGetxController.medicineRemindMeBeforeOption.value ==
-                    0,
-                onTap: () async {
-                  final rx =
-                      medicineGetxController.medicineRemindMeBeforeOption;
-                  if (rx.value == 0) {
-                    rx.value = null;
-                    medicineGetxController.medicineTimeBeforeController.clear();
-                  } else {
-                    rx.value = 0;
-                  }
-                },
+              Theme(
+                data: Theme.of(context).copyWith(unselectedWidgetColor: grey),
+                child: CustomRadio(
+                  selected: isSelected,
+                  onTap: () {
+                    final rx =
+                        medicineGetxController.medicineRemindMeBeforeOption;
+                    if (rx.value == 0) {
+                      rx.value = null;
+                      medicineGetxController.medicineTimeBeforeController
+                          .clear();
+                    } else {
+                      rx.value = 0;
+                    }
+                  },
+                ),
               ),
               const SizedBox(width: 8),
-              const Text("Remind me "),
+              Text(
+                "Remind me ",
+                style: TextStyle(color: isSelected ? black : grey),
+              ),
               SizedBox(
                 width: 50,
                 height: 36,
                 child: TextField(
                   controller:
                       medicineGetxController.medicineTimeBeforeController,
-                  enabled:
-                      medicineGetxController
-                          .medicineRemindMeBeforeOption
-                          .value ==
-                      0,
+                  enabled: isSelected,
                   keyboardType: TextInputType.number,
-                  style: const TextStyle(fontSize: 13),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isSelected ? black : grey,
+                  ),
                   decoration: const InputDecoration(
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(
@@ -929,7 +935,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   ),
                 ),
               ),
-              const Text("   "),
+              SizedBox(width: 8),
               SizedBox(
                 width: 70,
                 height: 35,
@@ -945,20 +951,27 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                               value: value,
                               child: Text(
                                 value,
-                                style: const TextStyle(fontSize: 13),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isSelected ? black : grey,
+                                ),
                               ),
                             ),
                           )
                           .toList(),
                   onChanged: (newValue) {
-                    reminderController.selectedValue.value = newValue!;
+                    if (newValue != null)
+                      reminderController.selectedValue.value = newValue;
                   },
                 ),
               ),
-              Text("  before"),
+              Text(
+                " before",
+                style: TextStyle(color: isSelected ? black : grey),
+              ),
             ],
-          ),
-        ),
+          );
+        }),
       ],
     );
   }
@@ -978,8 +991,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 2),
-        Obx(
-          () => Column(
+        Obx(() {
+          final selected = waterGetxController.waterReminderOption.value;
+          final timesSelected = selected == Option.times;
+          final intervalSelected = selected == Option.interval;
+
+          return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Wrap(
@@ -987,27 +1004,33 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 runSpacing: 8,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Radio<Option>(
-                    value: Option.times,
-                    activeColor: black,
-                    groupValue: waterGetxController.waterReminderOption.value,
-                    onChanged: (value) {
-                      if (value != null) {
-                        waterGetxController.waterReminderOption.value = value;
-                      }
-                    },
+                  Theme(
+                    data: Theme.of(
+                      context,
+                    ).copyWith(unselectedWidgetColor: grey),
+                    child: Radio<Option>(
+                      value: Option.times,
+                      activeColor: black,
+                      groupValue: selected,
+                      onChanged: (value) {
+                        if (value != null) {
+                          waterGetxController.waterReminderOption.value = value;
+                        }
+                      },
+                    ),
                   ),
-                  Text("Remind me"),
+                  Text(
+                    "Remind me",
+                    style: TextStyle(color: timesSelected ? black : grey),
+                  ),
                   SizedBox(
                     width: 50,
                     child: TextField(
                       controller: waterGetxController.timesPerDayController,
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-
-                      enabled:
-                          waterGetxController.waterReminderOption.value ==
-                          Option.times,
+                      style: TextStyle(color: timesSelected ? black : grey),
+                      enabled: timesSelected,
                       decoration: InputDecoration(
                         isDense: true,
                         contentPadding: EdgeInsets.symmetric(
@@ -1023,11 +1046,20 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   ),
                   Obx(() {
                     final t = waterGetxController.savedTimes.value;
-                    return Text("time${t > 1 ? 's' : ''}");
+                    return Text(
+                      "time${t > 1 ? 's' : ''}",
+                      style: TextStyle(color: timesSelected ? black : grey),
+                    );
                   }),
 
-                  Text("a"),
-                  Text("day"),
+                  Text(
+                    "a",
+                    style: TextStyle(color: timesSelected ? black : grey),
+                  ),
+                  Text(
+                    "day",
+                    style: TextStyle(color: timesSelected ? black : grey),
+                  ),
                 ],
               ),
               const SizedBox(height: 4),
@@ -1036,26 +1068,40 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 runSpacing: 8,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Radio<Option>(
-                    value: Option.interval,
-                    activeColor: black,
-                    groupValue: waterGetxController.waterReminderOption.value,
-                    onChanged: (value) {
-                      if (value != null) {
-                        waterGetxController.waterReminderOption.value = value;
-                      }
-                    },
+                  Theme(
+                    data: Theme.of(
+                      context,
+                    ).copyWith(unselectedWidgetColor: grey),
+                    child: Radio<Option>(
+                      value: Option.interval,
+                      activeColor: black,
+                      groupValue: waterGetxController.waterReminderOption.value,
+                      onChanged: (value) {
+                        if (value != null) {
+                          waterGetxController.waterReminderOption.value = value;
+                        }
+                      },
+                    ),
                   ),
-                  Text("Remind"),
-                  Text("me"),
-                  Text("every"),
+                  Text(
+                    "Remind",
+                    style: TextStyle(color: intervalSelected ? black : grey),
+                  ),
+                  Text(
+                    "me",
+                    style: TextStyle(color: intervalSelected ? black : grey),
+                  ),
+                  Text(
+                    "every",
+                    style: TextStyle(color: intervalSelected ? black : grey),
+                  ),
                   SizedBox(
                     width: 50,
                     child: TextField(
                       controller: waterGetxController.everyHourController,
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-
+                      style: TextStyle(color: intervalSelected ? black : grey),
                       enabled:
                           waterGetxController.waterReminderOption.value ==
                           Option.interval,
@@ -1079,11 +1125,20 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
                   Obx(() {
                     final t = waterGetxController.everyXhours.value;
-                    return Text("hour${t > 1 ? 's' : ''}");
+                    return Text(
+                      "hour${t > 1 ? 's' : ''}",
+                      style: TextStyle(color: intervalSelected ? black : grey),
+                    );
                   }),
 
-                  Text("a"),
-                  Text("day"),
+                  Text(
+                    "a",
+                    style: TextStyle(color: intervalSelected ? black : grey),
+                  ),
+                  Text(
+                    "day",
+                    style: TextStyle(color: intervalSelected ? black : grey),
+                  ),
                   // Text("between"),
                   // SizedBox(
                   //   height: 40,
@@ -1118,8 +1173,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 ],
               ),
             ],
-          ),
-        ),
+          );
+        }),
       ],
     );
   }
@@ -1157,11 +1212,11 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         ),
         const SizedBox(height: 6),
         TextField(
-          controller: this.reminderController.timeController,
+          controller: reminderController.timeController,
           readOnly: true,
           onTap:
               () => _selectTime(
-                textController: this.reminderController.timeController,
+                textController: reminderController.timeController,
               ),
           decoration: commonInputDecoration(hint: '09:28 AM'),
         ),
@@ -1175,8 +1230,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             () => OutlinedButton(
               onPressed:
                   () => _selectDate(
-                    date: this.reminderController.startDate,
-                    dateString: this.reminderController.startDateString,
+                    date: reminderController.startDate,
+                    dateString: reminderController.startDateString,
                   ),
               style: ButtonStyle(
                 side: WidgetStateProperty.resolveWith<BorderSide?>((states) {
@@ -1192,13 +1247,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 ),
               ),
               child: Text(
-                this.reminderController.startDate.value == null
+                reminderController.startDate.value == null
                     ? 'Start Date'
-                    : this.reminderController.startDateString.value,
+                    : reminderController.startDateString.value,
                 style: TextStyle(
                   color:
-                      this.reminderController.startDateString.value ==
-                              "Start Date"
+                      reminderController.startDateString.value == "Start Date"
                           ? grey
                           : black,
                 ),
@@ -1216,16 +1270,34 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
-            Obx(
-              () => Row(
+            Obx(() {
+              // Check if "Remind me" option is selected
+              final isSelected =
+                  eventGetxController.eventRemindMeBefore.value == 0;
+
+              // Get the number input
+              final enteredValue =
+                  int.tryParse(
+                    eventGetxController.eventTimeBeforeController.text,
+                  ) ??
+                  0;
+
+              // Get the selected unit from dropdown
+              final unit = reminderController.selectedValue.value;
+
+              // Proper pluralization
+              final unitText =
+                  enteredValue == 1 ? unit.substring(0, unit.length - 1) : unit;
+
+              return Row(
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Custom radio
                   CustomRadio(
-                    selected:
-                        eventGetxController.eventRemindMeBefore.value == 0,
-                    onTap: () async {
+                    selected: isSelected,
+                    onTap: () {
                       final rx = eventGetxController.eventRemindMeBefore;
                       if (rx.value == 0) {
                         rx.value = null;
@@ -1233,27 +1305,29 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       } else {
                         rx.value = 0;
                       }
-                      // await reminderController.handleRemindMeBefore(
-                      //   option: rx,
-                      //   timeOfDay: reminderController.pickedTime.value,
-                      //   timeController: reminderController.xTimeUnitController,
-                      //   unitController: reminderController.selectedValue,
-                      //   category: "Medicine",
-                      // );
                     },
                   ),
                   const SizedBox(width: 8),
-                  Text("Remind me "),
+
+                  // "Remind me" text
+                  Text(
+                    "Remind me",
+                    style: TextStyle(color: isSelected ? black : grey),
+                  ),
+                  const SizedBox(width: 4),
+
+                  // Number input
                   SizedBox(
                     width: 50,
                     height: 35,
                     child: TextField(
                       controller: eventGetxController.eventTimeBeforeController,
                       keyboardType: TextInputType.number,
-                      style: const TextStyle(fontSize: 13),
-                      enabled:
-                          eventGetxController.eventRemindMeBefore.value == 0,
-                      // FIX: Changed condition
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isSelected ? black : grey,
+                      ),
+                      enabled: isSelected,
                       decoration: const InputDecoration(
                         isDense: true,
                         contentPadding: EdgeInsets.symmetric(
@@ -1263,8 +1337,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       ),
                     ),
                   ),
-                  Text("  "),
+                  const SizedBox(width: 4),
 
+                  // Dropdown for minutes/hours
                   SizedBox(
                     width: 70,
                     height: 35,
@@ -1280,21 +1355,31 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                                   value: value,
                                   child: Text(
                                     value,
-                                    style: const TextStyle(fontSize: 13),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: isSelected ? black : grey,
+                                    ),
                                   ),
                                 ),
                               )
                               .toList(),
                       onChanged: (newValue) {
-                        reminderController.selectedValue.value = newValue!;
+                        if (newValue != null) {
+                          reminderController.selectedValue.value = newValue;
+                        }
                       },
                     ),
                   ),
+                  const SizedBox(width: 4),
 
-                  Text("  before"),
+                  // Pluralized unit + "before"
+                  Text(
+                    " before",
+                    style: TextStyle(color: isSelected ? black : grey),
+                  ),
                 ],
-              ),
-            ),
+              );
+            }),
           ],
         ),
         // Obx(
@@ -1509,11 +1594,13 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
       final timesSelected = selected == Option.times;
       final intervalSelected = selected == Option.interval;
+      final t = medicineGetxController.savedTimes.value;
+      final e = medicineGetxController.everyXhours.value;
 
-      if (medicineGetxController.selectedFrequency.value == 'Custom') {
-        medicineGetxController.timesPerDayController.text = 4.toString();
-        medicineGetxController.everyHourController.text = 4.toString();
-      }
+      // if (medicineGetxController.selectedFrequency.value == 'Custom') {
+      //   medicineGetxController.timesPerDayController.text = 4.toString();
+      //   medicineGetxController.everyHourController.text = 4.toString();
+      // }
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1535,7 +1622,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   },
                 ),
               ),
-              _greyText("Remind me", timesSelected),
+              Text(
+                "Remind me",
+                style: TextStyle(color: timesSelected ? black : grey),
+              ),
               SizedBox(
                 width: 36,
                 child: TextField(
@@ -1552,7 +1642,16 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   ),
                 ),
               ),
-              _greyText("times a day", timesSelected),
+              Text(
+                "time${t > 1 ? 's' : ''}",
+                style: TextStyle(color: timesSelected ? black : grey),
+              ),
+
+              Text("a", style: TextStyle(color: timesSelected ? black : grey)),
+              Text(
+                "day",
+                style: TextStyle(color: timesSelected ? black : grey),
+              ),
             ],
           ),
 
@@ -1575,7 +1674,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   },
                 ),
               ),
-              _greyText("Remind me every", intervalSelected),
+              Text(
+                "Remind me every",
+                style: TextStyle(color: intervalSelected ? black : grey),
+              ),
               SizedBox(
                 width: 36,
                 child: TextField(
@@ -1592,7 +1694,20 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   ),
                 ),
               ),
-              _greyText("hours a day", intervalSelected),
+
+              Text(
+                "hour${e > 1 ? 's' : ''}",
+                style: TextStyle(color: intervalSelected ? black : grey),
+              ),
+
+              Text(
+                "a",
+                style: TextStyle(color: intervalSelected ? black : grey),
+              ),
+              Text(
+                "day",
+                style: TextStyle(color: intervalSelected ? black : grey),
+              ),
             ],
           ),
         ],
@@ -1695,16 +1810,6 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       ),
       isDense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-    );
-  }
-
-  Widget _greyText(String text, bool enabled) {
-    return Text(
-      text,
-      style: TextStyle(
-        color: enabled ? black : grey,
-        fontWeight: FontWeight.w400,
-      ),
     );
   }
 

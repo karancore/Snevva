@@ -36,15 +36,23 @@ class WaterController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    print("💧 WaterController initialized");
+    everyHourController.addListener((){
+      final value = int.tryParse(everyHourController.text) ?? 1;
+      everyXhours.value = value;
+    });
+    timesPerDayController.addListener((){
+      final value = int.tryParse(timesPerDayController.text) ?? 1;
+      savedTimes.value = value;
+    });
+
   }
 
   void resetForm() {
     // ---------- Text controllers ----------
-    everyHourController.clear();
-    timesPerDayController.clear();
-    startWaterTimeController.clear();
-    endWaterTimeController.clear();
+    everyHourController.dispose();
+    timesPerDayController.dispose();
+    startWaterTimeController.dispose();
+    endWaterTimeController.dispose();
 
     // ---------- Rx values ----------
     waterReminderOption.value = Option.times;

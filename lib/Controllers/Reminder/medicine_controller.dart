@@ -28,13 +28,11 @@ class MedicineController extends GetxController {
   var timeBeforeReminder = (-1).obs;
 
   RxnInt medicineRemindMeBeforeOption = RxnInt();
-
-  final everyHourController = TextEditingController();
-
-  final timesPerDayController = TextEditingController();
-  var savedTimes = 0.obs;
+  final everyHourController = TextEditingController(text: '4');
+  final timesPerDayController = TextEditingController(text: '4');
+  var savedTimes = 4.obs;
   var timesListLength = 4.obs;
-  final everyXhours = 1.obs;
+  final everyXhours = 4.obs;
   final startMedicineTimeController = TextEditingController();
   final endMedicineTimeController = TextEditingController();
   Rx<DateTime?> startDate = Rx<DateTime?>(null);
@@ -86,10 +84,27 @@ class MedicineController extends GetxController {
   void onInit() {
     super.onInit();
 
-    ever(selectedFrequency, (_) {
-      _syncTimeControllers();
+    everyHourController.addListener(() {
+      final value = int.tryParse(everyHourController.text) ?? 1;
+
+      if (everyXhours.value != value) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          everyXhours.value = value;
+        });
+      }
+    });
+
+    timesPerDayController.addListener(() {
+      final value = int.tryParse(timesPerDayController.text) ?? 1;
+
+      if (savedTimes.value != value) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          savedTimes.value = value;
+        });
+      }
     });
   }
+
 
   void _syncTimeControllers() {
     final length = frequencyNum[selectedFrequency.value] ?? 1;

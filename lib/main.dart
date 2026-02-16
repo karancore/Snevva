@@ -398,7 +398,7 @@ class _MyAppState extends State<MyApp> {
       }
 
       if (!hasSession) {
-        Get.offAll(() => SignInScreen());
+        Get.offAll(() => HomeWrapper());
         return;
       }
 
