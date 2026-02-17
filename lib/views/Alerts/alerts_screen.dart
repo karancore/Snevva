@@ -20,6 +20,8 @@ class _AlertsScreenState extends State<AlertsScreen>
     with SingleTickerProviderStateMixin {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
 
+  final alertsController = Get.find<AlertsController>();
+
   @override
   void initState() {
     super.initState();
@@ -45,7 +47,12 @@ class _AlertsScreenState extends State<AlertsScreen>
     // });
     // // Use the existing instance instead of creating new one
     // notif = Get.find<NotificationService>();
+    WidgetsBinding.instance.addPostFrameCallback((_){
+      alertsController.hitAlertsNotifications();
+    });
   }
+
+
 
   @override
   Widget build(BuildContext context) {

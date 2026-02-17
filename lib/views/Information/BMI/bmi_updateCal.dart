@@ -1,6 +1,10 @@
+import 'dart:async';
+import 'dart:math';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:get/get.dart';
 import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
-import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
@@ -18,23 +22,113 @@ class BmiUpdatecal extends StatefulWidget {
 class _BmiUpdatecalState extends State<BmiUpdatecal> {
   bool isMale = true;
   int age = 19;
-  int weight = 52;
+  double weight = 52;
   double height = 158;
 
-  final double itemWidth = 60; // width of each number
+  // smaller virtual list to lower layout cost
+  static const int _virtualItemCount = 200;
+  static const int _realItemCount = 100;
 
-  bool isSelected = false;
+  late FixedExtentScrollController weightController;
+
+  final List<int> weights = List.generate(100, (i) => i + 1); // 1–120 kg
+  int selectedWeight = 70;
+
+  // visual dimensions (keep them consistent)
+  static const double _visibleItemWidth = 32.0;
+  static const double _itemSpacing = 8.0;
+  static const double _itemExtent = _visibleItemWidth + _itemSpacing;
+
+  // keeps track of last computed viewport (set inside LayoutBuilder)
+  double _currentViewportWidth = 220.0;
+
+  late int _middleIndex;
+  late ScrollController _scrollController;
+
+  // guard to avoid feedback loop when we animate programmatically
+  bool _isAutoScrolling = false;
+
+  // controller (keep as you had it)
+  final bmicontroller = Get.put(BmiUpdateController());
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
+
+    _middleIndex = _virtualItemCount ~/ 2;
+
+    weightController = FixedExtentScrollController(
+      initialItem: selectedWeight - 1,
+    );
+    // wait for first layout then scroll (small delay avoids heavy layout + animate overlap)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (mounted) _scrollToWeight(weight);
+      });
+    });
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients || _isAutoScrolling) return;
+
+    // center point inside the list view (accounting for left padding)
+    final center = _scrollController.offset + (_currentViewportWidth / 2);
+
+    final int index = (center / _itemExtent).round();
+    final int newNumber = (index % _realItemCount) + 1;
+
+    if (newNumber != weight.round()) {
+      // only update when changed
+      setState(() {
+        weight = newNumber.toDouble();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _scrollToWeight(double number) async {
+    if (!_scrollController.hasClients) return;
+
+    // Find the nearest cycle around middle
+    final int baseIndex = _middleIndex - (_middleIndex % _realItemCount);
+    final int targetIndex = baseIndex + number.round() - 1;
+
+    // compute the left offset so that target item is centered
+    final double screenCenter = _currentViewportWidth / 2;
+    final double itemCenter = _itemExtent / 2;
+    final double offset = (targetIndex * _itemExtent) - (screenCenter - itemCenter);
+
+    _isAutoScrolling = true;
+    try {
+      await _scrollController.animateTo(
+        offset,
+        duration: const Duration(milliseconds: 330),
+        curve: Curves.easeOut,
+      );
+    } catch (_) {
+      // animateTo can throw if controller disposed — ignore safely
+    } finally {
+      // small delay to ensure the scroll metrics settle before turning the guard off
+      await Future.delayed(const Duration(milliseconds: 30));
+      if (mounted) _isAutoScrolling = false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final heightDevice = mediaQuery.size.height;
     final width = mediaQuery.size.width;
-    // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final bottomButtonHeight = 80.0;
-
-    final bmicontroller = Get.put(BmiUpdateController());
 
     return Scaffold(
       drawer: Drawer(
@@ -44,37 +138,32 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
       appBar: AppBar(
         backgroundColor: transparent,
         centerTitle: true,
-        title: Text(
-          "BMI Calculator",
+        title: const Text(
+          "Update Your BMI",
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: white,
+            color: Colors.white,
           ),
         ),
-
-        // Conditionally show leading drawer icon
         leading: Builder(
-          builder:
-              (context) => IconButton(
-                icon: SvgPicture.asset(drawerIcon, color: white),
-                onPressed: () => Scaffold.of(context).openDrawer(),
-              ),
+          builder: (context) => IconButton(
+            icon: SvgPicture.asset(drawerIcon, color: white),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
         ),
-
-        // Conditionally show close (cross) icon
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 20),
             child: InkWell(
               onTap: () => Navigator.pop(context),
-              child: SizedBox(
+              child: const SizedBox(
                 height: 24,
                 width: 24,
                 child: Icon(
                   Icons.clear,
                   size: 21,
-                  color: white, // Adapt to theme
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -89,7 +178,7 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
             child: Image.asset(bmiCalculator, fit: BoxFit.fill),
           ),
           Padding(
-            padding: const EdgeInsets.only(top: 250),
+            padding: const EdgeInsets.only(top: 270),
             child: SingleChildScrollView(
               padding: EdgeInsets.only(
                 left: 16,
@@ -99,124 +188,6 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Gender and Age in Cards
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Card(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 4,
-                          color: isDarkMode ? darkGray : white,
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              children: [
-                                const Text("Gender"),
-                                Divider(color: Colors.grey, thickness: 1),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    Column(
-                                      children: [
-                                        IconButton(
-                                          icon: Icon(
-                                            Icons.female,
-                                            color:
-                                                !isMale
-                                                    ? AppColors.primaryColor
-                                                    : mediumGrey,
-                                          ),
-                                          onPressed:
-                                              () => setState(
-                                                () => isMale = false,
-                                              ),
-                                        ),
-                                        const Text("Female"),
-                                      ],
-                                    ),
-                                    Column(
-                                      children: [
-                                        IconButton(
-                                          icon: Icon(
-                                            Icons.male,
-                                            color:
-                                                isMale
-                                                    ? AppColors.primaryColor
-                                                    : mediumGrey,
-                                          ),
-                                          onPressed:
-                                              () =>
-                                                  setState(() => isMale = true),
-                                        ),
-                                        const Text("Male"),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Card(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 4,
-                          color: isDarkMode ? darkGray : white,
-                          child: Padding(
-                            padding: const EdgeInsets.all(10),
-                            child: Column(
-                              children: [
-                                const Text("Age"),
-                                Divider(color: mediumGrey, thickness: 1),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.remove_circle_outline,
-                                      ),
-                                      onPressed:
-                                          () => setState(
-                                            () => age = age > 0 ? age - 1 : 0,
-                                          ),
-                                    ),
-                                    AutoSizeText(
-                                      "$age",
-                                      minFontSize: 16,
-                                      maxLines: 1,
-                                      style: const TextStyle(
-                                        fontSize: 20,
-                                        color: AppColors.primaryColor,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.add_circle_outline,
-                                      ),
-                                      onPressed: () => setState(() => age++),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 32),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
                   // Weight Card
                   Card(
                     shape: RoundedRectangleBorder(
@@ -235,63 +206,71 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
                           const Text("Weight"),
                           Divider(color: mediumGrey, thickness: 1),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               // Minus button
-                              IconButton(
-                                icon: const Icon(Icons.remove_circle_outline),
-                                onPressed: () {
-                                  if (weight <= 1) return; // prevent going below 1
-                                  setState(() => weight--);
-                                },
-                              ),
+                              // IconButton(
+                              //   icon: const Icon(Icons.remove_circle_outline),
+                              //   onPressed: () {
+                              //     if (weight <= 1) return;
+                              //     weight = max(1, weight - 1);
+                              //     _scrollToWeight(weight);
+                              //     setState(() {});
+                              //   },
+                              // ),
 
-                              // Horizontal list of numbers 1-100
-                              SizedBox(
-                                height: 100,
-                                width: 220,
-                                child: ListView.separated(
-                                  scrollDirection: Axis.horizontal,
-                                  itemCount: 100,
-                                  itemBuilder: (context, index) {
-                                    final number = index + 1;
-                                    final isSelected = weight == number; // highlight selected number
-
-                                    return GestureDetector(
-                                      onTap: () {
-                                        setState(() => weight = number);
+                              // Responsive list
+                              Expanded(
+                                child: SizedBox(
+                                  height: 60,
+                                  child: RotatedBox(
+                                    quarterTurns: -1,
+                                    child: ListWheelScrollView.useDelegate(
+                                      controller: weightController,
+                                      itemExtent: 50, // VERY IMPORTANT (height of each number)
+                                      diameterRatio: 2.5,
+                                      physics: const FixedExtentScrollPhysics(),
+                                      perspective: 0.003,
+                                      onSelectedItemChanged: (index) {
+                                        setState(() {
+                                          selectedWeight = weights[index];
+                                        });
                                       },
-                                      child: Container(
-                                        alignment: Alignment.center,
-                                        width: 30, // make each number have some space
-                                        child: AutoSizeText(
-                                          '$number',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 18,
-                                            color: isSelected
-                                                ? AppColors.primaryColor
-                                                : mediumGrey,
-                                          ),
-                                        ),
+                                      childDelegate: ListWheelChildBuilderDelegate(
+                                        childCount: weights.length,
+                                        builder: (context, index) {
+                                          final isSelected = weights[index] == selectedWeight;
+
+                                          return Center(
+                                            child: AnimatedDefaultTextStyle(
+                                              duration: const Duration(milliseconds: 200),
+                                              style: TextStyle(
+                                                fontSize: isSelected ? 26 : 18,
+                                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w400,
+                                                color: isSelected ? AppColors.primaryColor : Colors.grey,
+                                              ),
+                                              child: RotatedBox(quarterTurns : 1 , child: Text(weights[index].toString())),
+                                            ),
+                                          );
+                                        },
                                       ),
-                                    );
-                                  },
-                                  separatorBuilder: (context, index) => const SizedBox(width: 8),
+                                    ),
+                                  ),
                                 ),
+
                               ),
 
                               // Plus button
-                              IconButton(
-                                icon: const Icon(Icons.add_circle_outline),
-                                onPressed: () {
-                                  if (weight >= 100) return; // prevent going above 100
-                                  setState(() => weight++);
-                                },
-                              ),
+                              // IconButton(
+                              //   icon: const Icon(Icons.add_circle_outline),
+                              //   onPressed: () {
+                              //     if (weight >= _realItemCount) return;
+                              //     weight = min(_realItemCount.toDouble(), weight + 1);
+                              //     _scrollToWeight(weight);
+                              //     setState(() {});
+                              //   },
+                              // ),
                             ],
                           )
-
                         ],
                       ),
                     ),
@@ -336,24 +315,30 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
                     ),
                   ),
                   const SizedBox(height: 30),
-
-                  // Calculate BMI Button
-                  CustomOutlinedButton(
-                    width: width,
-                    isDarkMode: isDarkMode,
-                    buttonName: "Calculate BMI",
-                    backgroundColor: AppColors.primaryColor,
-                    onTap: () {
-                      double bmi = weight / ((height / 100) * (height / 100));
-                      bmicontroller.setvalues(context, age, height, weight);
-                      Get.to(BmiUpdateres(bmi: bmi, age: age));
-                    },
-                  ),
                 ],
               ),
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: CustomOutlinedButton(
+            width: width,
+            isDarkMode: isDarkMode,
+            buttonName: "Calculate BMI",
+            backgroundColor: AppColors.primaryColor,
+            onTap: () async {
+              final double bmi = weight / pow(height / 100, 2);
+
+              bool flag = await bmicontroller.setHeightAndWeight(context, age, height, weight);
+              if (flag) {
+                Get.to(BmiUpdateres(bmi: bmi, age: age));
+              }
+            },
+          ),
+        ),
       ),
     );
   }

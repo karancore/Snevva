@@ -1109,9 +1109,7 @@ class EditprofileController extends GetxService {
   }) async {
     return _saveField(
       context,
-
       'Value',
-
       height,
       userHeightApi,
       payloadExtras: {'Day': day, 'Month': month, 'Year': year, 'Time': time},
@@ -1129,7 +1127,6 @@ class EditprofileController extends GetxService {
     return _saveField(
       context,
       'Value',
-
       weight,
       userWeightApi,
       payloadExtras: {'Day': day, 'Month': month, 'Year': year, 'Time': time},

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter_svg/svg.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
@@ -16,12 +18,99 @@ class BmiCal extends StatefulWidget {
 class _BmiCalState extends State<BmiCal> {
   bool isMale = true;
   int age = 19;
-  int weight = 52;
+  double weight = 52;
   double height = 158;
 
-  final double itemWidth = 60; // width of each number
-
   bool isSelected = false;
+
+  late FixedExtentScrollController weightController;
+  late ScrollController _scrollController;
+
+  final List<int> weights = List.generate(100, (i) => i + 1); // 1–120 kg
+  int selectedWeight = 70;
+
+  static const int _virtualItemCount = 500; // BIG list (infinite illusion)
+  static const int _realItemCount = 100;
+
+  late int _middleIndex;
+
+  final double itemWidth = 38; // 30 width + 8 separator spacing
+  final double viewportWidth = 220; // your SizedBox width
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+
+    _scrollController.addListener(_onScroll);
+
+
+    _middleIndex = _virtualItemCount ~/ 2;
+
+    weightController = FixedExtentScrollController(
+      initialItem: selectedWeight - 1,
+    );
+
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 50), () {
+        _scrollToWeight(weight);
+      });
+    });
+
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+
+    const double itemWidth = 32;
+    const double spacing = 8;
+    const double itemExtent = itemWidth + spacing;
+
+    final center = _scrollController.offset + (viewportWidth / 2);
+
+    int index = (center / itemExtent).round();
+
+    int number = (index % _realItemCount) + 1;
+
+    if (number != weight.round()) {
+      setState(() {
+        weight = number.toDouble();
+      });
+    }
+  }
+
+
+  void _scrollToWeight(double number) {
+    if (!_scrollController.hasClients) return;
+
+    const double itemWidth = 32;
+    const double spacing = 8;
+    const double itemExtent = itemWidth + spacing;
+
+    // Find the nearest cycle around middle
+    int baseIndex = _middleIndex - (_middleIndex % _realItemCount);
+    int targetIndex = baseIndex + number.round() - 1;
+
+    // center correction
+    final screenCenter = viewportWidth / 2;
+    final itemCenter = itemExtent / 2;
+
+    double offset = (targetIndex * itemExtent) - (screenCenter - itemCenter);
+
+    _scrollController.animateTo(
+      offset,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOut,
+    );
+  }
+
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -231,60 +320,67 @@ class _BmiCalState extends State<BmiCal> {
                           const Text("Weight"),
                           Divider(color: mediumGrey, thickness: 1),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               // Minus button
-                              IconButton(
-                                icon: const Icon(Icons.remove_circle_outline),
-                                onPressed: () {
-                                  if (weight <= 1) return; // prevent going below 1
-                                  setState(() => weight--);
-                                },
-                              ),
+                              // IconButton(
+                              //   icon: const Icon(Icons.remove_circle_outline),
+                              //   onPressed: () {
+                              //     if (weight <= 1) return;
+                              //     setState(() => weight--);
+                              //     _scrollToWeight(weight);
+                              //   },
+                              // ),
 
-                              // Horizontal list of numbers 1-100
-                              SizedBox(
-                                height: 100,
-                                width: 220,
-                                child: ListView.separated(
-                                  scrollDirection: Axis.horizontal,
-                                  itemCount: 100,
-                                  itemBuilder: (context, index) {
-                                    final number = index + 1;
-                                    final isSelected = weight == number; // highlight selected number
-
-                                    return GestureDetector(
-                                      onTap: () {
-                                        setState(() => weight = number);
+                              // Responsive list
+                              Expanded(
+                                child: SizedBox(
+                                  height: 60,
+                                  child: RotatedBox(
+                                    quarterTurns: -1,
+                                    child: ListWheelScrollView.useDelegate(
+                                      controller: weightController,
+                                      itemExtent: 50, // VERY IMPORTANT (height of each number)
+                                      diameterRatio: 2.5,
+                                      physics: const FixedExtentScrollPhysics(),
+                                      perspective: 0.003,
+                                      onSelectedItemChanged: (index) {
+                                        setState(() {
+                                          selectedWeight = weights[index];
+                                        });
                                       },
-                                      child: Container(
-                                        alignment: Alignment.center,
-                                        width: 30, // make each number have some space
-                                        child: AutoSizeText(
-                                          '$number',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 18,
-                                            color: isSelected
-                                                ? AppColors.primaryColor
-                                                : mediumGrey,
-                                          ),
-                                        ),
+                                      childDelegate: ListWheelChildBuilderDelegate(
+                                        childCount: weights.length,
+                                        builder: (context, index) {
+                                          final isSelected = weights[index] == selectedWeight;
+
+                                          return Center(
+                                            child: AnimatedDefaultTextStyle(
+                                              duration: const Duration(milliseconds: 200),
+                                              style: TextStyle(
+                                                fontSize: isSelected ? 26 : 18,
+                                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w400,
+                                                color: isSelected ? AppColors.primaryColor : Colors.grey,
+                                              ),
+                                              child: RotatedBox(quarterTurns : 1 , child: Text(weights[index].toString())),
+                                            ),
+                                          );
+                                        },
                                       ),
-                                    );
-                                  },
-                                  separatorBuilder: (context, index) => const SizedBox(width: 8),
+                                    ),
+                                  ),
                                 ),
+
                               ),
 
                               // Plus button
-                              IconButton(
-                                icon: const Icon(Icons.add_circle_outline),
-                                onPressed: () {
-                                  if (weight >= 100) return; // prevent going above 100
-                                  setState(() => weight++);
-                                },
-                              ),
+                              // IconButton(
+                              //   icon: const Icon(Icons.add_circle_outline),
+                              //   onPressed: () {
+                              //     if (weight >= 100) return;
+                              //     setState(() => weight++);
+                              //     _scrollToWeight(weight);
+                              //   },
+                              // ),
                             ],
                           )
 
@@ -334,21 +430,28 @@ class _BmiCalState extends State<BmiCal> {
                   const SizedBox(height: 30),
 
                   // Calculate BMI Button
-                  CustomOutlinedButton(
-                    width: width,
-                    isDarkMode: isDarkMode,
-                    buttonName: "Calculate BMI",
-                    backgroundColor: AppColors.primaryColor,
-                    onTap: () {
-                      double bmi = weight / ((height / 100) * (height / 100));
-                      Get.to(BmiResultPage(bmi: bmi, age: age));
-                    },
-                  ),
+
                 ],
               ),
             ),
           ),
         ],
+      ),
+      bottomNavigationBar:   SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: CustomOutlinedButton(
+            width: width,
+            isDarkMode: isDarkMode,
+            buttonName: "Calculate BMI",
+            backgroundColor: AppColors.primaryColor,
+            onTap: () {
+              double bmi = weight / pow(height / 100, 2);
+
+              Get.to(BmiResultPage(bmi: bmi, age: age));
+            },
+          ),
+        ),
       ),
     );
   }

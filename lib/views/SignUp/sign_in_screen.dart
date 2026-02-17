@@ -189,7 +189,10 @@ class _SignInScreenState extends State<SignInScreen> {
     );
     // #endregion
 
+
+    await requestAllPermissions();
     await initBackgroundService();
+
 
     // #region agent log
     AgentDebugLogger.log(

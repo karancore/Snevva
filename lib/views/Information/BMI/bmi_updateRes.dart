@@ -166,7 +166,7 @@ class BmiUpdateres extends StatelessWidget {
                   "Update BMI",
                   style: TextStyle(
                     fontSize: 16,
-                    color: isDarkMode ? Colors.white70 : Colors.black87,
+                    color: isDarkMode ? black : white,
                   ),
                 ),
               ),
@@ -190,7 +190,9 @@ class BmiUpdateres extends StatelessWidget {
                 final tips = controller.randomTips;
 
                 if (controller.isLoading.value) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator(
+                    color: AppColors.primaryColor,
+                  ));
                 }
 
                 if (tips.isEmpty) {

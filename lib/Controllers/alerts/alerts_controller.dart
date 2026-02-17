@@ -14,19 +14,19 @@ class AlertsController extends GetxService {
 
   static const _storageKey = 'notifications_list';
 
-  // @override
-  // void onInit() {
-  //   super.onInit();
-  //   _loadNotifications();
-  // }
-
   @override
-  void onReady() {
-    super.onReady();
-    _loadNotifications();
+  void onInit() {
+    super.onInit();
+    // _loadNotifications();
   }
 
-  Future<void> hitalertsnotification() async {
+  // @override
+  // void onReady() {
+  //   super.onReady();
+  //   // Future.wait([hitAlertsNotifications()]);
+  // }
+
+  Future<void> hitAlertsNotifications() async {
     debugPrint("Fetching alerts notifications...");
 
     try {
@@ -49,31 +49,12 @@ class AlertsController extends GetxService {
 
       final decoded = jsonDecode(jsonEncode(response));
 
-      debugPrint("🔍 Alerts Notifications Raw JSON: $decoded");
+      logLong('🔍 Alerts Notifications Raw JSON: ', decoded.toString());
 
-      if (decoded is List) {
-        notifications.assignAll(
-          decoded.map((e) => AppNotification.fromJson(e)).toList(),
-        );
-        _saveNotifications();
-      } else {
-        debugPrint("❌ Unexpected response format for alerts notifications");
-      }
+
     } catch (e, s) {
-      debugPrint("❌ hitalertsnnotification() error: $e");
+      debugPrint("❌ hitAlertsNotifications error: $e");
       debugPrintStack(stackTrace: s);
-    }
-  }
-
-  Future<void> _loadNotifications() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? stored = prefs.getString(_storageKey);
-
-    if (stored != null) {
-      final List list = jsonDecode(stored);
-      notifications.assignAll(
-        list.map((e) => AppNotification.fromJson(e)).toList(),
-      );
     }
   }
 
@@ -103,7 +84,6 @@ class AlertsController extends GetxService {
       final decoded = jsonDecode(jsonEncode(response));
 
       debugPrint("🔍 General Music Raw JSON: $decoded");
-
     } catch (e, s) {
       debugPrint("❌ loadGeneralMusic() error: $e");
       debugPrintStack(stackTrace: s);
@@ -111,7 +91,6 @@ class AlertsController extends GetxService {
       return null;
     }
   }
-
 
   Future<void> _saveNotifications() async {
     final prefs = await SharedPreferences.getInstance();
