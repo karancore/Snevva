@@ -137,42 +137,6 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
     }
   }
 
-  void _setupSleepListeners() {
-    // Listen to sleep updates from background service
-    _sleepUpdateSub = _service.on("sleep_update").listen((event) {
-      if (event != null && mounted) {
-        final elapsedMinutes = event['elapsed_minutes'] as int? ?? 0;
-        final goalMinutes = event['goal_minutes'] as int? ?? 480;
-        final sleeping = event['is_sleeping'] as bool? ?? false;
-
-        if (!mounted) return;
-        setState(() {
-          _isSleeping = sleeping;
-          _currentSleepDuration = Duration(minutes: elapsedMinutes);
-          _sleepGoal = Duration(minutes: goalMinutes);
-          _progress =
-              goalMinutes > 0
-                  ? (elapsedMinutes / goalMinutes).clamp(0.0, 1.0)
-                  : 0.0;
-        });
-      }
-    });
-
-    // Listen to sleep saved event
-    _sleepSavedSub = _service.on("sleep_saved").listen((event) {
-      if (event != null && mounted) {
-        setState(() {
-          _isSleeping = false;
-          _currentSleepDuration = Duration.zero;
-          _progress = 0.0;
-        });
-
-        // Reload sleep data
-        controller.loadDeepSleepData();
-      }
-    });
-  }
-
   // New: Check if current time is within the sleep window
   bool _isWindowActive() {
     final bed = controller.bedtime.value;
@@ -211,13 +175,67 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
       "waketime_minutes": wake.hour * 60 + wake.minute,
     });
 
-    setState(() {
-      _isSleeping = true;
-      _sleepGoal = Duration(minutes: goalMinutes);
-      _progress = 0.0;
-    });
+    if (mounted) {
+      setState(() {
+        _isSleeping = true;
+        _sleepGoal = Duration(minutes: goalMinutes);
+        _progress = 0.0;
+      });
+    }
 
     print("🌙 Auto-started sleep tracking (window active)");
+  }
+
+  void _setupSleepListeners() {
+    // Listen to sleep updates from background service
+    _sleepUpdateSub = _service.on("sleep_update").listen((event) async {
+      if (event != null && mounted) {
+        final prefs = await SharedPreferences.getInstance();
+        final manuallyStopped = prefs.getBool('manually_stopped') ?? false;
+
+        // If user manually stopped tracking, ignore background updates for this session
+        if (manuallyStopped) {
+          if (_isSleeping) {
+            setState(() {
+              _isSleeping = false;
+              _currentSleepDuration = Duration.zero;
+              _progress = 0.0;
+            });
+          }
+          return;
+        }
+
+        final elapsedMinutes = event['elapsed_minutes'] as int? ?? 0;
+        final goalMinutes = event['goal_minutes'] as int? ?? 480;
+        final sleeping = event['is_sleeping'] as bool? ?? false;
+
+        if (!mounted) return;
+
+        setState(() {
+          _isSleeping = sleeping;
+          _currentSleepDuration = Duration(minutes: elapsedMinutes);
+          _sleepGoal = Duration(minutes: goalMinutes);
+          _progress =
+              goalMinutes > 0
+                  ? (elapsedMinutes / goalMinutes).clamp(0.0, 1.0)
+                  : 0.0;
+        });
+      }
+    });
+
+    // Listen to sleep saved event
+    _sleepSavedSub = _service.on("sleep_saved").listen((event) {
+      if (event != null && mounted) {
+        setState(() {
+          _isSleeping = false;
+          _currentSleepDuration = Duration.zero;
+          _progress = 0.0;
+        });
+
+        // Reload sleep data
+        controller.loadDeepSleepData();
+      }
+    });
   }
 
   @override
@@ -356,7 +374,10 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
             buttonName: "Stop & Save Sleep",
             onTap: () async {
               final prefs = await SharedPreferences.getInstance();
-              await prefs.setBool('manually_stopped', true);  // <-- Mark as manually stopped
+              await prefs.setBool(
+                'manually_stopped',
+                true,
+              ); // <-- Mark as manually stopped
 
               if (mounted) {
                 setState(() {
@@ -683,7 +704,7 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
     });
 
     setState(() {
-      _isSleeping = true;  // <-- Direct assignment
+      _isSleeping = true; // <-- Direct assignment
     });
 
     Get.snackbar(
@@ -697,7 +718,7 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
 
     await prefs.setBool('sleepGoalbool', true);
 
-                Navigator.pop(context);
+    Navigator.pop(context);
 
     if (widget.isNavigating) {
       Get.back(); // close sheet
