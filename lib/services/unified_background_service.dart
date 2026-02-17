@@ -5,6 +5,7 @@ import 'package:pedometer/pedometer.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/models/hive_models/sleep_log_g.dart';
+import 'package:screen_state/screen_state.dart';
 import '../common/global_variables.dart';
 import '../consts/consts.dart';
 import '../models/hive_models/sleep_log.dart';
@@ -13,6 +14,7 @@ import '../common/agent_debug_logger.dart';
 
 // Global references for step counting and sleep tracking
 StreamSubscription<StepCount>? _pedometerSubscription;
+StreamSubscription<ScreenStateEvent>? _screenSubscription;
 Timer? _sleepProgressTimer;
 
 @pragma("vm:entry-point")
@@ -87,7 +89,8 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
       if (service is AndroidServiceInstance) {
         service.setForegroundNotificationInfo(
           title: "Sleep Tracking Active 😴",
-          content: "0 min / ${_formatDuration(goalMinutes)} - Target: ${_formatDuration(goalMinutes)}",
+          content:
+              "0 min / ${_formatDuration(goalMinutes)} - Target: ${_formatDuration(goalMinutes)}",
         );
       }
     });
@@ -105,13 +108,20 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
       final totalSleep = now.difference(start);
       final goalMinutes = prefs.getInt("sleep_goal_minutes") ?? 480;
 
-      // Save to Hive
-      final key = "${start.year}-${start.month.toString().padLeft(2, '0')}-${start.day.toString().padLeft(2, '0')}";
-      
+      // START OF FIX: Use Wake Up Date for Attribution
+      // If we cross midnight (start != now.day), we attribute to the day we woke up (now).
+      // This ensures the data appears on the "morning" of the sleep.
+      final key =
+          "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+
       await sleepBox.put(
         key,
         SleepLog(
-          date: DateTime(start.year, start.month, start.day),
+          date: DateTime(
+            now.year,
+            now.month,
+            now.day,
+          ), // Persistence Date = Wake Date
           durationMinutes: totalSleep.inMinutes,
           startTime: start,
           endTime: now,
@@ -124,7 +134,13 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
       await prefs.remove("sleep_start_time");
       await prefs.remove("sleep_goal_minutes");
 
-      print("☀️ Sleep ended. Duration: ${totalSleep.inMinutes} mins");
+      // Stop screen monitoring
+      await _screenSubscription?.cancel();
+      _screenSubscription = null;
+
+      print(
+        "☀️ Sleep ended. Duration: ${totalSleep.inMinutes} mins. Saved to $key",
+      );
 
       // Notify UI
       service.invoke("sleep_saved", {
@@ -132,6 +148,7 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
         "goal_minutes": goalMinutes,
         "start_time": start.toIso8601String(),
         "end_time": now.toIso8601String(),
+        "date_key": key,
       });
 
       // Reset notification
@@ -144,10 +161,51 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
     });
 
     // ═══════════════════════════════════════════════════════════════
+    // 📱 SCREEN STATE MONITORING (For Deep Sleep Analysis)
+    // ═══════════════════════════════════════════════════════════════
+
+    void _startScreenMonitoring() {
+      _screenSubscription?.cancel();
+      try {
+        final Screen _screen = Screen();
+        _screenSubscription = _screen.screenStateStream?.listen((event) async {
+          print('📱 BG Screen event: $event');
+
+          if (event == ScreenStateEvent.SCREEN_OFF) {
+            final now = DateTime.now();
+            final dateKey =
+                "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+            await prefs.setString(
+              'last_screen_off_$dateKey',
+              now.toIso8601String(),
+            );
+          } else if (event == ScreenStateEvent.SCREEN_ON) {
+            // Logic to track awake intervals during sleep
+            // This can be expanded to refine "deep sleep" vs "light sleep"
+          }
+        });
+      } catch (e) {
+        print('❌ BG Screen stream error: $e');
+      }
+    }
+
+    // Auto-start monitoring if already sleeping
+    if (prefs.getBool("is_sleeping") ?? false) {
+      _startScreenMonitoring();
+    }
+
+    // Also hook into start_sleep
+    service.on("start_sleep").listen((event) {
+      _startScreenMonitoring();
+    });
+
+    // ═══════════════════════════════════════════════════════════════
     // ⏱️ SLEEP PROGRESS TIMER (updates every minute)
     // ═══════════════════════════════════════════════════════════════
     _sleepProgressTimer?.cancel();
-    _sleepProgressTimer = Timer.periodic(const Duration(minutes: 1), (timer) async {
+    _sleepProgressTimer = Timer.periodic(const Duration(minutes: 1), (
+      timer,
+    ) async {
       final isSleeping = prefs.getBool("is_sleeping") ?? false;
 
       if (!isSleeping) return;
@@ -169,10 +227,12 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
 
       // Update notification
       if (service is AndroidServiceInstance) {
-        final progress = ((elapsedMinutes / goalMinutes) * 100).clamp(0, 100).toInt();
+        final progress =
+            ((elapsedMinutes / goalMinutes) * 100).clamp(0, 100).toInt();
         service.setForegroundNotificationInfo(
           title: "Sleep Tracking 😴 ($progress%)",
-          content: "${_formatDuration(elapsedMinutes)} / ${_formatDuration(goalMinutes)} - Target: ${_formatDuration(goalMinutes)}",
+          content:
+              "${_formatDuration(elapsedMinutes)} / ${_formatDuration(goalMinutes)} - Target: ${_formatDuration(goalMinutes)}",
         );
       }
 
@@ -232,18 +292,20 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
         // Update notification with sleep status
         if (service is AndroidServiceInstance) {
           final isSleeping = prefs.getBool("is_sleeping") ?? false;
-          
+
           if (isSleeping) {
             final startString = prefs.getString("sleep_start_time");
             if (startString != null) {
               final start = DateTime.parse(startString);
               final elapsedMinutes = DateTime.now().difference(start).inMinutes;
               final goalMinutes = prefs.getInt("sleep_goal_minutes") ?? 480;
-              final progress = ((elapsedMinutes / goalMinutes) * 100).clamp(0, 100).toInt();
-              
+              final progress =
+                  ((elapsedMinutes / goalMinutes) * 100).clamp(0, 100).toInt();
+
               service.setForegroundNotificationInfo(
                 title: "Sleep Tracking 😴 ($progress%)",
-                content: "${_formatDuration(elapsedMinutes)} / ${_formatDuration(goalMinutes)}",
+                content:
+                    "${_formatDuration(elapsedMinutes)} / ${_formatDuration(goalMinutes)}",
               );
             }
           } else {
@@ -279,6 +341,7 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
 
       _pedometerSubscription?.cancel();
       _sleepProgressTimer?.cancel();
+      _screenSubscription?.cancel();
       service.stopSelf();
     });
 
@@ -295,7 +358,7 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
 String _formatDuration(int minutes) {
   final hours = minutes ~/ 60;
   final mins = minutes % 60;
-  
+
   if (hours > 0) {
     return "${hours}h ${mins}m";
   } else {

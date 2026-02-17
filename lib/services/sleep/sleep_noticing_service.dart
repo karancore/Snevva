@@ -97,14 +97,28 @@ class SleepNoticingService {
     final now = DateTime.now();
     final prefs = await SharedPreferences.getInstance();
 
-    final lastOffKey = 'last_screen_off_${window.dateKey}';
-    final intervalsKey = 'sleep_intervals_${window.dateKey}';
+    String lastOffKey = 'last_screen_off_${window.dateKey}';
+    String? lastOffIso = prefs.getString(lastOffKey);
 
-    final lastOffIso = prefs.getString(lastOffKey);
+    // If not found, try yesterday (handles wake after window end)
+    if (lastOffIso == null) {
+      final yesterday = window.start.subtract(const Duration(days: 1));
+      final yesterdayKey = _dateKey(yesterday);
+      final altKey = 'last_screen_off_$yesterdayKey';
+
+      lastOffIso = prefs.getString(altKey);
+      if (lastOffIso != null) {
+        lastOffKey = altKey;
+      }
+    }
+
     if (lastOffIso == null) {
       debugPrint('ℹ️ No open sleep segment (no SCREEN_OFF before)');
       return;
     }
+
+    final datePart = lastOffKey.replaceFirst('last_screen_off_', '');
+    final intervalsKey = 'sleep_intervals_$datePart';
 
     DateTime lastOff;
     try {
@@ -188,36 +202,36 @@ class SleepNoticingService {
 
     final now = DateTime.now();
 
-DateTime sleepStartToday = _buildDateTime(now, bedTod);
-DateTime sleepStart;
+    DateTime sleepStartToday = _buildDateTime(now, bedTod);
+    DateTime sleepStart;
 
-if (bedMin > wakeMin) {
-  // CROSS MIDNIGHT CASE (e.g., 23:00 → 06:00)
+    if (bedMin > wakeMin) {
+      // CROSS MIDNIGHT CASE (e.g., 23:00 → 06:00)
 
-  if (now.isBefore(_buildDateTime(now, wakeTod))) {
-    // After midnight but before wake time → belongs to yesterday's sleep
-    sleepStart = sleepStartToday.subtract(const Duration(days: 1));
-  } else if (now.isBefore(sleepStartToday)) {
-    // Before bedtime tonight → still yesterday's sleep window
-    sleepStart = sleepStartToday.subtract(const Duration(days: 1));
-  } else {
-    // After bedtime tonight
-    sleepStart = sleepStartToday;
-  }
+      if (now.isBefore(_buildDateTime(now, wakeTod))) {
+        // After midnight but before wake time → belongs to yesterday's sleep
+        sleepStart = sleepStartToday.subtract(const Duration(days: 1));
+      } else if (now.isBefore(sleepStartToday)) {
+        // Before bedtime tonight → still yesterday's sleep window
+        sleepStart = sleepStartToday.subtract(const Duration(days: 1));
+      } else {
+        // After bedtime tonight
+        sleepStart = sleepStartToday;
+      }
+    } else {
+      // NORMAL SAME-DAY SLEEP (e.g., 22:00 → 23:00)
+      sleepStart = sleepStartToday;
+    }
 
-} else {
-  // NORMAL SAME-DAY SLEEP (e.g., 22:00 → 23:00)
-  sleepStart = sleepStartToday;
-}
-
-final sleepEnd = _resolveSleepEnd(sleepStart, wakeTod);
-final key = _dateKey(sleepStart);
-
+    final sleepEnd = _resolveSleepEnd(sleepStart, wakeTod);
+    // FIX: Date Key should always be the date of the SLEEP END (Wake Up Day)
+    // This ensures that when you wake up on Tuesday, the data is for "Tuesday".
+    final key = _dateKey(sleepEnd);
 
     debugPrint('🛏️ BedTime TOD: $bedTod');
     debugPrint('⏰ WakeTime TOD: $wakeTod');
     debugPrint('🌙 Sleep window resolved: $sleepStart → $sleepEnd');
-    debugPrint('🗓️ dateKey: $key');
+    debugPrint('🗓️ dateKey: $key (Attrib to Wake Day)');
 
     return _SleepWindow(start: sleepStart, end: sleepEnd, dateKey: key);
   }
