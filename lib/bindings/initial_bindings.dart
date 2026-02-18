@@ -1,32 +1,6 @@
-import 'package:snevva/Controllers/local_storage_manager.dart';
-import 'package:snevva/Controllers/signupAndSignIn/create_password_controller.dart';
-import 'package:snevva/Controllers/signupAndSignIn/otp_verification_controller.dart';
-import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
-import 'package:snevva/utils/theme_controller.dart';
-import '../Controllers/BMI/bmi_controller.dart';
-import '../Controllers/DietPlan/diet_plan_controller.dart';
-import '../Controllers/HealthTips/healthtips_controller.dart';
-import '../Controllers/Hydration/hydration_stat_controller.dart';
-import '../Controllers/MentalWellness/mental_wellness_controller.dart';
-import '../Controllers/MoodTracker/mood_controller.dart';
 import '../Controllers/MoodTracker/mood_questions_controller.dart';
-import '../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
-import '../Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
-import '../Controllers/Reminder/event_controller.dart';
-import '../Controllers/Reminder/meal_controller.dart';
-import '../Controllers/Reminder/medicine_controller.dart';
-import '../Controllers/Reminder/water_controller.dart';
-import '../Controllers/SleepScreen/sleep_controller.dart';
-import '../Controllers/StepCounter/step_counter_controller.dart';
-import '../Controllers/Vitals/vitalsController.dart';
-import '../Controllers/WomenHealth/bottom_sheet_controller.dart';
-import '../Controllers/WomenHealth/women_health_controller.dart';
-import '../Controllers/alerts/alerts_controller.dart';
 
 import 'package:get/get.dart';
-import '../Controllers/signupAndSignIn/forgot_password_controller.dart';
-import '../Controllers/signupAndSignIn/sign_in_controller.dart';
-import '../Controllers/signupAndSignIn/update_old_password_controller.dart';
 
 class InitialBindings extends Bindings {
   @override

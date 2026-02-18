@@ -1,79 +1,151 @@
-import 'package:flutter/material.dart';
-import 'package:get/get_connect/http/src/response/response.dart' as http;
+import 'package:flutter/foundation.dart';
+import 'package:get/get_rx/src/rx_types/rx_types.dart';
+import 'package:get/get_state_manager/src/rx_flutter/rx_disposable.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:snevva/services/api_service.dart';
-import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
+import 'package:snevva/common/global_variables.dart';
+import 'package:http/http.dart' as http;
+import 'package:snevva/services/auth_service.dart';
+import 'package:snevva/views/SignUp/sign_in_screen.dart';
+import '../common/custom_snackbar.dart';
+import '../consts/consts.dart';
 import '../env/env.dart';
+import '../views/ProfileAndQuestionnaire/profile_setup_initial.dart';
+import 'api_service.dart';
 
-const String WEB_CLIENT_ID =
-    "760082000923-v6lm2bqqroimspg8f1am01ntbio5mbn0.apps.googleusercontent.com";
-const String ANDROID_CLIENT_ID =
-    "760082000923-26b0b7kqucl8fgefjl5r58bo6df32mpa.apps.googleusercontent.com";
+class GoogleAuthService extends GetxService {
+  final GoogleSignIn _google = GoogleSignIn.instance;
+  final authService = AuthService();
+  Rxn<GoogleSignInAccount> user = Rxn();
 
-class GoogleAuthService {
-  static Future<void> signInWithGoogle(BuildContext context) async {
+  // ---------------- INIT ----------------
+  Future<void> init(BuildContext context) async {
+    debugPrint("🔵 GoogleAuthService: init started");
+
+    await _google.initialize(serverClientId: WEB);
+
+    debugPrint("🟢 GoogleSignIn initialized with clientId: $WEB");
+
+    // LISTEN AUTH EVENTS
+    _google.authenticationEvents.listen(
+      (event) async {
+        debugPrint("📡 Authentication event received: ${event.runtimeType}");
+
+        // SIGNED IN
+        if (event is GoogleSignInAuthenticationEventSignIn) {
+          final GoogleSignInAccount account = event.user;
+
+          debugPrint("✅ User signed in");
+          debugPrint("   Email: ${account.email}");
+          debugPrint("   Display Name: ${account.displayName}");
+          debugPrint("   ID: ${account.id}");
+
+          user.value = account;
+
+          await _handleBackendLogin(account, context, account.email);
+        }
+        // SIGNED OUT
+        else if (event is GoogleSignInAuthenticationEventSignOut) {
+          debugPrint("🚪 User signed out");
+          user.value = null;
+        }
+      },
+      onError: (error) {
+        debugPrint("❌ authenticationEvents error triggered");
+
+        if (error is GoogleSignInException) {
+          debugPrint("   Error code: ${error.code}");
+          debugPrint("   Error message: ${error.description}");
+        } else {
+          debugPrint("   Unknown error: $error");
+        }
+
+        // Ignore cancel (user just closed popup)
+        if (error is GoogleSignInException &&
+            error.code == GoogleSignInExceptionCode.canceled) {
+          debugPrint("⚠️ User cancelled Google sign-in UI");
+        }
+      },
+    );
+
+    // Attempt auto login
+    debugPrint("🔄 Attempting lightweight authentication...");
+    _google.attemptLightweightAuthentication();
+  }
+
+  // ---------------- BUTTON LOGIN ----------------
+  Future<void> signIn() async {
+    debugPrint("👆 Login button pressed");
+
+    final supports = _google.supportsAuthenticate();
+    debugPrint("Supports authenticate: $supports");
+
+    if (supports) {
+      debugPrint("🚀 Starting Google authenticate()");
+      await _google.authenticate();
+    } else {
+      debugPrint("⚠️ authenticate() not supported on this platform");
+    }
+  }
+
+  // ---------------- BACKEND LOGIN ----------------
+  Future<void> _handleBackendLogin(
+    GoogleSignInAccount account,
+    BuildContext context,
+    String email,
+  ) async {
     try {
-      final scopes = ['email'];
-      // Initialize Google Sign-In
-      await GoogleSignIn.instance.initialize(serverClientId: ANDROID_CLIENT_ID);
+      debugPrint("🔐 Fetching Google authentication tokens...");
 
-      // // Optional: sign out before signing in
-      // await GoogleSignIn.instance.signOut();
+      final GoogleSignInAuthentication auth = await account.authentication;
 
-      // Start interactive sign-in
-      //final user = await GoogleSignIn.instance.authenticate();
+      final String? idToken = auth.idToken;
 
-      final googleUser =
-          await GoogleSignIn.instance.attemptLightweightAuthentication();
-      if (googleUser == null) {
-        throw Exception('Failed to sign in with Google.');
-      }
+      debugPrint("ID Token present: ${idToken != null}");
 
-      final authorization =
-          await googleUser.authorizationClient.authorizationForScopes(scopes) ??
-          await googleUser.authorizationClient.authorizeScopes(scopes);
-      final idToken = googleUser.authentication.idToken;
-      if (idToken == null) {
-        throw Exception('No ID Token found.');
-      }
-
-      print(googleUser);
-
-      // Get the ID token
-      //dynamic idToken = user.authentication.idToken;
+      logLong("ID Token ", idToken ?? '');
 
       if (idToken == null) {
-        throw Exception('Google ID token is null');
+        debugPrint("❌ ID Token is null — login cannot continue");
+        return;
       }
 
+      /// THIS is what backend needs
       final payload = {'AuthToken': idToken};
 
-      print(payload);
+      debugPrint("📤 Sending ID token to backend...");
 
       final response = await ApiService.post(
         googleApi,
         payload,
-        withAuth: true,
-        encryptionRequired: false,
+        withAuth: false,
+        encryptionRequired: true,
       );
-
-      print('Backend response: $response');
 
       if (response is http.Response) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Backend error: ${response.statusCode}')),
+        debugPrint("❌ HTTP error: ${response.statusCode}");
+        CustomSnackbar.showError(
+          context: Get.context!,
+          title: 'Error',
+          message: 'Failed to sign in with google: ${response.statusCode}',
         );
+        return;
       }
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const ProfileSetupInitial()),
+      await authService.handleSuccessfulSignIn(
+        emailOrPhone: account.email,
+        prefs: await SharedPreferences.getInstance(),
+        context: context,
+        rememberMe: true,
       );
-    } catch (e) {
-      debugPrint('Google Sign-In error: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Google Sign-In failed: $e')));
+
+      debugPrint("📥 Backend response: $response");
+
+      debugPrint("🎉 Backend login completed");
+    } catch (e, stack) {
+      debugPrint("🔥 Backend login failed: $e");
+      debugPrint("$stack");
     }
   }
 }

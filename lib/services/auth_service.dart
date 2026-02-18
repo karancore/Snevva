@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as AgentDebugLogger;
 import 'package:alarm/alarm.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
@@ -26,6 +27,11 @@ import 'package:snevva/views/SignUp/sign_in_screen.dart';
 
 import '../Controllers/signupAndSignIn/otp_verification_controller.dart';
 import '../Controllers/signupAndSignIn/sign_in_controller.dart';
+import '../Widgets/home_wrapper.dart';
+import '../bindings/initial_bindings.dart';
+import '../views/ProfileAndQuestionnaire/height_and_weight_screen.dart';
+import '../views/ProfileAndQuestionnaire/profile_setup_initial.dart';
+import '../views/ProfileAndQuestionnaire/questionnaire_screen.dart';
 import 'app_initializer.dart';
 import 'auth_header_helper.dart';
 import 'background_pedometer_service.dart';
@@ -71,6 +77,267 @@ class AuthService {
       print('❌ Error during logout API call: $e');
     }
   }
+
+  // Future<void> handleSuccessfulSignIn({
+  //   required String emailOrPhone,
+  //   required SharedPreferences prefs,
+  //   required BuildContext context,
+  //   required bool rememberMe,
+  // }) async {
+  //   if (rememberMe) {
+  //     prefs.setBool('remember_me', true);
+  //     prefs.setString('user_credential', emailOrPhone);
+  //   }
+  //
+  //   // #endregion
+  //
+  //   await requestAllPermissions();
+  //   await initBackgroundService();
+  //
+  //   // #endregion
+  //
+  //   await stepController.loadStepsfromAPI(
+  //     month: DateTime.now().month,
+  //     year: DateTime.now().year,
+  //   );
+  //
+  //   await sleepController.loadSleepfromAPI(
+  //     month: DateTime.now().month,
+  //     year: DateTime.now().year,
+  //   );
+  //
+  //   await waterController.loadWaterIntakefromAPI(
+  //     month: DateTime.now().month,
+  //     year: DateTime.now().year,
+  //   );
+  //
+  //   await vitalsController.loadvitalsfromAPI(
+  //     month: DateTime.now().month,
+  //     year: DateTime.now().year,
+  //   );
+  //
+  //   localStorageManager.registerDeviceFCMIfNeeded();
+  //   await reminderController.getReminderFromAPI(context);
+  //
+  //   // await bottomsheetcontroller.loaddatafromAPI();
+  //   // await womenhealthController.lastPeriodDatafromAPI();
+  //
+  //   await moodcontroller.loadmoodfromAPI(
+  //     month: DateTime.now().month,
+  //     year: DateTime.now().year,
+  //   );
+  //
+  //   final userInfo = await signInController.userInfo();
+  //   final userData = userInfo['data'];
+  //   print(userData);
+  //   await prefs.setString('userdata', jsonEncode(userData));
+  //   localStorageManager.userMap.value = userData ?? {};
+  //
+  //   final PatientCode = userData['PatientCode']?.toString() ?? '';
+  //   await prefs.setString('PatientCode', PatientCode);
+  //
+  //   final nameValid = userData['Name']?.toString().trim().isNotEmpty ?? false;
+  //   final genderValid =
+  //       userData['Gender']?.toString().trim().isNotEmpty ?? false;
+  //   final occupationValid = userData['OccupationData'] != null;
+  //
+  //   final gender = userData['Gender']?.toString() ?? 'Unknown';
+  //   print("Gender is $gender");
+  //   if (gender == 'Female') {
+  //     await bottomsheetcontroller.loaddatafromAPI();
+  //     await womenhealthController.lastPeriodDatafromAPI();
+  //   }
+  //
+  //   if (nameValid && genderValid && occupationValid) {
+  //     final userActiveDataResponse = signInController.userGoalData;
+  //     final userActiveData = userActiveDataResponse['data'];
+  //     print(userActiveData);
+  //
+  //     localStorageManager.userGoalDataMap.value = userActiveData ?? {};
+  //     prefs.setString('userGoalDataMap', jsonEncode(userActiveData));
+  //
+  //     if (userActiveData != null && userActiveData is Map) {
+  //       await prefs.setString('useractivedata', jsonEncode(userActiveData));
+  //
+  //       // 🚀 Final check 1 → All goals set → go home
+  //       if (userActiveData['ActivityLevel'] != null &&
+  //           userActiveData['HealthGoal'] != null) {
+  //         Get.offAll(() => HomeWrapper(), binding: InitialBindings());
+  //         return; // <<< CRITICAL
+  //       }
+  //
+  //       // 🚀 Final check 2 → Ask only remaining questions
+  //       if (userActiveData['HeightData'] != null &&
+  //           userActiveData['WeightData'] != null) {
+  //         Get.offAll(() => QuestionnaireScreen());
+  //         return; // <<< CRITICAL
+  //       }
+  //
+  //       // 🚀 Missing height/weight
+  //       final gender = userData['Gender']?.toString() ?? 'Unknown';
+  //       Get.offAll(() => HeightWeightScreen(gender: gender));
+  //       return; // <<< CRITICAL
+  //     }
+  //
+  //     // If userActiveData invalid
+  //     Get.offAll(() => HomeWrapper(), binding: InitialBindings());
+  //     return;
+  //   }
+  //
+  //   // Missing basic profile info
+  //   Get.offAll(() => ProfileSetupInitial());
+  //   return;
+  // }
+
+  void loginLog(String msg) {
+    debugPrint("🟩 LOGIN_FLOW: $msg");
+  }
+
+
+  Future<void> handleSuccessfulSignIn({
+    required String emailOrPhone,
+    required SharedPreferences prefs,
+    required BuildContext context,
+    required bool rememberMe,
+  }) async {
+
+    loginLog("==== LOGIN STARTED ====");
+
+    if (rememberMe) {
+      loginLog("Saving remember me credentials");
+      prefs.setBool('remember_me', true);
+      prefs.setString('user_credential', emailOrPhone);
+    }
+
+    /// PERMISSIONS
+    loginLog("Requesting permissions...");
+    await requestAllPermissions();
+    loginLog("Permissions granted");
+
+    /// BACKGROUND SERVICE
+    loginLog("Initializing background service...");
+    await initBackgroundService();
+    loginLog("Background service started");
+
+    /// HEALTH DATA LOAD
+    loginLog("Loading Steps...");
+    await stepController.loadStepsfromAPI(
+      month: DateTime.now().month,
+      year: DateTime.now().year,
+    );
+    loginLog("Steps loaded");
+
+    loginLog("Loading Sleep...");
+    await sleepController.loadSleepfromAPI(
+      month: DateTime.now().month,
+      year: DateTime.now().year,
+    );
+    loginLog("Sleep loaded");
+
+    loginLog("Loading Water...");
+    await waterController.loadWaterIntakefromAPI(
+      month: DateTime.now().month,
+      year: DateTime.now().year,
+    );
+    loginLog("Water loaded");
+
+    loginLog("Loading Vitals...");
+    await vitalsController.loadvitalsfromAPI(
+      month: DateTime.now().month,
+      year: DateTime.now().year,
+    );
+    loginLog("Vitals loaded");
+
+    loginLog("Registering FCM...");
+    localStorageManager.registerDeviceFCMIfNeeded();
+
+    loginLog("Fetching reminders...");
+    await reminderController.getReminderFromAPI(context);
+    loginLog("Reminders loaded");
+
+    loginLog("Loading mood...");
+    await moodcontroller.loadmoodfromAPI(
+      month: DateTime.now().month,
+      year: DateTime.now().year,
+    );
+    loginLog("Mood loaded");
+
+    /// USER INFO
+    loginLog("Fetching user info...");
+    final userInfo = await signInController.userInfo();
+    final userData = userInfo['data'];
+    loginLog("User info received");
+    print(userData);
+
+    await prefs.setString('userdata', jsonEncode(userData));
+    localStorageManager.userMap.value = userData ?? {};
+
+    final PatientCode = userData['PatientCode']?.toString() ?? '';
+    await prefs.setString('PatientCode', PatientCode);
+    loginLog("PatientCode saved: $PatientCode");
+
+    final nameValid = userData['Name']?.toString().trim().isNotEmpty ?? false;
+    final genderValid = userData['Gender']?.toString().trim().isNotEmpty ?? false;
+    final occupationValid = userData['OccupationData'] != null;
+
+    final gender = userData['Gender']?.toString() ?? 'Unknown';
+    loginLog("Gender: $gender");
+
+    if (gender == 'Female') {
+      loginLog("Female user → loading women health data");
+      await bottomsheetcontroller.loaddatafromAPI();
+      await womenhealthController.lastPeriodDatafromAPI();
+    }
+
+    /// PROFILE CHECK
+    loginLog("Checking basic profile completeness...");
+    if (nameValid && genderValid && occupationValid) {
+
+      loginLog("Basic profile complete");
+
+      final userActiveDataResponse = signInController.userGoalData;
+      final userActiveData = userActiveDataResponse['data'];
+
+      print(userActiveData);
+      localStorageManager.userGoalDataMap.value = userActiveData ?? {};
+      prefs.setString('userGoalDataMap', jsonEncode(userActiveData));
+
+      if (userActiveData != null && userActiveData is Map) {
+
+        await prefs.setString('useractivedata', jsonEncode(userActiveData));
+
+        /// HOME
+        if (userActiveData['ActivityLevel'] != null &&
+            userActiveData['HealthGoal'] != null) {
+          loginLog("All goals set → Navigating to HOME");
+          Get.offAll(() => HomeWrapper(), binding: InitialBindings());
+          return;
+        }
+
+        /// QUESTIONNAIRE
+        if (userActiveData['HeightData'] != null &&
+            userActiveData['WeightData'] != null) {
+          loginLog("Height/Weight done but goals missing → Questionnaire");
+          Get.offAll(() => QuestionnaireScreen());
+          return;
+        }
+
+        /// HEIGHT WEIGHT
+        loginLog("Missing height/weight → HeightWeightScreen");
+        Get.offAll(() => HeightWeightScreen(gender: gender));
+        return;
+      }
+
+      loginLog("Goal data invalid → HOME fallback");
+      Get.offAll(() => HomeWrapper(), binding: InitialBindings());
+      return;
+    }
+
+    /// PROFILE SETUP
+    loginLog("Basic profile missing → ProfileSetupInitial");
+    Get.offAll(() => ProfileSetupInitial());
+  }
+
 
   Future<String?> loginWithEmail(String email, String password) async {
     final plainEmail = jsonEncode({'Gmail': email, 'Password': password});
@@ -165,7 +432,6 @@ class AuthService {
       debugPrint('🧠 Clearing DecisionTreeService...');
       await DecisionTreeService().clearAll();
 
-
       // ❌ REMOVE THIS
       // Get.deleteAll(force: true);
       await Alarm.stopAll();
@@ -186,11 +452,9 @@ class AuthService {
       Get.delete<StepCounterController>();
       Get.delete<VitalsController>();
 
-
       Get.offAll(() => SignInScreen());
     } finally {
       _isLoggingOut = false;
     }
   }
 }
-

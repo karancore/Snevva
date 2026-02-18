@@ -23,8 +23,7 @@ import 'package:snevva/Controllers/signupAndSignIn/otp_verification_controller.d
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/update_old_password_controller.dart';
-import 'package:snevva/services/firebase_init.dart';
-import 'package:snevva/services/hive_service.dart';
+import 'package:snevva/services/google_auth.dart';
 import 'package:snevva/utils/theme_controller.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
@@ -209,7 +208,7 @@ void main() async {
 Future<void> initialiseGetxServicesAndControllers() async {
   if (!Hive.isBoxOpen('step_history')) {
     print("❌ Hive boxes not ready during controller init - retrying setup");
-    await setupHive();  // Fallback retry
+    await setupHive(); // Fallback retry
   }
 
   // Parallel async controllers
@@ -272,6 +271,17 @@ Future<void> initialiseGetxServicesAndControllers() async {
       () async => BmiUpdateController(),
       permanent: true,
     ),
+    Get.putAsync<GoogleAuthService>(
+      () async => GoogleAuthService(),
+      permanent: true,
+    ),
+
+    // Get.putAsync<GoogleAuthService>(() async {
+    //   final service = GoogleAuthService();
+    //   await service.init(); // ← THIS WAS MISSING
+    //   return service;
+    // }, permanent: true),
+
     Get.putAsync<BmiController>(() async => BmiController(), permanent: true),
 
     Get.putAsync<DietPlanController>(
@@ -288,7 +298,6 @@ Future<void> initialiseGetxServicesAndControllers() async {
   if (!Get.isRegistered<MentalWellnessController>()) {
     Get.lazyPut(() => MentalWellnessController(), fenix: true);
   }
-
 
   if (!Get.isRegistered<BottomSheetController>()) {
     Get.lazyPut(() => BottomSheetController(), fenix: true);
@@ -364,9 +373,7 @@ class _MyAppState extends State<MyApp> {
     } catch (_) {}
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) async {
-      // await ensureFirebaseInitialized();
-      await FirebaseInit.init();
-
+      await ensureFirebaseInitialized();
     });
 
     _handleInitialMessage();

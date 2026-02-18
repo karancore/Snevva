@@ -115,14 +115,11 @@
             </intent-filter>
         </receiver>
 
-        <receiver
-            android:name=".BootReceiver"
-            android:exported="true"
-            android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
+        <!-- <receiver android:name=".ScreenReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
             </intent-filter>
-        </receiver>
+        </receiver> -->
 
 
 
@@ -148,11 +145,11 @@
             android:foregroundServiceType="dataSync"
             tools:replace="android:exported,android:foregroundServiceType" />
 
-        <!-- 🌙 Sleep Noticing Service (Added for screen monitoring) -->
-        <service
+        <!-- 🌙 Sleep NoticingService (Native - Disabled/Removed to avoid conflict with Dart service) -->
+        <!-- <service
             android:name=".SleepNoticingService"
             android:exported="false"
-            android:foregroundServiceType="dataSync" />
+            android:foregroundServiceType="dataSync" /> -->
 
     </application>
 

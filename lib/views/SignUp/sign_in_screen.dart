@@ -15,6 +15,7 @@ import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/bindings/initial_bindings.dart';
 import 'package:snevva/services/app_initializer.dart';
+import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/height_and_weight_screen.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
@@ -63,6 +64,7 @@ final bottomsheetcontroller = Get.put(BottomSheetController());
 final reminderController = Get.put(ReminderController());
 
 class _SignInScreenState extends State<SignInScreen> {
+  final authService = AuthService();
   late TextEditingController userEmailOrPhoneField;
   late TextEditingController userPasswordField;
   final controller = Get.put(SignInController());
@@ -170,133 +172,6 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
-  Future<void> _handleSuccessfulSignIn(
-    String emailOrPhone,
-    SharedPreferences prefs,
-  ) async {
-    if (rememberMe) {
-      prefs.setBool('remember_me', true);
-      prefs.setString('user_credential', emailOrPhone);
-    }
-
-    // #region agent log
-    AgentDebugLogger.log(
-      runId: 'auth-bg',
-      hypothesisId: 'B',
-      location: 'sign_in_screen.dart:_handleSuccessfulSignIn:before_start',
-      message: 'Successful sign-in, starting unified background service',
-      data: const {},
-    );
-    // #endregion
-
-
-    await requestAllPermissions();
-    await initBackgroundService();
-
-
-    // #region agent log
-    AgentDebugLogger.log(
-      runId: 'auth-bg',
-      hypothesisId: 'B',
-      location: 'sign_in_screen.dart:_handleSuccessfulSignIn:after_start',
-      message: 'initBackgroundService returned after sign-in',
-      data: const {},
-    );
-    // #endregion
-
-    await stepController.loadStepsfromAPI(
-      month: DateTime.now().month,
-      year: DateTime.now().year,
-    );
-
-    await sleepController.loadSleepfromAPI(
-      month: DateTime.now().month,
-      year: DateTime.now().year,
-    );
-
-    await waterController.loadWaterIntakefromAPI(
-      month: DateTime.now().month,
-      year: DateTime.now().year,
-    );
-
-    await vitalsController.loadvitalsfromAPI(
-      month: DateTime.now().month,
-      year: DateTime.now().year,
-    );
-
-    localStorageManager.registerDeviceFCMIfNeeded();
-    await reminderController.getReminderFromAPI(context);
-
-    // await bottomsheetcontroller.loaddatafromAPI();
-    // await womenhealthController.lastPeriodDatafromAPI();
-
-    await moodcontroller.loadmoodfromAPI(
-      month: DateTime.now().month,
-      year: DateTime.now().year,
-    );
-
-    final userInfo = await signInController.userInfo();
-    final userData = userInfo['data'];
-    print(userData);
-    await prefs.setString('userdata', jsonEncode(userData));
-    localStorageManager.userMap.value = userData ?? {};
-
-    final PatientCode = userData['PatientCode']?.toString() ?? '';
-    await prefs.setString('PatientCode', PatientCode);
-
-    final nameValid = userData['Name']?.toString().trim().isNotEmpty ?? false;
-    final genderValid =
-        userData['Gender']?.toString().trim().isNotEmpty ?? false;
-    final occupationValid = userData['OccupationData'] != null;
-
-    final gender = userData['Gender']?.toString() ?? 'Unknown';
-    print("Gender is $gender");
-    if (gender == 'Female') {
-      await bottomsheetcontroller.loaddatafromAPI();
-      await womenhealthController.lastPeriodDatafromAPI();
-    }
-
-    if (nameValid && genderValid && occupationValid) {
-      final userActiveDataResponse = signInController.userGoalData;
-      final userActiveData = userActiveDataResponse['data'];
-      print(userActiveData);
-
-      localStorageManager.userGoalDataMap.value = userActiveData ?? {};
-      prefs.setString('userGoalDataMap', jsonEncode(userActiveData));
-
-      if (userActiveData != null && userActiveData is Map) {
-        await prefs.setString('useractivedata', jsonEncode(userActiveData));
-
-        // 🚀 Final check 1 → All goals set → go home
-        if (userActiveData['ActivityLevel'] != null &&
-            userActiveData['HealthGoal'] != null) {
-          Get.offAll(() => HomeWrapper(), binding: InitialBindings());
-          return; // <<< CRITICAL
-        }
-
-        // 🚀 Final check 2 → Ask only remaining questions
-        if (userActiveData['HeightData'] != null &&
-            userActiveData['WeightData'] != null) {
-          Get.offAll(() => QuestionnaireScreen());
-          return; // <<< CRITICAL
-        }
-
-        // 🚀 Missing height/weight
-        final gender = userData['Gender']?.toString() ?? 'Unknown';
-        Get.offAll(() => HeightWeightScreen(gender: gender));
-        return; // <<< CRITICAL
-      }
-
-      // If userActiveData invalid
-      Get.offAll(() => HomeWrapper(), binding: InitialBindings());
-      return;
-    }
-
-    // Missing basic profile info
-    Get.offAll(() => ProfileSetupInitial());
-    return;
-  }
-
   // Handle sign-in error and show snackbar
   void _handleSignInError(String message) {
     CustomSnackbar.showError(context: context, title: "", message: message);
@@ -345,7 +220,12 @@ class _SignInScreenState extends State<SignInScreen> {
 
       // 🔹 Handle result
       if (success) {
-        await _handleSuccessfulSignIn(input, prefs);
+        await authService.handleSuccessfulSignIn(
+          emailOrPhone: input,
+          prefs: prefs,
+          context: context,
+          rememberMe: rememberMe,
+        );
         print("Sign-in successful");
       } else {
         print("Sign-in failed");

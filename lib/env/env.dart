@@ -1,13 +1,19 @@
 class Env {
   static const bool enableConsole = true;
   static const bool enableSnackbar = false;
+
 }
 
 // baseUrl
 // const String baseUrl = "https://localhost:7238";
 const String baseUrl = "https://abdmstg.coretegra.com";
 
+const String ANDROID_CLIENT_ID =
+    "404179238523-f2fl92u65vdjl8flh1b2gju2fua0355v.apps.googleusercontent.com";
+const String WEB_CLIENT_ID =
+    "404179238523-9pfgsa02tnel72tjsfrdf5g864bficcg.apps.googleusercontent.com";
 
+const String WEB = "760082000923-v6lm2bqqroimspg8f1am01ntbio5mbn0.apps.googleusercontent.com";
 // send otp api
 const String senOtpEmailEndpoint =
     '/api/registration/enduser/sendotp/gmail/signup';
