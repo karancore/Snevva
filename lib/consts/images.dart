@@ -241,7 +241,6 @@ const quoteIcon2 = "assets/Images/WomenHealth/tips2.png";
 //const bottomSheetImg = "assets/Images/WomenHealth/game-img02.svg";
 const bottomSheetImg = "assets/Images/WomenHealth/bottom_sheet.webp";
 
-
 const symptomsIcon = "assets/Icons/WomenHealth/Rectangle.png";
 const periodsIcon = "assets/Icons/WomenHealth/Rectangle-2.png";
 

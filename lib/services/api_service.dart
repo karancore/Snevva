@@ -13,9 +13,6 @@ import 'auth_header_helper.dart';
 class ApiService {
   static const String _baseUrl = baseUrl;
 
-
-
-
   static Future<Object> post(
     String endpoint,
     Map<String, dynamic>? plainBody, {
@@ -24,6 +21,7 @@ class ApiService {
   }) async {
     final headers = await AuthHeaderHelper.getHeaders(withAuth: withAuth);
     final uri = Uri.parse("$_baseUrl$endpoint");
+    print("🔗 API Request: POST $uri");
 
     if (encryptionRequired && plainBody != null) {
       final jsonString = jsonEncode(plainBody);
@@ -34,11 +32,12 @@ class ApiService {
       final deviceInfoHeader =
           await DeviceTokenService().buildDeviceInfoHeader();
       headers['X-Device-Info'] = deviceInfoHeader;
+      logLong("headers", headers.toString());
 
       final encryptedRequestBody = jsonEncode({
         'data': encrypted['encryptedData'],
       });
-
+      logLong("encryptedRequestBody", encryptedRequestBody);
 
       final response = await http.post(
         uri,
@@ -59,6 +58,7 @@ class ApiService {
           encryptedBody,
           responseHash,
         );
+        logLong("Decrypted", decrypted ?? '');
 
         if (decrypted == null) {
           throw Exception('Failed to decrypt response');

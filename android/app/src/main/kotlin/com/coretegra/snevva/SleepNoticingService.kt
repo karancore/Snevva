@@ -80,6 +80,7 @@ class SleepNoticingService : Service() {
             }
 
         } catch (_: Exception) {
+Log.e("SleepNoticingService", "Error recovering pending screen off")
         }
     }
 
@@ -92,44 +93,13 @@ class SleepNoticingService : Service() {
 
         try {
             screenReceiver?.let { unregisterReceiver(it) }
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+            Log.e("SleepNoticingService", "Error unregistering existing receiver")
+        }
 
         screenReceiver = ScreenReceiver { event ->
             handleScreenEvent(event)
         }
-        
-        // 🔥 Make this a Foreground Service to prevent killing
-        // We can reuse the channel created by flutter_background_service or create one
-        // ideally, we should create our own or use a shared hidden one.
-        // For now, we will assume the channel exists or post to the same one.
-        /*
-          NOTE: To be fully correct, we should create a specific channel for this if needed.
-          But strictly, `startForeground` needs a notification.
-        */
-        // Simple placeholder notification - in a real app, you might want to sync this with the main service
-        // or just keep it silent/minimized.
-        // For this fix, we are ensuring the service STAYS ALIVE.
-        
-        /* 
-           Uncommenting this block would make it a true foreground service. 
-           However, we already have `WrapperService` (Unified) running as FG.
-           If this service is started *independently*, it needs its own startForeground.
-           
-           If this service is just a helper, it might not need to be FG if the main app is FG.
-           But the user complained about "killing", so lets be safe.
-        */
-        
-        // val channelId = "sleep_noticing_channel"
-        // val channel = NotificationChannel(channelId, "Sleep Monitor", NotificationManager.IMPORTANCE_LOW)
-        // getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
-        
-        // val notification = Notification.Builder(this, channelId)
-        //    .setContentTitle("Sleep Service Active")
-        //    .setContentText("Monitoring screen state for sleep accuracy")
-        //    .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-        //    .build()
-            
-        // startForeground(888, notification)
 
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
@@ -145,45 +115,13 @@ class SleepNoticingService : Service() {
             }
             Log.d("SleepNoticingService", "Screen receiver registered")
         } catch (e: Exception) {
-            Log.e("SleepNoticingService", "Failed to register receiver", e)
+            Log.e("SleepNoticingService", "Failed to register receiver")
         }
 
         return START_REDELIVER_INTENT
 
 
     }
-
-
-
-//    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-//        Log.d("SleepNoticingService", "Service started")
-//
-//
-//        // Register screen receiver
-//        if (screenReceiver == null) {
-//            screenReceiver = ScreenReceiver { event ->
-//                handleScreenEvent(event)
-//            }
-//
-//            val filter = IntentFilter().apply {
-//                addAction(Intent.ACTION_SCREEN_ON)
-//                addAction(Intent.ACTION_SCREEN_OFF)
-//            }
-//
-//            try {
-//                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-//                    registerReceiver(screenReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-//                } else {
-//                    registerReceiver(screenReceiver, filter)
-//                }
-//                Log.d("SleepNoticingService", "Screen receiver registered")
-//            } catch (e: Exception) {
-//                Log.e("SleepNoticingService", "Failed to register receiver", e)
-//            }
-//        }
-//
-//        return START_REDELIVER_INTENT
-//    }
 
     private fun handleScreenEvent(event: String) {
         // Check if sleep tracking is active (use Flutter-prefixed key)
@@ -258,7 +196,7 @@ class SleepNoticingService : Service() {
                             "Interval saved: $intervalStr for window $windowKey"
                         )
                     } catch (e: Exception) {
-                        Log.e("SleepNoticingService", "Error processing screen on", e)
+                        Log.e("SleepNoticingService", "Error processing screen on")
                     }
                 } else {
                     Log.d("SleepNoticingService", "Screen on: no pending screen off")
@@ -312,7 +250,7 @@ class SleepNoticingService : Service() {
                 Log.d("SleepNoticingService", "Receiver unregistered")
             }
         } catch (e: Exception) {
-            Log.e("SleepNoticingService", "Error unregistering receiver", e)
+            Log.e("SleepNoticingService", "Error unregistering receiver")
         }
 
         screenReceiver = null

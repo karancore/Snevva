@@ -1,7 +1,6 @@
 class Env {
   static const bool enableConsole = true;
   static const bool enableSnackbar = false;
-
 }
 
 // baseUrl
@@ -13,7 +12,8 @@ const String ANDROID_CLIENT_ID =
 const String WEB_CLIENT_ID =
     "404179238523-9pfgsa02tnel72tjsfrdf5g864bficcg.apps.googleusercontent.com";
 
-const String WEB = "760082000923-v6lm2bqqroimspg8f1am01ntbio5mbn0.apps.googleusercontent.com";
+const String WEB =
+    "760082000923-v6lm2bqqroimspg8f1am01ntbio5mbn0.apps.googleusercontent.com";
 // send otp api
 const String senOtpEmailEndpoint =
     '/api/registration/enduser/sendotp/gmail/signup';

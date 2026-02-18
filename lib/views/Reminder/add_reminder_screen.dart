@@ -664,7 +664,6 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
           curve: Curves.easeInOut,
           height: 48,
           decoration: BoxDecoration(
-            color: white,
             border: Border.all(
               color: _highlightBorder ? AppColors.primaryColor : grey,
               width: _highlightBorder ? 1.5 : 0.5,

@@ -193,14 +193,12 @@ class AuthService {
     debugPrint("🟩 LOGIN_FLOW: $msg");
   }
 
-
   Future<void> handleSuccessfulSignIn({
     required String emailOrPhone,
     required SharedPreferences prefs,
     required BuildContext context,
     required bool rememberMe,
   }) async {
-
     loginLog("==== LOGIN STARTED ====");
 
     if (rememberMe) {
@@ -277,7 +275,8 @@ class AuthService {
     loginLog("PatientCode saved: $PatientCode");
 
     final nameValid = userData['Name']?.toString().trim().isNotEmpty ?? false;
-    final genderValid = userData['Gender']?.toString().trim().isNotEmpty ?? false;
+    final genderValid =
+        userData['Gender']?.toString().trim().isNotEmpty ?? false;
     final occupationValid = userData['OccupationData'] != null;
 
     final gender = userData['Gender']?.toString() ?? 'Unknown';
@@ -292,7 +291,6 @@ class AuthService {
     /// PROFILE CHECK
     loginLog("Checking basic profile completeness...");
     if (nameValid && genderValid && occupationValid) {
-
       loginLog("Basic profile complete");
 
       final userActiveDataResponse = signInController.userGoalData;
@@ -303,7 +301,6 @@ class AuthService {
       prefs.setString('userGoalDataMap', jsonEncode(userActiveData));
 
       if (userActiveData != null && userActiveData is Map) {
-
         await prefs.setString('useractivedata', jsonEncode(userActiveData));
 
         /// HOME
@@ -338,11 +335,11 @@ class AuthService {
     Get.offAll(() => ProfileSetupInitial());
   }
 
-
   Future<String?> loginWithEmail(String email, String password) async {
     final plainEmail = jsonEncode({'Gmail': email, 'Password': password});
 
     final uri = Uri.parse("$baseUrl$signInEmailEndpoint");
+
     final encryptedEmail = EncryptionService.encryptData(plainEmail);
 
     final headers = await AuthHeaderHelper.getHeaders(withAuth: false);

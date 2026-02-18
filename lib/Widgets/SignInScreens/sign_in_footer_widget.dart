@@ -1,6 +1,4 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 
 import '../../common/loader.dart';
 import '../../consts/consts.dart';
@@ -109,8 +107,9 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
                   setState(() => isSigningIn = true);
 
                   try {
-                    await Get.find<GoogleAuthService>().init(context);
-
+                    final googleAuth = Get.find<GoogleAuthService>();
+                    await googleAuth.init(context);
+                    // await googleAuth.signIn();
                   } finally {
                     if (mounted) {
                       setState(() => isSigningIn = false);

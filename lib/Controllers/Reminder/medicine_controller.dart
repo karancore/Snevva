@@ -106,7 +106,6 @@ class MedicineController extends GetxController {
     });
   }
 
-
   void _syncTimeControllers() {
     final length = frequencyNum[selectedFrequency.value] ?? 1;
     updateTimeControllers(length);
@@ -285,8 +284,7 @@ class MedicineController extends GetxController {
       medicineType: medicineType,
       whenToTake: selectedWhenToTake.value,
       dosage: Dosage(value: dosage ?? 0, unit: unit),
-      medicineFrequencyPerDay:
-          frequencyNum[selectedFrequency.value].toString(),
+      medicineFrequencyPerDay: frequencyNum[selectedFrequency.value].toString(),
       reminderFrequencyType: selectedFrequency.value,
       customReminder: CustomReminder(
         type: Option.interval,
@@ -534,7 +532,6 @@ class MedicineController extends GetxController {
     // final box = Hive.box(reminderBox);
     final box = HiveService().reminders;
 
-
     // Get the list of strings (safely)
     final List<dynamic>? storedList = box.get(key);
 
@@ -714,7 +711,8 @@ class MedicineController extends GetxController {
         );
         final matchesTime = candidateTimes.any(
           (t) =>
-              t.hour == alarm.dateTime.hour && t.minute == alarm.dateTime.minute,
+              t.hour == alarm.dateTime.hour &&
+              t.minute == alarm.dateTime.minute,
         );
         if (matchesTitle && matchesMedicine && matchesTime) {
           await Alarm.stop(alarm.id);

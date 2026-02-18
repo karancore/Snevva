@@ -30,6 +30,7 @@ class BmiUpdateController extends GetxService {
     localStorageManager = Get.find<LocalStorageManager>();
     editprofileController = Get.find<EditprofileController>();
   }
+
   Future<bool> setHeightAndWeight(
     BuildContext context,
     dynamic age,

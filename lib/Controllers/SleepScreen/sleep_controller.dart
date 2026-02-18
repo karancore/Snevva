@@ -6,7 +6,6 @@ import 'package:get/get_connect/http/src/response/response.dart' as http;
 import 'package:get_storage/get_storage.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:snevva/Controllers/SleepScreen/sleep_interval.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/models/awake_interval.dart';
@@ -83,8 +82,6 @@ class SleepController extends GetxService {
     _checkIfAlreadySleeping();
     loadDeepSleepData();
     loadUserSleepTimes();
-
-     reloadSleep();
   }
 
   @override
@@ -295,7 +292,6 @@ class SleepController extends GetxService {
 
   Future<void> _loadWeeklySleepData() async {
     try {
-
       // final box = await Hive.openBox<SleepLog>('sleep_log');
       final box = HiveService().sleepLog;
       final now = DateTime.now();
@@ -729,8 +725,10 @@ class SleepController extends GetxService {
 
     // 🔥 Set UI value for *today* (or yesterday if today is empty)
     final todayKey = getCurrentDayKey();
-    final yesterdayKey = dateKey(DateTime.now().subtract(const Duration(days: 1)));
-    
+    final yesterdayKey = dateKey(
+      DateTime.now().subtract(const Duration(days: 1)),
+    );
+
     // Check today first
     if ((weeklyDeepSleepHistory[todayKey]?.inMinutes ?? 0) > 0) {
       deepSleepDuration.value = weeklyDeepSleepHistory[todayKey]!;

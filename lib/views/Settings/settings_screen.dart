@@ -18,9 +18,8 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final themeController = Get.put(ThemeController());
+  final ThemeController themeController = Get.find<ThemeController>();
   bool _notificationsToggle = false;
-  bool _themeToggle = false;
   double _volume = 0.5;
 
   Future<void> launchEmail() async {
@@ -42,8 +41,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
-    // ✅ Listens to the app's current theme command
-    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: CustomAppBar(appbarText: "Settings", showCloseButton: true),
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
@@ -68,13 +65,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   "Dark Mode",
                   style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
                 ),
-                CupertinoSwitch(
-                  value: themeController.isDarkMode.value,
-                  activeColor: AppColors.activeSwitch,
-                  onChanged: (value) {
-                    themeController.toggleTheme(value);
-                    setState(() {});
-                  },
+                Obx(
+                  () => CupertinoSwitch(
+                    value: themeController.isDarkMode.value,
+                    activeColor: AppColors.activeSwitch,
+                    onChanged: (_) => themeController.toggleTheme(),
+                  ),
                 ),
               ],
             ),

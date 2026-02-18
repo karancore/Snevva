@@ -60,7 +60,9 @@ class SleepNoticingService {
       final lastOffKey = 'last_screen_off_${window.dateKey}';
       // Initialize open interval from window start
       await prefs.setString(lastOffKey, window.start.toIso8601String());
-      debugPrint('🔒 Initialized open interval from window start: ${window.start}');
+      debugPrint(
+        '🔒 Initialized open interval from window start: ${window.start}',
+      );
     }
   }
 
@@ -70,7 +72,7 @@ class SleepNoticingService {
 
   Future<void> _onScreenTurnedOff() async {
     debugPrint('🌙 SCREEN_OFF detected');
-    _screenIsOn = false;  // Add this: Update state
+    _screenIsOn = false; // Add this: Update state
 
     final prefs = await SharedPreferences.getInstance();
 
@@ -109,7 +111,7 @@ class SleepNoticingService {
 
   Future<void> _onScreenTurnedOn() async {
     debugPrint('🌞 SCREEN_ON detected');
-    _screenIsOn = true;  // Add this: Update state
+    _screenIsOn = true; // Add this: Update state
 
     final prefs = await SharedPreferences.getInstance();
 
@@ -172,9 +174,10 @@ class SleepNoticingService {
     final existing = prefs.getString(intervalsKey);
     final newEntry = '${start.toIso8601String()}|${end.toIso8601String()}';
 
-    final updated = (existing == null || existing.isEmpty)
-        ? newEntry
-        : '$existing,$newEntry';
+    final updated =
+        (existing == null || existing.isEmpty)
+            ? newEntry
+            : '$existing,$newEntry';
 
     await prefs.setString(intervalsKey, updated);
     await prefs.remove(lastOffKey);
@@ -227,13 +230,16 @@ class SleepNoticingService {
         final now = DateTime.now();
 
         // Clamp to window
-        DateTime start = lastOff.isBefore(window.start) ? window.start : lastOff;
+        DateTime start =
+            lastOff.isBefore(window.start) ? window.start : lastOff;
         DateTime end = now.isAfter(window.end) ? window.end : now;
 
         if (end.isAfter(start)) {
           final openIntervalMinutes = end.difference(start).inMinutes;
           totalMinutes += openIntervalMinutes;
-          debugPrint('📱 Open interval (screen still off): $openIntervalMinutes mins');
+          debugPrint(
+            '📱 Open interval (screen still off): $openIntervalMinutes mins',
+          );
         }
       } catch (e) {
         debugPrint('⚠️ Failed to parse open interval: $e');
@@ -244,7 +250,7 @@ class SleepNoticingService {
     return totalMinutes;
   }
 
-// ... rest of existing code ...
+  // ... rest of existing code ...
   // ─────────────────────────────────────────────
   // PUBLIC UTILITY: Clear sleep data
   // ─────────────────────────────────────────────
@@ -261,11 +267,14 @@ class SleepNoticingService {
   // ─────────────────────────────────────────────
 
   bool _isWithinWindow(DateTime t, DateTime start, DateTime end) {
-    final inside = (!t.isBefore(start)) && (t.isBefore(end) || t.isAtSameMomentAs(end));
+    final inside =
+        (!t.isBefore(start)) && (t.isBefore(end) || t.isAtSameMomentAs(end));
     return inside;
   }
 
-  Future<_SleepWindow?> _computeActiveSleepWindow(SharedPreferences prefs) async {
+  Future<_SleepWindow?> _computeActiveSleepWindow(
+    SharedPreferences prefs,
+  ) async {
     debugPrint('🧠 Computing active sleep window');
 
     // First try to get from current sleep session
@@ -273,7 +282,9 @@ class SleepNoticingService {
     final currentWindowEnd = prefs.getString("current_sleep_window_end");
     final currentWindowKey = prefs.getString("current_sleep_window_key");
 
-    if (currentWindowStart != null && currentWindowEnd != null && currentWindowKey != null) {
+    if (currentWindowStart != null &&
+        currentWindowEnd != null &&
+        currentWindowKey != null) {
       debugPrint('✅ Using current sleep session window');
       return _SleepWindow(
         start: DateTime.parse(currentWindowStart),
@@ -299,31 +310,29 @@ class SleepNoticingService {
 
     final now = DateTime.now();
 
-DateTime sleepStartToday = _buildDateTime(now, bedTod);
-DateTime sleepStart;
+    DateTime sleepStartToday = _buildDateTime(now, bedTod);
+    DateTime sleepStart;
 
-if (bedMin > wakeMin) {
-  // CROSS MIDNIGHT CASE (e.g., 23:00 → 06:00)
+    if (bedMin > wakeMin) {
+      // CROSS MIDNIGHT CASE (e.g., 23:00 → 06:00)
 
-  if (now.isBefore(_buildDateTime(now, wakeTod))) {
-    // After midnight but before wake time → belongs to yesterday's sleep
-    sleepStart = sleepStartToday.subtract(const Duration(days: 1));
-  } else if (now.isBefore(sleepStartToday)) {
-    // Before bedtime tonight → still yesterday's sleep window
-    sleepStart = sleepStartToday.subtract(const Duration(days: 1));
-  } else {
-    // After bedtime tonight
-    sleepStart = sleepStartToday;
-  }
+      if (now.isBefore(_buildDateTime(now, wakeTod))) {
+        // After midnight but before wake time → belongs to yesterday's sleep
+        sleepStart = sleepStartToday.subtract(const Duration(days: 1));
+      } else if (now.isBefore(sleepStartToday)) {
+        // Before bedtime tonight → still yesterday's sleep window
+        sleepStart = sleepStartToday.subtract(const Duration(days: 1));
+      } else {
+        // After bedtime tonight
+        sleepStart = sleepStartToday;
+      }
+    } else {
+      // NORMAL SAME-DAY SLEEP (e.g., 22:00 → 23:00)
+      sleepStart = sleepStartToday;
+    }
 
-} else {
-  // NORMAL SAME-DAY SLEEP (e.g., 22:00 → 23:00)
-  sleepStart = sleepStartToday;
-}
-
-final sleepEnd = _resolveSleepEnd(sleepStart, wakeTod);
-final key = _dateKey(sleepStart);
-
+    final sleepEnd = _resolveSleepEnd(sleepStart, wakeTod);
+    final key = _dateKey(sleepStart);
 
     debugPrint('🛏️ BedTime TOD: $bedTod');
     debugPrint('⏰ WakeTime TOD: $wakeTod');
@@ -373,7 +382,8 @@ final key = _dateKey(sleepStart);
   }
 
   String _dateKey(DateTime d) {
-    final key = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    final key =
+        '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
     return key;
   }
 }

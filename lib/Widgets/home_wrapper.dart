@@ -142,7 +142,6 @@ class _HomeWrapperState extends State<HomeWrapper> {
   Future<void> _startupSequence() async {
     // 1️⃣ Permissions first
 
-
     // 2️⃣ Wait for app to fully resume
     // await Future.delayed(const Duration(seconds: 1));
 

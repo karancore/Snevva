@@ -14,7 +14,11 @@ class BMIUpdateResultScreen extends StatelessWidget {
   final double bmi;
   final int age;
 
-  const BMIUpdateResultScreen({super.key, required this.bmi, required this.age});
+  const BMIUpdateResultScreen({
+    super.key,
+    required this.bmi,
+    required this.age,
+  });
 
   String getStatus(double bmi) {
     if (bmi < 18.5) return 'Underweight';
@@ -191,9 +195,11 @@ class BMIUpdateResultScreen extends StatelessWidget {
                 final tips = controller.randomTips;
 
                 if (controller.isLoading.value) {
-                  return const Center(child: CircularProgressIndicator(
-                    color: AppColors.primaryColor,
-                  ));
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primaryColor,
+                    ),
+                  );
                 }
 
                 if (tips.isEmpty) {

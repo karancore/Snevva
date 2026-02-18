@@ -43,7 +43,8 @@ class MedicineReminderModel {
     return MedicineReminderModel(
       id: json['id'] ?? 0,
       alarmIds:
-          (json['alarmIds'] as List?)?.map((e) => e as int).toList() ?? const [],
+          (json['alarmIds'] as List?)?.map((e) => e as int).toList() ??
+          const [],
       title: json['title'] ?? '',
       category: json['category'] ?? '',
       whenToTake: json['whenToTake'] ?? '',

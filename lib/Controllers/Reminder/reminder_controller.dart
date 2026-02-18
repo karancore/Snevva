@@ -1295,7 +1295,7 @@ class ReminderController extends GetxController {
     required BuildContext context,
     num? dosage,
     required reminder_payload.ReminderPayloadModel reminder,
-}) async {
+  }) async {
     final category = selectedCategory.value.trim().toLowerCase();
 
     if (titleController.text.trim().isEmpty) {
@@ -1341,7 +1341,8 @@ class ReminderController extends GetxController {
             Option.interval;
 
         if (!isInterval) {
-          final expectedTimes = medicineGetxController.getEffectiveTimesPerDay();
+          final expectedTimes =
+              medicineGetxController.getEffectiveTimesPerDay();
           final filledTimes =
               medicineGetxController.timeControllers
                   .where((ctrl) => ctrl.text.trim().isNotEmpty)
@@ -1431,7 +1432,7 @@ class ReminderController extends GetxController {
     required num? dosage,
     required int reminderId,
   }) async {
-    if(reminderId == 0000){
+    if (reminderId == 0000) {
       return false;
     }
     final isInterval =
@@ -1465,7 +1466,9 @@ class ReminderController extends GetxController {
     final targetTimes = <DateTime>[];
     if (isInterval) {
       final intervalHours =
-          int.tryParse(medicineGetxController.everyHourController.text.trim()) ??
+          int.tryParse(
+            medicineGetxController.everyHourController.text.trim(),
+          ) ??
           0;
       if (intervalHours <= 0) {
         CustomSnackbar.showError(
@@ -1537,13 +1540,16 @@ class ReminderController extends GetxController {
             : medicineGetxController.endDateString.value;
     final timesPerDay = medicineGetxController.getEffectiveTimesPerDay();
     final everyXHours = medicineGetxController.everyHourController.text.trim();
-    final reminderFrequencyType = medicineGetxController.selectedFrequency.value;
-    final medicineFrequencyPerDay = medicineGetxController
-        .frequencyNum[medicineGetxController.selectedFrequency.value]
-        .toString();
-    final startTime = medicineGetxController.startMedicineTimeController.text
-        .trim();
-    final endTime = medicineGetxController.endMedicineTimeController.text.trim();
+    final reminderFrequencyType =
+        medicineGetxController.selectedFrequency.value;
+    final medicineFrequencyPerDay =
+        medicineGetxController
+            .frequencyNum[medicineGetxController.selectedFrequency.value]
+            .toString();
+    final startTime =
+        medicineGetxController.startMedicineTimeController.text.trim();
+    final endTime =
+        medicineGetxController.endMedicineTimeController.text.trim();
     final list =
         medicineGetxController.timeControllers
             .map((controller) => controller.text.trim())
@@ -1552,7 +1558,8 @@ class ReminderController extends GetxController {
 
     final updatedAlarmIds = <int>[];
     for (var i = 0; i < targetTimes.length; i++) {
-      final alarmId = i < existingAlarmIds.length ? existingAlarmIds[i] : alarmsId();
+      final alarmId =
+          i < existingAlarmIds.length ? existingAlarmIds[i] : alarmsId();
       final alarmSettings = AlarmSettings(
         id: alarmId,
         dateTime: targetTimes[i],
@@ -1636,7 +1643,10 @@ class ReminderController extends GetxController {
     );
 
     medicineGetxController.medicineList[index] = updatedModel;
-    await saveReminderList(medicineGetxController.medicineList, "medicine_list");
+    await saveReminderList(
+      medicineGetxController.medicineList,
+      "medicine_list",
+    );
     await loadAllReminderLists();
     CustomSnackbar().showReminderBar(context);
     Get.back(result: true);

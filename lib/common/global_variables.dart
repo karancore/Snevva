@@ -12,6 +12,7 @@ import '../models/reminders/medicine_reminder_model.dart';
 enum Option { times, interval }
 
 enum ReminderCategory { medicine, water, meal, event }
+
 double asDouble(num? value) {
   if (value == null) return 1.0;
   return value.toDouble();

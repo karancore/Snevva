@@ -1,26 +1,30 @@
-import 'package:flutter/foundation.dart';
-import 'package:get/get_rx/src/rx_types/rx_types.dart';
-import 'package:get/get_state_manager/src/rx_flutter/rx_disposable.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:http/http.dart' as http;
 import 'package:snevva/services/auth_service.dart';
-import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import '../common/custom_snackbar.dart';
-import '../consts/consts.dart';
 import '../env/env.dart';
-import '../views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import 'api_service.dart';
 
 class GoogleAuthService extends GetxService {
   final GoogleSignIn _google = GoogleSignIn.instance;
   final authService = AuthService();
   Rxn<GoogleSignInAccount> user = Rxn();
+  StreamSubscription<GoogleSignInAuthenticationEvent>? _authEventsSub;
+  bool _initialized = false;
 
   // ---------------- INIT ----------------
   Future<void> init(BuildContext context) async {
+    if (_initialized) {
+      debugPrint("ℹ️ GoogleAuthService already initialized");
+      return;
+    }
+
     debugPrint("🔵 GoogleAuthService: init started");
 
     await _google.initialize(serverClientId: WEB);
@@ -28,7 +32,7 @@ class GoogleAuthService extends GetxService {
     debugPrint("🟢 GoogleSignIn initialized with clientId: $WEB");
 
     // LISTEN AUTH EVENTS
-    _google.authenticationEvents.listen(
+    _authEventsSub = _google.authenticationEvents.listen(
       (event) async {
         debugPrint("📡 Authentication event received: ${event.runtimeType}");
 
@@ -53,7 +57,7 @@ class GoogleAuthService extends GetxService {
       },
       onError: (error) {
         debugPrint("❌ authenticationEvents error triggered");
-
+        _initialized = false; // Reset init state to allow re-init if needed
         if (error is GoogleSignInException) {
           debugPrint("   Error code: ${error.code}");
           debugPrint("   Error message: ${error.description}");
@@ -72,6 +76,7 @@ class GoogleAuthService extends GetxService {
     // Attempt auto login
     debugPrint("🔄 Attempting lightweight authentication...");
     _google.attemptLightweightAuthentication();
+    _initialized = true;
   }
 
   // ---------------- BUTTON LOGIN ----------------
@@ -83,7 +88,15 @@ class GoogleAuthService extends GetxService {
 
     if (supports) {
       debugPrint("🚀 Starting Google authenticate()");
-      await _google.authenticate();
+      try {
+        await _google.authenticate();
+      } on GoogleSignInException catch (e) {
+        if (e.code == GoogleSignInExceptionCode.canceled) {
+          debugPrint("⚠️ User cancelled Google sign-in UI");
+          return;
+        }
+        rethrow;
+      }
     } else {
       debugPrint("⚠️ authenticate() not supported on this platform");
     }
@@ -98,7 +111,7 @@ class GoogleAuthService extends GetxService {
     try {
       debugPrint("🔐 Fetching Google authentication tokens...");
 
-      final GoogleSignInAuthentication auth = await account.authentication;
+      final GoogleSignInAuthentication auth = account.authentication;
 
       final String? idToken = auth.idToken;
 
@@ -126,12 +139,19 @@ class GoogleAuthService extends GetxService {
       if (response is http.Response) {
         debugPrint("❌ HTTP error: ${response.statusCode}");
         CustomSnackbar.showError(
-          context: Get.context!,
+          context: context,
           title: 'Error',
           message: 'Failed to sign in with google: ${response.statusCode}',
         );
         return;
       }
+
+      final result = jsonDecode(jsonEncode(response));
+      final token = result['data'];
+      print("Received token from backend: $token");
+      final prefs = await SharedPreferences.getInstance();
+      prefs.setString('auth_token', token);
+
 
       await authService.handleSuccessfulSignIn(
         emailOrPhone: account.email,
@@ -140,6 +160,8 @@ class GoogleAuthService extends GetxService {
         rememberMe: true,
       );
 
+      _initialized = false; // Reset init state to allow re-init if needed
+
       debugPrint("📥 Backend response: $response");
 
       debugPrint("🎉 Backend login completed");
@@ -147,5 +169,11 @@ class GoogleAuthService extends GetxService {
       debugPrint("🔥 Backend login failed: $e");
       debugPrint("$stack");
     }
+  }
+
+  @override
+  void onClose() {
+    _authEventsSub?.cancel();
+    super.onClose();
   }
 }

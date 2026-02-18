@@ -27,17 +27,12 @@ class NotificationService {
       iOS: iosInit,
     );
 
-    await notificationsPlugin.initialize(
-      initSettings,
-
-    );
+    await notificationsPlugin.initialize(initSettings);
 
     // Initialize timezone (very important for scheduling)
     tzd.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
   }
-
-
 
   Future<void> showInstantNotification({
     required int id,

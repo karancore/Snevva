@@ -74,34 +74,35 @@ class HiveService {
     }
   }
 
-    Future<void> _openBoxes() async {
-      stepHistory = await Hive.openBox<StepEntry>('step_history');
-      sleepLog = await Hive.openBox<SleepLog>('sleep_log');
-      reminders = await Hive.openBox('reminders_box');
-      medicine = await Hive.openBox('medicine_list');
-    }
+  Future<void> _openBoxes() async {
+    stepHistory = await Hive.openBox<StepEntry>('step_history');
+    sleepLog = await Hive.openBox<SleepLog>('sleep_log');
+    reminders = await Hive.openBox('reminders_box');
+    medicine = await Hive.openBox('medicine_list');
+  }
+
   Future<void> resetAppData() async {
     try {
-      final boxNames = [
-        'step_history',
-        'sleep_log',
-        'reminders_box',
-        'medicine_list',
-      ];
+      await _clearTypedBox<StepEntry>('step_history');
+      await _clearTypedBox<SleepLog>('sleep_log');
+      await _clearUntypedBox('reminders_box');
+      await _clearUntypedBox('medicine_list');
 
-      for (final name in boxNames) {
-        if (Hive.isBoxOpen(name)) {
-          await Hive.box(name).close();
-        }
-        await Hive.deleteBoxFromDisk(name);
-      }
-
-      _initialized = false;
-
-      print("🔥 All Hive data cleared (App Reset)");
+      print("🔥 All Hive data cleared (Logout Reset)");
     } catch (e) {
       print("❌ App reset failed: $e");
+      rethrow;
     }
   }
 
+  Future<void> _clearTypedBox<T>(String name) async {
+    final box =
+        Hive.isBoxOpen(name) ? Hive.box<T>(name) : await Hive.openBox<T>(name);
+    await box.clear();
+  }
+
+  Future<void> _clearUntypedBox(String name) async {
+    final box = Hive.isBoxOpen(name) ? Hive.box(name) : await Hive.openBox(name);
+    await box.clear();
+  }
 }

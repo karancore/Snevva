@@ -84,7 +84,9 @@ Future<void> setupHive() async {
     }
 
     var directory = await getApplicationDocumentsDirectory();
-    await Hive.initFlutter(directory.path);  // This must be called once per isolate
+    await Hive.initFlutter(
+      directory.path,
+    ); // This must be called once per isolate
 
     print("🧪 Initializing Hive at: ${directory.path}");
 
@@ -93,63 +95,63 @@ Future<void> setupHive() async {
       Hive.registerAdapter(StepEntryAdapter());
     }
 
-  // 🔑 OPEN BOXES HERE
-  // await Hive.openBox('sleepBox');
-  // await Hive.openBox('deepSleepBox');
-  // // await Hive.box('medicine_list').clear();
+    // 🔑 OPEN BOXES HERE
+    // await Hive.openBox('sleepBox');
+    // await Hive.openBox('deepSleepBox');
+    // // await Hive.box('medicine_list').clear();
 
-  if (!Hive.isAdapterRegistered(StepEntryAdapter().typeId)) {
-    Hive.registerAdapter(StepEntryAdapter());
-  }
-  if (!Hive.isAdapterRegistered(SleepLogAdapter().typeId)) {
-    Hive.registerAdapter(SleepLogAdapter());
-  }
-  if (!Hive.isAdapterRegistered(ReminderPayloadModelAdapter().typeId)) {
-    Hive.registerAdapter(ReminderPayloadModelAdapter());
-  }
-  if (!Hive.isAdapterRegistered(DosageAdapter().typeId)) {
-    Hive.registerAdapter(DosageAdapter());
-  }
+    if (!Hive.isAdapterRegistered(StepEntryAdapter().typeId)) {
+      Hive.registerAdapter(StepEntryAdapter());
+    }
+    if (!Hive.isAdapterRegistered(SleepLogAdapter().typeId)) {
+      Hive.registerAdapter(SleepLogAdapter());
+    }
+    if (!Hive.isAdapterRegistered(ReminderPayloadModelAdapter().typeId)) {
+      Hive.registerAdapter(ReminderPayloadModelAdapter());
+    }
+    if (!Hive.isAdapterRegistered(DosageAdapter().typeId)) {
+      Hive.registerAdapter(DosageAdapter());
+    }
 
-  if (!Hive.isAdapterRegistered(CustomReminderAdapter().typeId)) {
-    Hive.registerAdapter(CustomReminderAdapter());
-  }
+    if (!Hive.isAdapterRegistered(CustomReminderAdapter().typeId)) {
+      Hive.registerAdapter(CustomReminderAdapter());
+    }
 
-  if (!Hive.isAdapterRegistered(TimesPerDayAdapter().typeId)) {
-    Hive.registerAdapter(TimesPerDayAdapter());
-  }
+    if (!Hive.isAdapterRegistered(TimesPerDayAdapter().typeId)) {
+      Hive.registerAdapter(TimesPerDayAdapter());
+    }
 
-  if (!Hive.isAdapterRegistered(EveryXHoursAdapter().typeId)) {
-    Hive.registerAdapter(EveryXHoursAdapter());
-  }
+    if (!Hive.isAdapterRegistered(EveryXHoursAdapter().typeId)) {
+      Hive.registerAdapter(EveryXHoursAdapter());
+    }
 
-  if (!Hive.isAdapterRegistered(RemindBeforeAdapter().typeId)) {
-    Hive.registerAdapter(RemindBeforeAdapter());
-  }
+    if (!Hive.isAdapterRegistered(RemindBeforeAdapter().typeId)) {
+      Hive.registerAdapter(RemindBeforeAdapter());
+    }
 
-  // ✅ Only open boxes if not already open
-  if (!Hive.isBoxOpen('step_history')) {
-    await Hive.openBox<StepEntry>('step_history');
-  }
+    // ✅ Only open boxes if not already open
+    if (!Hive.isBoxOpen('step_history')) {
+      await Hive.openBox<StepEntry>('step_history');
+    }
 
-  print("✅ Hive setup complete - boxes opened");
+    print("✅ Hive setup complete - boxes opened");
 
-  if (!Hive.isBoxOpen('sleep_log')) {
-    await Hive.openBox<SleepLog>('sleep_log');
-  }
-  if (!Hive.isBoxOpen(reminderBox)) {
-    await Hive.openBox(reminderBox);
-  }
-  if (!Hive.isBoxOpen("medicine_list")) {
-    await Hive.openBox('medicine_list');
-  }
+    if (!Hive.isBoxOpen('sleep_log')) {
+      await Hive.openBox<SleepLog>('sleep_log');
+    }
+    if (!Hive.isBoxOpen(reminderBox)) {
+      await Hive.openBox(reminderBox);
+    }
+    if (!Hive.isBoxOpen("medicine_list")) {
+      await Hive.openBox('medicine_list');
+    }
 
     print("✅ Hive setup complete - boxes opened");
   } catch (e, stackTrace) {
     print("❌ Hive setup failed: $e");
     print(stackTrace);
     // Optionally rethrow or handle (e.g., show error UI)
-    rethrow;  // Let main.dart handle it
+    rethrow; // Let main.dart handle it
   }
 }
 

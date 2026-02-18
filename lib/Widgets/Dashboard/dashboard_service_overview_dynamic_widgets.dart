@@ -262,7 +262,10 @@ class _DashboardServiceOverviewDynamicWidgetsState
                     );
 
                     if (goal != null) {
-                      final stepResult = await prefs.setBool('isStepGoalSet', true);
+                      final stepResult = await prefs.setBool(
+                        'isStepGoalSet',
+                        true,
+                      );
                       await prefs.setInt('stepGoalValue', goal);
 
                       if (!context.mounted) return;

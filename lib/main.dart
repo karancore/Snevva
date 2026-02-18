@@ -23,7 +23,9 @@ import 'package:snevva/Controllers/signupAndSignIn/otp_verification_controller.d
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/update_old_password_controller.dart';
+import 'package:snevva/services/firebase_init.dart';
 import 'package:snevva/services/google_auth.dart';
+import 'package:snevva/services/hive_service.dart';
 import 'package:snevva/utils/theme_controller.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
@@ -55,6 +57,7 @@ import 'utils/theme.dart';
 import 'views/Reminder/reminder_screen.dart';
 import 'views/SignUp/sign_in_screen.dart';
 import 'widgets/home_wrapper.dart';
+
 Future<void> ensureFirebaseInitialized() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -65,50 +68,10 @@ Future<void> ensureFirebaseInitialized() async {
   }
 }
 
-/// ------------------------------------------------------------
-/// 🔔 Notification action handler
-/// ------------------------------------------------------------
-// @pragma('vm:entry-point')
-// Future<void> notificationBackgroundHandler(
-//   NotificationResponse response,
-// ) async {
-//   // Use the ID from the response if available, otherwise fallback to constant
-//   final int notificationId = response.id ?? WAKE_NOTIFICATION_ID;
-//   final fln = FlutterLocalNotificationsPlugin();
-//   await fln.cancel(notificationId);
-//
-//   // if (response.actionId == 'STOP_ALARM') {
-//   //   // 1. Mark as stopped for the main app to see later
-//   //   final prefs = await SharedPreferences.getInstance();
-//   //   await prefs.setBool('stop_alarm_pending', true);
-//   //
-//   //   // 2. Manual cancel (as a safety backup to cancelNotification: true)
-//   //
-//   //
-//   //   debugPrint('🛑 Alarm $notificationId stopped in background');
-//   // }
-// }
-
-/// ------------------------------------------------------------
-/// 🔔 Firebase background handler (separate isolate)
-/// ------------------------------------------------------------
-///
-///
-///
-class SleepLifecycleObserver extends WidgetsBindingObserver {
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      Get.find<SleepController>().reloadSleep();
-    }
-  }
-}
-
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // await ensureFirebaseInitialized();
   await FirebaseInit.init();
-
 
   final prefs = await SharedPreferences.getInstance();
   final List existing = jsonDecode(
@@ -181,10 +144,8 @@ void main() async {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 
-      WidgetsBinding.instance.addObserver(SleepLifecycleObserver());
-
-      // await ensureFirebaseInitialized();
-      await FirebaseInit.init();
+      await ensureFirebaseInitialized();
+      // await FirebaseInit.init();
 
       // await setupHive();
       await HiveService().initMain();
@@ -281,7 +242,6 @@ Future<void> initialiseGetxServicesAndControllers() async {
     //   await service.init(); // ← THIS WAS MISSING
     //   return service;
     // }, permanent: true),
-
     Get.putAsync<BmiController>(() async => BmiController(), permanent: true),
 
     Get.putAsync<DietPlanController>(
@@ -303,7 +263,7 @@ Future<void> initialiseGetxServicesAndControllers() async {
     Get.lazyPut(() => BottomSheetController(), fenix: true);
   }
   if (!Get.isRegistered<ThemeController>()) {
-    Get.lazyPut(() => ThemeController(), fenix: true);
+    Get.put(ThemeController(), permanent: true);
   }
   if (!Get.isRegistered<WomenHealthController>()) {
     Get.lazyPut(() => WomenHealthController(), fenix: true);
@@ -344,10 +304,12 @@ enum AppInitState { loading, success, error }
 class _MyAppState extends State<MyApp> {
   AppInitState _initState = AppInitState.loading;
   Timer? _timeoutTimer;
+  late final ThemeController _themeController;
 
   @override
   void initState() {
     super.initState();
+    _themeController = Get.find<ThemeController>();
 
     _safeInit();
     _handlePendingNavigation();
@@ -364,9 +326,9 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _safeInit() async {
-    // await ensureFirebaseInitialized();
+    await ensureFirebaseInitialized();
 
-    await FirebaseInit.init();
+    // await FirebaseInit.init();
 
     try {
       PushNotificationService().initialize();
@@ -385,9 +347,8 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _handleInitialMessage() async {
-    // await ensureFirebaseInitialized();
-    await FirebaseInit.init();
-
+    await ensureFirebaseInitialized();
+    // await FirebaseInit.init();
 
     final message = await FirebaseMessaging.instance.getInitialMessage();
 
@@ -454,33 +415,35 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
-      debugShowCheckedModeBanner: false,
-      //initialBinding: InitialBindings(),
-      title: 'Snevva',
-      theme: SnevvaTheme.lightTheme,
-      darkTheme: SnevvaTheme.darkTheme,
-      themeMode: ThemeMode.system,
-      supportedLocales: AppLocalizations.supportedLocales,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      locale: const Locale('en'),
-      getPages: [
-        GetPage(name: '/home', page: () => HomeWrapper()),
-        GetPage(name: '/reminder', page: () => ReminderScreen()),
-        GetPage(name: '/mood', page: () => MoodTrackerScreen()),
-      ],
-      home:
-          _initState == AppInitState.loading
-              ? const InitializationSplash()
-              : _initState == AppInitState.success
-              ? HomeWrapper()
-              : ErrorPlaceholder(
-                onRetry: () {
-                  _startTimeout();
-                  _initializeAppAsync();
-                },
-                details: '',
-              ),
+    return Obx(
+      () => GetMaterialApp(
+        debugShowCheckedModeBanner: false,
+        //initialBinding: InitialBindings(),
+        title: 'Snevva',
+        theme: SnevvaTheme.lightTheme,
+        darkTheme: SnevvaTheme.darkTheme,
+        themeMode: _themeController.themeMode,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        locale: const Locale('en'),
+        getPages: [
+          GetPage(name: '/home', page: () => HomeWrapper()),
+          GetPage(name: '/reminder', page: () => ReminderScreen()),
+          GetPage(name: '/mood', page: () => MoodTrackerScreen()),
+        ],
+        home:
+            _initState == AppInitState.loading
+                ? const InitializationSplash()
+                : _initState == AppInitState.success
+                ? HomeWrapper()
+                : ErrorPlaceholder(
+                  onRetry: () {
+                    _startTimeout();
+                    _initializeAppAsync();
+                  },
+                  details: '',
+                ),
+      ),
     );
   }
 }

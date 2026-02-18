@@ -50,8 +50,6 @@ class AlertsController extends GetxService {
       final decoded = jsonDecode(jsonEncode(response));
 
       logLong('🔍 Alerts Notifications Raw JSON: ', decoded.toString());
-
-
     } catch (e, s) {
       debugPrint("❌ hitAlertsNotifications error: $e");
       debugPrintStack(stackTrace: s);

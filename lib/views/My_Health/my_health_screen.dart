@@ -55,24 +55,6 @@ class _MyHealthScreenState extends State<MyHealthScreen>
     _loadGenderAndInit();
   }
 
-  //Old Method
-  // Future<void> _loadGenderAndInit() async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   final localGender = prefs.getString('user_gender');
-  //
-  //   setState(() {
-  //     // gender = localGender ?? 'Not Specified';
-  //     final signInController = Get.find<SignInController>();
-  //     final userInfo = signInController.userProfData ?? {};
-  //     final userData = userInfo['data'];
-  //     gender = (localGender != null) ? localGender : userData['Gender'];
-  //     isLoading = false;
-  //     debugPrint('MyHealthScreen $gender');
-  //   });
-  //
-  //   _initializeVitalItems();
-  //   _initAnimations();
-  // }
   Future<void> _loadGenderAndInit() async {
     final prefs = await SharedPreferences.getInstance();
     final localGenderPref = prefs.getString('user_gender');
@@ -209,7 +191,10 @@ class _MyHealthScreenState extends State<MyHealthScreen>
         buttonText: 'BMI Result',
         onPressed:
             () => Get.to(
-              () => BMIUpdateResultScreen(bmi: bmiController.bmi.value, age: bmiController.age.value),
+              () => BMIUpdateResultScreen(
+                bmi: bmiController.bmi.value,
+                age: bmiController.age.value,
+              ),
             ),
       ),
       TrackerHealthCard(
@@ -388,7 +373,7 @@ class TrackerHealthCard extends StatelessWidget {
   final VoidCallback? onPressed;
 
   const TrackerHealthCard({
-    Key? key,
+    super.key,
     required this.icon,
     required this.iconColor,
     required this.title,
@@ -396,7 +381,7 @@ class TrackerHealthCard extends StatelessWidget {
     required this.buttonText,
     required this.cardType,
     required this.onPressed,
-  }) : super(key: key);
+  });
 
   const TrackerHealthCard.noSubtitle({
     Key? key,
@@ -419,8 +404,8 @@ class TrackerHealthCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 20,
             offset: const Offset(0, 2),
           ),
         ],

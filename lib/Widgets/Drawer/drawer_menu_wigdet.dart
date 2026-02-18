@@ -1,6 +1,5 @@
 import 'package:alarm/alarm.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/DietPlan/diet_plan_controller.dart';
@@ -29,7 +28,6 @@ import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import '../../consts/consts.dart';
-import '../../models/hive_models/steps_model.dart';
 import '../home_wrapper.dart';
 import 'drawer_menu_item.dart';
 
@@ -74,6 +72,12 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
         // Back-compat safety: if anything else is wired to old stopper.
         await stopBackgroundService();
 
+        debugPrint('🗄️ Clearing Hive step_history...');
+        try {
+          await HiveService().resetAppData();
+        } catch (e) {
+          throw Exception("Failed to clear app data");
+        }
         // #region agent log
         AgentDebugLogger.log(
           runId: 'auth-bg',
@@ -132,22 +136,8 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
       debugPrint('✅ SharedPreferences cleared');
 
       // ==========================================================
-      // 4️⃣ CLEAR HIVE (ONLY USER DATA)
+      // 4️⃣ HIVE DATA ALREADY CLEARED VIA HiveService.resetAppData()
       // ==========================================================
-      debugPrint('🗄️ Clearing Hive step_history...');
-      try{
-        await HiveService().resetAppData();
-      } catch(e){
-        throw Exception("Failed to clear app data");
-      }
-      try {
-        if (Hive.isBoxOpen('step_history')) {
-          await Hive.box<StepEntry>('step_history').clear();
-          debugPrint('✅ step_history cleared');
-        }
-      } catch (e) {
-        debugPrint('❌ Failed to clear step_history: $e');
-      }
 
       // ==========================================================
       // 5️⃣ CLEAR IN-MEMORY STATE

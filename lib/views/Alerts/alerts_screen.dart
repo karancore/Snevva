@@ -47,12 +47,10 @@ class _AlertsScreenState extends State<AlertsScreen>
     // });
     // // Use the existing instance instead of creating new one
     // notif = Get.find<NotificationService>();
-    WidgetsBinding.instance.addPostFrameCallback((_){
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       alertsController.hitAlertsNotifications();
     });
   }
-
-
 
   @override
   Widget build(BuildContext context) {

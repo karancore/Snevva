@@ -88,7 +88,7 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
       );
 
       DateTime sleepDay =
-      now.isBefore(wakeTimeToday) ? now.subtract(Duration(days: 1)) : now;
+          now.isBefore(wakeTimeToday) ? now.subtract(Duration(days: 1)) : now;
 
       String key =
           "flutter.sleep_intervals_${sleepDay.year}-${sleepDay.month.toString().padLeft(2, '0')}-${sleepDay.day.toString().padLeft(2, '0')}";
@@ -403,7 +403,8 @@ Future<void> _stopSleepAndSave(
     await sleepBox.put(
       windowKey,
       SleepLog(
-        date: DateTime.parse(windowKey), // Use the sleep window date
+        date: DateTime.parse(windowKey),
+        // Use the sleep window date
         durationMinutes: totalSleepMinutes,
         startTime: start,
         endTime: now,
