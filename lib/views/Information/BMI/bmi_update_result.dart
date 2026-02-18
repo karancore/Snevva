@@ -6,14 +6,15 @@ import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/consts/colors.dart';
 import 'package:snevva/consts/images.dart';
 import 'package:snevva/views/Information/BMI/bmi_updateCal.dart';
+import 'package:snevva/views/Information/BMI/bmi_update_result.dart';
 import '../../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../Health Tips/Nutrition_tips.dart/nutrition_tips.dart';
 
-class BmiUpdateres extends StatelessWidget {
+class BMIUpdateResultScreen extends StatelessWidget {
   final double bmi;
   final int age;
 
-  const BmiUpdateres({super.key, required this.bmi, required this.age});
+  const BMIUpdateResultScreen({super.key, required this.bmi, required this.age});
 
   String getStatus(double bmi) {
     if (bmi < 18.5) return 'Underweight';

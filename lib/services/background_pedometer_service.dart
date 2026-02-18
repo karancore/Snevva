@@ -4,6 +4,7 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/services/hive_service.dart';
 
 import '../common/global_variables.dart';
 import '../models/hive_models/steps_model.dart';
@@ -25,7 +26,8 @@ Future<bool> backgroundEntry(ServiceInstance service) async {
       );
     }
 
-    final box = Hive.box<StepEntry>('step_history');
+    // final box = Hive.box<StepEntry>('step_history');
+    final box = HiveService().stepHistory;
 
     // SharedPrefs (ONCE)
     final prefs = await SharedPreferences.getInstance();

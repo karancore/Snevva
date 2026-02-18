@@ -43,20 +43,17 @@ class _BmiCalState extends State<BmiCal> {
 
     _scrollController.addListener(_onScroll);
 
-
     _middleIndex = _virtualItemCount ~/ 2;
 
     weightController = FixedExtentScrollController(
       initialItem: selectedWeight - 1,
     );
 
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 50), () {
         _scrollToWeight(weight);
       });
     });
-
   }
 
   void _onScroll() {
@@ -78,7 +75,6 @@ class _BmiCalState extends State<BmiCal> {
       });
     }
   }
-
 
   void _scrollToWeight(double number) {
     if (!_scrollController.hasClients) return;
@@ -104,13 +100,11 @@ class _BmiCalState extends State<BmiCal> {
     );
   }
 
-
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -174,7 +168,7 @@ class _BmiCalState extends State<BmiCal> {
             child: Image.asset(bmiCalculator, fit: BoxFit.fill),
           ),
           Padding(
-            padding: const EdgeInsets.only(top: 250),
+            padding: const EdgeInsets.only(top: 260),
             child: SingleChildScrollView(
               padding: EdgeInsets.only(
                 left: 16,
@@ -339,7 +333,8 @@ class _BmiCalState extends State<BmiCal> {
                                     quarterTurns: -1,
                                     child: ListWheelScrollView.useDelegate(
                                       controller: weightController,
-                                      itemExtent: 50, // VERY IMPORTANT (height of each number)
+                                      itemExtent: 50,
+                                      // VERY IMPORTANT (height of each number)
                                       diameterRatio: 2.5,
                                       physics: const FixedExtentScrollPhysics(),
                                       perspective: 0.003,
@@ -348,28 +343,45 @@ class _BmiCalState extends State<BmiCal> {
                                           selectedWeight = weights[index];
                                         });
                                       },
-                                      childDelegate: ListWheelChildBuilderDelegate(
-                                        childCount: weights.length,
-                                        builder: (context, index) {
-                                          final isSelected = weights[index] == selectedWeight;
+                                      childDelegate:
+                                          ListWheelChildBuilderDelegate(
+                                            childCount: weights.length,
+                                            builder: (context, index) {
+                                              final isSelected =
+                                                  weights[index] ==
+                                                  selectedWeight;
 
-                                          return Center(
-                                            child: AnimatedDefaultTextStyle(
-                                              duration: const Duration(milliseconds: 200),
-                                              style: TextStyle(
-                                                fontSize: isSelected ? 26 : 18,
-                                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w400,
-                                                color: isSelected ? AppColors.primaryColor : Colors.grey,
-                                              ),
-                                              child: RotatedBox(quarterTurns : 1 , child: Text(weights[index].toString())),
-                                            ),
-                                          );
-                                        },
-                                      ),
+                                              return Center(
+                                                child: AnimatedDefaultTextStyle(
+                                                  duration: const Duration(
+                                                    milliseconds: 200,
+                                                  ),
+                                                  style: TextStyle(
+                                                    fontSize:
+                                                        isSelected ? 26 : 18,
+                                                    fontWeight:
+                                                        isSelected
+                                                            ? FontWeight.bold
+                                                            : FontWeight.w400,
+                                                    color:
+                                                        isSelected
+                                                            ? AppColors
+                                                                .primaryColor
+                                                            : Colors.grey,
+                                                  ),
+                                                  child: RotatedBox(
+                                                    quarterTurns: 1,
+                                                    child: Text(
+                                                      weights[index].toString(),
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
                                     ),
                                   ),
                                 ),
-
                               ),
 
                               // Plus button
@@ -382,8 +394,7 @@ class _BmiCalState extends State<BmiCal> {
                               //   },
                               // ),
                             ],
-                          )
-
+                          ),
                         ],
                       ),
                     ),
@@ -430,14 +441,13 @@ class _BmiCalState extends State<BmiCal> {
                   const SizedBox(height: 30),
 
                   // Calculate BMI Button
-
                 ],
               ),
             ),
           ),
         ],
       ),
-      bottomNavigationBar:   SafeArea(
+      bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: CustomOutlinedButton(
@@ -447,7 +457,6 @@ class _BmiCalState extends State<BmiCal> {
             backgroundColor: AppColors.primaryColor,
             onTap: () {
               double bmi = weight / pow(height / 100, 2);
-
               Get.to(BmiResultPage(bmi: bmi, age: age));
             },
           ),

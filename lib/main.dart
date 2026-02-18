@@ -46,24 +46,15 @@ import 'common/loader.dart';
 import 'consts/consts.dart';
 
 import 'firebase_options.dart';
-
 import 'models/app_notification.dart';
-
 import 'services/app_initializer.dart';
 import 'services/notification_channel.dart';
 import 'services/notification_service.dart';
 import 'common/agent_debug_logger.dart';
-
 import 'utils/theme.dart';
-
 import 'views/Reminder/reminder_screen.dart';
 import 'views/SignUp/sign_in_screen.dart';
-
 import 'widgets/home_wrapper.dart';
-
-/// ------------------------------------------------------------
-/// 🔐 Firebase guard — REQUIRED everywhere
-/// ------------------------------------------------------------
 Future<void> ensureFirebaseInitialized() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -77,33 +68,47 @@ Future<void> ensureFirebaseInitialized() async {
 /// ------------------------------------------------------------
 /// 🔔 Notification action handler
 /// ------------------------------------------------------------
-@pragma('vm:entry-point')
-Future<void> notificationBackgroundHandler(
-  NotificationResponse response,
-) async {
-  // Use the ID from the response if available, otherwise fallback to constant
-  final int notificationId = response.id ?? WAKE_NOTIFICATION_ID;
-  final fln = FlutterLocalNotificationsPlugin();
-  await fln.cancel(notificationId);
-
-  // if (response.actionId == 'STOP_ALARM') {
-  //   // 1. Mark as stopped for the main app to see later
-  //   final prefs = await SharedPreferences.getInstance();
-  //   await prefs.setBool('stop_alarm_pending', true);
-  //
-  //   // 2. Manual cancel (as a safety backup to cancelNotification: true)
-  //
-  //
-  //   debugPrint('🛑 Alarm $notificationId stopped in background');
-  // }
-}
+// @pragma('vm:entry-point')
+// Future<void> notificationBackgroundHandler(
+//   NotificationResponse response,
+// ) async {
+//   // Use the ID from the response if available, otherwise fallback to constant
+//   final int notificationId = response.id ?? WAKE_NOTIFICATION_ID;
+//   final fln = FlutterLocalNotificationsPlugin();
+//   await fln.cancel(notificationId);
+//
+//   // if (response.actionId == 'STOP_ALARM') {
+//   //   // 1. Mark as stopped for the main app to see later
+//   //   final prefs = await SharedPreferences.getInstance();
+//   //   await prefs.setBool('stop_alarm_pending', true);
+//   //
+//   //   // 2. Manual cancel (as a safety backup to cancelNotification: true)
+//   //
+//   //
+//   //   debugPrint('🛑 Alarm $notificationId stopped in background');
+//   // }
+// }
 
 /// ------------------------------------------------------------
 /// 🔔 Firebase background handler (separate isolate)
 /// ------------------------------------------------------------
+///
+///
+///
+class SleepLifecycleObserver extends WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      Get.find<SleepController>().reloadSleep();
+    }
+  }
+}
+
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await ensureFirebaseInitialized();
+  // await ensureFirebaseInitialized();
+  await FirebaseInit.init();
+
 
   final prefs = await SharedPreferences.getInstance();
   final List existing = jsonDecode(
@@ -176,8 +181,13 @@ void main() async {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 
-      await ensureFirebaseInitialized();
-      await setupHive();
+      WidgetsBinding.instance.addObserver(SleepLifecycleObserver());
+
+      // await ensureFirebaseInitialized();
+      await FirebaseInit.init();
+
+      // await setupHive();
+      await HiveService().initMain();
       await initialiseGetxServicesAndControllers();
 
       FirebaseMessaging.onBackgroundMessage(
@@ -354,7 +364,9 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _safeInit() async {
-    await ensureFirebaseInitialized();
+    // await ensureFirebaseInitialized();
+
+    await FirebaseInit.init();
 
     try {
       PushNotificationService().initialize();
@@ -373,7 +385,9 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _handleInitialMessage() async {
-    await ensureFirebaseInitialized();
+    // await ensureFirebaseInitialized();
+    await FirebaseInit.init();
+
 
     final message = await FirebaseMessaging.instance.getInitialMessage();
 

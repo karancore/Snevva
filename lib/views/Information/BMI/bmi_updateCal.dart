@@ -8,9 +8,8 @@ import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
-import 'package:snevva/views/Information/BMI/bmi_updateRes.dart';
-
 import 'bmi_result.dart';
+import 'bmi_update_result.dart';
 
 class BmiUpdatecal extends StatefulWidget {
   const BmiUpdatecal({super.key});
@@ -104,7 +103,8 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
     // compute the left offset so that target item is centered
     final double screenCenter = _currentViewportWidth / 2;
     final double itemCenter = _itemExtent / 2;
-    final double offset = (targetIndex * _itemExtent) - (screenCenter - itemCenter);
+    final double offset =
+        (targetIndex * _itemExtent) - (screenCenter - itemCenter);
 
     _isAutoScrolling = true;
     try {
@@ -147,10 +147,11 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
           ),
         ),
         leading: Builder(
-          builder: (context) => IconButton(
-            icon: SvgPicture.asset(drawerIcon, color: white),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
+          builder:
+              (context) => IconButton(
+                icon: SvgPicture.asset(drawerIcon, color: white),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              ),
         ),
         actions: [
           Padding(
@@ -160,11 +161,7 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
               child: const SizedBox(
                 height: 24,
                 width: 24,
-                child: Icon(
-                  Icons.clear,
-                  size: 21,
-                  color: Colors.white,
-                ),
+                child: Icon(Icons.clear, size: 21, color: Colors.white),
               ),
             ),
           ),
@@ -226,7 +223,8 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
                                     quarterTurns: -1,
                                     child: ListWheelScrollView.useDelegate(
                                       controller: weightController,
-                                      itemExtent: 50, // VERY IMPORTANT (height of each number)
+                                      itemExtent: 50,
+                                      // VERY IMPORTANT (height of each number)
                                       diameterRatio: 2.5,
                                       physics: const FixedExtentScrollPhysics(),
                                       perspective: 0.003,
@@ -235,28 +233,45 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
                                           selectedWeight = weights[index];
                                         });
                                       },
-                                      childDelegate: ListWheelChildBuilderDelegate(
-                                        childCount: weights.length,
-                                        builder: (context, index) {
-                                          final isSelected = weights[index] == selectedWeight;
+                                      childDelegate:
+                                          ListWheelChildBuilderDelegate(
+                                            childCount: weights.length,
+                                            builder: (context, index) {
+                                              final isSelected =
+                                                  weights[index] ==
+                                                  selectedWeight;
 
-                                          return Center(
-                                            child: AnimatedDefaultTextStyle(
-                                              duration: const Duration(milliseconds: 200),
-                                              style: TextStyle(
-                                                fontSize: isSelected ? 26 : 18,
-                                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w400,
-                                                color: isSelected ? AppColors.primaryColor : Colors.grey,
-                                              ),
-                                              child: RotatedBox(quarterTurns : 1 , child: Text(weights[index].toString())),
-                                            ),
-                                          );
-                                        },
-                                      ),
+                                              return Center(
+                                                child: AnimatedDefaultTextStyle(
+                                                  duration: const Duration(
+                                                    milliseconds: 200,
+                                                  ),
+                                                  style: TextStyle(
+                                                    fontSize:
+                                                        isSelected ? 26 : 18,
+                                                    fontWeight:
+                                                        isSelected
+                                                            ? FontWeight.bold
+                                                            : FontWeight.w400,
+                                                    color:
+                                                        isSelected
+                                                            ? AppColors
+                                                                .primaryColor
+                                                            : Colors.grey,
+                                                  ),
+                                                  child: RotatedBox(
+                                                    quarterTurns: 1,
+                                                    child: Text(
+                                                      weights[index].toString(),
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
                                     ),
                                   ),
                                 ),
-
                               ),
 
                               // Plus button
@@ -270,7 +285,7 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
                               //   },
                               // ),
                             ],
-                          )
+                          ),
                         ],
                       ),
                     ),
@@ -332,9 +347,14 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
             onTap: () async {
               final double bmi = weight / pow(height / 100, 2);
 
-              bool flag = await bmicontroller.setHeightAndWeight(context, age, height, weight);
+              bool flag = await bmicontroller.setHeightAndWeight(
+                context,
+                age,
+                height,
+                weight,
+              );
               if (flag) {
-                Get.to(BmiUpdateres(bmi: bmi, age: age));
+                Get.to(BMIUpdateResultScreen(bmi: bmi, age: age));
               }
             },
           ),

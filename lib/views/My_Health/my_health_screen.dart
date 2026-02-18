@@ -7,12 +7,12 @@ import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
-import 'package:snevva/views/Information/BMI/bmi_updateRes.dart';
 import 'package:snevva/views/Information/HydrationScreens/hydration_screen.dart';
 import 'package:snevva/views/Information/StepCounter/step_counter.dart';
 import 'package:snevva/views/Information/vitals.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
 import 'package:snevva/views/WomenHealth/women_health_screen.dart';
+import 'package:snevva/views/information/bmi/bmi_update_result.dart';
 import '../../Controllers/Hydration/hydration_stat_controller.dart';
 import '../../Controllers/StepCounter/step_counter_controller.dart';
 import '../../Controllers/signupAndSignIn/sign_in_controller.dart';
@@ -209,7 +209,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
         buttonText: 'BMI Result',
         onPressed:
             () => Get.to(
-              () => BmiUpdateres(bmi: bmiController.bmi.value, age: bmiController.age.value),
+              () => BMIUpdateResultScreen(bmi: bmiController.bmi.value, age: bmiController.age.value),
             ),
       ),
       TrackerHealthCard(

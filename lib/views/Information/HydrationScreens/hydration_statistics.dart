@@ -206,6 +206,7 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                             _isMonthlyView
                                 ? "Switch to Weekly"
                                 : "Switch to Monthly",
+                            style: TextStyle(color: AppColors.primaryColor),
                           ),
                         ),
                       ],

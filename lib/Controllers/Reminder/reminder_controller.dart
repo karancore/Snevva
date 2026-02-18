@@ -23,6 +23,7 @@ import '../../common/global_variables.dart';
 import '../../models/reminders/medicine_reminder_model.dart'
     as medicine_payload;
 import '../../models/reminders/water_reminder_model.dart';
+import '../../services/hive_service.dart';
 
 class ReminderController extends GetxController {
   final titleController = TextEditingController();
@@ -675,7 +676,8 @@ class ReminderController extends GetxController {
   ) async {
     print('📦 loadReminderList() → key: $keyName');
 
-    final box = Hive.box('reminders_box');
+    // final box = Hive.box('reminders_box');
+    final box = HiveService().reminders;
     final List<dynamic>? storedList = box.get(keyName);
 
     if (storedList == null) {
@@ -708,7 +710,8 @@ class ReminderController extends GetxController {
     print('💾 Saving reminders → key: $keyName');
     print('📦 Total items to save: ${list.length}');
 
-    final box = Hive.box('reminders_box');
+    // final box = Hive.box('reminders_box');
+    final box = HiveService().reminders;
 
     List<String> stringList =
         list.map((item) {

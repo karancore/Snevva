@@ -5,7 +5,7 @@ class Env {
 }
 
 // baseUrl
-//const String baseUrl = "https://localhost:7238";
+// const String baseUrl = "https://localhost:7238";
 const String baseUrl = "https://abdmstg.coretegra.com";
 
 const String ANDROID_CLIENT_ID =

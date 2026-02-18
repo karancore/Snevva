@@ -1,6 +1,7 @@
 package com.coretegra.snevva
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
@@ -26,7 +27,9 @@ class MainActivity : FlutterActivity() {
             when (call.method) {
                 "startSleepService" -> {
                     val intent = Intent(this, SleepNoticingService::class.java)
-                    startService(intent)
+                    if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+                        startForegroundService(intent)
+                    }
                     Log.d("MainActivity", "SleepNoticingService started")
                     result.success("SleepNoticingService started")
                 }

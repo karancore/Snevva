@@ -122,6 +122,8 @@ const wellnessContainerImg6 = "assets/Images/MentalWellness/lake4.png";
 const musicPlayer = "assets/Images/MentalWellness/rainInForest.png";
 
 const alarmSound = "assets/sounds/alarm-327234.mp3";
+const waterSound = "assets/sounds/Water 1.mp3";
+
 //Music Icons
 // const shuffleIcon = "assets/Icons/shuffle-line.png";
 const shuffleIcon = "assets/Icons/music/shuffle.svg";

@@ -4,21 +4,17 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:get/get.dart';
 import 'package:get/get_connect/http/src/response/response.dart' as http;
 import 'package:get_storage/get_storage.dart';
-import 'package:hive/hive.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:snevva/Controllers/SleepScreen/sleep_interval.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/models/awake_interval.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/common/agent_debug_logger.dart';
-
+import 'package:snevva/services/hive_service.dart';
 import '../../common/global_variables.dart';
-
 import '../../models/hive_models/sleep_log.dart';
-import '../../services/app_initializer.dart';
-import '../../services/sleep/sleep_noticing_service.dart';
 
 enum SleepState { sleeping, awake }
 
@@ -87,6 +83,8 @@ class SleepController extends GetxService {
     _checkIfAlreadySleeping();
     loadDeepSleepData();
     loadUserSleepTimes();
+
+     reloadSleep();
   }
 
   @override
@@ -297,7 +295,9 @@ class SleepController extends GetxService {
 
   Future<void> _loadWeeklySleepData() async {
     try {
-      final box = await Hive.openBox<SleepLog>('sleep_log');
+
+      // final box = await Hive.openBox<SleepLog>('sleep_log');
+      final box = HiveService().sleepLog;
       final now = DateTime.now();
       final weekStart = now.subtract(Duration(days: now.weekday - 1));
 
@@ -705,7 +705,8 @@ class SleepController extends GetxService {
   }
 
   Future<void> loadDeepSleepData() async {
-    final _box = await Hive.openBox<SleepLog>('sleep_log');
+    // final _box = await Hive.openBox<SleepLog>('sleep_log');
+    final _box = HiveService().sleepLog;
     debugPrint("📥 [loadDeepSleepData] START");
 
     weeklyDeepSleepHistory.clear();
@@ -971,7 +972,9 @@ class SleepController extends GetxService {
     Duration duration, {
     bool overwrite = true,
   }) async {
-    final _box = await Hive.openBox<SleepLog>('sleep_log');
+    // final _box = await Hive.openBox<SleepLog>('sleep_log');
+    final box = HiveService().sleepLog;
+
     final key = dateKey(bedDate);
 
     debugPrint("💾 [saveDeepSleepData]");
@@ -979,13 +982,13 @@ class SleepController extends GetxService {
     debugPrint("   Duration (min): ${duration.inMinutes}");
 
     // If not overwriting and already exists, skip
-    if (!overwrite && _box.containsKey(key)) {
+    if (!overwrite && box.containsKey(key)) {
       debugPrint("⛔ Already exists in Hive for $key and overwrite == false");
       return;
     }
 
     // Put always (put will overwrite existing key if present)
-    await _box.put(
+    await box.put(
       key,
       SleepLog(
         date: DateTime(bedDate.year, bedDate.month, bedDate.day),
@@ -1070,8 +1073,8 @@ class SleepController extends GetxService {
   }
 
   Future<void> clearSleepData() async {
-    final _box = await Hive.openBox<SleepLog>('sleep_log');
-    await _box.clear();
+    final box = HiveService().sleepLog;
+    await box.clear();
     weeklyDeepSleepHistory.clear();
     deepSleepSpots.clear();
     debugPrint("🗑️ All sleep data cleared from Hive and controller.");

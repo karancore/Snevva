@@ -1,6 +1,10 @@
 package com.coretegra.snevva
 
+import android.app.KeyguardManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -8,6 +12,7 @@ import android.content.SharedPreferences
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import java.util.*
 
 class SleepNoticingService : Service() {
@@ -19,35 +24,78 @@ class SleepNoticingService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        startInForeground()
         // Use Flutter's SharedPreferences to match Dart code
         prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
         Log.d("SleepNoticingService", "Service created")
+        recoverIfScreenOffPending()
+    }
+
+    private fun startInForeground() {
+        val channelId = "sleep_tracking"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "Sleep Tracking",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            val manager = getSystemService(NotificationManager::class.java)
+            manager.createNotificationChannel(channel)
+        }
+        val notification =
+            NotificationCompat.Builder(this, channelId).setContentTitle("Snevva Sleep Tracking")
+                .setContentText("Monitoring sleep activity").setSmallIcon(R.mipmap.ic_launcher)
+                .setOngoing(true).build()
+        startForeground(101, notification)
+    }
+
+    private fun recoverIfScreenOffPending() {
+        val window = computeActiveSleepWindow() ?: return
+
+        val windowKey = window.dateKey
+        val lastOffKey = "flutter.last_screen_off_$windowKey"
+        val lastOffStr = prefs.getString(lastOffKey, null) ?: return
+
+        try {
+            val lastOff = Date(lastOffStr)
+
+            // If now is already after wake time → assume slept till wake
+            if (Date().after(window.end)) {
+
+                val start = if (lastOff.before(window.start)) window.start else lastOff
+                val end = window.end
+
+                val intervalStr = "${start.toInstant()}|${end.toInstant()}"
+                val intervalsKey = "flutter.sleep_intervals_$windowKey"
+
+                val existing = prefs.getString(intervalsKey, "") ?: ""
+                val updated = if (existing.isEmpty()) intervalStr else "$existing,$intervalStr"
+
+                prefs.edit()
+                    .putString(intervalsKey, updated)
+                    .remove(lastOffKey)
+                    .apply()
+
+                Log.d("SleepNoticingService", "Recovered lost sleep interval")
+            }
+
+        } catch (_: Exception) {
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+
+
         Log.d("SleepNoticingService", "Service started")
 
-        // Register screen receiver
-        if (screenReceiver == null) {
-            screenReceiver = ScreenReceiver { event ->
-                handleScreenEvent(event)
-            }
+        recoverIfScreenOffPending()
 
-            val filter = IntentFilter().apply {
-                addAction(Intent.ACTION_SCREEN_ON)
-                addAction(Intent.ACTION_SCREEN_OFF)
-            }
+        try {
+            screenReceiver?.let { unregisterReceiver(it) }
+        } catch (_: Exception) {}
 
-            try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    registerReceiver(screenReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-                } else {
-                    registerReceiver(screenReceiver, filter)
-                }
-                Log.d("SleepNoticingService", "Screen receiver registered")
-            } catch (e: Exception) {
-                Log.e("SleepNoticingService", "Failed to register receiver", e)
-            }
+        screenReceiver = ScreenReceiver { event ->
+            handleScreenEvent(event)
         }
         
         // 🔥 Make this a Foreground Service to prevent killing
@@ -83,8 +131,59 @@ class SleepNoticingService : Service() {
             
         // startForeground(888, notification)
 
-        return START_STICKY
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_SCREEN_OFF)
+            priority = IntentFilter.SYSTEM_HIGH_PRIORITY
+        }
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(screenReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                registerReceiver(screenReceiver, filter)
+            }
+            Log.d("SleepNoticingService", "Screen receiver registered")
+        } catch (e: Exception) {
+            Log.e("SleepNoticingService", "Failed to register receiver", e)
+        }
+
+        return START_REDELIVER_INTENT
+
+
     }
+
+
+
+//    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+//        Log.d("SleepNoticingService", "Service started")
+//
+//
+//        // Register screen receiver
+//        if (screenReceiver == null) {
+//            screenReceiver = ScreenReceiver { event ->
+//                handleScreenEvent(event)
+//            }
+//
+//            val filter = IntentFilter().apply {
+//                addAction(Intent.ACTION_SCREEN_ON)
+//                addAction(Intent.ACTION_SCREEN_OFF)
+//            }
+//
+//            try {
+//                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//                    registerReceiver(screenReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+//                } else {
+//                    registerReceiver(screenReceiver, filter)
+//                }
+//                Log.d("SleepNoticingService", "Screen receiver registered")
+//            } catch (e: Exception) {
+//                Log.e("SleepNoticingService", "Failed to register receiver", e)
+//            }
+//        }
+//
+//        return START_REDELIVER_INTENT
+//    }
 
     private fun handleScreenEvent(event: String) {
         // Check if sleep tracking is active (use Flutter-prefixed key)
@@ -117,6 +216,7 @@ class SleepNoticingService : Service() {
                 prefs.edit().putString(lastOffKey, now.toString()).apply()
                 Log.d("SleepNoticingService", "Screen off recorded at $now for window $windowKey")
             }
+
             "screen_on" -> {
                 // Check for pending screen off
                 val lastOffStr = prefs.getString(lastOffKey, null)
@@ -135,20 +235,28 @@ class SleepNoticingService : Service() {
 
                         val durationMinutes = (end.time - start.time) / (1000 * 60)  // Minutes
                         if (durationMinutes < 3) {  // Minimum gap
-                            Log.d("SleepNoticingService", "Interval too short: $durationMinutes min")
+                            Log.d(
+                                "SleepNoticingService",
+                                "Interval too short: $durationMinutes min"
+                            )
                             return
                         }
 
                         // Save interval in ISO format
-                        val intervalStr = "${start.toInstant().toString()}|${end.toInstant().toString()}"
+                        val intervalStr =
+                            "${start.toInstant().toString()}|${end.toInstant().toString()}"
                         val existing = prefs.getString(intervalsKey, "") ?: ""
-                        val updated = if (existing.isEmpty()) intervalStr else "$existing,$intervalStr"
+                        val updated =
+                            if (existing.isEmpty()) intervalStr else "$existing,$intervalStr"
                         prefs.edit().putString(intervalsKey, updated).apply()
 
                         // Clear pending off time
                         prefs.edit().remove(lastOffKey).apply()
 
-                        Log.d("SleepNoticingService", "Interval saved: $intervalStr for window $windowKey")
+                        Log.d(
+                            "SleepNoticingService",
+                            "Interval saved: $intervalStr for window $windowKey"
+                        )
                     } catch (e: Exception) {
                         Log.e("SleepNoticingService", "Error processing screen on", e)
                     }
@@ -187,7 +295,9 @@ class SleepNoticingService : Service() {
         if (!end.after(start)) end.add(Calendar.DAY_OF_MONTH, 1)
 
         // Fixed: Use padStart instead of padLeft
-        val key = "${start.get(Calendar.YEAR)}-${(start.get(Calendar.MONTH) + 1).toString().padStart(2, '0')}-${start.get(Calendar.DAY_OF_MONTH).toString().padStart(2, '0')}"
+        val key = "${start.get(Calendar.YEAR)}-${
+            (start.get(Calendar.MONTH) + 1).toString().padStart(2, '0')
+        }-${start.get(Calendar.DAY_OF_MONTH).toString().padStart(2, '0')}"
         return SleepWindow(start.time, end.time, key)
     }
 
@@ -214,10 +324,33 @@ class SleepNoticingService : Service() {
 }
 
 class ScreenReceiver(private val callback: (String) -> Unit) : android.content.BroadcastReceiver() {
+
     override fun onReceive(context: Context?, intent: Intent?) {
+        val km = context?.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+        val unlocked = !km.isKeyguardLocked
+
+        if (intent?.action == Intent.ACTION_SCREEN_ON && !unlocked) return
+
         when (intent?.action) {
             Intent.ACTION_SCREEN_OFF -> callback("screen_off")
             Intent.ACTION_SCREEN_ON -> callback("screen_on")
+        }
+    }
+}
+
+class BootReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
+            val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+            val isSleeping = prefs.getBoolean("flutter.is_sleeping", false)
+
+            if (isSleeping) {
+                val serviceIntent = Intent(context, SleepNoticingService::class.java)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                    context.startForegroundService(serviceIntent)
+                else
+                    context.startService(serviceIntent)
+            }
         }
     }
 }

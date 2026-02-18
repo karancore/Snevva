@@ -8,6 +8,7 @@ import 'package:hive/hive.dart';
 import 'package:pinput/pinput.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/models/mappers/medicine_to_reminder_mapper.dart';
+import 'package:snevva/services/hive_service.dart';
 
 import '../../common/custom_snackbar.dart';
 import '../../common/global_variables.dart';
@@ -28,13 +29,11 @@ class MedicineController extends GetxController {
   var timeBeforeReminder = (-1).obs;
 
   RxnInt medicineRemindMeBeforeOption = RxnInt();
-
-  final everyHourController = TextEditingController();
-
-  final timesPerDayController = TextEditingController();
-  var savedTimes = 0.obs;
+  final everyHourController = TextEditingController(text: '4');
+  final timesPerDayController = TextEditingController(text: '4');
+  var savedTimes = 4.obs;
   var timesListLength = 4.obs;
-  final everyXhours = 1.obs;
+  final everyXhours = 4.obs;
   final startMedicineTimeController = TextEditingController();
   final endMedicineTimeController = TextEditingController();
   Rx<DateTime?> startDate = Rx<DateTime?>(null);
@@ -86,10 +85,27 @@ class MedicineController extends GetxController {
   void onInit() {
     super.onInit();
 
-    ever(selectedFrequency, (_) {
-      _syncTimeControllers();
+    everyHourController.addListener(() {
+      final value = int.tryParse(everyHourController.text) ?? 1;
+
+      if (everyXhours.value != value) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          everyXhours.value = value;
+        });
+      }
+    });
+
+    timesPerDayController.addListener(() {
+      final value = int.tryParse(timesPerDayController.text) ?? 1;
+
+      if (savedTimes.value != value) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          savedTimes.value = value;
+        });
+      }
     });
   }
+
 
   void _syncTimeControllers() {
     final length = frequencyNum[selectedFrequency.value] ?? 1;
@@ -494,7 +510,7 @@ class MedicineController extends GetxController {
     // internal call should pass "medicine_list"
     List<MedicineReminderModel> list,
   ) async {
-    final box = Hive.box(reminderBox); // Uses your constant
+    final box = HiveService().reminders;
 
     // ❌ DELETED: await box.clear();  <-- THIS WAS THE BUG
     // We do NOT want to clear water reminders when saving medicine.
@@ -515,7 +531,9 @@ class MedicineController extends GetxController {
     String key,
   ) async {
     debugPrint('📦 Loading medicine reminders from Hive Key: $key');
-    final box = Hive.box(reminderBox);
+    // final box = Hive.box(reminderBox);
+    final box = HiveService().reminders;
+
 
     // Get the list of strings (safely)
     final List<dynamic>? storedList = box.get(key);
