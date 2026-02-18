@@ -115,12 +115,23 @@
             </intent-filter>
         </receiver>
 
-        <receiver android:name=".ScreenReceiver" android:exported="false">
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true"
+            android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
             <intent-filter>
-                <action android:name="android.intent.action.SCREEN_OFF"/>
-                <action android:name="android.intent.action.SCREEN_ON"/>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
             </intent-filter>
         </receiver>
+
+
+
+        <!--        <receiver android:name=".ScreenReceiver" android:exported="false">-->
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.SCREEN_OFF"/>-->
+<!--                <action android:name="android.intent.action.SCREEN_ON"/>-->
+<!--            </intent-filter>-->
+<!--        </receiver>-->
 
         <receiver
             android:exported="false"

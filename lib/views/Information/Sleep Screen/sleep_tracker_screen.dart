@@ -443,6 +443,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                               isMonthly
                                   ? "Switch to Weekly"
                                   : "Switch to Monthly",
+                              style: TextStyle(color: AppColors.primaryColor),
                             ),
                           ),
                         ],

@@ -13,6 +13,7 @@ import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
+import 'package:snevva/services/hive_service.dart';
 
 import '../../common/custom_snackbar.dart';
 import '../../models/reminders/water_reminder_model.dart';
@@ -36,15 +37,14 @@ class WaterController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    everyHourController.addListener((){
+    everyHourController.addListener(() {
       final value = int.tryParse(everyHourController.text) ?? 1;
       everyXhours.value = value;
     });
-    timesPerDayController.addListener((){
+    timesPerDayController.addListener(() {
       final value = int.tryParse(timesPerDayController.text) ?? 1;
       savedTimes.value = value;
     });
-
   }
 
   void resetForm() {
@@ -179,7 +179,6 @@ class WaterController extends GetxController {
         start: stringToTimeOfDay(startWaterTimeController.text),
         end: stringToTimeOfDay(endWaterTimeController.text),
         intervalHours: intervalHours,
-
       );
 
       debugPrint("⏰ Generated ${reminders.length} interval alarms");
@@ -214,7 +213,11 @@ class WaterController extends GetxController {
         return false;
       }
 
-      await setWaterAlarm(times: times, context: context , audioPath: waterSound);
+      await setWaterAlarm(
+        times: times,
+        context: context,
+        audioPath: waterSound,
+      );
       return true;
     }
 
@@ -229,7 +232,7 @@ class WaterController extends GetxController {
   Future<void> setWaterAlarm({
     required int? times,
     required BuildContext context,
-    String audioPath = alarmSound
+    String audioPath = alarmSound,
   }) async {
     if (times == null || times <= 0) {
       CustomSnackbar.showError(
@@ -491,7 +494,8 @@ class WaterController extends GetxController {
               }).toList();
 
           /// Save back to Hive
-          final box = Hive.box('reminders_box');
+          // final box = Hive.box('reminders_box');
+          final box = HiveService().reminders;
           await box.put("water_list", encoded);
 
           debugPrint("🔁 Water alarm rescheduled for $nextTime");
@@ -510,7 +514,7 @@ class WaterController extends GetxController {
     BuildContext? context,
     required String title,
     required String body,
-  String audioPath = alarmSound
+    String audioPath = alarmSound,
   }) async {
     final reminderGroupId = alarmsId();
     final List<AlarmSettings> createdAlarms = [];
@@ -652,14 +656,18 @@ class WaterController extends GetxController {
         await reminderController.saveReminderList(waterList, "water_list");
       }
 
-      await setWaterAlarm(times: times, context: context , audioPath: waterSound);
+      await setWaterAlarm(
+        times: times,
+        context: context,
+        audioPath: waterSound,
+      );
     } catch (e) {
       throw Exception("Error updating WATER reminder: $e");
     }
   }
 
   Future<List<WaterReminderModel>> loadWaterReminderList(String keyName) async {
-    final box = Hive.box('reminders_box');
+    final box = HiveService().reminders;
     final List<dynamic>? storedList = box.get(keyName);
 
     if (storedList == null) {

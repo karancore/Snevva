@@ -29,9 +29,7 @@ class NotificationService {
 
     await notificationsPlugin.initialize(
       initSettings,
-      onDidReceiveNotificationResponse: onNotificationAction, // foreground
-      onDidReceiveBackgroundNotificationResponse:
-          notificationBackgroundHandler, // killed
+
     );
 
     // Initialize timezone (very important for scheduling)
@@ -39,16 +37,7 @@ class NotificationService {
     tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
   }
 
-  static void onNotificationAction(NotificationResponse response) async {
-    if (response.actionId == 'STOP_ALARM') {
-      // 1. Stop UI-based alarm sound/logic
-      
 
-      // 2. Cancel the specific notification
-      final fln = FlutterLocalNotificationsPlugin();
-      await fln.cancel(response.id ?? WAKE_NOTIFICATION_ID);
-    }
-  }
 
   Future<void> showInstantNotification({
     required int id,

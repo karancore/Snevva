@@ -14,6 +14,7 @@ import 'package:snevva/env/env.dart';
 import 'package:snevva/models/queryParamViewModels/step_goal_vm.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/consts/consts.dart';
+import 'package:snevva/services/hive_service.dart';
 
 import '../../common/global_variables.dart';
 import '../../models/hive_models/steps_model.dart';
@@ -49,7 +50,9 @@ class StepCounterController extends GetxController {
       // if (!Hive.isBoxOpen('step_history')) {
       //   await Hive.openBox<StepEntry>('step_history');
       // }
-      _stepBox = Hive.box<StepEntry>('step_history');
+      // _stepBox = Hive.box<StepEntry>('step_history');
+      _stepBox = HiveService().stepHistory;
+
       print('🔁 Reopened step_history box');
     } catch (e) {
       print('❌ Failed to reopen step_history box: $e');
@@ -60,9 +63,10 @@ class StepCounterController extends GetxController {
   Future<void> _ensureStepBox() async {
     try {
       if (!Hive.isBoxOpen('step_history')) {
-        await Hive.openBox<StepEntry>('step_history');
+        // await Hive.openBox<StepEntry>('step_history');
+        _stepBox = HiveService().stepHistory;
       }
-      _stepBox = Hive.box<StepEntry>('step_history');
+      _stepBox = HiveService().stepHistory;
     } catch (e) {
       print('❌ _ensureStepBox failed: $e');
       // Try reopen fallback

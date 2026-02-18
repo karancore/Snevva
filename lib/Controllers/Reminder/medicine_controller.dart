@@ -8,6 +8,7 @@ import 'package:hive/hive.dart';
 import 'package:pinput/pinput.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/models/mappers/medicine_to_reminder_mapper.dart';
+import 'package:snevva/services/hive_service.dart';
 
 import '../../common/custom_snackbar.dart';
 import '../../common/global_variables.dart';
@@ -509,7 +510,7 @@ class MedicineController extends GetxController {
     // internal call should pass "medicine_list"
     List<MedicineReminderModel> list,
   ) async {
-    final box = Hive.box(reminderBox); // Uses your constant
+    final box = HiveService().reminders;
 
     // ❌ DELETED: await box.clear();  <-- THIS WAS THE BUG
     // We do NOT want to clear water reminders when saving medicine.
@@ -530,7 +531,9 @@ class MedicineController extends GetxController {
     String key,
   ) async {
     debugPrint('📦 Loading medicine reminders from Hive Key: $key');
-    final box = Hive.box(reminderBox);
+    // final box = Hive.box(reminderBox);
+    final box = HiveService().reminders;
+
 
     // Get the list of strings (safely)
     final List<dynamic>? storedList = box.get(key);

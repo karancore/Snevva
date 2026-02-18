@@ -5,6 +5,7 @@ import 'package:pedometer/pedometer.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/models/hive_models/sleep_log_g.dart';
+import 'package:snevva/services/hive_service.dart';
 import '../common/global_variables.dart';
 import '../consts/consts.dart';
 import '../models/hive_models/sleep_log.dart';
@@ -36,7 +37,8 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
       data: const {},
     );
 
-    await setupHive();
+    // await setupHive();
+    await HiveService().initBackground();
 
     // Initialize Hive
     await Hive.initFlutter();
@@ -61,16 +63,36 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
 
     print("🚀 Unified background service started at ${DateTime.now()}");
 
-    final stepBox = await Hive.openBox<StepEntry>('step_history');
-    final sleepBox = await Hive.openBox<SleepLog>('sleep_log');
+    final sleepBox = HiveService().sleepLog;
+    final stepBox = HiveService().stepHistory;
+
+    // final stepBox = await Hive.openBox<StepEntry>('step_history');
+    // final sleepBox = await Hive.openBox<SleepLog>('sleep_log');
     final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
 
     // ═══════════════════════════════════════════════════════════════
     // 🌙 SLEEP TRACKING SETUP
     // ═══════════════════════════════════════════════════════════════
 
     service.on("start_sleep").listen((event) async {
-      final now = DateTime.now();
+      DateTime now = DateTime.now();
+      final wakeMinutes = prefs.getInt('flutter.user_waketime_ms') ?? 420;
+
+      final wakeTimeToday = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        wakeMinutes ~/ 60,
+        wakeMinutes % 60,
+      );
+
+      DateTime sleepDay =
+      now.isBefore(wakeTimeToday) ? now.subtract(Duration(days: 1)) : now;
+
+      String key =
+          "flutter.sleep_intervals_${sleepDay.year}-${sleepDay.month.toString().padLeft(2, '0')}-${sleepDay.day.toString().padLeft(2, '0')}";
+
       final goalMinutes = event?['goal_minutes'] as int? ?? 480;
       final bedtimeMinutes = event?['bedtime_minutes'] as int? ?? 0;
       final waketimeMinutes = event?['waketime_minutes'] as int? ?? 0;

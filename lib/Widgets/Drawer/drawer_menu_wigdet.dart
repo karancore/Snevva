@@ -24,6 +24,7 @@ import 'package:snevva/services/background_pedometer_service.dart';
 import 'package:snevva/services/decisiontree_service.dart';
 import 'package:snevva/services/app_initializer.dart';
 import 'package:snevva/common/agent_debug_logger.dart';
+import 'package:snevva/services/hive_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
@@ -134,6 +135,11 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
       // 4️⃣ CLEAR HIVE (ONLY USER DATA)
       // ==========================================================
       debugPrint('🗄️ Clearing Hive step_history...');
+      try{
+        await HiveService().resetAppData();
+      } catch(e){
+        throw Exception("Failed to clear app data");
+      }
       try {
         if (Hive.isBoxOpen('step_history')) {
           await Hive.box<StepEntry>('step_history').clear();

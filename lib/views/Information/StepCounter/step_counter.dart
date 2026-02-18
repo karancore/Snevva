@@ -449,6 +449,7 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
                             _isMonthlyView
                                 ? "Switch to Weekly"
                                 : "Switch to Monthly",
+                            style: TextStyle(color: AppColors.primaryColor),
                           ),
                         ),
                       ],

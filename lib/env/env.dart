@@ -4,13 +4,10 @@ class Env {
 }
 
 // baseUrl
-const String baseUrl = "https://localhost:7238";
-// const String baseUrl = "https://abdmstg.coretegra.com";
+// const String baseUrl = "https://localhost:7238";
+const String baseUrl = "https://abdmstg.coretegra.com";
 
-const String ANDROID_CLIENT_ID =
-    "404179238523-f2fl92u65vdjl8flh1b2gju2fua0355v.apps.googleusercontent.com";
-const String WEB_CLIENT_ID =
-    "404179238523-9pfgsa02tnel72tjsfrdf5g864bficcg.apps.googleusercontent.com";
+
 // send otp api
 const String senOtpEmailEndpoint =
     '/api/registration/enduser/sendotp/gmail/signup';
