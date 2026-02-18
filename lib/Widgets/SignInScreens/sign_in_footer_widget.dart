@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 
 import '../../common/loader.dart';
 import '../../consts/consts.dart';
@@ -103,15 +104,20 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
               ),
               child: IconButton(
                 onPressed: () async {
-                  setState(() {
-                    isSigningIn = true; // Start the sign-in process
-                  });
-                  await GoogleAuthService.signInWithGoogle(context);
-                  setState(() {
-                    isSigningIn =
-                        false; // Sign-in complete, stop the loading indicator
-                  });
+                  if (isSigningIn) return;
+
+                  setState(() => isSigningIn = true);
+
+                  try {
+                    await Get.find<GoogleAuthService>().init(context);
+
+                  } finally {
+                    if (mounted) {
+                      setState(() => isSigningIn = false);
+                    }
+                  }
                 },
+
                 icon:
                     isSigningIn
                         ? SizedBox(height: 28, width: 28, child: const Loader())

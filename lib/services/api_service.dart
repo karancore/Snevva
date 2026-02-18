@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:snevva/common/debug_logger.dart';
+import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/services/encryption_service.dart';
@@ -11,6 +12,9 @@ import 'auth_header_helper.dart';
 
 class ApiService {
   static const String _baseUrl = baseUrl;
+
+
+
 
   static Future<Object> post(
     String endpoint,
@@ -34,6 +38,7 @@ class ApiService {
       final encryptedRequestBody = jsonEncode({
         'data': encrypted['encryptedData'],
       });
+
 
       final response = await http.post(
         uri,
@@ -95,6 +100,8 @@ class ApiService {
           encryptedBody,
           responseHash,
         );
+
+        logLong("Decrypted", decrypted ?? '');
 
         return jsonDecode(decrypted!);
       }

@@ -23,11 +23,9 @@ import '../../services/sleep/sleep_noticing_service.dart';
 enum SleepState { sleeping, awake }
 
 class SleepController extends GetxService {
-
   // Storage keys
   static const String BEDTIME_KEY = 'user_bedtime_ms';
   static const String WAKETIME_KEY = 'user_waketime_ms';
-
 
   // Observable state
   final Rx<Duration> currentSleepDuration = Duration.zero.obs;
@@ -35,25 +33,23 @@ class SleepController extends GetxService {
   final RxBool isSleeping = false.obs;
   final Rx<DateTime?> sleepStartTime = Rxn<DateTime>();
   final RxDouble sleepProgress = 0.0.obs; // 0.0 to 1.0
-  
+
   // User sleep schedule
   final Rxn<TimeOfDay> bedtime = Rxn<TimeOfDay>();
   final Rxn<TimeOfDay> waketime = Rxn<TimeOfDay>();
-  
+
   // Weekly sleep history
   final RxMap<String, Duration> weeklySleepHistory = <String, Duration>{}.obs;
-  
+
   // Background service
   final _service = FlutterBackgroundService();
   StreamSubscription? _sleepUpdateSubscription;
   StreamSubscription? _sleepSavedSubscription;
   StreamSubscription? _goalReachedSubscription;
 
-
   static const _sleepCandidateStartKey = "sleep_candidate_start";
   static const _sleepCandidateHadPhoneUsageKey = "sleep_candidate_had_phone";
   static const _correctedSleepMinutesPrefix = "sleep_corrected_minutes_";
-
 
   RxBool isMonthlyView = false.obs;
 
@@ -84,7 +80,7 @@ class SleepController extends GetxService {
 
   @override
   void onInit() {
-     super.onInit();
+    super.onInit();
     _loadUserSleepTimes();
     _loadWeeklySleepData();
     _setupBackgroundServiceListeners();
@@ -93,7 +89,7 @@ class SleepController extends GetxService {
     loadUserSleepTimes();
   }
 
-    @override
+  @override
   void onClose() {
     _sleepUpdateSubscription?.cancel();
     _sleepSavedSubscription?.cancel();
@@ -101,7 +97,6 @@ class SleepController extends GetxService {
     super.onClose();
   }
 
-  
   // ═══════════════════════════════════════════════════════════════
   // BACKGROUND SERVICE STREAM SETUP
   // ═══════════════════════════════════════════════════════════════
@@ -113,20 +108,43 @@ class SleepController extends GetxService {
         final elapsedMinutes = event['elapsed_minutes'] as int? ?? 0;
         final goalMinutes = event['goal_minutes'] as int? ?? 480;
         final sleeping = event['is_sleeping'] as bool? ?? false;
+        final windowKey =
+            event['current_sleep_window_key'] as String?; // Add this
+        final startTimeStr = event['start_time'] as String?; // Add this
 
         currentSleepDuration.value = Duration(minutes: elapsedMinutes);
         sleepGoal.value = Duration(minutes: goalMinutes);
         isSleeping.value = sleeping;
-        
+
+        if (startTimeStr != null && sleepStartTime.value == null) {
+          sleepStartTime.value = DateTime.tryParse(startTimeStr);
+        }
+
         // Calculate progress (0.0 to 1.0)
         if (goalMinutes > 0) {
           sleepProgress.value = (elapsedMinutes / goalMinutes).clamp(0.0, 1.0);
-          weeklySleepHistory[getCurrentDayKey()] = currentSleepDuration.value;
 
-          updateDeepSleepSpots();  // Refresh the graph spots
+          // Use the correct date key (Session Window Key) if provided, otherwise fallback
+          String targetKey;
+          if (windowKey != null) {
+            targetKey = windowKey;
+          } else if (sleepStartTime.value != null) {
+            targetKey = _dateKey(sleepStartTime.value!);
+          } else {
+            // Fallback to today (legacy behavior, but least preferred)
+            final now = DateTime.now();
+            targetKey =
+                "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+          }
+
+          weeklySleepHistory[targetKey] = currentSleepDuration.value;
+
+          updateDeepSleepSpots(); // Refresh the graph spots
         }
 
-        print("💤 Sleep update: ${elapsedMinutes}m / ${goalMinutes}m (${(sleepProgress.value * 100).toInt()}%)");
+        print(
+          "💤 Sleep update: ${elapsedMinutes}m / ${goalMinutes}m (${(sleepProgress.value * 100).toInt()}%)",
+        );
       }
     });
 
@@ -139,7 +157,7 @@ class SleepController extends GetxService {
         final endTime = event['end_time'] as String?;
 
         print("✅ Sleep saved: ${duration}m (goal: ${goalMinutes}m)");
-        
+
         // Reset state
         isSleeping.value = false;
         currentSleepDuration.value = Duration.zero;
@@ -160,7 +178,9 @@ class SleepController extends GetxService {
     });
 
     // Listen to goal reached event
-    _goalReachedSubscription = _service.on("sleep_goal_reached").listen((event) {
+    _goalReachedSubscription = _service.on("sleep_goal_reached").listen((
+      event,
+    ) {
       if (event != null) {
         final elapsedMinutes = event['elapsed_minutes'] as int? ?? 0;
         final goalMinutes = event['goal_minutes'] as int? ?? 480;
@@ -202,9 +222,7 @@ class SleepController extends GetxService {
     sleepProgress.value = 0.0;
 
     // Start background tracking
-    _service.invoke("start_sleep", {
-      "goal_minutes": goalMinutes,
-    });
+    _service.invoke("start_sleep", {"goal_minutes": goalMinutes});
 
     print("🌙 Sleep tracking started with goal: ${goalMinutes}m");
   }
@@ -225,7 +243,7 @@ class SleepController extends GetxService {
   /// Set sleep goal
   void setSleepGoal(Duration goal) {
     sleepGoal.value = goal;
-    
+
     // If currently sleeping, update the goal in background service
     if (isSleeping.value) {
       final prefs = SharedPreferences.getInstance();
@@ -295,7 +313,9 @@ class SleepController extends GetxService {
         }
       }
 
-      print("📊 Weekly sleep data loaded: ${weeklySleepHistory.length} entries");
+      print(
+        "📊 Weekly sleep data loaded: ${weeklySleepHistory.length} entries",
+      );
     } catch (e) {
       print("❌ Error loading weekly sleep data: $e");
     }
@@ -318,9 +338,14 @@ class SleepController extends GetxService {
           sleepStartTime.value = start;
           currentSleepDuration.value = elapsed;
           sleepGoal.value = Duration(minutes: goalMinutes);
-          sleepProgress.value = (elapsed.inMinutes / goalMinutes).clamp(0.0, 1.0);
+          sleepProgress.value = (elapsed.inMinutes / goalMinutes).clamp(
+            0.0,
+            1.0,
+          );
 
-          print("🔄 Restored active sleep session: ${elapsed.inMinutes}m / ${goalMinutes}m");
+          print(
+            "🔄 Restored active sleep session: ${elapsed.inMinutes}m / ${goalMinutes}m",
+          );
         }
       }
     } catch (e) {
@@ -343,7 +368,7 @@ class SleepController extends GetxService {
   String _formatDuration(Duration d) {
     final hours = d.inHours;
     final minutes = d.inMinutes % 60;
-    
+
     if (hours > 0) {
       return "${hours}h ${minutes}m";
     } else {
@@ -378,12 +403,12 @@ class SleepController extends GetxService {
   /// Get average sleep for the week
   Duration get averageWeeklySleep {
     if (weeklySleepHistory.isEmpty) return Duration.zero;
-    
+
     final total = weeklySleepHistory.values.fold<int>(
       0,
       (sum, duration) => sum + duration.inMinutes,
     );
-    
+
     return Duration(minutes: total ~/ weeklySleepHistory.length);
   }
 
@@ -391,7 +416,6 @@ class SleepController extends GetxService {
   Future<void> refreshData() async {
     await _loadWeeklySleepData();
   }
-
 
   DateTime resolveNextWakeDateTime() {
     final wt = waketime.value!;
@@ -702,9 +726,19 @@ class SleepController extends GetxService {
       debugPrint("   💤 Weekly ← Hive: $key → ${duration.inMinutes} min");
     }
 
-    // 🔥 Set UI value for *today* (not last Hive entry)
+    // 🔥 Set UI value for *today* (or yesterday if today is empty)
     final todayKey = getCurrentDayKey();
-    deepSleepDuration.value = weeklyDeepSleepHistory[todayKey] ?? Duration.zero;
+    final yesterdayKey = dateKey(DateTime.now().subtract(const Duration(days: 1)));
+    
+    // Check today first
+    if ((weeklyDeepSleepHistory[todayKey]?.inMinutes ?? 0) > 0) {
+      deepSleepDuration.value = weeklyDeepSleepHistory[todayKey]!;
+    } else if ((weeklyDeepSleepHistory[yesterdayKey]?.inMinutes ?? 0) > 0) {
+      // Fallback to yesterday (likely last night's sleep)
+      deepSleepDuration.value = weeklyDeepSleepHistory[yesterdayKey]!;
+    } else {
+      deepSleepDuration.value = Duration.zero;
+    }
 
     // #region agent log
     AgentDebugLogger.log(
@@ -1070,5 +1104,4 @@ class SleepController extends GetxService {
 
     return end;
   }
-
 }

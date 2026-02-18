@@ -115,12 +115,12 @@
             </intent-filter>
         </receiver>
 
-        <receiver android:name=".ScreenReceiver" android:exported="false">
+        <!-- <receiver android:name=".ScreenReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.SCREEN_OFF"/>
                 <action android:name="android.intent.action.SCREEN_ON"/>
             </intent-filter>
-        </receiver>
+        </receiver> -->
 
         <receiver
             android:exported="false"
@@ -137,11 +137,11 @@
             android:foregroundServiceType="dataSync"
             tools:replace="android:exported,android:foregroundServiceType" />
 
-        <!-- 🌙 Sleep Noticing Service (Added for screen monitoring) -->
-        <service
+        <!-- 🌙 Sleep NoticingService (Native - Disabled/Removed to avoid conflict with Dart service) -->
+        <!-- <service
             android:name=".SleepNoticingService"
             android:exported="false"
-            android:foregroundServiceType="dataSync" />
+            android:foregroundServiceType="dataSync" /> -->
 
     </application>
 

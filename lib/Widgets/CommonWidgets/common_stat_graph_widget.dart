@@ -67,10 +67,12 @@ class CommonStatGraphWidget extends StatelessWidget {
     //final bool isMonthly = labels.length > 7;
     final bool isMonthly = isMonthlyView;
 
-    // Handle "today" index highlighting only for weekly data
-    int todayIndex = 0;
-    if (!isMonthly && labels.length == 7) {
-      todayIndex = DateTime.now().weekday - 1; // Mon = 1
+    // Weekly labels are often partial (Mon..today), so highlight by the
+    // provided weekly max index instead of assuming 7 labels are present.
+    int todayIndex = -1;
+    if (!isMonthly && labels.isNotEmpty) {
+      final int resolvedIndex = maxXForWeek ?? (labels.length - 1);
+      todayIndex = resolvedIndex.clamp(0, labels.length - 1).toInt();
     }
 
     // Clamp Y values to graph max

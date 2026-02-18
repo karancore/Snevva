@@ -298,16 +298,39 @@ class SleepNoticingService {
     final wakeTod = TimeOfDay(hour: wakeMin ~/ 60, minute: wakeMin % 60);
 
     final now = DateTime.now();
-    final start = _resolveSleepStart(now, bedTod);
-    final end = _resolveSleepEnd(start, wakeTod);
-    final key = _dateKey(start);
+
+DateTime sleepStartToday = _buildDateTime(now, bedTod);
+DateTime sleepStart;
+
+if (bedMin > wakeMin) {
+  // CROSS MIDNIGHT CASE (e.g., 23:00 → 06:00)
+
+  if (now.isBefore(_buildDateTime(now, wakeTod))) {
+    // After midnight but before wake time → belongs to yesterday's sleep
+    sleepStart = sleepStartToday.subtract(const Duration(days: 1));
+  } else if (now.isBefore(sleepStartToday)) {
+    // Before bedtime tonight → still yesterday's sleep window
+    sleepStart = sleepStartToday.subtract(const Duration(days: 1));
+  } else {
+    // After bedtime tonight
+    sleepStart = sleepStartToday;
+  }
+
+} else {
+  // NORMAL SAME-DAY SLEEP (e.g., 22:00 → 23:00)
+  sleepStart = sleepStartToday;
+}
+
+final sleepEnd = _resolveSleepEnd(sleepStart, wakeTod);
+final key = _dateKey(sleepStart);
+
 
     debugPrint('🛏️ BedTime TOD: $bedTod');
     debugPrint('⏰ WakeTime TOD: $wakeTod');
-    debugPrint('🌙 Sleep window resolved: $start → $end');
+    debugPrint('🌙 Sleep window resolved: $sleepStart → $sleepEnd');
     debugPrint('🗓️ dateKey: $key');
 
-    return _SleepWindow(start: start, end: end, dateKey: key);
+    return _SleepWindow(start: sleepStart, end: sleepEnd, dateKey: key);
   }
 
   DateTime _buildDateTime(DateTime base, TimeOfDay tod) {
