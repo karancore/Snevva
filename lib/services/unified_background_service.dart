@@ -367,70 +367,6 @@ void _startSleepIntervalAggregator(
   });
 }
 
-Future<int> _getAggregatedSleepTime(SharedPreferences prefs) async {
-  final windowKey = prefs.getString("current_sleep_window_key");
-  if (windowKey == null) return 0;
-
-  final intervalsKey = 'sleep_intervals_$windowKey';
-  final intervalsStr = prefs.getString(intervalsKey);
-
-  if (intervalsStr == null || intervalsStr.isEmpty) {
-    return 0;
-  }
-
-  int totalMinutes = 0;
-  final intervals = intervalsStr.split(',');
-
-  for (final intervalStr in intervals) {
-    final parts = intervalStr.split('|');
-    if (parts.length == 2) {
-      try {
-        final start = DateTime.parse(parts[0]);
-        final end = DateTime.parse(parts[1]);
-        totalMinutes += end.difference(start).inMinutes;
-      } catch (e) {
-        print("⚠️ Failed to parse interval: $intervalStr");
-      }
-    }
-  }
-
-  // Also check for any open interval (screen currently off)
-  final lastOffKey = 'last_screen_off_$windowKey';
-  final lastOffStr = prefs.getString(lastOffKey);
-
-  if (lastOffStr != null) {
-    try {
-      final lastOff = DateTime.parse(lastOffStr);
-      final now = DateTime.now();
-
-      // Get sleep window boundaries
-      final windowStartStr = prefs.getString("current_sleep_window_start");
-      final windowEndStr = prefs.getString("current_sleep_window_end");
-
-      if (windowStartStr != null && windowEndStr != null) {
-        final windowStart = DateTime.parse(windowStartStr);
-        final windowEnd = DateTime.parse(windowEndStr);
-
-        // Clamp to window
-        DateTime start = lastOff.isBefore(windowStart) ? windowStart : lastOff;
-        DateTime end = now.isAfter(windowEnd) ? windowEnd : now;
-
-        if (end.isAfter(start)) {
-          final openIntervalMinutes = end.difference(start).inMinutes;
-          totalMinutes += openIntervalMinutes;
-          print(
-            "📱 Open interval (screen still off): $openIntervalMinutes mins",
-          );
-        }
-      }
-    } catch (e) {
-      print("⚠️ Failed to parse open interval: $e");
-    }
-  }
-
-  return totalMinutes;
-}
-
 // ═══════════════════════════════════════════════════════════════
 // 💾 STOP SLEEP AND SAVE
 // ═══════════════════════════════════════════════════════════════
@@ -453,7 +389,8 @@ Future<void> _stopSleepAndSave(
   final windowKey = prefs.getString("current_sleep_window_key");
 
   // Get total sleep time from aggregated intervals
-  final totalSleepMinutes = await _getAggregatedSleepTime(prefs);
+  // Get total sleep time from aggregated intervals (use service implementation)
+  final totalSleepMinutes = await _sleepNoticingService.getTotalSleepMinutes();
 
   print("💾 Saving sleep data:");
   print("   Start: $start");

@@ -94,8 +94,25 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
   void _setupSleepListeners() {
     // Listen to sleep progress updates
-    _sleepUpdateSubscription = _service.on("sleep_update").listen((event) {
+    _sleepUpdateSubscription = _service.on("sleep_update").listen((
+      event,
+    ) async {
       if (event != null && mounted) {
+        final prefs = await SharedPreferences.getInstance();
+        final manuallyStopped = prefs.getBool('manually_stopped') ?? false;
+
+        // If user manually stopped tracking, ignore background updates for this session
+        if (manuallyStopped) {
+          if (_isSleeping) {
+            setState(() {
+              _isSleeping = false;
+              _currentSleepDuration = Duration.zero;
+              _progress = 0.0;
+            });
+          }
+          return;
+        }
+
         final elapsedMinutes = event['elapsed_minutes'] as int? ?? 0;
         final goalMinutes = event['goal_minutes'] as int? ?? 480;
         final sleeping = event['is_sleeping'] as bool? ?? false;
@@ -325,14 +342,14 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                                 ),
                               ),
                               IconButton(
-                                onPressed:() async {
-                                          await showSleepBottomSheetModal(
-                                            context: context,
-                                            isDarkMode: isDarkMode,
-                                            height: height,
-                                            isNavigating: false,
-                                          );
-                                        },
+                                onPressed: () async {
+                                  await showSleepBottomSheetModal(
+                                    context: context,
+                                    isDarkMode: isDarkMode,
+                                    height: height,
+                                    isNavigating: false,
+                                  );
+                                },
                                 icon: Icon(
                                   FontAwesomeIcons.angleRight,
                                   size: 20,
@@ -379,14 +396,14 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                                 ),
                               ),
                               IconButton(
-                                onPressed:() async {
-                                          await showSleepBottomSheetModal(
-                                            context: context,
-                                            isDarkMode: isDarkMode,
-                                            height: height,
-                                            isNavigating: false,
-                                          );
-                                        },
+                                onPressed: () async {
+                                  await showSleepBottomSheetModal(
+                                    context: context,
+                                    isDarkMode: isDarkMode,
+                                    height: height,
+                                    isNavigating: false,
+                                  );
+                                },
                                 icon: Icon(
                                   FontAwesomeIcons.angleRight,
                                   size: 20,
