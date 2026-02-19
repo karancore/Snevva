@@ -702,15 +702,15 @@ class SleepController extends GetxService {
 
   Future<void> loadDeepSleepData() async {
     // final _box = await Hive.openBox<SleepLog>('sleep_log');
-    final _box = HiveService().sleepLog;
+    final box = HiveService().sleepLog;
     debugPrint("📥 [loadDeepSleepData] START");
 
     weeklyDeepSleepHistory.clear();
     final prefs = await SharedPreferences.getInstance();
 
-    debugPrint("📦 Hive entries count: ${_box.length}");
+    debugPrint("📦 Hive entries count: ${box.length}");
 
-    for (final log in _box.values) {
+    for (final log in box.values) {
       final key = dateKey(log.date);
       // Prefer corrected minutes stored in prefs (if any), else use Hive minutes.
       final correctedMins = prefs.getInt(_correctedPrefKeyForDateKey(key));
@@ -748,7 +748,7 @@ class SleepController extends GetxService {
       data: {
         'todayKey': todayKey,
         'todayMinutes': deepSleepDuration.value.inMinutes,
-        'entries': _box.length,
+        'entries': box.length,
       },
     );
     // #endregion

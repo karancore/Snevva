@@ -128,7 +128,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Obx(() {
-                if (dietController.isCategoryLoading.value) {
+                if (dietController.isSuggestionsLoading.value) {
                   return const Loader();
                 }
 
@@ -191,7 +191,6 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                 if (data.isEmpty) {
                   return const Text("No celebrity plans available");
                 }
-
                 return SizedBox(
                   height: 170,
                   child: ListView.separated(
@@ -238,7 +237,13 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                   final categoryText = category[0];
                   final icon = category[1];
 
-                  return dietCategoryIcons(width, categoryText, icon, index);
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      left: index == 0 ? 20 : 10,
+                      right: index == categoryDiets.length - 1 ? 20 : 0,
+                    ),
+                    child: dietCategoryIcons(width, categoryText, icon, index),
+                  );
                 }),
               ),
             ),
@@ -255,38 +260,35 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                 return Center(child: const Text("No data available"));
               }
 
-              return SafeArea(
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: data.length,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 8,
-                  ),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemBuilder: (context, index) {
-                    final item = data[index];
-                    return SizedBox(
-                      height: 170,
-                      child: KeyedSubtree(
-                        key: ValueKey(item.id ?? index), // if id exists, use it
-                        child: suggestedItem(
-                          item: item,
-                          width: width,
-                          heading: item.heading ?? "",
-                          subHeading: item.title ?? "",
-                          dietImg: item.thumbnailMedia ?? dietPlaceholder,
-                          isDarkMode: isDarkMode,
-                        ),
-                      ),
-                    );
-                  },
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: data.length,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
                 ),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  mainAxisExtent: 154,
+                ),
+                itemBuilder: (context, index) {
+                  final item = data[index];
+                  return KeyedSubtree(
+                    key: ValueKey(item.id ?? index), // if id exists, use it
+                    child: suggestedItem(
+                      item: item,
+                      width: width,
+                      heading: item.heading ?? "",
+                      subHeading: item.title ?? "",
+                      dietImg: item.thumbnailMedia ?? dietPlaceholder,
+                      isDarkMode: isDarkMode,
+                      isGridItem: true,
+                    ),
+                  );
+                },
               );
             }),
           ],
@@ -308,23 +310,30 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
   ) {
     return Obx(() {
       final isSelected = dietController.selectedCategoryIndex.value == index;
+      final iconSize = width * 0.09;
 
       return InkWell(
         onTap: () {
           dietController.changeCategory(index);
           fetchCategoryReponse(categoryText);
         },
-        child: Container(
-          padding: const EdgeInsets.only(left: 20),
+        child: SizedBox(
+          width: 74,
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Image.asset(icon, height: width * 0.1, fit: BoxFit.cover),
-              SizedBox(height: 5),
+              SizedBox(
+                height: iconSize,
+                width: iconSize,
+                child: Image.asset(icon, fit: BoxFit.contain),
+              ),
+              const SizedBox(height: 6),
               AutoSizeText(
                 categoryText,
                 minFontSize: 10,
                 maxLines: 2,
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
@@ -345,11 +354,20 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     required String subHeading,
     required String dietImg,
     required bool isDarkMode,
+    bool isGridItem = false,
   }) {
+    final cardWidth = isGridItem ? double.infinity : width * 0.43;
+    final cardRadius = isGridItem ? 12.0 : 16.0;
+    final imageHeight = isGridItem ? 95.0 : 120.0;
+    final textPadding =
+        isGridItem
+            ? const EdgeInsets.symmetric(horizontal: 8, vertical: 6)
+            : const EdgeInsets.symmetric(horizontal: 8, vertical: 8);
+
     return Material(
       color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
-      elevation: 1,
-      borderRadius: BorderRadius.circular(4),
+      elevation: 4,
+      borderRadius: BorderRadius.circular(cardRadius),
       child: InkWell(
         onTap: () {
           dietController.dietTagsDataResponse.value = item;
@@ -358,9 +376,9 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
           Get.to(DietDetailsScreen(diet: item, daysList: daysList));
         },
         child: Container(
-          width: width * 0.43,
+          width: cardWidth,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+            borderRadius: BorderRadius.circular(cardRadius),
             border: Border.all(width: border04px, color: mediumGrey),
           ),
           child: Column(
@@ -368,16 +386,18 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(cardRadius),
+                ),
                 child: CachedNetworkImage(
                   imageUrl: dietImg,
-                  height: 120,
-                  width: width * 0.43,
+                  height: imageHeight,
+                  width: cardWidth,
                   fit: BoxFit.cover,
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                padding: textPadding,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -387,7 +407,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: isGridItem ? 14 : 16,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -398,7 +418,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: isGridItem ? 9 : 10,
                         color: mediumGrey,
                         fontWeight: FontWeight.w500,
                       ),
@@ -438,6 +458,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
           Get.to(DietDetailsScreen(diet: diet, daysList: []));
         },
         child: Container(
+
           width: width * 0.43,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.vertical(top: Radius.circular(4)),

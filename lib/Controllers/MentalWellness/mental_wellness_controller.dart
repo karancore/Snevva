@@ -51,9 +51,12 @@ class MentalWellnessController extends GetxController {
     hasError.value = false;
 
     try {
-      await loadGeneralMusic();
-      await loadMeditationMusic();
-      await loadNatureMusic();
+      await Future.wait([
+        loadGeneralMusic(),
+        loadMeditationMusic(),
+        loadNatureMusic(),
+      ]);
+
 
       debugPrint("✅ fetchMusic() completed successfully");
     } catch (e) {

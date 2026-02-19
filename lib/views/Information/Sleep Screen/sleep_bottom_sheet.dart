@@ -168,6 +168,8 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
       wake.minute,
     );
 
+    Get.find<SleepController>().sleepGoal.value = Duration(minutes: goalMinutes);
+
     _service.invoke("start_sleep", {
       "goal_minutes": goalMinutes,
       "bedtime_minutes": bed.hour * 60 + bed.minute,

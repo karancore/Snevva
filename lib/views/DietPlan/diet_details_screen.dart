@@ -27,23 +27,15 @@ class DietDetailsScreen extends StatefulWidget {
 class _DietDetailsScreenState extends State<DietDetailsScreen> {
   final dietController = Get.put(DietPlanController());
 
-  late final PageController _pageController;
-
   @override
   void initState() {
     super.initState();
-    fetchDietTagData();
-  }
-
-  void fetchDietTagData() async {
-    _pageController = PageController(initialPage: 0);
-    await dietController.getAllDiets(context, "Vegetarian");
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
+    dietController.selectedDayIndex.value = 0;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (dietController.celebrityPageController.hasClients) {
+        dietController.celebrityPageController.jumpToPage(0);
+      }
+    });
   }
 
   @override
@@ -143,11 +135,7 @@ class _DietDetailsScreenState extends State<DietDetailsScreen> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.only(left: 20),
             child: Obx(() {
-              // if(dietController.isLoading.value){
-              //   return Loader();
-              // }
-              final dataList =
-                  dietController.dietTagsDataResponse.value.mealPlan ?? [];
+              final dataList = widget.daysList;
               logLong(
                 "Celebrity dietags response ",
                 dataList.length.toString(),

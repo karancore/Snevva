@@ -72,6 +72,16 @@ TimeOfDay parseTimeOfDay(String timeString) {
 String fmtDuration(Duration d) =>
     "${d.inHours}h ${(d.inMinutes % 60).toString().padLeft(2, "0")}m";
 
+String formatDurationHHmm(Duration duration) {
+  final hours = duration.inHours;
+  final minutes = duration.inMinutes.remainder(60);
+
+  final hoursStr = hours.toString().padLeft(2, '0');
+  final minutesStr = minutes.toString().padLeft(2, '0');
+
+  return "$hoursStr:$minutesStr";
+}
+
 Duration parseDuration(String d) {
   final hourPart = d.split("h")[0].trim();
   final minutePart = d.split("h")[1].replaceAll("m", "").trim();

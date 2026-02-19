@@ -114,7 +114,9 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
         }
 
         final elapsedMinutes = event['elapsed_minutes'] as int? ?? 0;
+        // sleepController.deepSleepDuration.value = Duration(minutes: elapsedMinutes);
         final goalMinutes = event['goal_minutes'] as int? ?? 480;
+        // sleepController.sleepGoal.value = Duration(minutes: goalMinutes);
         final sleeping = event['is_sleeping'] as bool? ?? false;
 
         setState(() {

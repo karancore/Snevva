@@ -5,6 +5,8 @@ import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Information/Health%20Tips/Nutrition_tips.dart/nutrition_tips.dart';
 
+import '../../../common/loader.dart';
+
 class HealthTipsScreen extends StatefulWidget {
   @override
   State<HealthTipsScreen> createState() => _HealthTipsScreenState();
@@ -33,7 +35,7 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
         final count = controller.randomTips.length;
         final numRows = (count / 2).ceil();
         if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const Loader();
         }
 
         if (controller.hasError.value) {

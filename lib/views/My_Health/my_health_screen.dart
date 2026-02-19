@@ -3,11 +3,13 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
+import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/views/Information/HydrationScreens/hydration_screen.dart';
+import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
 import 'package:snevva/views/Information/StepCounter/step_counter.dart';
 import 'package:snevva/views/Information/vitals.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
@@ -16,6 +18,7 @@ import 'package:snevva/views/information/bmi/bmi_update_result.dart';
 import '../../Controllers/Hydration/hydration_stat_controller.dart';
 import '../../Controllers/StepCounter/step_counter_controller.dart';
 import '../../Controllers/signupAndSignIn/sign_in_controller.dart';
+import '../../common/global_variables.dart';
 import '../../widgets/CommonWidgets/custom_appbar.dart';
 
 class MyHealthScreen extends StatefulWidget {
@@ -35,6 +38,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
   String? gender;
   bool isLoading = true;
   final vitalController = Get.find<VitalsController>();
+  final sleepController = Get.find<SleepController>();
   final bmiController = Get.find<BmiUpdateController>();
   final womenController = Get.find<WomenHealthController>();
   final localStorageManager = Get.find<LocalStorageManager>();
@@ -121,6 +125,26 @@ class _MyHealthScreenState extends State<MyHealthScreen>
         onPressed: () => Get.to(() => const HydrationScreen()),
       ),
       TrackerHealthCard(
+        icon: Icons.bedtime,
+        iconColor: Color(0xffe79051),
+        cardType: "sleep",
+        title: Obx(
+          () => Text(
+            formatDurationHHmm(sleepController.deepSleepDuration.value),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+          ),
+        ),
+        subtitle: Obx(
+          () => Text(
+            '/ ${formatDurationHHmm(sleepController.sleepGoal.value)}',
+            style: const TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+        ),
+        buttonText: 'Track sleep',
+        onPressed: () => Get.to(() => const SleepTrackerScreen()),
+      ),
+
+      TrackerHealthCard(
         icon: Icons.directions_walk,
         cardType: "steps",
         iconColor: Colors.grey,
@@ -148,7 +172,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
             moodController.selectedMood.value.isEmpty
                 ? 'All Good?'
                 : moodController.selectedMood.value,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
           ),
         ),
 
@@ -168,7 +192,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
           ),
         ),
         subtitle: const Text(
-          '/bpm',
+          'bpm',
           style: TextStyle(fontSize: 14, color: Colors.grey),
         ),
         buttonText: 'Add BPM',
@@ -186,7 +210,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
         ),
         subtitle: Text(
           bmiController.bmi_text.value,
-          style: const TextStyle(fontSize: 18, color: Colors.grey),
+          style: const TextStyle(fontSize: 14, color: Colors.grey),
         ),
         buttonText: 'BMI Result',
         onPressed:
@@ -223,6 +247,10 @@ class _MyHealthScreenState extends State<MyHealthScreen>
             womenController.nextPeriodDay.value,
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
           ),
+        ),
+        subtitle: const Text(
+          'Upcoming',
+          style: TextStyle(fontSize: 14, color: Colors.grey),
         ),
         buttonText: 'Add Data',
         onPressed: () => Get.to(WomenHealthScreen()),
@@ -288,6 +316,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
               .where(
                 (item) => [
                   "Add water",
+                  "Track sleep",
                   "Track steps",
                   "Track mood",
                 ].contains(item.buttonText),

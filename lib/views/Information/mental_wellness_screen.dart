@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:snevva/Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/MentalWellness/mental_wellness_footer_widget.dart';
@@ -13,11 +15,13 @@ import '../../consts/consts.dart';
 
 class MentalWellnessScreen extends StatefulWidget {
   @override
-  State<MentalWellnessScreen> createState() => _MentalWellnessScreenState();
+  State<MentalWellnessScreen> createState() =>
+      _MentalWellnessScreenState();
 }
 
-class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
-  final controller = Get.put(MentalWellnessController());
+class _MentalWellnessScreenState
+    extends State<MentalWellnessScreen> {
+  final controller = Get.find<MentalWellnessController>();
 
   @override
   void initState() {
@@ -41,193 +45,222 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
-
     final width = mediaQuery.size.width;
-    print("height is $height ");
-    print("width is $width ");
 
-    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    debugPrint("🌓 Theme mode: ${isDarkMode ? "Dark" : "Light"}");
+    final bool isDarkMode =
+        Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
+      drawer: Drawer(
+        child: DrawerMenuWidget(height: height, width: width),
+      ),
       appBar: CustomAppBar(appbarText: "Mental Wellness"),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // =================== General Music ===================
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: Loader());
+        }
 
-              child: Obx(() {
-                debugPrint("🔄 Obx triggered for generalMusic list");
+        if (controller.hasError.value) {
+          return const Text("Error loading music");
+        }
 
-                if (controller.isLoading.value) {
-                  debugPrint("⏳ Loading music...");
-                  return Center(child: const Loader());
-                }
-                if (controller.hasError.value) {
-                  debugPrint("❌ Error occurred while fetching music");
-                  return const Text("Error loading music");
-                }
+        final generalMusic = controller.generalMusic;
+        final meditationMusic = controller.meditationMusic;
+        final natureMusic = controller.natureMusic;
 
-                final generalMusic = controller.generalMusic;
-                debugPrint("🎵 generalMusic length: ${generalMusic.length}");
+        if (generalMusic.isEmpty) {
+          return const Text("No suggestions");
+        }
 
-                if (generalMusic.isEmpty) {
-                  debugPrint("⚠️ generalMusic list is empty");
-                  return const Text("No suggestions");
-                }
+        if (natureMusic.isEmpty) {
+          return const Text("No suggestions");
+        }
 
-                return SingleChildScrollView(
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // =================== General Music ===================
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding:
+                const EdgeInsets.symmetric(horizontal: 20),
+                child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
-                    children: List.generate(generalMusic.length, (index) {
-                      final item = generalMusic[index];
+                    children: List.generate(
+                      generalMusic.length,
+                          (index) {
+                        final item = generalMusic[index];
 
-                      return Padding(
-                        padding: EdgeInsets.only(
-                          right: index == generalMusic.length - 1 ? 0 : 16,
-                        ),
-                        child: InkWell(
-                          child: MentalWellnessHeaderWidget(
-                            height: 180 * heightFactor,
-                            musicItem: item,
-                            width: 280 * widthFactor,
-                            playText: '',
-                            wellnessContainerImage:
-                                generalMusic[index].thumbnailMedia ??
-                                generalImageUrls[Random().nextInt(index + 1)],
-                            heading: generalMusic[index].title,
-                            subHeading:
-                                generalMusic[index].artistName == "Unknown"
-                                    ? ""
-                                    : generalMusic[index].artistName,
-                            boxFit: BoxFit.cover,
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            right: index ==
+                                generalMusic.length - 1
+                                ? 0
+                                : 16,
                           ),
-                        ),
-                      );
-                    }),
-                  ),
-                );
-              }),
-            ),
-
-            // =================== Meditation Section ===================
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    ' Meditation for You',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-                  ),
-                  SizedBox(height: 18),
-                  Obx(() {
-                    final meditationMusic = controller.meditationMusic;
-                    debugPrint(
-                      "🎵 meditationMusic: ${meditationMusic.runtimeType}",
-                    );
-                    if (controller.isLoading.value) {
-                      debugPrint("⏳ Loading music...");
-                      return Center(child: const Loader());
-                    }
-
-                    return SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: List.generate(meditationMusic.length, (
-                          index,
-                        ) {
-                          final item = meditationMusic[index];
-
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              right:
-                                  index == meditationMusic.length - 1 ? 0 : 16,
-                            ),
-                            child: MentalWellnessHeaderWidget(
-                              height: 189 * heightFactor,
+                          child: InkWell(
+                            child:
+                            MentalWellnessHeaderWidget(
+                              height: 180 * heightFactor,
                               musicItem: item,
-                              width: 353 * widthFactor,
-                              playText: "Play",
+                              width: 280 * widthFactor,
+                              playText: '',
                               wellnessContainerImage:
-                                  meditationMusic[index].thumbnailMedia ??
-                                  meditationImageUrls[Random().nextInt(
-                                    index + 3,
-                                  )],
-                              heading: meditationMusic[index].title,
+                              generalMusic[index]
+                                  .thumbnailMedia ??
+                                  generalImageUrls[
+                                  Random().nextInt(
+                                      index + 1)],
+                              heading:
+                              generalMusic[index].title,
                               subHeading:
-                                  meditationMusic[index].artistName == "Unknown"
-                                      ? ""
-                                      : meditationMusic[index].artistName,
+                              generalMusic[index]
+                                  .artistName ==
+                                  "Unknown"
+                                  ? ""
+                                  : generalMusic[index]
+                                  .artistName,
                               boxFit: BoxFit.cover,
                             ),
-                          );
-                        }),
-                      ),
-                    );
-                  }),
-                  SizedBox(height: 18),
-                  const Text(
-                    'Nature Sounds',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w500),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ],
+                ),
               ),
-            ),
 
-            // =================== Nature Sounds ===================
-            Padding(
-              padding: const EdgeInsets.only(left: 20),
-              child: Obx(() {
-                final natureMusic = controller.natureMusic;
-                debugPrint("🎵 natureMusic length: ${natureMusic.length}");
+              // =================== Meditation Section ===================
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment:
+                  CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      ' Meditation for You',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    SingleChildScrollView(
+                      scrollDirection:
+                      Axis.horizontal,
+                      child: Row(
+                        children: List.generate(
+                          meditationMusic.length,
+                              (index) {
+                            final item =
+                            meditationMusic[index];
 
-                if (controller.isLoading.value) {
-                  debugPrint("⏳ Loading music...");
-                  return Center(child: const Loader());
-                }
-                if (controller.hasError.value) {
-                  debugPrint("❌ Error occurred while fetching music");
-                  return const Text("Error loading music");
-                }
-
-                if (natureMusic.isEmpty) {
-                  debugPrint("⚠️ natureMusic list is empty");
-                  return const Text("No suggestions");
-                }
-
-                return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    spacing: 16,
-                    children:
-                        natureMusic.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final item = entry.value;
-                          return MentalWellnessFooterWidget(
-                            musicItem: item,
-                            wellnessContainerImage:
-                                item.thumbnailMedia ??
-                                natureImageUrls[Random().nextInt(index + 2)],
-                            heading: item.title,
-                            subHeading:
-                                item.artistName == "Unknown"
+                            return Padding(
+                              padding:
+                              EdgeInsets.only(
+                                right: index ==
+                                    meditationMusic
+                                        .length -
+                                        1
+                                    ? 0
+                                    : 16,
+                              ),
+                              child:
+                              MentalWellnessHeaderWidget(
+                                height:
+                                189 * heightFactor,
+                                musicItem: item,
+                                width:
+                                353 * widthFactor,
+                                playText: "Play",
+                                wellnessContainerImage:
+                                meditationMusic[
+                                index]
+                                    .thumbnailMedia ??
+                                    meditationImageUrls[
+                                    Random()
+                                        .nextInt(
+                                      index + 3,
+                                    )],
+                                heading:
+                                meditationMusic[
+                                index]
+                                    .title,
+                                subHeading:
+                                meditationMusic[
+                                index]
+                                    .artistName ==
+                                    "Unknown"
                                     ? ""
-                                    : item.artistName,
-                          );
-                        }).toList(),
+                                    : meditationMusic[
+                                index]
+                                    .artistName,
+                                boxFit: BoxFit.cover,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    const Text(
+                      'Nature Sounds',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // =================== Nature Sounds ===================
+              Padding(
+                padding:
+                const EdgeInsets.only(left: 20),
+                child: SingleChildScrollView(
+                  scrollDirection:
+                  Axis.horizontal,
+                  child: Row(
+                    children: natureMusic
+                        .asMap()
+                        .entries
+                        .map((entry) {
+                      final index = entry.key;
+                      final item = entry.value;
+
+                      return Padding(
+                        padding:
+                        const EdgeInsets.only(
+                            right: 16),
+                        child:
+                        MentalWellnessFooterWidget(
+                          musicItem: item,
+                          wellnessContainerImage:
+                          item.thumbnailMedia ??
+                              natureImageUrls[
+                              Random()
+                                  .nextInt(
+                                  index +
+                                      2)],
+                          heading: item.title,
+                          subHeading:
+                          item.artistName ==
+                              "Unknown"
+                              ? ""
+                              : item.artistName,
+                        ),
+                      );
+                    }).toList(),
                   ),
-                );
-              }),
-            ),
-          ],
-        ),
-      ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
     );
   }
 }
