@@ -117,7 +117,6 @@ Future<String> convertImageToBase64(String path) async {
 
     final payload = [
       {
-        "id": 0,
         "mediaCode": "",
         "isAwsMedia": false,
         "isActive": true,
