@@ -125,9 +125,13 @@ Future<String> convertImageToBase64(String path) async {
       }
     ];
 
+    final payl = {
+      'Value': payload,
+    };
+
     final response = await ApiService.post(
       uploadprofilepic,
-      payload as Map<String, dynamic>?,
+      payl,
       withAuth: true,
       encryptionRequired: true,
     );
