@@ -12,6 +12,8 @@ import 'package:snevva/services/api_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import '../../consts/consts.dart';
 
+  import 'dart:convert';
+
 class ProfileSetupController extends GetxService {
   // ================= TEXT + ERRORS =================
   final userNameController = TextEditingController();
@@ -100,10 +102,43 @@ class ProfileSetupController extends GetxService {
     }
   }
 
+
+Future<String> convertImageToBase64(String path) async {
+  File imageFile = File(path);
+  List<int> imageBytes = await imageFile.readAsBytes();
+  return base64Encode(imageBytes);
+}
+
   Future<void> saveImagePath(String path) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('profileImagePath', path);
+  try {
+    String base64Image = await convertImageToBase64(path);
+
+    final payload = [
+      {
+        "id": 0,
+        "mediaCode": "",
+        "isAwsMedia": false,
+        "isActive": true,
+        "isBase64Media": true,
+        "base64": base64Image
+      }
+    ];
+
+    final response = await ApiService.post(
+      uploadprofilepic,
+      payload as Map<String, dynamic>?,
+      withAuth: true,
+      encryptionRequired: true,
+    );
+
+    print("✅ Upload response: $response");
+
+  } catch (e) {
+    print("❌ Upload failed: $e");
   }
+}
 
   Future<void> loadSavedImage() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
