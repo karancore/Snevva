@@ -53,19 +53,6 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
     debugPrint("Reminder ${reminder.toString()}");
     if (reminder != null) {
-      waterGetxController.timesPerDayController.addListener(() {
-        waterGetxController.savedTimes.value =
-            int.tryParse(
-              waterGetxController.timesPerDayController.text.trim(),
-            ) ??
-            0;
-      });
-
-      waterGetxController.everyHourController.addListener(() {
-        waterGetxController.everyXhours.value =
-            int.tryParse(waterGetxController.everyHourController.text.trim()) ??
-            0;
-      });
       // editing existing reminder
       fillByCategory(reminder);
     } else {
@@ -74,7 +61,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   }
 
   void fillByCategory(ReminderPayloadModel reminder) {
-    switch (reminder.category) {
+    switch (reminder.category.toLowerCase()) {
       case "medicine":
         fillMedicineFields(reminder);
         break;
@@ -102,7 +89,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   void fillEventFields(ReminderPayloadModel reminder) {
     // 1. Basic Fields
     reminderController.titleController.text = reminder.title ?? '';
-    reminderController.selectedCategory.value = reminder.category;
+    reminderController.selectedCategory.value = reminder.category.toLowerCase();
     reminderController.notesController.text = reminder?.notes ?? '';
 
     // 2. Time Parsing
@@ -111,16 +98,23 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
     if (dateTimeString.isNotEmpty) {
       try {
+        final parsedTime = DateTime.parse(dateTimeString);
         reminderController.timeController.text = DateFormat(
           'hh:mm a',
-        ).format(DateTime.parse(dateTimeString));
+        ).format(parsedTime);
+        reminderController.pickedTime.value = TimeOfDay.fromDateTime(
+          parsedTime,
+        );
       } catch (e) {
         debugPrint("❌ Error parsing time: $e");
       }
     }
 
     // 3. Start Date Logic
-    reminderController.startDateString.value = reminder?.startDate ?? '';
+    final rawStartDate = reminder.startDate ?? '';
+    reminderController.startDateString.value =
+        rawStartDate.isEmpty ? 'Start Date' : rawStartDate;
+    reminderController.startDate.value = _parseSavedDate(rawStartDate);
 
     // 4. Remind Before Logic
     if (reminder.remindBefore != null) {
@@ -154,18 +148,28 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
   void fillMealFields(ReminderPayloadModel reminder) {
     reminderController.titleController.text = reminder.title ?? '';
-    reminderController.selectedCategory.value = reminder.category;
+    reminderController.selectedCategory.value = reminder.category.toLowerCase();
     reminderController.notesController.text = reminder?.notes ?? '';
     final dateTimeString =
         reminder.customReminder.timesPerDay?.list.first ?? '';
-    mealGetxController.timeController.text = DateFormat(
-      'hh:mm a',
-    ).format(DateTime.parse(dateTimeString));
+    if (dateTimeString.isNotEmpty) {
+      try {
+        final parsedTime = DateTime.parse(dateTimeString);
+        mealGetxController.timeController.text = DateFormat(
+          'hh:mm a',
+        ).format(parsedTime);
+        reminderController.pickedTime.value = TimeOfDay.fromDateTime(
+          parsedTime,
+        );
+      } catch (e) {
+        debugPrint("❌ Error parsing meal time: $e");
+      }
+    }
   }
 
   void fillWaterFields(ReminderPayloadModel reminder) {
     reminderController.titleController.text = reminder.title ?? '';
-    reminderController.selectedCategory.value = reminder.category;
+    reminderController.selectedCategory.value = reminder.category.toLowerCase();
 
     reminderController.notesController.text = reminder?.notes ?? '';
     final type = reminder.customReminder?.type;
@@ -204,7 +208,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     debugPrint("Notes: ${reminder.notes}");
 
     reminderController.titleController.text = reminder.title ?? '';
-    reminderController.selectedCategory.value = reminder.category;
+    reminderController.selectedCategory.value = reminder.category.toLowerCase();
     medicineGetxController.medicineController.text =
         reminder.medicineNameSafe ?? '';
 
@@ -337,6 +341,21 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     eventGetxController.resetForm();
     waterGetxController.resetForm();
     super.dispose();
+  }
+
+  DateTime? _parseSavedDate(String raw) {
+    if (raw.trim().isEmpty || raw == 'Start Date' || raw == 'End Date') {
+      return null;
+    }
+    final isoParsed = DateTime.tryParse(raw);
+    if (isoParsed != null) return isoParsed;
+    try {
+      final partial = DateFormat('dd MMMM').parseStrict(raw);
+      final now = DateTime.now();
+      return DateTime(now.year, partial.month, partial.day);
+    } catch (_) {
+      return null;
+    }
   }
 
   void _blinkBorder() {
@@ -538,33 +557,17 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             onTap:
                 widget.reminder == null
                     ? () async {
-                      final result = await reminderController.validateAndSave(
+                      await reminderController.validateAndSave(
                         context: context,
                         dosage: dosage,
                       );
-                      if (result == true) {
-                        medicineGetxController.medicineList.value = [];
-                        waterGetxController.waterList.value = [];
-                        eventGetxController.eventList.value = [];
-                        mealGetxController.mealsList.value = [];
-                        // Navigator.pop(context);
-                      }
-                      //Navigator.pop(context);
                     }
                     : () async {
-                      final result = await reminderController.validateAndUpdate(
+                      await reminderController.validateAndUpdate(
                         context: context,
                         reminder: widget.reminder!,
-
                         dosage: dosage,
                       );
-                      if (result == true) {
-                        medicineGetxController.medicineList.value = [];
-                        waterGetxController.waterList.value = [];
-                        eventGetxController.eventList.value = [];
-                        mealGetxController.mealsList.value = [];
-                        // Navigator.pop(context);
-                      }
                     },
           ),
         ),

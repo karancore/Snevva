@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:alarm/alarm.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:share_plus/share_plus.dart';
@@ -44,6 +45,128 @@ class DrawerMenuWidget extends StatefulWidget {
 class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
   bool isLoading = false;
 
+  Future<void> _stopServicesAndClearHive() async {
+    try {
+      debugPrint('🛑 Stopping background services...');
+      AgentDebugLogger.log(
+        runId: 'auth-bg',
+        hypothesisId: 'C',
+        location: 'drawer_menu_wigdet.dart:performLogout:before_stop',
+        message: 'Logout requested, stopping unified background service',
+        data: const {},
+      );
+
+      await Future.wait([
+        stopUnifiedBackgroundService(),
+        stopBackgroundService(),
+      ]);
+
+      AgentDebugLogger.log(
+        runId: 'auth-bg',
+        hypothesisId: 'C',
+        location: 'drawer_menu_wigdet.dart:performLogout:after_stop',
+        message: 'Stop background service calls completed',
+        data: const {},
+      );
+      debugPrint('✅ Background services stopped');
+    } catch (e) {
+      debugPrint('⚠️ Failed to stop background service: $e');
+    }
+
+    try {
+      debugPrint('🗄️ Clearing Hive step_history...');
+      await HiveService().resetAppData();
+    } catch (e) {
+      debugPrint('⚠️ Failed to clear Hive on logout: $e');
+    }
+  }
+
+  Future<bool> _callLogoutApiBestEffort() async {
+    try {
+      debugPrint('📡 Calling logout API...');
+      final response = await ApiService.post(
+        logout,
+        null,
+        withAuth: true,
+        encryptionRequired: true,
+      );
+
+      if (response is http.Response) {
+        debugPrint('❌ Logout API failed: ${response.statusCode}');
+        return false;
+      }
+
+      debugPrint('✅ Logout API success');
+      return true;
+    } catch (e, st) {
+      debugPrint('🔥 Exception during logout API');
+      debugPrint('Error: $e');
+      debugPrint('StackTrace: $st');
+      // Keep legacy behavior: do not block logout on exception.
+      return true;
+    }
+  }
+
+  Future<void> _clearAuthPrefs() async {
+    debugPrint('🧹 Clearing SharedPreferences...');
+    final prefs = await SharedPreferences.getInstance();
+
+    // Explicit auth flags first (prevents service restart)
+    await prefs.setBool('remember_me', false);
+    await prefs.remove('access_token');
+    await prefs.remove('refresh_token');
+
+    // Then wipe rest
+    await prefs.clear();
+    debugPrint('✅ SharedPreferences cleared');
+  }
+
+  void _resetLocalStorageManager() {
+    debugPrint('🧠 Resetting LocalStorageManager...');
+    if (Get.isRegistered<LocalStorageManager>()) {
+      final localStorageManager = Get.find<LocalStorageManager>();
+      localStorageManager.userMap.value = {};
+      localStorageManager.userGoalDataMap.value = {};
+      localStorageManager.userMap.refresh();
+      localStorageManager.userGoalDataMap.refresh();
+    }
+    debugPrint('✅ LocalStorageManager reset');
+  }
+
+  void _deleteControllerIfRegistered<T>({bool force = false}) {
+    if (!Get.isRegistered<T>()) return;
+    Get.delete<T>(force: force);
+  }
+
+  Future<void> _runPostNavigationCleanup() async {
+    try {
+      debugPrint('🧠 Clearing DecisionTreeService...');
+      await DecisionTreeService().clearAll();
+    } catch (e) {
+      debugPrint('⚠️ DecisionTree cleanup failed: $e');
+    }
+
+    try {
+      await Alarm.stopAll();
+    } catch (e) {
+      debugPrint('⚠️ Alarm stopAll failed: $e');
+    }
+
+    debugPrint('🗑️ Deleting GetX controllers...');
+    _deleteControllerIfRegistered<DietPlanController>(force: true);
+    _deleteControllerIfRegistered<HealthTipsController>(force: true);
+    _deleteControllerIfRegistered<HydrationStatController>(force: true);
+    _deleteControllerIfRegistered<OTPVerificationController>(force: true);
+    _deleteControllerIfRegistered<MentalWellnessController>(force: true);
+    _deleteControllerIfRegistered<MoodController>(force: true);
+    _deleteControllerIfRegistered<SignInController>(force: true);
+    _deleteControllerIfRegistered<MoodQuestionController>(force: true);
+    _deleteControllerIfRegistered<SleepController>(force: true);
+    _deleteControllerIfRegistered<StepCounterController>(force: true);
+    _deleteControllerIfRegistered<VitalsController>(force: true);
+    debugPrint('✅ Controllers deleted');
+  }
+
   Future<void> performLogout() async {
     debugPrint('🚪 Logout started');
 
@@ -52,145 +175,23 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
     setState(() => isLoading = true);
 
     try {
-      // ==========================================================
-      // 1️⃣ STOP BACKGROUND SERVICES (FIRST — VERY IMPORTANT)
-      // ==========================================================
-      try {
-        debugPrint('🛑 Stopping background services...');
-        // #region agent log
-        AgentDebugLogger.log(
-          runId: 'auth-bg',
-          hypothesisId: 'C',
-          location: 'drawer_menu_wigdet.dart:performLogout:before_stop',
-          message: 'Logout requested, stopping unified background service',
-          data: const {},
-        );
-        // #endregion
+      // Start slow cleanup immediately, but don't block UI navigation on it.
+      final stopAndHiveFuture = _stopServicesAndClearHive();
+      final apiSuccess = await _callLogoutApiBestEffort();
 
-        await stopUnifiedBackgroundService();
+      await _clearAuthPrefs();
+      _resetLocalStorageManager();
 
-        // Back-compat safety: if anything else is wired to old stopper.
-        await stopBackgroundService();
-
-        debugPrint('🗄️ Clearing Hive step_history...');
-        try {
-          await HiveService().resetAppData();
-        } catch (e) {
-          throw Exception("Failed to clear app data");
-        }
-        // #region agent log
-        AgentDebugLogger.log(
-          runId: 'auth-bg',
-          hypothesisId: 'C',
-          location: 'drawer_menu_wigdet.dart:performLogout:after_stop',
-          message: 'Stop background service calls completed',
-          data: const {},
-        );
-        // #endregion
-        debugPrint('✅ Background services stopped');
-      } catch (e) {
-        debugPrint('⚠️ Failed to stop background service: $e');
-        // DO NOT block logout
-      }
-      bool _apiSuccess = false;
-
-      // ==========================================================
-      // 2️⃣ CALL LOGOUT API (BEST EFFORT)
-      // ==========================================================
-      try {
-        debugPrint('📡 Calling logout API...');
-        final response = await ApiService.post(
-          logout,
-          null,
-          withAuth: true,
-          encryptionRequired: true,
-        );
-
-        if (response is http.Response) {
-          debugPrint('❌ Logout API failed: ${response.statusCode}');
-        } else {
-          debugPrint('✅ Logout API success');
-          _apiSuccess = true;
-        }
-      } catch (e, st) {
-        debugPrint('🔥 Exception during logout API');
-        debugPrint('Error: $e');
-        debugPrint('StackTrace: $st');
-        _apiSuccess = true;
-        // 🔥 NEVER rethrow on logout
-      }
-
-      // ==========================================================
-      // 3️⃣ CLEAR SHARED PREFS (AUTH FIRST)
-      // ==========================================================
-      debugPrint('🧹 Clearing SharedPreferences...');
-      final prefs = await SharedPreferences.getInstance();
-
-      // Explicit auth flags first (prevents service restart)
-      await prefs.setBool('remember_me', false);
-      await prefs.remove('access_token');
-      await prefs.remove('refresh_token');
-
-      // Then wipe rest
-      await prefs.clear();
-      debugPrint('✅ SharedPreferences cleared');
-
-      // ==========================================================
-      // 4️⃣ HIVE DATA ALREADY CLEARED VIA HiveService.resetAppData()
-      // ==========================================================
-
-      // ==========================================================
-      // 5️⃣ CLEAR IN-MEMORY STATE
-      // ==========================================================
-
-      // ==========================================================
-      // 8️⃣ NAVIGATE (ALWAYS)
-      // ==========================================================
-      if (_apiSuccess) {
-        debugPrint('🧠 Resetting LocalStorageManager...');
-        if (Get.isRegistered<LocalStorageManager>()) {
-          final localStorageManager = Get.find<LocalStorageManager>();
-
-          localStorageManager.userMap.value = {};
-          localStorageManager.userGoalDataMap.value = {};
-
-          localStorageManager.userMap.refresh();
-          localStorageManager.userGoalDataMap.refresh();
-        }
-        debugPrint('✅ LocalStorageManager reset');
-
-        // // ==========================================================
-        // // 6️⃣ CLEAR SINGLETON CACHES (IMPORTANT)
-        // // ==========================================================
-        // if (Get.isRegistered<DecisionTreeController>()) {
-        //   Get.find<DecisionTreeController>().clear();
-        //   Get.delete<DecisionTreeController>();
-        //   debugPrint('🧹 DecisionTree cache cleared');
-        // }
-
-        debugPrint('🧠 Clearing DecisionTreeService...');
-        await DecisionTreeService().clearAll();
-
-        // ==========================================================
-        // 7️⃣ DELETE GETX CONTROLLERS
-        // ==========================================================
-        debugPrint('🗑️ Deleting GetX controllers...');
-        Get.delete<DietPlanController>(force: true);
-        Get.delete<HealthTipsController>(force: true);
-        Get.delete<HydrationStatController>(force: true);
-        Get.delete<OTPVerificationController>(force: true);
-        Get.delete<MentalWellnessController>(force: true);
-        Get.delete<MoodController>(force: true);
-        Get.delete<SignInController>(force: true);
-        Get.delete<MoodQuestionController>(force: true);
-        Get.delete<SleepController>(force: true);
-        Get.delete<StepCounterController>(force: true);
-        Get.delete<VitalsController>(force: true);
-        await Alarm.stopAll();
-        debugPrint('✅ Controllers deleted');
+      if (apiSuccess) {
         debugPrint('➡️ Navigating to SignInScreen');
         Get.offAll(() => SignInScreen());
+
+        // Finish the heavy cleanup in background after navigation.
+        unawaited(
+          Future.wait([stopAndHiveFuture, _runPostNavigationCleanup()]),
+        );
       } else {
+        await stopAndHiveFuture;
         debugPrint('⚠️ Skipping navigation due to logout API failure');
       }
       debugPrint('🏁 Logout completed successfully');
@@ -206,7 +207,7 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
   @override
   Widget build(BuildContext context) {
     final localStorageManager = Get.find<LocalStorageManager>();
-    final initialProfileController = Get.put(ProfileSetupController());
+    final initialProfileController = Get.find<ProfileSetupController>();
 
     return Column(
       children: [

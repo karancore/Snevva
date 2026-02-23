@@ -15,6 +15,8 @@ class ReminderScheduler {
   static var mealsList = <Map<String, AlarmSettings>>[].obs;
   static var eventList = <Map<String, AlarmSettings>>[].obs;
   static var medicineList = <medicine_model.MedicineReminderModel>[].obs;
+  static ReminderController get _reminderController =>
+      Get.find<ReminderController>(tag: 'reminder');
 
   static Future<void> scheduleAll(
     List<reminder_payload.ReminderPayloadModel> reminders,
@@ -203,11 +205,8 @@ class ReminderScheduler {
 
       medicineList.add(medicine);
       //await saveMedicineReminderList("medicine_list", medicineList);
-      await Get.find<ReminderController>().saveReminderList(
-        medicineList,
-        "medicine_list",
-      );
-      await Get.find<ReminderController>().loadAllReminderLists();
+      await _reminderController.saveReminderList(medicineList, "medicine_list");
+      await _reminderController.loadAllReminderLists();
     }
   }
 
@@ -296,11 +295,8 @@ class ReminderScheduler {
         "water_list",
       );
       waterList.add(model);
-      await Get.find<ReminderController>().saveReminderList(
-        waterList,
-        "water_list",
-      );
-      await Get.find<ReminderController>().loadAllReminderLists();
+      await _reminderController.saveReminderList(waterList, "water_list");
+      await _reminderController.loadAllReminderLists();
 
       // List<String> list =
       //     createdAlarms.map((e) => e.toJson().toString()).toList();
@@ -371,12 +367,8 @@ class ReminderScheduler {
             .loadWaterReminderList("water_list");
         waterList.add(model);
 
-        await Get.find<ReminderController>().saveReminderList(
-          waterList,
-          "water_list",
-        );
-
-        await Get.find<ReminderController>().loadAllReminderLists();
+        await _reminderController.saveReminderList(waterList, "water_list");
+        await _reminderController.loadAllReminderLists();
 
         final waterData = reminder_payload.ReminderPayloadModel(
           id: waterReminderId,
@@ -473,19 +465,17 @@ class ReminderScheduler {
       );
       final success = await Alarm.set(alarmSettings: alarmSettings);
       if (success) {
-        reminderList.value = await Get.find<ReminderController>()
-            .loadReminderList(keyName);
+        reminderList.value = await _reminderController.loadReminderList(
+          keyName,
+        );
 
         final displayTitle =
             reminder.title.isNotEmpty
                 ? reminder.title
                 : '${category.toUpperCase()} REMINDER';
         reminderList.add({displayTitle: alarmSettings});
-        await Get.find<ReminderController>().saveReminderList(
-          reminderList,
-          keyName,
-        );
-        await Get.find<ReminderController>().loadAllReminderLists();
+        await _reminderController.saveReminderList(reminderList, keyName);
+        await _reminderController.loadAllReminderLists();
       }
     }
   }

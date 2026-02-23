@@ -66,8 +66,6 @@ class _DashboardState extends State<Dashboard>
     );
 
     _animationController.forward();
-
-    Get.put(StepCounterController());
   }
 
   @override

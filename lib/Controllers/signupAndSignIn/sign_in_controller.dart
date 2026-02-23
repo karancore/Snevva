@@ -18,7 +18,7 @@ class SignInController extends GetxService {
   dynamic userGoalData = {};
   //final authService = Get.find<AuthService>();
 
-  final localStorage = Get.put(LocalStorageManager());
+  final localStorage = Get.find<LocalStorageManager>();
 
   Future<bool> signInUsingEmail(
     String email,

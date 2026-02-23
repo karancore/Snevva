@@ -50,8 +50,9 @@ class _DashboardServiceOverviewDynamicWidgetsState
   void initState() {
     super.initState();
 
-    stepController = Get.put(StepCounterController());
-    sleepController = Get.put(SleepController());
+    stepController = Get.find<StepCounterController>();
+    stepController.activateRealtimeTracking();
+    sleepController = Get.find<SleepController>();
     waterController = Get.find<HydrationStatController>();
     vitalController = Get.find<VitalsController>();
     localStorage = Get.find<LocalStorageManager>();

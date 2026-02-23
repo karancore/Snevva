@@ -12,27 +12,11 @@ class ReminderScreenWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!Get.isRegistered<WaterController>()) {
-      Get.put(WaterController(), permanent: true);
-    }
-
-    if (!Get.isRegistered<MealController>()) {
-      Get.put(MealController(), permanent: true);
-    }
-
-    if (!Get.isRegistered<EventController>()) {
-      Get.put(EventController(), permanent: true);
-    }
-
-    if (!Get.isRegistered<MedicineController>()) {
-      Get.put(MedicineController(), permanent: true);
-    }
-
-    if (!Get.isRegistered<ReminderController>(tag: 'reminder')) {
-      Get.put(ReminderController(), tag: 'reminder', permanent: true);
-    } else {
-      Get.find<ReminderController>(tag: 'reminder');
-    }
+    Get.find<WaterController>();
+    Get.find<MealController>();
+    Get.find<EventController>();
+    Get.find<MedicineController>();
+    Get.find<ReminderController>(tag: 'reminder');
 
     return ReminderScreen();
   }

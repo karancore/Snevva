@@ -47,11 +47,7 @@ class StepCounterController extends GetxController {
   // and return a safe fallback value.
   Future<void> _reopenStepBox() async {
     try {
-      // if (!Hive.isBoxOpen('step_history')) {
-      //   await Hive.openBox<StepEntry>('step_history');
-      // }
-      // _stepBox = Hive.box<StepEntry>('step_history');
-      _stepBox = HiveService().stepHistory;
+      _stepBox = await HiveService().stepHistoryBox();
 
       print('🔁 Reopened step_history box');
     } catch (e) {
@@ -62,11 +58,7 @@ class StepCounterController extends GetxController {
   /// Ensure the step_history box is opened and _stepBox assigned.
   Future<void> _ensureStepBox() async {
     try {
-      if (!Hive.isBoxOpen('step_history')) {
-        // await Hive.openBox<StepEntry>('step_history');
-        _stepBox = HiveService().stepHistory;
-      }
-      _stepBox = HiveService().stepHistory;
+      _stepBox = await HiveService().stepHistoryBox();
     } catch (e) {
       print('❌ _ensureStepBox failed: $e');
       // Try reopen fallback
@@ -114,6 +106,8 @@ class StepCounterController extends GetxController {
 
   late SharedPreferences _prefs;
   Timer? _hivePoller;
+  StreamSubscription? _stepsUpdatedSubscription;
+  bool _isRealtimeTrackingActive = false;
 
   static const Duration _syncInterval = Duration(hours: 4);
   static const String _lastSyncKey = "last_step_sync_time";
@@ -130,20 +124,11 @@ class StepCounterController extends GetxController {
 
     // Load today's steps from Hive first
     await loadTodayStepsFromHive();
-
-    //Start listening to background service events
-    _listenToBackgroundSteps();
-
-    // Start a lightweight poller to detect background-isolate Hive writes
-    _hivePoller = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) => _pollHiveToday(),
-    );
   }
 
   @override
   void onClose() {
-    _hivePoller?.cancel();
+    deactivateRealtimeTracking();
     super.onClose();
   }
 
@@ -244,8 +229,11 @@ class StepCounterController extends GetxController {
   // =======================
   // LISTEN TO BACKGROUND SERVICE
   // =======================
-  void _listenToBackgroundSteps() async {
-    _service.on("steps_updated").listen((event) async {
+  void _listenToBackgroundSteps() {
+    _stepsUpdatedSubscription?.cancel();
+    _stepsUpdatedSubscription = _service.on("steps_updated").listen((
+      event,
+    ) async {
       print("🔔 Background service event received: $event");
       if (event == null) return;
 
@@ -267,6 +255,26 @@ class StepCounterController extends GetxController {
 
       print("🔄 Controller received (from service): $newSteps steps");
     });
+  }
+
+  void activateRealtimeTracking() {
+    if (_isRealtimeTrackingActive) return;
+
+    _isRealtimeTrackingActive = true;
+    _listenToBackgroundSteps();
+    _hivePoller?.cancel();
+    _hivePoller = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _pollHiveToday(),
+    );
+  }
+
+  void deactivateRealtimeTracking() {
+    _hivePoller?.cancel();
+    _hivePoller = null;
+    _stepsUpdatedSubscription?.cancel();
+    _stepsUpdatedSubscription = null;
+    _isRealtimeTrackingActive = false;
   }
 
   // =======================

@@ -18,7 +18,7 @@ import 'package:snevva/common/custom_snackbar.dart';
 
 class EditprofileController extends GetxService {
   final localStorageManager = Get.find<LocalStorageManager>();
-  final signupController = Get.put(SignUpController());
+  final signupController = Get.find<SignUpController>();
   late OTPVerificationController otpVerificationController;
   late ProfileSetupController initialProfileController;
   late bool otpVerificationStatus;
@@ -45,8 +45,8 @@ class EditprofileController extends GetxService {
   void onInit() {
     super.onInit();
     loadUserData();
-    otpVerificationController = Get.put(OTPVerificationController());
-    initialProfileController = Get.put(ProfileSetupController());
+    otpVerificationController = Get.find<OTPVerificationController>();
+    initialProfileController = Get.find<ProfileSetupController>();
   }
 
   Future<void> loadUserData() async {

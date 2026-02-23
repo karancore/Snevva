@@ -14,7 +14,7 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initialProfileController = Get.put(ProfileSetupController());
+    final initialProfileController = Get.find<ProfileSetupController>();
 
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;

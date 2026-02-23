@@ -17,7 +17,7 @@ class DietPlanScreen extends StatefulWidget {
 }
 
 class _DietPlanScreenState extends State<DietPlanScreen> {
-  final dietController = Get.put(DietPlanController());
+  final dietController = Get.find<DietPlanController>();
   late double height;
   late double width;
   late bool isDarkMode;
@@ -458,7 +458,6 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
           Get.to(DietDetailsScreen(diet: diet, daysList: []));
         },
         child: Container(
-
           width: width * 0.43,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.vertical(top: Radius.circular(4)),

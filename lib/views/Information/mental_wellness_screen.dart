@@ -15,12 +15,10 @@ import '../../consts/consts.dart';
 
 class MentalWellnessScreen extends StatefulWidget {
   @override
-  State<MentalWellnessScreen> createState() =>
-      _MentalWellnessScreenState();
+  State<MentalWellnessScreen> createState() => _MentalWellnessScreenState();
 }
 
-class _MentalWellnessScreenState
-    extends State<MentalWellnessScreen> {
+class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
   final controller = Get.find<MentalWellnessController>();
 
   @override
@@ -47,13 +45,10 @@ class _MentalWellnessScreenState
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
 
-    final bool isDarkMode =
-        Theme.of(context).brightness == Brightness.dark;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      drawer: Drawer(
-        child: DrawerMenuWidget(height: height, width: width),
-      ),
+      drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: CustomAppBar(appbarText: "Mental Wellness"),
       body: Obx(() {
         if (controller.isLoading.value) {
@@ -83,51 +78,36 @@ class _MentalWellnessScreenState
               // =================== General Music ===================
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                padding:
-                const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
-                    children: List.generate(
-                      generalMusic.length,
-                          (index) {
-                        final item = generalMusic[index];
+                    children: List.generate(generalMusic.length, (index) {
+                      final item = generalMusic[index];
 
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            right: index ==
-                                generalMusic.length - 1
-                                ? 0
-                                : 16,
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          right: index == generalMusic.length - 1 ? 0 : 16,
+                        ),
+                        child: InkWell(
+                          child: MentalWellnessHeaderWidget(
+                            height: 180 * heightFactor,
+                            musicItem: item,
+                            width: 280 * widthFactor,
+                            playText: '',
+                            wellnessContainerImage:
+                                generalMusic[index].thumbnailMedia ??
+                                generalImageUrls[Random().nextInt(index + 1)],
+                            heading: generalMusic[index].title,
+                            subHeading:
+                                generalMusic[index].artistName == "Unknown"
+                                    ? ""
+                                    : generalMusic[index].artistName,
+                            boxFit: BoxFit.cover,
                           ),
-                          child: InkWell(
-                            child:
-                            MentalWellnessHeaderWidget(
-                              height: 180 * heightFactor,
-                              musicItem: item,
-                              width: 280 * widthFactor,
-                              playText: '',
-                              wellnessContainerImage:
-                              generalMusic[index]
-                                  .thumbnailMedia ??
-                                  generalImageUrls[
-                                  Random().nextInt(
-                                      index + 1)],
-                              heading:
-                              generalMusic[index].title,
-                              subHeading:
-                              generalMusic[index]
-                                  .artistName ==
-                                  "Unknown"
-                                  ? ""
-                                  : generalMusic[index]
-                                  .artistName,
-                              boxFit: BoxFit.cover,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                        ),
+                      );
+                    }),
                   ),
                 ),
               ),
@@ -136,8 +116,7 @@ class _MentalWellnessScreenState
               Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
-                  crossAxisAlignment:
-                  CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
                       ' Meditation for You',
@@ -148,60 +127,37 @@ class _MentalWellnessScreenState
                     ),
                     const SizedBox(height: 18),
                     SingleChildScrollView(
-                      scrollDirection:
-                      Axis.horizontal,
+                      scrollDirection: Axis.horizontal,
                       child: Row(
-                        children: List.generate(
-                          meditationMusic.length,
-                              (index) {
-                            final item =
-                            meditationMusic[index];
+                        children: List.generate(meditationMusic.length, (
+                          index,
+                        ) {
+                          final item = meditationMusic[index];
 
-                            return Padding(
-                              padding:
-                              EdgeInsets.only(
-                                right: index ==
-                                    meditationMusic
-                                        .length -
-                                        1
-                                    ? 0
-                                    : 16,
-                              ),
-                              child:
-                              MentalWellnessHeaderWidget(
-                                height:
-                                189 * heightFactor,
-                                musicItem: item,
-                                width:
-                                353 * widthFactor,
-                                playText: "Play",
-                                wellnessContainerImage:
-                                meditationMusic[
-                                index]
-                                    .thumbnailMedia ??
-                                    meditationImageUrls[
-                                    Random()
-                                        .nextInt(
-                                      index + 3,
-                                    )],
-                                heading:
-                                meditationMusic[
-                                index]
-                                    .title,
-                                subHeading:
-                                meditationMusic[
-                                index]
-                                    .artistName ==
-                                    "Unknown"
-                                    ? ""
-                                    : meditationMusic[
-                                index]
-                                    .artistName,
-                                boxFit: BoxFit.cover,
-                              ),
-                            );
-                          },
-                        ),
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              right:
+                                  index == meditationMusic.length - 1 ? 0 : 16,
+                            ),
+                            child: MentalWellnessHeaderWidget(
+                              height: 189 * heightFactor,
+                              musicItem: item,
+                              width: 353 * widthFactor,
+                              playText: "Play",
+                              wellnessContainerImage:
+                                  meditationMusic[index].thumbnailMedia ??
+                                  meditationImageUrls[Random().nextInt(
+                                    index + 3,
+                                  )],
+                              heading: meditationMusic[index].title,
+                              subHeading:
+                                  meditationMusic[index].artistName == "Unknown"
+                                      ? ""
+                                      : meditationMusic[index].artistName,
+                              boxFit: BoxFit.cover,
+                            ),
+                          );
+                        }),
                       ),
                     ),
                     const SizedBox(height: 18),
@@ -218,42 +174,30 @@ class _MentalWellnessScreenState
 
               // =================== Nature Sounds ===================
               Padding(
-                padding:
-                const EdgeInsets.only(left: 20),
+                padding: const EdgeInsets.only(left: 20),
                 child: SingleChildScrollView(
-                  scrollDirection:
-                  Axis.horizontal,
+                  scrollDirection: Axis.horizontal,
                   child: Row(
-                    children: natureMusic
-                        .asMap()
-                        .entries
-                        .map((entry) {
-                      final index = entry.key;
-                      final item = entry.value;
+                    children:
+                        natureMusic.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final item = entry.value;
 
-                      return Padding(
-                        padding:
-                        const EdgeInsets.only(
-                            right: 16),
-                        child:
-                        MentalWellnessFooterWidget(
-                          musicItem: item,
-                          wellnessContainerImage:
-                          item.thumbnailMedia ??
-                              natureImageUrls[
-                              Random()
-                                  .nextInt(
-                                  index +
-                                      2)],
-                          heading: item.title,
-                          subHeading:
-                          item.artistName ==
-                              "Unknown"
-                              ? ""
-                              : item.artistName,
-                        ),
-                      );
-                    }).toList(),
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 16),
+                            child: MentalWellnessFooterWidget(
+                              musicItem: item,
+                              wellnessContainerImage:
+                                  item.thumbnailMedia ??
+                                  natureImageUrls[Random().nextInt(index + 2)],
+                              heading: item.title,
+                              subHeading:
+                                  item.artistName == "Unknown"
+                                      ? ""
+                                      : item.artistName,
+                            ),
+                          );
+                        }).toList(),
                   ),
                 ),
               ),

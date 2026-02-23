@@ -170,4 +170,3 @@ const String logout = '/api/registration/logout';
 const String deleteDeviceApi = '/api/registration/logoutviaId';
 
 const String alertsnotification = '/api/fetchinfo/pushNotifications';
-

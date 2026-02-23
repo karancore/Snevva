@@ -79,6 +79,43 @@ class NotificationService {
     return scheduledDate;
   }
 
+
+  Future<void> scheduleAlertNotification({
+    required int id,
+    required String title,
+    required String body,
+    required int hour,
+    required int minute,
+  }) async {
+
+    final scheduledDate = nextInstanceOfTime(hour, minute);
+
+    await notificationsPlugin.zonedSchedule(
+      id,
+      title,
+      body,
+      scheduledDate,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'alerts_channel',
+          'Alerts',
+          channelDescription: 'Scheduled health reminders',
+          importance: Importance.max,
+          priority: Priority.high,
+          icon: '@drawable/ic_stat_notification',
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.time, // 🔥 repeats daily
+    );
+
+    hasNewNotification.value = true;
+
+    print("✅ Scheduled -> $title at $hour:$minute");
+  }
+
+
   // -------------------------------------------------
   // Daily reminders at 10 AM and 10 PM
   // -------------------------------------------------

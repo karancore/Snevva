@@ -8,7 +8,7 @@ class GenderRadioButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initialProfileController = Get.put(ProfileSetupController());
+    final initialProfileController = Get.find<ProfileSetupController>();
 
     return RadioTheme(
       data: RadioThemeData(

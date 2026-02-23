@@ -508,7 +508,7 @@ class MedicineController extends GetxController {
     // internal call should pass "medicine_list"
     List<MedicineReminderModel> list,
   ) async {
-    final box = HiveService().reminders;
+    final box = await HiveService().remindersBox();
 
     // ❌ DELETED: await box.clear();  <-- THIS WAS THE BUG
     // We do NOT want to clear water reminders when saving medicine.
@@ -530,7 +530,7 @@ class MedicineController extends GetxController {
   ) async {
     debugPrint('📦 Loading medicine reminders from Hive Key: $key');
     // final box = Hive.box(reminderBox);
-    final box = HiveService().reminders;
+    final box = await HiveService().remindersBox();
 
     // Get the list of strings (safely)
     final List<dynamic>? storedList = box.get(key);

@@ -26,8 +26,12 @@ class SleepNoticingService {
   void startMonitoring() {
     debugPrint('🚀 SleepNoticingService.startMonitoring');
 
+    // Ensure we keep only one active listener after service restarts/retries.
+    _subscription?.cancel();
+    _subscription = null;
+
     try {
-      _subscription = _screen.screenStateStream?.listen((event) {
+      _subscription = _screen.screenStateStream.listen((event) {
         debugPrint('📱 Screen event received: $event');
 
         if (event == ScreenStateEvent.SCREEN_OFF) {

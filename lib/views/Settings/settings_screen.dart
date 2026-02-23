@@ -107,37 +107,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // ),
             //
             // SizedBox(height: height * 0.0188),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Push Notifications",
-                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
-                ),
-                CupertinoSwitch(
-                  value: _notificationsToggle,
-                  activeColor: AppColors.activeSwitch,
-                  onChanged: (bool value) {
-                    setState(() {
-                      _notificationsToggle = value;
-                    });
-                  },
-                ),
-              ],
-            ),
-            SizedBox(height: height * 0.0188),
-            const Divider(thickness: border04px, color: mediumGrey),
-            // Divider(thickness: 1.0, color: mediumGrey),
-            SizedBox(height: height * 0.0188),
-            Text(
-              "About",
-              style: TextStyle(
-                color: Theme.of(context).hintColor,
-                fontWeight: FontWeight.w400,
-                fontSize: 14,
-              ),
-            ),
-            SizedBox(height: height * 0.0117),
+            // Row(
+            //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            //   children: [
+            //     Text(
+            //       "Push Notifications",
+            //       style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+            //     ),
+            //     CupertinoSwitch(
+            //       value: _notificationsToggle,
+            //       activeColor: AppColors.activeSwitch,
+            //       onChanged: (bool value) {
+            //         setState(() {
+            //           _notificationsToggle = value;
+            //         });
+            //       },
+            //     ),
+            //   ],
+            // ),
+            // SizedBox(height: height * 0.0188),
+            // const Divider(thickness: border04px, color: mediumGrey),
+            // // Divider(thickness: 1.0, color: mediumGrey),
+            // SizedBox(height: height * 0.0188),
+            // Text(
+            //   "About",
+            //   style: TextStyle(
+            //     color: Theme.of(context).hintColor,
+            //     fontWeight: FontWeight.w400,
+            //     fontSize: 14,
+            //   ),
+            // ),
+            // SizedBox(height: height * 0.0117),
             InkWell(
               onTap: () {
                 Get.to(() => AboutScreen());
@@ -168,19 +168,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
 
             // 🔥 Debug Logs (Visible only in debug mode)
-            if (kDebugMode)
-              InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const DebugLogPage()),
-                  );
-                },
-                child: buildTile(
-                  'Debug Logs',
-                  'View API responses, errors & logs',
-                ),
-              ),
+            // if (kDebugMode)
+            //   InkWell(
+            //     onTap: () {
+            //       Navigator.push(
+            //         context,
+            //         MaterialPageRoute(builder: (_) => const DebugLogPage()),
+            //       );
+            //     },
+            //     child: buildTile(
+            //       'Debug Logs',
+            //       'View API responses, errors & logs',
+            //     ),
+            //   ),
           ],
         ),
       ),

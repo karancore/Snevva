@@ -13,38 +13,36 @@ class HiveService {
   factory HiveService() => _instance;
 
   bool _initialized = false;
-
-  late Box<StepEntry> stepHistory;
-  late Box<SleepLog> sleepLog;
-  late Box reminders;
-  late Box medicine;
+  Future<void>? _initFuture;
 
   // UI isolate init
   Future<void> initMain() async {
-    if (_initialized) return;
-
-    final dir = await getApplicationDocumentsDirectory();
-    Hive.init(dir.path);
-
-    _registerAdapters();
-    await _openBoxes();
-
-    _initialized = true;
-    print("✅ Hive initialized (MAIN)");
+    await _initializeCore(label: "MAIN");
   }
 
   // background isolate init
   Future<void> initBackground() async {
+    await _initializeCore(label: "BACKGROUND");
+  }
+
+  Future<void> _initializeCore({required String label}) async {
     if (_initialized) return;
+    if (_initFuture != null) return _initFuture!;
 
-    final dir = await getApplicationDocumentsDirectory();
-    Hive.init(dir.path); // IMPORTANT: NOT initFlutter
+    _initFuture = () async {
+      final dir = await getApplicationDocumentsDirectory();
+      Hive.init(dir.path);
+      _registerAdapters();
+      _initialized = true;
+      print("✅ Hive initialized ($label) - adapters registered");
+    }();
 
-    _registerAdapters();
-    await _openBoxes();
+    await _initFuture;
+  }
 
-    _initialized = true;
-    print("✅ Hive initialized (BACKGROUND)");
+  Future<void> _ensureInitialized() async {
+    if (_initialized) return;
+    await initMain();
   }
 
   void _registerAdapters() {
@@ -74,35 +72,54 @@ class HiveService {
     }
   }
 
-  Future<void> _openBoxes() async {
-    stepHistory = await Hive.openBox<StepEntry>('step_history');
-    sleepLog = await Hive.openBox<SleepLog>('sleep_log');
-    reminders = await Hive.openBox('reminders_box');
-    medicine = await Hive.openBox('medicine_list');
+  Future<Box<StepEntry>> stepHistoryBox() async {
+    await _ensureInitialized();
+    if (Hive.isBoxOpen('step_history')) {
+      return Hive.box<StepEntry>('step_history');
+    }
+    return Hive.openBox<StepEntry>('step_history');
+  }
+
+  Future<Box<SleepLog>> sleepLogBox() async {
+    await _ensureInitialized();
+    if (Hive.isBoxOpen('sleep_log')) {
+      return Hive.box<SleepLog>('sleep_log');
+    }
+    return Hive.openBox<SleepLog>('sleep_log');
+  }
+
+  Future<Box> remindersBox() async {
+    await _ensureInitialized();
+    if (Hive.isBoxOpen('reminders_box')) {
+      return Hive.box('reminders_box');
+    }
+    return Hive.openBox('reminders_box');
+  }
+
+  Future<Box> medicineBox() async {
+    await _ensureInitialized();
+    if (Hive.isBoxOpen('medicine_list')) {
+      return Hive.box('medicine_list');
+    }
+    return Hive.openBox('medicine_list');
   }
 
   Future<void> resetAppData() async {
     try {
-      await _clearTypedBox<StepEntry>('step_history');
-      await _clearTypedBox<SleepLog>('sleep_log');
-      await _clearUntypedBox('reminders_box');
-      await _clearUntypedBox('medicine_list');
+      final step = await stepHistoryBox();
+      final sleep = await sleepLogBox();
+      final reminders = await remindersBox();
+      final medicine = await medicineBox();
+
+      await step.clear();
+      await sleep.clear();
+      await reminders.clear();
+      await medicine.clear();
 
       print("🔥 All Hive data cleared (Logout Reset)");
     } catch (e) {
       print("❌ App reset failed: $e");
       rethrow;
     }
-  }
-
-  Future<void> _clearTypedBox<T>(String name) async {
-    final box =
-        Hive.isBoxOpen(name) ? Hive.box<T>(name) : await Hive.openBox<T>(name);
-    await box.clear();
-  }
-
-  Future<void> _clearUntypedBox(String name) async {
-    final box = Hive.isBoxOpen(name) ? Hive.box(name) : await Hive.openBox(name);
-    await box.clear();
   }
 }

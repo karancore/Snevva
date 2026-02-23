@@ -57,7 +57,6 @@ class MentalWellnessController extends GetxController {
         loadNatureMusic(),
       ]);
 
-
       debugPrint("✅ fetchMusic() completed successfully");
     } catch (e) {
       hasError.value = true;
