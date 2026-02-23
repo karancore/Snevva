@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dropdown_flutter/custom_dropdown.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
@@ -23,6 +24,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final localStorageManager = Get.find<LocalStorageManager>();
   final initialProfileController = Get.put(ProfileSetupController());
 
+  String profilePictureUrl = '';
   final controller = Get.put(EditprofileController());
 
   @override
@@ -70,6 +72,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (day != null && month != null && year != null) {
       controller.dob = DateTime(year, month, day);
     }
+
+    final String? cdnUrl =
+    localStorageManager.userMap['ProfilePicture']?['CdnUrl'];
+
+    profilePictureUrl = 'https://$cdnUrl';
+    print("Profile picture url is https://$cdnUrl");
   }
 
   @override
@@ -158,13 +166,32 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             child: Obx(() {
                               final pickedFile =
                                   initialProfileController.pickedImage.value;
+
+                              final String? cdnUrl =
+                              localStorageManager.userMap['ProfilePicture']?['CdnUrl'];
+
+                              ImageProvider imageProvider;
+
+                              // 1️⃣ Highest Priority → User picked image
+                              if (pickedFile != null) {
+                                imageProvider = FileImage(pickedFile);
+                              }
+
+                              // 2️⃣ Second Priority → API image
+                              else if (cdnUrl != null && cdnUrl.isNotEmpty) {
+                                imageProvider =
+                                    CachedNetworkImageProvider("https://$cdnUrl");
+                              }
+
+                              // 3️⃣ Fallback → Default asset
+                              else {
+                                imageProvider = AssetImage(profileMainImg);
+                              }
+
                               return CircleAvatar(
                                 radius: 60,
-                                backgroundImage:
-                                    pickedFile != null
-                                        ? FileImage(pickedFile)
-                                        : AssetImage(profileMainImg)
-                                            as ImageProvider,
+                                backgroundColor: Colors.grey.shade200,
+                                backgroundImage: imageProvider,
                               );
                             }),
                           ),

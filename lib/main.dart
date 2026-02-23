@@ -448,9 +448,7 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-/// ------------------------------------------------------------
-/// ⏳ Splash
-/// ------------------------------------------------------------
+
 class InitializationSplash extends StatelessWidget {
   const InitializationSplash({super.key});
 
@@ -460,9 +458,6 @@ class InitializationSplash extends StatelessWidget {
   }
 }
 
-/// ------------------------------------------------------------
-/// ❌ Error UI
-/// ------------------------------------------------------------
 class ErrorPlaceholder extends StatelessWidget {
   final VoidCallback? onRetry;
   final String details;
