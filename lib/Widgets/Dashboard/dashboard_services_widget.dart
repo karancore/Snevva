@@ -2,6 +2,7 @@ import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/Widgets/Dashboard/dashboard_service_widget_items.dart';
+import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/views/DietPlan/diet_plan_screen.dart';
 import 'package:snevva/views/Information/BMI/bmi_cal.dart';
 import 'package:snevva/views/Information/Health%20Tips/health_tips.dart';
@@ -66,17 +67,17 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
 
     final localstorage = Get.find<LocalStorageManager>();
     final userInfo = localstorage.userMap;
-    print('userInfo: $userInfo');
+    logLong('userInfo: ' , userInfo.toString());
 
     // final userActiveData = signInController.userGoalData ?? {};
 
     final userActiveData = localstorage.userGoalDataMap;
-    print('userActiveData: $userActiveData');
+    logLong('userActiveData: ' , userActiveData.toString());
     final womentracking = userActiveData['TrackWomenData'];
     final stepgoal = userActiveData['StepGoalData']?['Count'];
     final SleepGoalData = userActiveData['SleepGoalData'];
 
-    print('userActiveData: $userActiveData');
+    logLong('userActiveData:  ' , userActiveData.toString());
     // Safe check for userData and gender
     // final gender = selectedGender ?? localgender ?? 'Unknown';
     // gender = (localGender != null) ? localGender : userData['Gender'];
