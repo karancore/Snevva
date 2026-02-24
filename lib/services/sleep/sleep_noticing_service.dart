@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SleepNoticingService {
   static const Duration minSleepGap = Duration(minutes: 3);
 
+  // ✅ FIX: Use the same plain keys as SharedPreferences everywhere — no 'flutter.' prefix
   static const String _bedtimeKey = 'user_bedtime_ms';
   static const String _waketimeKey = 'user_waketime_ms';
 
@@ -26,12 +27,8 @@ class SleepNoticingService {
   void startMonitoring() {
     debugPrint('🚀 SleepNoticingService.startMonitoring');
 
-    // Ensure we keep only one active listener after service restarts/retries.
-    _subscription?.cancel();
-    _subscription = null;
-
     try {
-      _subscription = _screen.screenStateStream.listen((event) {
+      _subscription = _screen.screenStateStream?.listen((event) {
         debugPrint('📱 Screen event received: $event');
 
         if (event == ScreenStateEvent.SCREEN_OFF) {

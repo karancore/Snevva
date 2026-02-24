@@ -69,14 +69,27 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.reload();
 
-    await _resumeSleepSessionIfNeeded(service, prefs, sleepBox);
-
     // ═══════════════════════════════════════════════════════════════
     // 🌙 SLEEP TRACKING SETUP
     // ═══════════════════════════════════════════════════════════════
 
     service.on("start_sleep").listen((event) async {
       DateTime now = DateTime.now();
+      final wakeMinutes = prefs.getInt('flutter.user_waketime_ms') ?? 420;
+
+      final wakeTimeToday = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        wakeMinutes ~/ 60,
+        wakeMinutes % 60,
+      );
+
+      DateTime sleepDay =
+          now.isBefore(wakeTimeToday) ? now.subtract(Duration(days: 1)) : now;
+
+      String key =
+          "flutter.sleep_intervals_${sleepDay.year}-${sleepDay.month.toString().padLeft(2, '0')}-${sleepDay.day.toString().padLeft(2, '0')}";
 
       final goalMinutes = event?['goal_minutes'] as int? ?? 480;
       final bedtimeMinutes = event?['bedtime_minutes'] as int? ?? 0;
@@ -112,13 +125,6 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
       // Updated: Start the Dart SleepNoticingService instead of MethodChannel
       _sleepNoticingService.startMonitoring();
       print("✅ SleepNoticingService (Dart) started at ${DateTime.now()}");
-
-      service.invoke("sleep_started", {
-        "is_sleeping": true,
-        "goal_minutes": goalMinutes,
-        "current_sleep_window_key": sleepWindow?.dateKey,
-        "start_time": now.toIso8601String(),
-      });
 
       // Send initial update
       service.invoke("sleep_update", {
@@ -316,95 +322,6 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
     print("❌ Unified background service failed: $e at ${DateTime.now()}");
     return false;
   }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// 🔁 RESUME ACTIVE SLEEP SESSION
-// ═══════════════════════════════════════════════════════════════
-
-Future<void> _resumeSleepSessionIfNeeded(
-  ServiceInstance service,
-  SharedPreferences prefs,
-  Box<SleepLog> sleepBox,
-) async {
-  final isSleeping = prefs.getBool("is_sleeping") ?? false;
-  if (!isSleeping) return;
-
-  final goalMinutes = prefs.getInt("sleep_goal_minutes") ?? 480;
-  final bedtimeMinutes = prefs.getInt("user_bedtime_ms") ?? 0;
-  final waketimeMinutes = prefs.getInt("user_waketime_ms") ?? 0;
-  final startTime = prefs.getString("sleep_start_time");
-
-  var windowStart = prefs.getString("current_sleep_window_start");
-  var windowEnd = prefs.getString("current_sleep_window_end");
-  var windowKey = prefs.getString("current_sleep_window_key");
-
-  if (windowStart == null || windowEnd == null || windowKey == null) {
-    final recoveredWindow = _computeActiveSleepWindow(
-      bedtimeMinutes,
-      waketimeMinutes,
-      DateTime.now(),
-    );
-
-    if (recoveredWindow != null) {
-      await prefs.setString(
-        "current_sleep_window_start",
-        recoveredWindow.start.toIso8601String(),
-      );
-      await prefs.setString(
-        "current_sleep_window_end",
-        recoveredWindow.end.toIso8601String(),
-      );
-      await prefs.setString(
-        "current_sleep_window_key",
-        recoveredWindow.dateKey,
-      );
-
-      windowStart = recoveredWindow.start.toIso8601String();
-      windowEnd = recoveredWindow.end.toIso8601String();
-      windowKey = recoveredWindow.dateKey;
-    }
-  }
-
-  if (windowEnd != null) {
-    final end = DateTime.parse(windowEnd);
-    if (DateTime.now().isAfter(end)) {
-      print(
-        "⏰ Found stale active sleep session after window end; saving immediately",
-      );
-      await _stopSleepAndSave(service, prefs, sleepBox);
-      return;
-    }
-  }
-
-  await _sleepNoticingService.initializeForSleepWindow();
-  _sleepNoticingService.startMonitoring();
-  _startSleepIntervalAggregator(service, prefs);
-
-  final totalSleepMinutes = await _sleepNoticingService.getTotalSleepMinutes();
-
-  service.invoke("sleep_update", {
-    "elapsed_minutes": totalSleepMinutes,
-    "goal_minutes": goalMinutes,
-    "is_sleeping": true,
-    "current_sleep_window_key": windowKey,
-    "start_time": startTime,
-  });
-
-  if (service is AndroidServiceInstance) {
-    final progress =
-        ((totalSleepMinutes / goalMinutes) * 100).clamp(0, 100).toInt();
-
-    service.setForegroundNotificationInfo(
-      title: "Sleep Tracking 😴 ($progress%)",
-      content:
-          "${_formatDuration(totalSleepMinutes)} / ${_formatDuration(goalMinutes)} - Auto-tracking",
-    );
-  }
-
-  print(
-    "🔁 Resumed active sleep session: $totalSleepMinutes/$goalMinutes mins (key: $windowKey, start: $windowStart)",
-  );
 }
 
 // ═══════════════════════════════════════════════════════════════

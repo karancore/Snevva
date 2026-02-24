@@ -4,10 +4,10 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
-import 'package:snevva/services/app_initializer.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
 import 'package:wheel_picker/wheel_picker.dart';
 import '../../../../consts/consts.dart';
+import '../../../services/app_initializer.dart';
 import '../../../services/notification_service.dart';
 
 class SleepBottomSheet extends StatefulWidget {
@@ -68,14 +68,13 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
 
   Future<void> _initializeControllers() async {
     final prefs = await SharedPreferences.getInstance();
+
+    // ✅ FIX: Read from plain SharedPreferences keys — same as everywhere else.
+    // Previously this also read 'user_bedtime_ms' but the controller was writing
+    // via GetStorage which stores as 'flutter.user_bedtime_ms' — a different key.
     final bedtimeMin = prefs.getInt('user_bedtime_ms');
     final waketimeMin = prefs.getInt('user_waketime_ms');
     final manuallyStopped = prefs.getBool('manually_stopped') ?? false;
-
-    // FIX: Read is_sleeping from prefs — if background already has an active
-    // session, don't invoke start_sleep again.
-    await prefs.reload();
-    final alreadySleeping = prefs.getBool('is_sleeping') ?? false;
 
     int bedHour = 22;
     int bedMinuteIndex = 0;
@@ -112,38 +111,30 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
       _controllersInitialized = true;
     });
 
-    // Only auto-start if background hasn't already started a session
-    if (!manuallyStopped &&
-        !alreadySleeping &&
-        _isWindowActive() &&
-        !_isSleeping &&
-        !_isStarting) {
+    // Auto-start only if not manually stopped and we are inside the window
+    if (!manuallyStopped && _isWindowActive() && !_isSleeping && !_isStarting) {
       _isStarting = true;
-      unawaited(_startSleepTrackingFromWindow());
+      await _startSleepTrackingFromWindow();
     }
   }
 
   Future<void> _checkIfAlreadySleeping() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
     final isSleeping = prefs.getBool("is_sleeping") ?? false;
 
     if (isSleeping) {
-      final startString = prefs.getString("sleep_start_time");
       final goalMinutes = prefs.getInt("sleep_goal_minutes") ?? 480;
 
-      if (startString != null) {
-        final start = DateTime.parse(startString);
-        final elapsed = DateTime.now().difference(start);
-
-        if (mounted) {
-          setState(() {
-            _isSleeping = true;
-            _currentSleepDuration = elapsed;
-            _sleepGoal = Duration(minutes: goalMinutes);
-            _progress = (elapsed.inMinutes / goalMinutes).clamp(0.0, 1.0);
-          });
-        }
+      // ✅ FIX: Don't use raw elapsed wall-clock time as sleep duration.
+      // The background service will push the real screen-off based duration via sleep_update.
+      // Just restore the sleeping UI state and let BG service fill the duration.
+      if (mounted) {
+        setState(() {
+          _isSleeping = true;
+          _sleepGoal = Duration(minutes: goalMinutes);
+          _currentSleepDuration = Duration.zero; // BG service will update this
+          _progress = 0.0;
+        });
       }
     }
   }
@@ -166,108 +157,38 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
   }
 
   Future<void> _startSleepTrackingFromWindow() async {
-    try {
-      final bed = controller.bedtime.value;
-      final wake = controller.waketime.value;
-      if (bed == null || wake == null) return;
+    final bed = controller.bedtime.value;
+    final wake = controller.waketime.value;
+    if (bed == null || wake == null) return;
 
-      final goalMinutes = _calculateSleepGoalMinutes(
-        bed.hour,
-        bed.minute,
-        wake.hour,
-        wake.minute,
-      );
+    final goalMinutes = _calculateSleepGoalMinutes(
+      bed.hour,
+      bed.minute,
+      wake.hour,
+      wake.minute,
+    );
+    Get.find<SleepController>().sleepGoal.value = Duration(
+      minutes: goalMinutes,
+    );
 
-      Get.find<SleepController>().sleepGoal.value = Duration(
-        minutes: goalMinutes,
-      );
-
-      final started = await _startSleepWithPrefsPolling(
-        goalMinutes: goalMinutes,
-        bedtimeMinutes: bed.hour * 60 + bed.minute,
-        waketimeMinutes: wake.hour * 60 + wake.minute,
-      );
-
-      if (!started) {
-        print("❌ Auto-start sleep tracking failed");
-        return;
-      }
-
-      if (mounted) {
-        setState(() {
-          _isSleeping = true;
-          _sleepGoal = Duration(minutes: goalMinutes);
-          _progress = 0.0;
-        });
-      }
-
-      print("🌙 Auto-started sleep tracking (window active)");
-    } finally {
-      _isStarting = false;
-    }
-  }
-
-  Future<bool> _ensureBackgroundServiceRunning() async {
-    var isRunning = await _service.isRunning();
-    if (isRunning) return true;
-
-    await initBackgroundService();
-    await Future.delayed(const Duration(seconds: 2));
-    isRunning = await _service.isRunning();
-    return isRunning;
-  }
-
-  /// Reliable confirmation: invoke the background service then poll
-  /// SharedPreferences until the background isolate confirms is_sleeping=true.
-  ///
-  /// WHY: flutter_background_service's invoke/on event channel has a race
-  /// condition — the background isolate can fire "sleep_started" before the
-  /// UI isolate's stream subscription is registered at the platform level.
-  /// SharedPreferences are written by the background isolate synchronously
-  /// before firing events, so polling them is guaranteed to work.
-  Future<bool> _startSleepWithPrefsPolling({
-    required int goalMinutes,
-    required int bedtimeMinutes,
-    required int waketimeMinutes,
-  }) async {
-    final running = await _ensureBackgroundServiceRunning();
-    if (!running) {
-      print("❌ Background service not running");
-      return false;
-    }
+    // ✅ FIX: Ensure background service is running before invoking
+    await _ensureBackgroundServiceRunning();
 
     _service.invoke("start_sleep", {
       "goal_minutes": goalMinutes,
-      "bedtime_minutes": bedtimeMinutes,
-      "waketime_minutes": waketimeMinutes,
+      "bedtime_minutes": bed.hour * 60 + bed.minute,
+      "waketime_minutes": wake.hour * 60 + wake.minute,
     });
 
-    print("📡 Invoked start_sleep — polling prefs for confirmation...");
-
-    // Poll SharedPreferences every 500ms, up to 10 seconds.
-    // The background isolate writes is_sleeping=true inside its start_sleep
-    // handler before invoking sleep_started, so this is guaranteed to
-    // reflect the correct state once the handler runs.
-    const maxAttempts = 20;
-    const pollInterval = Duration(milliseconds: 500);
-
-    for (int i = 0; i < maxAttempts; i++) {
-      await Future.delayed(pollInterval);
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.reload(); // CRITICAL: force re-read from disk
-      final isSleeping = prefs.getBool("is_sleeping") ?? false;
-
-      if (isSleeping) {
-        print("✅ Confirmed sleep started (poll attempt ${i + 1})");
-        return true;
-      }
-
-      print("🔄 Poll ${i + 1}/$maxAttempts: waiting for background isolate...");
+    if (mounted) {
+      setState(() {
+        _isSleeping = true;
+        _sleepGoal = Duration(minutes: goalMinutes);
+        _progress = 0.0;
+      });
     }
 
-    print("⏰ Polling timed out — background isolate did not confirm");
-    return false;
+    print("🌙 Auto-started sleep tracking (window active)");
   }
 
   void _setupSleepListeners() {
@@ -332,7 +253,8 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
+    final mediaQuery = MediaQuery.of(context);
+    final width = mediaQuery.size.width;
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     if (!_controllersInitialized) {
@@ -344,10 +266,11 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
       );
     }
 
-    print("isSleeping $_isSleeping");
-    return _isSleeping
-        ? _buildSleepTrackingUI(width, isDarkMode)
-        : _buildSleepScheduleSetupUI(width, isDarkMode);
+    if (_isSleeping) {
+      return _buildSleepTrackingUI(width, isDarkMode);
+    } else {
+      return _buildSleepScheduleSetupUI(width, isDarkMode);
+    }
   }
 
   Widget _buildSleepTrackingUI(double width, bool isDarkMode) {
@@ -361,6 +284,7 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
+
           Stack(
             alignment: Alignment.center,
             children: [
@@ -403,7 +327,9 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
               ),
             ],
           ),
+
           const SizedBox(height: 20),
+
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -430,7 +356,9 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
               ],
             ),
           ),
+
           const SizedBox(height: 20),
+
           CustomOutlinedButton(
             width: width,
             isDarkMode: isDarkMode,
@@ -486,6 +414,7 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
+
             _buildTimePicker(
               'Bed Time',
               bedHourController,
@@ -499,7 +428,9 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
               wakeMinuteController,
               isDarkMode,
             ),
+
             const SizedBox(height: 18),
+
             SafeArea(
               child: Column(
                 children: [
@@ -511,7 +442,9 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
                         _hasExistingSchedule
                             ? "Update & Start Tracking"
                             : "Start Sleep Tracking",
-                    onTap: () async => await _startSleepTracking(),
+                    onTap: () async {
+                      await _startSleepTracking();
+                    },
                   ),
                   const SizedBox(height: 12),
                   if (_hasExistingSchedule)
@@ -638,6 +571,49 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
     );
   }
 
+  Widget _buildSleepGoalDisplay(bool isDarkMode) {
+    final bedHour = bedHourController.selected;
+    final bedMinute = bedMinuteController.selected * 15;
+    final wakeHour = wakeHourController.selected;
+    final wakeMinute = wakeMinuteController.selected * 15;
+
+    final goalMinutes = _calculateSleepGoalMinutes(
+      bedHour,
+      bedMinute,
+      wakeHour,
+      wakeMinute,
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.primaryColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.primaryColor.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            'Sleep Goal:',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          Text(
+            _formatGoalDuration(goalMinutes),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   int _calculateSleepGoalMinutes(
     int bedHour,
     int bedMinute,
@@ -646,8 +622,24 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
   ) {
     int bedTotalMinutes = bedHour * 60 + bedMinute;
     int wakeTotalMinutes = wakeHour * 60 + wakeMinute;
-    if (wakeTotalMinutes <= bedTotalMinutes) wakeTotalMinutes += 24 * 60;
+    if (wakeTotalMinutes <= bedTotalMinutes) {
+      wakeTotalMinutes += 24 * 60;
+    }
     return wakeTotalMinutes - bedTotalMinutes;
+  }
+
+  /// ✅ FIX: Ensures the background service is running before invoking events.
+  /// On a fresh real device install the service may not have been started yet.
+  Future<void> _ensureBackgroundServiceRunning() async {
+    final isRunning = await _service.isRunning();
+    if (!isRunning) {
+      debugPrint(
+        '⚠️ Background service not running — starting now before sleep invoke',
+      );
+      await initBackgroundService();
+      // Give it a moment to initialize
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
   }
 
   Future<void> _startSleepTracking() async {
@@ -680,30 +672,31 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
     final bedtimeMinutes = bedHour * 60 + bedMinute;
     final waketimeMinutes = wakeHour * 60 + wakeMinute;
 
+    // ✅ FIX: Write ONLY to SharedPreferences — no GetStorage.
+    // This ensures the BG service and SleepNoticingService read the same value.
     await prefs.setInt('user_bedtime_ms', bedtimeMinutes);
     await prefs.setInt('user_waketime_ms', waketimeMinutes);
 
-    controller.setBedtime(TimeOfDay(hour: bedHour, minute: bedMinute));
-    controller.setWakeTime(TimeOfDay(hour: wakeHour, minute: wakeMinute));
+    // Update controller observables and persist via SharedPreferences only
+    final bedTime = TimeOfDay(hour: bedHour, minute: bedMinute);
+    final wakeTime = TimeOfDay(hour: wakeHour, minute: wakeMinute);
+    controller.setBedtime(bedTime);
+    controller.setWakeTime(wakeTime);
 
-    final started = await _startSleepWithPrefsPolling(
-      goalMinutes: goalMinutes,
-      bedtimeMinutes: bedtimeMinutes,
-      waketimeMinutes: waketimeMinutes,
-    );
+    // ✅ FIX: Ensure service is running before invoking start_sleep
+    await _ensureBackgroundServiceRunning();
 
-    if (!started) {
-      Get.snackbar(
-        'Tracking Start Failed',
-        'Sleep tracker service is unavailable. Please try again.',
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-      return;
+    _service.invoke("start_sleep", {
+      "goal_minutes": goalMinutes,
+      "bedtime_minutes": bedtimeMinutes,
+      "waketime_minutes": waketimeMinutes,
+    });
+
+    if (mounted) {
+      setState(() {
+        _isSleeping = true;
+      });
     }
-
-    setState(() => _isSleeping = true);
 
     Get.snackbar(
       'Sleep Tracking Started',
@@ -715,6 +708,7 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
     );
 
     await prefs.setBool('sleepGoalbool', true);
+
     Navigator.pop(context);
 
     if (widget.isNavigating) {
@@ -734,7 +728,16 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
   String _formatDuration(Duration d) {
     final hours = d.inHours;
     final minutes = d.inMinutes % 60;
-    return hours > 0 ? '${hours}h ${minutes}m' : '${minutes}m';
+    if (hours > 0) return '${hours}h ${minutes}m';
+    return '${minutes}m';
+  }
+
+  String _formatGoalDuration(int minutes) {
+    final hours = minutes ~/ 60;
+    final mins = minutes % 60;
+    if (hours > 0 && mins > 0) return '${hours}h ${mins}m';
+    if (hours > 0) return '${hours}h';
+    return '${mins}m';
   }
 }
 

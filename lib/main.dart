@@ -1,13 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math';
-import 'package:alarm/alarm.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
+import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/BMI/bmi_controller.dart';
 import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
@@ -18,7 +17,6 @@ import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Controllers/Reminder/event_controller.dart';
 import 'package:snevva/Controllers/Reminder/meal_controller.dart';
 import 'package:snevva/Controllers/Reminder/medicine_controller.dart';
-import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/otp_verification_controller.dart';
@@ -31,7 +29,6 @@ import 'package:snevva/services/hive_service.dart';
 import 'package:snevva/utils/theme_controller.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
-import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import 'Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import 'Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
@@ -54,6 +51,7 @@ import 'firebase_options.dart';
 import 'models/app_notification.dart';
 import 'services/app_initializer.dart';
 import 'services/notification_channel.dart';
+import 'services/notification_service.dart';
 import 'common/agent_debug_logger.dart';
 import 'utils/theme.dart';
 import 'views/Reminder/reminder_screen.dart';
@@ -105,7 +103,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 /// ------------------------------------------------------------
 /// 🚀 MAIN
 /// ------------------------------------------------------------
-void main() {
+void main() async {
   ErrorWidget.builder = (FlutterErrorDetails details) {
     // fire-and-forget
     ExceptionLogger.log(
@@ -146,13 +144,19 @@ void main() {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 
-      final prefs = await SharedPreferences.getInstance();
-      final isRemembered = prefs.getBool('remember_me') ?? false;
+      await ensureFirebaseInitialized();
+      // await FirebaseInit.init();
 
-      _registerCriticalDependencies();
+      // await setupHive();
+      await HiveService().initMain();
+      await initialiseGetxServicesAndControllers();
+
       FirebaseMessaging.onBackgroundMessage(
         _firebaseMessagingBackgroundHandler,
       );
+
+      final prefs = await SharedPreferences.getInstance();
+      final isRemembered = prefs.getBool('remember_me') ?? false;
 
       runApp(MyApp(isRemembered: isRemembered));
     },
@@ -162,116 +166,125 @@ void main() {
   );
 }
 
-void _registerCriticalDependencies() {
+Future<void> initialiseGetxServicesAndControllers() async {
+  if (!Hive.isBoxOpen('step_history')) {
+    print("❌ Hive boxes not ready during controller init - retrying setup");
+    await setupHive(); // Fallback retry
+  }
+
+  // Parallel async controllers
+  await Future.wait([
+    Get.putAsync<LocalStorageManager>(() async {
+      final service = LocalStorageManager();
+      await service
+          .reloadUserMap(); // ensure data is loaded before anyone uses it
+      return service;
+    }, permanent: true),
+    // Get.putAsync<AlertsController>(
+    //   () async => AlertsController(),
+    //   permanent: true,
+    // ),
+    Get.putAsync<SignInController>(
+      () async => SignInController(),
+      permanent: false,
+    ),
+    Get.putAsync<SleepController>(
+      () async => SleepController(),
+      permanent: false,
+    ),
+    Get.putAsync<SignUpController>(
+      () async => SignUpController(),
+      permanent: false,
+    ),
+    Get.putAsync<OTPVerificationController>(
+      () async => OTPVerificationController(),
+      permanent: false,
+    ),
+    Get.putAsync<UpdateOldPasswordController>(
+      () async => UpdateOldPasswordController(),
+      permanent: false,
+    ),
+    Get.putAsync<CreatePasswordController>(
+      () async => CreatePasswordController(),
+      permanent: false,
+    ),
+    Get.putAsync<ProfileSetupController>(
+      () async => ProfileSetupController(),
+      permanent: false,
+    ),
+    Get.putAsync<VitalsController>(
+      () async => VitalsController(),
+      permanent: false,
+    ),
+    Get.putAsync<HydrationStatController>(
+      () async => HydrationStatController(),
+      permanent: false,
+    ),
+    Get.putAsync<MoodController>(
+      () async => MoodController(),
+      permanent: false,
+    ),
+    Get.putAsync<EditprofileController>(
+      () async => EditprofileController(),
+      permanent: true,
+    ),
+    Get.putAsync<BmiUpdateController>(
+      () async => BmiUpdateController(),
+      permanent: true,
+    ),
+    Get.putAsync<GoogleAuthService>(
+      () async => GoogleAuthService(),
+      permanent: true,
+    ),
+
+    // Get.putAsync<GoogleAuthService>(() async {
+    //   final service = GoogleAuthService();
+    //   await service.init(); // ← THIS WAS MISSING
+    //   return service;
+    // }, permanent: true),
+    Get.putAsync<BmiController>(() async => BmiController(), permanent: true),
+
+    Get.putAsync<DietPlanController>(
+      () async => DietPlanController(),
+      permanent: true,
+    ),
+    Get.putAsync<HealthTipsController>(
+      () async => HealthTipsController(),
+      permanent: true,
+    ),
+  ]);
+
+  // Synchronous controllers, lazy-loaded if not registered
+  if (!Get.isRegistered<MentalWellnessController>()) {
+    Get.lazyPut(() => MentalWellnessController(), fenix: true);
+  }
+
+  if (!Get.isRegistered<BottomSheetController>()) {
+    Get.lazyPut(() => BottomSheetController(), fenix: true);
+  }
   if (!Get.isRegistered<ThemeController>()) {
     Get.put(ThemeController(), permanent: true);
   }
-  _registerLazyDependencies();
-}
-
-void _registerLazyDependencies() {
-  _lazyPut<LocalStorageManager>(() => LocalStorageManager());
-
-  _lazyPut<SignInController>(() => SignInController());
-  _lazyPut<SignUpController>(() => SignUpController());
-  _lazyPut<OTPVerificationController>(() => OTPVerificationController());
-  _lazyPut<UpdateOldPasswordController>(() => UpdateOldPasswordController());
-  _lazyPut<CreatePasswordController>(() => CreatePasswordController());
-  _lazyPut<ProfileSetupController>(() => ProfileSetupController());
-  _lazyPut<EditprofileController>(() => EditprofileController());
-
-  _lazyPut<VitalsController>(() => VitalsController());
-  _lazyPut<HydrationStatController>(() => HydrationStatController());
-  _lazyPut<MoodController>(() => MoodController());
-  _lazyPut<WomenHealthController>(() => WomenHealthController());
-  _lazyPut<BottomSheetController>(() => BottomSheetController());
-
-  _lazyPut<BmiController>(() => BmiController());
-  _lazyPut<BmiUpdateController>(() => BmiUpdateController());
-  _lazyPut<GoogleAuthService>(() => GoogleAuthService());
-  _lazyPut<DietPlanController>(() => DietPlanController());
-  _lazyPut<HealthTipsController>(() => HealthTipsController());
-  _lazyPut<MentalWellnessController>(() => MentalWellnessController());
-
-  _lazyPut<SleepController>(() => SleepController());
-  _lazyPut<StepCounterController>(() => StepCounterController());
-  _lazyPutTagged<ReminderController>(
-    () => ReminderController(),
-    tag: 'reminder',
-  );
-
-  _lazyPut<WaterController>(() => WaterController());
-  _lazyPut<MedicineController>(() => MedicineController());
-  _lazyPut<EventController>(() => EventController());
-  _lazyPut<MealController>(() => MealController());
-  _lazyPut<AlertsController>(() => AlertsController());
-}
-
-void _lazyPut<T>(T Function() builder) {
-  if (Get.isRegistered<T>()) return;
-  Get.lazyPut<T>(builder, fenix: true);
-}
-
-void _lazyPutTagged<T>(T Function() builder, {required String tag}) {
-  if (Get.isRegistered<T>(tag: tag)) return;
-  Get.lazyPut<T>(builder, tag: tag, fenix: true);
-}
-
-List<int> _findExpiredBeforeAlarmIdsForStartup(Map<String, dynamic> payload) {
-  final now = DateTime.fromMillisecondsSinceEpoch(payload['nowEpochMs'] as int);
-  final alarms = (payload['alarms'] as List).cast<Map<String, dynamic>>();
-  final expiredIds = <int>[];
-
-  for (final alarm in alarms) {
-    final raw = alarm['payload'];
-    if (raw is! String) continue;
-
-    try {
-      final decoded = jsonDecode(raw);
-      if (decoded is! Map<String, dynamic>) continue;
-      if (decoded['type'] != 'before') continue;
-
-      final mainTimeRaw = decoded['mainTime'];
-      if (mainTimeRaw is! String) continue;
-
-      final mainTime = DateTime.tryParse(mainTimeRaw);
-      final id = alarm['id'];
-      if (mainTime != null && id is int && now.isAfter(mainTime)) {
-        expiredIds.add(id);
-      }
-    } catch (_) {}
+  if (!Get.isRegistered<WomenHealthController>()) {
+    Get.lazyPut(() => WomenHealthController(), fenix: true);
   }
 
-  return expiredIds;
-}
-
-Map<String, int> _mergeSleepHistoryRows(List<Map<String, dynamic>> rows) {
-  final merged = <String, int>{};
-
-  for (final row in rows) {
-    final key = row['key'];
-    final minutes = row['minutes'];
-    if (key is! String || minutes is! int) continue;
-
-    final current = merged[key] ?? 0;
-    if (minutes > current) {
-      merged[key] = minutes;
-    }
+  // Permanent controllers not async
+  if (!Get.isRegistered<StepCounterController>()) {
+    Get.put(StepCounterController(), permanent: true);
   }
-
-  return merged;
-}
-
-int _countLargePrefsCandidates(List<String> keys) {
-  var count = 0;
-  for (final key in keys) {
-    if (key.startsWith('sleep_') ||
-        key.startsWith('notification_') ||
-        key.contains('history')) {
-      count++;
-    }
+  if (!Get.isRegistered<WaterController>()) {
+    Get.put(WaterController(), permanent: true);
   }
-  return count;
+  if (!Get.isRegistered<MedicineController>()) {
+    Get.put(MedicineController(), permanent: true);
+  }
+  if (!Get.isRegistered<EventController>()) {
+    Get.put(EventController(), permanent: true);
+  }
+  if (!Get.isRegistered<MealController>()) {
+    Get.put(MealController(), permanent: true);
+  }
 }
 
 /// ------------------------------------------------------------
@@ -291,8 +304,6 @@ enum AppInitState { loading, success, error }
 class _MyAppState extends State<MyApp> {
   AppInitState _initState = AppInitState.loading;
   Timer? _timeoutTimer;
-  Future<void>? _stage2Future;
-  bool _stage3Started = false;
   late final ThemeController _themeController;
 
   @override
@@ -315,67 +326,30 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _safeInit() async {
+    await ensureFirebaseInitialized();
+
+    // await FirebaseInit.init();
+
+    try {
+      PushNotificationService().initialize();
+    } catch (_) {}
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) async {
+      await ensureFirebaseInitialized();
+    });
+
+    _handleInitialMessage();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startTimeout();
-      _stage2Future ??= _runStage2AfterFirstFrame();
       _initializeAppAsync();
     });
   }
 
-  Future<void> _runStage2AfterFirstFrame() async {
-    try {
-      await Future.wait([
-        HiveService().initMain(),
-        ensureFirebaseInitialized(),
-        _warmCriticalPostFrameServices(),
-      ]);
-
-      try {
-        PushNotificationService().initialize();
-      } catch (_) {}
-
-      FirebaseMessaging.onMessageOpenedApp.listen((_) {});
-      await _handleInitialMessage();
-      await _runDeferredFeatureWarmups();
-    } catch (e, s) {
-      logLong('STAGE2 INIT ERROR', '$e\n$s');
-    }
-  }
-
-  Future<void> _warmCriticalPostFrameServices() async {
-    final localStorage = Get.find<LocalStorageManager>();
-    await localStorage.reloadUserMap();
-  }
-
-  Future<void> _runDeferredFeatureWarmups() async {
-    final deferredWarmups = <Future<void>>[];
-
-    if (_isTaggedControllerInstantiated<ReminderController>('reminder')) {
-      deferredWarmups.add(
-        Get.find<ReminderController>(tag: 'reminder').loadAllReminderLists(),
-      );
-    }
-    if (_isControllerInstantiated<ProfileSetupController>()) {
-      deferredWarmups.add(Get.find<ProfileSetupController>().loadSavedImage());
-    }
-    if (_isControllerInstantiated<HealthTipsController>()) {
-      deferredWarmups.add(
-        Get.find<HealthTipsController>().GetCustomHealthTips(),
-      );
-    }
-
-    if (deferredWarmups.isNotEmpty) {
-      await Future.wait(deferredWarmups);
-    }
-  }
-
-  bool _isControllerInstantiated<T>() =>
-      Get.isRegistered<T>() && !Get.isPrepared<T>();
-
-  bool _isTaggedControllerInstantiated<T>(String tag) =>
-      Get.isRegistered<T>(tag: tag) && !Get.isPrepared<T>(tag: tag);
-
   Future<void> _handleInitialMessage() async {
+    await ensureFirebaseInitialized();
+    // await FirebaseInit.init();
+
     final message = await FirebaseMessaging.instance.getInitialMessage();
 
     if (message != null) {
@@ -397,31 +371,39 @@ class _MyAppState extends State<MyApp> {
     try {
       setState(() => _initState = AppInitState.loading);
 
-      final splashDelay = Future.delayed(const Duration(seconds: 3));
-      final initFuture = initializeApp().timeout(const Duration(seconds: 10));
+      await initializeApp().timeout(const Duration(seconds: 10));
 
-      await Future.wait([splashDelay, initFuture]);
-      await Future.delayed(const Duration(milliseconds: 200));
-      final prefs = await SharedPreferences.getInstance();
-      final hasSession = (prefs.getString('auth_token') ?? '').isNotEmpty;
+      final hasSession =
+          await Get.find<LocalStorageManager>().hasValidSession();
+
+      if (hasSession) {
+        if (!Get.isRegistered<AlertsController>()) {
+          Get.lazyPut(() => AlertsController(), fenix: true);
+        }
+      }
 
       if (!hasSession) {
-        _runStage3BackgroundTasks(hasSession: false);
         Get.offAll(() => SignInScreen());
         return;
       }
 
-      if (!Get.isRegistered<AlertsController>()) {
-        Get.lazyPut(() => AlertsController(), fenix: true);
-      }
+      // If user session exists (auto-login), ensure background tracking is running.
+      // #region agent log
+      AgentDebugLogger.log(
+        runId: 'auth-bg',
+        hypothesisId: 'A',
+        location: 'main.dart:_initializeAppAsync:hasSession_true',
+        message: 'Valid session detected, starting unified background service',
+        data: const {},
+      );
+      // #endregion
+      await initBackgroundService();
 
       _timeoutTimer?.cancel();
 
       if (mounted) {
         setState(() => _initState = AppInitState.success);
       }
-
-      _runStage3BackgroundTasks(hasSession: true);
     } catch (e, s) {
       logLong('INIT ERROR', '$e\n$s');
 
@@ -429,91 +411,6 @@ class _MyAppState extends State<MyApp> {
         setState(() => _initState = AppInitState.error);
       }
     }
-  }
-
-  void _runStage3BackgroundTasks({required bool hasSession}) {
-    if (_stage3Started) return;
-    _stage3Started = true;
-
-    unawaited(
-      Future<void>(() async {
-        await _cleanupExpiredStartupAlarms();
-        await _mergeSleepHistoryInBackground();
-        await _scanLargeSharedPreferences();
-
-        if (!hasSession) return;
-
-        AgentDebugLogger.log(
-          runId: 'auth-bg',
-          hypothesisId: 'A',
-          location: 'main.dart:_runStage3BackgroundTasks',
-          message: 'Stage 3 started - configuring unified background service',
-          data: const {},
-        );
-        await initBackgroundService();
-      }),
-    );
-  }
-
-  Future<void> _cleanupExpiredStartupAlarms() async {
-    final alarms = await Alarm.getAlarms();
-    if (alarms.isEmpty) return;
-
-    final payload = <String, dynamic>{
-      'nowEpochMs': DateTime.now().millisecondsSinceEpoch,
-      'alarms': alarms
-          .where((alarm) => alarm.payload != null)
-          .map(
-            (alarm) => <String, dynamic>{
-              'id': alarm.id,
-              'payload': alarm.payload!,
-            },
-          )
-          .toList(growable: false),
-    };
-
-    final alarmPayload = (payload['alarms'] as List);
-    if (alarmPayload.isEmpty) return;
-
-    final idsToStop =
-        alarmPayload.length >= 100
-            ? await compute(_findExpiredBeforeAlarmIdsForStartup, payload)
-            : _findExpiredBeforeAlarmIdsForStartup(payload);
-
-    for (final id in idsToStop) {
-      await Alarm.stop(id);
-    }
-  }
-
-  Future<void> _mergeSleepHistoryInBackground() async {
-    final sleepBox = await HiveService().sleepLogBox();
-    if (sleepBox.length < 180) return;
-
-    final rows = sleepBox.values
-        .map(
-          (log) => <String, dynamic>{
-            'key':
-                '${log.date.year}-'
-                '${log.date.month.toString().padLeft(2, '0')}-'
-                '${log.date.day.toString().padLeft(2, '0')}',
-            'minutes': log.durationMinutes,
-          },
-        )
-        .toList(growable: false);
-
-    if (rows.length >= 180) {
-      await compute(_mergeSleepHistoryRows, rows);
-      return;
-    }
-    _mergeSleepHistoryRows(rows);
-  }
-
-  Future<void> _scanLargeSharedPreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-    final keys = prefs.getKeys().toList(growable: false);
-    if (keys.length < 250) return;
-
-    await compute(_countLargePrefsCandidates, keys);
   }
 
   @override

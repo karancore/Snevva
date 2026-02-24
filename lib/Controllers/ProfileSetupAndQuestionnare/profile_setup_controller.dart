@@ -12,6 +12,8 @@ import 'package:snevva/services/api_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import '../../consts/consts.dart';
 
+import 'dart:convert';
+
 class ProfileSetupController extends GetxService {
   // ================= TEXT + ERRORS =================
   final userNameController = TextEditingController();
@@ -96,13 +98,93 @@ class ProfileSetupController extends GetxService {
 
     if (image != null) {
       pickedImage.value = File(image.path);
-      await saveImagePath(image.path);
+      await saveImagePath(
+        filename: image.name,
+        path: image.path,
+        type: image.path,
+      );
     }
   }
 
-  Future<void> saveImagePath(String path) async {
+  Future<void> uploadFileToUrl({
+    required String uploadUrl,
+    required File file,
+    required String contentType,
+  }) async {
+    final bytes = await file.readAsBytes();
+
+    final response = await http.put(
+      Uri.parse(uploadUrl),
+      headers: {
+        "Content-Type": contentType,
+        "x-ms-blob-type": "BlockBlob",
+      },
+      body: bytes,
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      print("✅ File uploaded to storage");
+    } else {
+      print("❌ Storage upload failed: ${response.statusCode}");
+      print(response.body);
+    }
+  }
+
+  Future<void> saveImagePath({
+    required String path,
+    required String type,
+    required String filename,
+  }) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('profileImagePath', path);
+
+    try {
+      File file = File(path);
+
+      // STEP 1️⃣ — Call API to get UploadUrl
+      final payload = {
+       "Title" : filename ,
+        "Description" : filename ,
+        "isExternalLink" : false ,
+        "OriginalFilename" : filename ,
+        "ContentType" : type ,
+        "IsProfilePicture" : true
+      };
+
+      final response = await ApiService.post(
+        uploadprofilepic,
+        payload,
+        withAuth: true,
+        encryptionRequired: true,
+      );
+
+      print("🔄 Initial upload response: $response");
+
+      if (response is http.Response) {
+        print("❌ Failed to get upload URL: ${response.statusCode}");
+        print(response.body);
+        return;
+      }
+
+      final res = jsonDecode(jsonEncode(response));
+
+      debugPrint("res upload image $res");
+
+      // 🔴 Adjust this according to your API response structure
+      final uploadUrl = res['data']['UploadUrl'];
+      final contentType = res['data']['ContentType'];
+
+      // STEP 2️⃣ — Upload file directly to storage
+      await uploadFileToUrl(
+        uploadUrl: uploadUrl,
+        file: file,
+        contentType: contentType ?? "image/jpeg",
+      );
+
+      print("✅ Upload completed successfully");
+    } catch (e) {
+      print("❌ Upload failed: $e");
+    }
   }
 
   Future<void> loadSavedImage() async {

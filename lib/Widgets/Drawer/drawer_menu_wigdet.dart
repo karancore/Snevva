@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:alarm/alarm.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -223,21 +224,52 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                 Obx(() {
                   final pickedFile = initialProfileController.pickedImage.value;
 
-                  return ClipOval(
-                    child:
-                        pickedFile != null
-                            ? Image.file(
-                              pickedFile,
-                              height: 80,
-                              width: 80,
-                              fit: BoxFit.cover,
-                            )
-                            : Image.asset(
-                              profileMainImg,
-                              height: 80,
-                              width: 80,
-                              fit: BoxFit.cover,
-                            ),
+                  final String? cdnUrl =
+                      localStorageManager.userMap['ProfilePicture']?['CdnUrl'];
+
+                  Widget imageWidget;
+
+                  // 1️⃣ User picked image (highest priority)
+                  if (pickedFile != null) {
+                    imageWidget = Image.file(
+                      pickedFile,
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.cover,
+                    );
+                  }
+                  // 2️⃣ API image
+                  else if (cdnUrl != null && cdnUrl.isNotEmpty) {
+                    final fullUrl =
+                        cdnUrl.startsWith("http") ? cdnUrl : "https://$cdnUrl";
+
+                    imageWidget = CachedNetworkImage(
+                      imageUrl: fullUrl,
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.cover,
+                      placeholder:
+                          (_, __) =>
+                              const Center(child: CircularProgressIndicator()),
+                      errorWidget:
+                          (_, __, ___) =>
+                              Image.asset(profileMainImg, fit: BoxFit.cover),
+                    );
+                  }
+                  // 3️⃣ Default asset
+                  else {
+                    imageWidget = Image.asset(
+                      profileMainImg,
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.cover,
+                    );
+                  }
+
+                  return CircleAvatar(
+                    radius: 60,
+                    backgroundColor: Colors.grey.shade200,
+                    child: ClipOval(child: imageWidget),
                   );
                 }),
                 const SizedBox(height: 8),
