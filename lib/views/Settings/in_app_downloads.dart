@@ -135,8 +135,16 @@ class _InAppDownloadsState extends State<InAppDownloads> {
                 return Container(
                   decoration: BoxDecoration(
                     color: isDarkMode ? darkGray : white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: mediumGrey, width: border04px),
+                    borderRadius: BorderRadius.circular(16),
+
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.3),
+                        spreadRadius: 2,
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(
@@ -176,7 +184,7 @@ class _InAppDownloadsState extends State<InAppDownloads> {
                       Get.to(
                         () => MusicPlayerScreen(
                           appBarHeading: 'In App Downloads',
-                          appBarSubHeading: 'Downloaded',
+                          appBarSubHeading: '',
                           musicItem: localItem,
                           localFilePath: track.file.path,
                         ),

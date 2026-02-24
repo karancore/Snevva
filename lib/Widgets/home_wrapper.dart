@@ -27,10 +27,32 @@ class _HomeWrapperState extends State<HomeWrapper> {
   final bmiController = Get.find<BmiUpdateController>();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   static Future<void>? _sharedStartupTask;
-  late final List<Widget> _pages;
+  late final List<Widget?> _pages;
+
+  Widget _buildPage(int index) {
+    switch (index) {
+      case 0:
+        return Dashboard(onTabSelected: onTabSelected);
+      case 1:
+        return const MyHealthScreen();
+      case 2:
+        return const ReminderScreenWrapper();
+      case 3:
+        return const MenuScreen();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  void _ensurePageInitialized(int index) {
+    if (_pages[index] != null) return;
+    _pages[index] = _buildPage(index);
+  }
 
   void onTabSelected(int index) {
+    if (_selectedIndex == index) return;
     setState(() {
+      _ensurePageInitialized(index);
       _selectedIndex = index;
     });
   }
@@ -38,12 +60,8 @@ class _HomeWrapperState extends State<HomeWrapper> {
   @override
   void initState() {
     super.initState();
-    _pages = <Widget>[
-      Dashboard(onTabSelected: onTabSelected),
-      MyHealthScreen(),
-      ReminderScreenWrapper(),
-      MenuScreen(),
-    ];
+    _pages = List<Widget?>.filled(4, null, growable: false);
+    _ensurePageInitialized(_selectedIndex);
     bmiController.loadUserBMI();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -177,7 +195,13 @@ class _HomeWrapperState extends State<HomeWrapper> {
             }
           }
         },
-        child: IndexedStack(index: _selectedIndex, children: _pages),
+        child: IndexedStack(
+          index: _selectedIndex,
+          children: List<Widget>.generate(
+            _pages.length,
+            (index) => _pages[index] ?? const SizedBox.shrink(),
+          ),
+        ),
       ),
       bottomNavigationBar: Navbar(
         selectedIndex: _selectedIndex,
