@@ -47,8 +47,10 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: splashScreenBg,
+      backgroundColor: isDarkMode ? const Color(0xFF0E1014) : splashScreenBg,
       body: Padding(
         padding: EdgeInsets.only(bottom: 150),
         child: Center(

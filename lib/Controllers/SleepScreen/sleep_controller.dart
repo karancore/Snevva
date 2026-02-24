@@ -293,7 +293,7 @@ class SleepController extends GetxService {
   Future<void> _loadWeeklySleepData() async {
     try {
       // final box = await Hive.openBox<SleepLog>('sleep_log');
-      final box = HiveService().sleepLog;
+      final box = await HiveService().sleepLogBox();
       final now = DateTime.now();
       final weekStart = now.subtract(Duration(days: now.weekday - 1));
 
@@ -702,7 +702,7 @@ class SleepController extends GetxService {
 
   Future<void> loadDeepSleepData() async {
     // final _box = await Hive.openBox<SleepLog>('sleep_log');
-    final box = HiveService().sleepLog;
+    final box = await HiveService().sleepLogBox();
     debugPrint("📥 [loadDeepSleepData] START");
 
     weeklyDeepSleepHistory.clear();
@@ -971,7 +971,7 @@ class SleepController extends GetxService {
     bool overwrite = true,
   }) async {
     // final _box = await Hive.openBox<SleepLog>('sleep_log');
-    final box = HiveService().sleepLog;
+    final box = await HiveService().sleepLogBox();
 
     final key = dateKey(bedDate);
 
@@ -1071,7 +1071,7 @@ class SleepController extends GetxService {
   }
 
   Future<void> clearSleepData() async {
-    final box = HiveService().sleepLog;
+    final box = await HiveService().sleepLogBox();
     await box.clear();
     weeklyDeepSleepHistory.clear();
     deepSleepSpots.clear();
