@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/queryParamViewModels/bloodpressure.dart';
-import 'package:snevva/widgets/home_wrapper.dart';
 
 import '../../Controllers/Vitals/vitalsController.dart';
 import '../../common/global_variables.dart';
@@ -167,7 +166,7 @@ class _VitalScreenState extends State<VitalScreen> {
           systolicController.clear();
           diastolicController.clear();
           glucoseController.clear();
-          Get.to(() => HomeWrapper(key: UniqueKey()));
+          Get.until((route) => route.isFirst);
         }
       });
     }

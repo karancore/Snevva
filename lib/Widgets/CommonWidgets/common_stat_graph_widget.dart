@@ -3,9 +3,6 @@ import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
-import '../../Controllers/Hydration/hydration_stat_controller.dart';
-import '../../Controllers/SleepScreen/sleep_controller.dart';
-import '../../Controllers/StepCounter/step_counter_controller.dart';
 import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
 
@@ -54,11 +51,6 @@ class CommonStatGraphWidget extends StatelessWidget {
       "Sat",
       "Sun",
     ];
-    List<String> generateMonthLabels(DateTime date) {
-      final int totalDays = daysInMonth(date.year, date.month);
-      return List.generate(totalDays, (i) => "${i + 1}");
-    }
-    //final labels = generateMonthLabels(DateTime.now());
 
     // Use provided labels, or default weekly labels
     final labels = weekLabels ?? fixedWeekLabels;
@@ -75,34 +67,9 @@ class CommonStatGraphWidget extends StatelessWidget {
       todayIndex = resolvedIndex.clamp(0, labels.length - 1).toInt();
     }
 
-    // Clamp Y values to graph max
-    final clampedPoints =
-        points.map((p) {
-          double y = p.y;
-          if (y > yAxisMaxValue) y = yAxisMaxValue;
-          // if (y < 0) y = 0;
-          return FlSpot(
-            double.parse(p.x.toStringAsFixed(2)),
-            double.parse(y.toStringAsFixed(3)),
-          );
-        }).toList();
-
     final String formattedDate = DateFormat(
       'd MMM, yyyy',
     ).format(DateTime.now());
-
-    // Compute X-axis limits dynamically
-    final double maxX =
-        clampedPoints.isNotEmpty
-            ? clampedPoints.map((e) => e.x).reduce((a, b) => a > b ? a : b)
-            : 6;
-
-    print('--- CommonStatGraphWidget BUILD ---');
-    print('isMonthlyView: $isMonthlyView');
-    print('labels.length: ${labels.length}');
-    print('isMonthly (derived): $isMonthly');
-    print('maxXForWeek: $maxXForWeek');
-    print('currentDateIndex: ${getCurrentDateIndex()}');
 
     return Material(
       elevation: 3,
@@ -190,12 +157,6 @@ class CommonStatGraphWidget extends StatelessWidget {
             ? max(1, labels.length).toDouble()
             : max(1, (maxXForWeek ?? labels.length)).toDouble();
 
-    print('--- _buildChart ---');
-    print('isMonthly: $isMonthly');
-    print('labels.length: ${labels.length}');
-    print('safeMaxX: $safeMaxX');
-    print('labels.length: ${labels.length}');
-
     double chartWidth = max(
       labels.length * 42.0,
       MediaQuery.of(context).size.width - 40,
@@ -217,149 +178,154 @@ class CommonStatGraphWidget extends StatelessWidget {
       padding: const EdgeInsets.only(top: 52),
       height: height * 0.28,
       width: chartWidth,
-      child: LineChart(
-        key: ValueKey(isMonthlyView),
-        LineChartData(
-          minX: 0,
-          maxX: safeMaxX,
-          // use dynamic maxX
-          minY: 0,
-          maxY: yAxisMaxValue,
+      child: RepaintBoundary(
+        child: LineChart(
+          key: ValueKey(isMonthlyView),
+          LineChartData(
+            minX: 0,
+            maxX: safeMaxX,
+            // use dynamic maxX
+            minY: 0,
+            maxY: yAxisMaxValue,
 
-          titlesData: FlTitlesData(
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 24,
-                interval: 1,
-                getTitlesWidget: (value, _) {
-                  final int index = value.toInt();
+            titlesData: FlTitlesData(
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 24,
+                  interval: 1,
+                  getTitlesWidget: (value, _) {
+                    final int index = value.toInt();
 
-                  if (index >= 0 && index < labels.length) {
-                    final bool isToday =
-                        !isMonthly && todayIndex != -1 && index == todayIndex;
+                    if (index >= 0 && index < labels.length) {
+                      final bool isToday =
+                          !isMonthly && todayIndex != -1 && index == todayIndex;
 
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text(
-                        labels[index],
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight:
-                              isToday ? FontWeight.bold : FontWeight.normal,
-                          color:
-                              isToday
-                                  ? AppColors.primaryColor
-                                  : Colors.grey.shade600,
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          labels[index],
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight:
+                                isToday ? FontWeight.bold : FontWeight.normal,
+                            color:
+                                isToday
+                                    ? AppColors.primaryColor
+                                    : Colors.grey.shade600,
+                          ),
                         ),
-                      ),
-                    );
-                  }
+                      );
+                    }
 
-                  return const SizedBox.shrink();
-                },
-              ),
-            ),
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                interval: yAxisInterval,
-                getTitlesWidget:
-                    (value, _) => Text(
-                      value % 1 == 0
-                          ? '${value.toInt()}$measureUnit'
-                          : '${value.toStringAsFixed(1)}$measureUnit',
-                      style: const TextStyle(fontSize: 9),
-                    ),
-              ),
-            ),
-            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          ),
-          gridData: FlGridData(
-            show: true,
-            horizontalInterval: gridLineInterval,
-            drawVerticalLine: false,
-            getDrawingHorizontalLine:
-                (_) => const FlLine(color: mediumGrey, strokeWidth: 0.8),
-          ),
-          borderData: FlBorderData(
-            show: true,
-            border: const Border(
-              bottom: BorderSide(color: mediumGrey, width: 0.6),
-              left: BorderSide(color: Colors.transparent),
-              right: BorderSide(color: Colors.transparent),
-              top: BorderSide(color: Colors.transparent),
-            ),
-          ),
-          lineBarsData: [
-            LineChartBarData(
-              spots: points,
-              isCurved: true,
-              preventCurveOverShooting: true,
-
-              color: AppColors.primaryColor,
-              barWidth: 2,
-              dotData: FlDotData(
-                show: true,
-                getDotPainter: (spot, percent, barData, index) {
-                  if (spot.y == 0) {
-                    return FlDotCirclePainter(
-                      radius: 0, // 👈 invisible
-                      color: Colors.transparent,
-                      strokeWidth: 0,
-                      strokeColor: Colors.transparent,
-                    );
-                  }
-
-                  return FlDotCirclePainter(
-                    radius: 4,
-                    color: white,
-                    strokeWidth: 2,
-                    strokeColor: AppColors.primaryColor,
-                  );
-                },
-              ),
-
-              belowBarData: BarAreaData(
-                show: true,
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primaryColor.withOpacity(0.3),
-                    Colors.transparent,
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+                    return const SizedBox.shrink();
+                  },
                 ),
               ),
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  interval: yAxisInterval,
+                  getTitlesWidget:
+                      (value, _) => Text(
+                        value % 1 == 0
+                            ? '${value.toInt()}$measureUnit'
+                            : '${value.toStringAsFixed(1)}$measureUnit',
+                        style: const TextStyle(fontSize: 9),
+                      ),
+                ),
+              ),
+              rightTitles: AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
             ),
-          ],
-          lineTouchData: LineTouchData(
-            enabled: true,
-            touchTooltipData: LineTouchTooltipData(
-              getTooltipColor: (touchedSpot) => AppColors.primaryColor,
-              tooltipPadding: EdgeInsets.all(8),
-              tooltipBorderRadius: BorderRadius.circular(24),
+            gridData: FlGridData(
+              show: true,
+              horizontalInterval: gridLineInterval,
+              drawVerticalLine: false,
+              getDrawingHorizontalLine:
+                  (_) => const FlLine(color: mediumGrey, strokeWidth: 0.8),
+            ),
+            borderData: FlBorderData(
+              show: true,
+              border: const Border(
+                bottom: BorderSide(color: mediumGrey, width: 0.6),
+                left: BorderSide(color: Colors.transparent),
+                right: BorderSide(color: Colors.transparent),
+                top: BorderSide(color: Colors.transparent),
+              ),
+            ),
+            lineBarsData: [
+              LineChartBarData(
+                spots: points,
+                isCurved: true,
+                preventCurveOverShooting: true,
 
-              getTooltipItems: (touchedSpots) {
-                return touchedSpots.map((spot) {
-                  if (isSleepGraph) {
-                    final int minutes = (spot.y * 60).round();
+                color: AppColors.primaryColor,
+                barWidth: 2,
+                dotData: FlDotData(
+                  show: true,
+                  getDotPainter: (spot, percent, barData, index) {
+                    if (spot.y == 0) {
+                      return FlDotCirclePainter(
+                        radius: 0, // 👈 invisible
+                        color: Colors.transparent,
+                        strokeWidth: 0,
+                        strokeColor: Colors.transparent,
+                      );
+                    }
 
-                    formatted = formatDurationToHM(Duration(minutes: minutes));
-                    print("CommonStatGraphWidget $formatted");
-                  }
+                    return FlDotCirclePainter(
+                      radius: 4,
+                      color: white,
+                      strokeWidth: 2,
+                      strokeColor: AppColors.primaryColor,
+                    );
+                  },
+                ),
 
-                  return LineTooltipItem(
-                    isSleepGraph ? formatted : '${(spot.y * 1000).round()} ml',
-                    const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  );
-                }).toList();
-              },
+                belowBarData: BarAreaData(
+                  show: true,
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primaryColor.withOpacity(0.3),
+                      Colors.transparent,
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+              ),
+            ],
+            lineTouchData: LineTouchData(
+              enabled: true,
+              touchTooltipData: LineTouchTooltipData(
+                getTooltipColor: (touchedSpot) => AppColors.primaryColor,
+                tooltipPadding: const EdgeInsets.all(8),
+                tooltipBorderRadius: BorderRadius.circular(24),
+                getTooltipItems: (touchedSpots) {
+                  return touchedSpots.map((spot) {
+                    if (isSleepGraph) {
+                      final int minutes = (spot.y * 60).round();
+                      formatted = formatDurationToHM(
+                        Duration(minutes: minutes),
+                      );
+                    }
+
+                    return LineTooltipItem(
+                      isSleepGraph
+                          ? formatted
+                          : '${(spot.y * 1000).round()} ml',
+                      const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    );
+                  }).toList();
+                },
+              ),
             ),
           ),
         ),
@@ -388,6 +354,11 @@ double getNiceHydrationInterval(double maxY) {
 }
 
 double getNiceSleepMaxY(double value) {
+  // if (value <= 0) return 0;
+  // if (value <= 1) return 1;
+  // if (value <= 2) return 2;
+  // if (value <= 3) return 3;
+
   if (value <= 4) return 4;
   if (value <= 5) return 5;
   if (value <= 6) return 6;

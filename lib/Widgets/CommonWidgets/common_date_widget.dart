@@ -64,6 +64,7 @@ class _CommonDateWidgetState extends State<CommonDateWidget> {
               controller: controller,
               itemExtent: 54,
               infiniteScroll: false,
+
               dateOption: DateTimePickerOption(
                 dateFormat: DateFormat('dd MMM yyyy'),
                 minDate: DateTime(1900),
@@ -93,6 +94,9 @@ class _CommonDateWidgetState extends State<CommonDateWidget> {
                 diameterRatio: 5,
                 squeeze: 1.5,
                 perspective: 0.01,
+                physics: BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
+                ),
               ),
             ),
           ],

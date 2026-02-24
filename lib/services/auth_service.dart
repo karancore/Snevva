@@ -13,10 +13,13 @@ import 'package:snevva/Controllers/MoodTracker/mood_questions_controller.dart';
 import 'package:snevva/Controllers/Reminder/event_controller.dart';
 import 'package:snevva/Controllers/Reminder/meal_controller.dart';
 import 'package:snevva/Controllers/Reminder/medicine_controller.dart';
+import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Controllers/Reminder/water_controller.dart';
 import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
+import 'package:snevva/Controllers/WomenHealth/bottom_sheet_controller.dart';
+import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
@@ -41,6 +44,22 @@ import 'encryption_service.dart';
 
 class AuthService {
   static bool _isLoggingOut = false;
+
+  StepCounterController get stepController => Get.find<StepCounterController>();
+  SleepController get sleepController => Get.find<SleepController>();
+  HydrationStatController get waterController =>
+      Get.find<HydrationStatController>();
+  VitalsController get vitalsController => Get.find<VitalsController>();
+  LocalStorageManager get localStorageManager =>
+      Get.find<LocalStorageManager>();
+  ReminderController get reminderController =>
+      Get.find<ReminderController>(tag: 'reminder');
+  MoodController get moodcontroller => Get.find<MoodController>();
+  BottomSheetController get bottomsheetcontroller =>
+      Get.find<BottomSheetController>();
+  WomenHealthController get womenhealthController =>
+      Get.find<WomenHealthController>();
+  SignInController get signInController => Get.find<SignInController>();
 
   Future<String> login(String username, String password) async {
     final response = await http.post(

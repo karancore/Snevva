@@ -49,10 +49,10 @@ class WaterController extends GetxController {
 
   void resetForm() {
     // ---------- Text controllers ----------
-    everyHourController.dispose();
-    timesPerDayController.dispose();
-    startWaterTimeController.dispose();
-    endWaterTimeController.dispose();
+    everyHourController.clear();
+    timesPerDayController.clear();
+    startWaterTimeController.clear();
+    endWaterTimeController.clear();
 
     // ---------- Rx values ----------
     waterReminderOption.value = Option.times;
@@ -137,10 +137,7 @@ class WaterController extends GetxController {
   // Validation & Save
   // ---------------------------------------------------------------------------
 
-  Future<bool> validateAndSaveWaterReminder(BuildContext context) async {
-    debugPrint("📝 validateAndSaveWaterReminder called");
-    debugPrint("🔧 Mode = ${waterReminderOption.value}");
-
+  bool validateWaterInput(BuildContext context) {
     if (startWaterTimeController.text.isEmpty) {
       debugPrint("❌ Start time missing");
       CustomSnackbar.showError(
@@ -163,8 +160,6 @@ class WaterController extends GetxController {
 
     if (waterReminderOption.value == Option.interval) {
       final intervalHours = int.tryParse(everyHourController.text) ?? 0;
-      debugPrint("⏱ Interval mode → every $intervalHours hours");
-
       if (intervalHours <= 0) {
         debugPrint("❌ Invalid interval");
         CustomSnackbar.showError(
@@ -174,6 +169,35 @@ class WaterController extends GetxController {
         );
         return false;
       }
+    }
+
+    if (waterReminderOption.value == Option.times) {
+      final times = int.tryParse(timesPerDayController.text) ?? 0;
+      if (times <= 0) {
+        debugPrint("❌ Invalid times-per-day");
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Please enter a valid number of times per day',
+        );
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  Future<bool> validateAndSaveWaterReminder(BuildContext context) async {
+    debugPrint("📝 validateAndSaveWaterReminder called");
+    debugPrint("🔧 Mode = ${waterReminderOption.value}");
+
+    if (!validateWaterInput(context)) {
+      return false;
+    }
+
+    if (waterReminderOption.value == Option.interval) {
+      final intervalHours = int.tryParse(everyHourController.text) ?? 0;
+      debugPrint("⏱ Interval mode → every $intervalHours hours");
 
       final reminders = generateEveryXHours(
         start: stringToTimeOfDay(startWaterTimeController.text),
@@ -202,16 +226,6 @@ class WaterController extends GetxController {
     if (waterReminderOption.value == Option.times) {
       final times = int.tryParse(timesPerDayController.text) ?? 0;
       debugPrint("🔁 Times-per-day mode → $times times");
-
-      if (times <= 0) {
-        debugPrint("❌ Invalid times-per-day");
-        CustomSnackbar.showError(
-          context: context,
-          title: 'Error',
-          message: 'Please enter a valid number of times per day',
-        );
-        return false;
-      }
 
       await setWaterAlarm(
         times: times,
@@ -495,7 +509,7 @@ class WaterController extends GetxController {
 
           /// Save back to Hive
           // final box = Hive.box('reminders_box');
-          final box = HiveService().reminders;
+          final box = await HiveService().remindersBox();
           await box.put("water_list", encoded);
 
           debugPrint("🔁 Water alarm rescheduled for $nextTime");
@@ -667,7 +681,7 @@ class WaterController extends GetxController {
   }
 
   Future<List<WaterReminderModel>> loadWaterReminderList(String keyName) async {
-    final box = HiveService().reminders;
+    final box = await HiveService().remindersBox();
     final List<dynamic>? storedList = box.get(keyName);
 
     if (storedList == null) {
@@ -796,7 +810,10 @@ class WaterController extends GetxController {
 
   @override
   void onClose() {
-    resetForm();
+    everyHourController.dispose();
+    timesPerDayController.dispose();
+    startWaterTimeController.dispose();
+    endWaterTimeController.dispose();
     super.onClose();
   }
 }

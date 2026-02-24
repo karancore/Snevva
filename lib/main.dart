@@ -433,7 +433,11 @@ class _MyAppState extends State<MyApp> {
         ],
         home:
             _initState == AppInitState.loading
-                ? const InitializationSplash()
+                ? AnimatedOpacity(
+                  opacity: _initState == AppInitState.loading ? 1 : 0,
+                  duration: const Duration(milliseconds: 300),
+                  child: const InitializationSplash(),
+                )
                 : _initState == AppInitState.success
                 ? HomeWrapper()
                 : ErrorPlaceholder(
@@ -448,13 +452,235 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-
 class InitializationSplash extends StatelessWidget {
   const InitializationSplash({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: Loader()));
+    const double splashContentWidth = 220;
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: SizedBox(
+          width: splashContentWidth,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              SizedBox(height: 20),
+              HeartBeatLoader(),
+              SizedBox(height: 24),
+              Text(
+                "Monitoring What Matters",
+                textAlign: TextAlign.left,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.black54,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class HeartBeatLoader extends StatefulWidget {
+  final Duration duration;
+
+  const HeartBeatLoader({
+    super.key,
+    this.duration = const Duration(milliseconds: 2400),
+  });
+
+  @override
+  State<HeartBeatLoader> createState() => _HeartBeatLoaderState();
+}
+
+class _HeartBeatLoaderState extends State<HeartBeatLoader>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(vsync: this, duration: widget.duration);
+
+    _controller.forward(); // IMPORTANT → only once (loader)
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 120,
+      width: 120,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (_, _) {
+          final progress = _controller.value;
+          final scale = 0.95 + (0.05 * progress);
+
+          return Transform.scale(
+            scale: scale,
+            child: Opacity(
+              opacity: Curves.easeIn.transform(progress),
+              child: SizedBox(
+                height: 140,
+                width: 140,
+                child: RepaintBoundary(
+                  child: CustomPaint(
+                    painter: _HeartBeatLoaderPainter(
+                      progress: _controller.value,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _HeartBeatLoaderPainter extends CustomPainter {
+  final double progress;
+
+  _HeartBeatLoaderPainter({required this.progress});
+
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final midY = size.height / 2;
+
+    final gridPaint =
+        Paint()
+          ..color = Colors.grey.withOpacity(0.06)
+          ..strokeWidth = 1;
+
+    for (double i = 0; i < size.width; i += 20) {
+      canvas.drawLine(Offset(i, 0), Offset(i, size.height), gridPaint);
+    }
+
+    for (double i = 0; i < size.height; i += 20) {
+      canvas.drawLine(Offset(0, i), Offset(size.width, i), gridPaint);
+    }
+
+    final path = Path();
+    double x = 0;
+    path.moveTo(0, midY);
+
+    while (x < size.width - 20) {
+      path.lineTo(x += 15, midY);
+      path.lineTo(x += 2, midY - 7);
+      path.lineTo(x += 2, midY);
+
+      path.lineTo(x += 12, midY);
+      path.lineTo(x += 8, midY - 32);
+      path.lineTo(x += 6, midY + 24);
+      path.lineTo(x += 6, midY - 10);
+      path.lineTo(x += 2, midY);
+
+      path.lineTo(x += 15, midY);
+      path.lineTo(x += 2, midY - 7);
+      path.lineTo(x += 2, midY);
+
+      path.lineTo(x += 18, midY);
+      path.lineTo(x += 4, midY - 16);
+      path.lineTo(x += 6, midY + 12);
+      path.lineTo(x += 2, midY);
+
+      path.lineTo(x += 8, midY);
+      path.lineTo(x += 2, midY - 7);
+      path.lineTo(x += 2, midY);
+
+      path.lineTo(x += 10, midY - 32);
+      path.lineTo(x += 10, midY + 24);
+
+      path.lineTo(x += 8, midY);
+      path.lineTo(x += 16, midY);
+
+      path.lineTo(x += 4, midY - 16);
+      path.lineTo(x += 6, midY + 12);
+
+      path.lineTo(x += 2, midY);
+      path.lineTo(x += 18, midY);
+    }
+
+    final metrics = path.computeMetrics().first;
+    if (metrics.isClosed) return;
+
+    final animatedPath = metrics.extractPath(0, metrics.length * progress);
+    final tangent = metrics.getTangentForOffset(metrics.length * progress);
+
+    // -----------------------------
+    // 3️⃣ Gradient ECG Line
+    // -----------------------------
+    final rect = Offset.zero & size;
+
+    final gradient = const LinearGradient(
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+      colors: [
+        Color(0xFFD9B8FF), // softer light purple
+        Color(0xFFB579FF), // gradient top color from theme
+        Color(0xFFA95BFF), // primaryColor (main brand)
+        Color(0xFF8A2BE2), // deeper accent purple
+      ],
+    );
+
+    final paint =
+        Paint()
+          ..shader = gradient.createShader(rect)
+          ..strokeWidth = 2.5
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round;
+
+    // -----------------------------
+    // 4️⃣ Glow Layer (draw FIRST)
+    // -----------------------------
+    final glowPaint =
+        Paint()
+          ..shader = gradient.createShader(rect)
+          ..strokeWidth = 6
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+
+    canvas.drawPath(animatedPath, glowPaint);
+
+    // Main ECG line
+    canvas.drawPath(animatedPath, paint);
+
+    // -----------------------------
+    // 5️⃣ Pulsing Dot
+    // -----------------------------
+    if (tangent != null) {
+      final pulse = 4 + (2 * sin(progress * pi * 6));
+
+      final dotPaint =
+          Paint()
+            ..color = const Color(0xFF5A189A)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+
+      canvas.drawCircle(tangent.position, pulse, dotPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _HeartBeatLoaderPainter oldDelegate) {
+    return oldDelegate.progress != progress;
   }
 }
 

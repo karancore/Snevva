@@ -25,7 +25,7 @@ class DietDetailsScreen extends StatefulWidget {
 }
 
 class _DietDetailsScreenState extends State<DietDetailsScreen> {
-  final dietController = Get.put(DietPlanController());
+  final dietController = Get.find<DietPlanController>();
 
   @override
   void initState() {

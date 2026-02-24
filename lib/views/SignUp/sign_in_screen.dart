@@ -1,47 +1,11 @@
-import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
-import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
-import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
-import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
-import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
-import 'package:snevva/Controllers/Vitals/vitalsController.dart';
-import 'package:snevva/Controllers/WomenHealth/bottom_sheet_controller.dart';
-import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
-import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/common/custom_snackbar.dart';
-import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
-import 'package:snevva/bindings/initial_bindings.dart';
-import 'package:snevva/services/app_initializer.dart';
 import 'package:snevva/services/auth_service.dart';
-import 'package:snevva/services/device_token_service.dart';
-import 'package:snevva/views/ProfileAndQuestionnaire/height_and_weight_screen.dart';
-import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
-import 'package:snevva/views/ProfileAndQuestionnaire/questionnaire_screen.dart';
 import 'package:snevva/views/SignUp/forgot_password.dart';
-import 'package:snevva/widgets/home_wrapper.dart';
-import 'package:snevva/common/agent_debug_logger.dart';
-
-import '../../Controllers/BMI/bmi_controller.dart';
-import '../../Controllers/DietPlan/diet_plan_controller.dart';
-import '../../Controllers/HealthTips/healthtips_controller.dart';
-import '../../Controllers/MentalWellness/mental_wellness_controller.dart';
-import '../../Controllers/MoodTracker/mood_questions_controller.dart';
-import '../../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
-import '../../Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
-import '../../Controllers/alerts/alerts_controller.dart';
-import '../../Controllers/signupAndSignIn/forgot_password_controller.dart';
-import '../../Controllers/signupAndSignIn/update_old_password_controller.dart';
 import '../../widgets/SignInScreens/sign_in_footer_widget.dart';
 import 'create_new_profile.dart';
-
-import 'package:snevva/Controllers/local_storage_manager.dart';
-import 'package:snevva/Controllers/signupAndSignIn/create_password_controller.dart';
-import 'package:snevva/Controllers/signupAndSignIn/otp_verification_controller.dart';
-import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
-import 'package:snevva/utils/theme_controller.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -52,22 +16,12 @@ class SignInScreen extends StatefulWidget {
 
 final TextEditingController userEmailOrPhoneField = TextEditingController();
 final TextEditingController userPasswordField = TextEditingController();
-final signInController = Get.find<SignInController>();
-final stepController = Get.put(StepCounterController());
-final sleepController = Get.put(SleepController());
-final waterController = Get.put(HydrationStatController());
-final vitalsController = Get.put(VitalsController());
-final localStorageManager = Get.put(LocalStorageManager());
-final womenhealthController = Get.put(WomenHealthController());
-final moodcontroller = Get.put(MoodController());
-final bottomsheetcontroller = Get.put(BottomSheetController());
-final reminderController = Get.put(ReminderController());
+SignInController get signInController => Get.find<SignInController>();
 
 class _SignInScreenState extends State<SignInScreen> {
   final authService = AuthService();
   late TextEditingController userEmailOrPhoneField;
   late TextEditingController userPasswordField;
-  final controller = Get.put(SignInController());
 
   bool rememberMe = true;
   bool visible = true;
@@ -86,83 +40,6 @@ class _SignInScreenState extends State<SignInScreen> {
     super.initState();
     userEmailOrPhoneField = TextEditingController();
     userPasswordField = TextEditingController();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      initialiseControllers();
-    });
-  }
-
-  void initialiseControllers() {
-    Get.put(LocalStorageManager(), permanent: true);
-
-    if (!Get.isRegistered<AlertsController>()) {
-      Get.put(AlertsController(), permanent: true);
-    }
-
-    // Auth
-    if (!Get.isRegistered<SignInController>()) {
-      Get.lazyPut(() => SignInController(), fenix: true);
-    }
-    if (!Get.isRegistered<SignUpController>()) {
-      Get.lazyPut(() => SignUpController(), fenix: true);
-    }
-    if (!Get.isRegistered<OTPVerificationController>()) {
-      Get.lazyPut(() => OTPVerificationController(), fenix: true);
-    }
-    if (!Get.isRegistered<UpdateOldPasswordController>()) {
-      Get.lazyPut(() => UpdateOldPasswordController(), fenix: true);
-    }
-    if (!Get.isRegistered<CreatePasswordController>()) {
-      Get.lazyPut(() => CreatePasswordController(), fenix: true);
-    }
-    if (!Get.isRegistered<ForgotPasswordController>()) {
-      Get.lazyPut(() => ForgotPasswordController(), fenix: true);
-    }
-    if (!Get.isRegistered<ProfileSetupController>()) {
-      Get.lazyPut(() => ProfileSetupController(), fenix: true);
-    }
-
-    if (!Get.isRegistered<WomenHealthController>()) {
-      Get.lazyPut(() => WomenHealthController(), fenix: true);
-    }
-
-    Get.put(VitalsController(), permanent: true);
-    Get.put(HydrationStatController(), permanent: true);
-    Get.put(MoodController(), permanent: true);
-    Get.put(EditprofileController(), permanent: true);
-
-    if (!Get.isRegistered<StepCounterController>()) {
-      Get.put(StepCounterController(), permanent: true);
-    }
-
-    // Feature
-    if (!Get.isRegistered<BmiController>()) {
-      Get.lazyPut(() => BmiController(), fenix: true);
-    }
-    if (!Get.isRegistered<DietPlanController>()) {
-      Get.lazyPut(() => DietPlanController(), fenix: true);
-    }
-    if (!Get.isRegistered<HealthTipsController>()) {
-      Get.lazyPut(() => HealthTipsController(), fenix: true);
-    }
-
-    if (!Get.isRegistered<MentalWellnessController>()) {
-      Get.lazyPut(() => MentalWellnessController(), fenix: true);
-    }
-
-    Get.lazyPut(() => MoodQuestionController(), fenix: true);
-
-    // UI
-    //WOmen
-    if (!Get.isRegistered<BottomSheetController>()) {
-      Get.lazyPut(() => BottomSheetController(), fenix: true);
-    }
-    if (!Get.isRegistered<ThemeController>()) {
-      Get.lazyPut(() => ThemeController(), fenix: true);
-    }
-    if (!Get.isRegistered<ReminderController>()) {
-      Get.lazyPut(() => ReminderController(), fenix: true);
-    }
   }
 
   @override
@@ -232,8 +109,8 @@ class _SignInScreenState extends State<SignInScreen> {
         // _handleSignInError();
       }
     } catch (e) {
-      print("Exception during sign-in: $e");
-      _handleSignInError("Exception during sign-in");
+      print("Exception $e");
+      _handleSignInError("We couldn’t sign you in. Please try again.");
     } finally {
       setState(() => isLoading = false);
     }
@@ -241,7 +118,6 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
     // final height = mediaQuery.size.height;
     // final width = mediaQuery.size.width;
     // ✅ Listens to the app's current theme command

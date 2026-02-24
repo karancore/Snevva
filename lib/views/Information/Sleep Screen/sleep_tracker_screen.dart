@@ -264,6 +264,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
           child: Column(
             children: [
               //========== SLEEP TRACKING INDICATOR ==========
+              // if (!_sleepScheduleSet) _buildFirstTimeState(),
               SizedBox(
                 child: Stack(
                   children: [
@@ -561,6 +562,67 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     );
   }
 
+  Widget _buildTonightState() {
+    return Container(
+      width: 240,
+      height: 240,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.grey.withOpacity(0.06),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.nights_stay, size: 50, color: AppColors.primaryColor),
+
+          const SizedBox(height: 12),
+
+          const Text(
+            "Tracking starts tonight",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+
+          const SizedBox(height: 6),
+
+          Text(
+            "We’ll record your sleep after your bedtime",
+            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool get _sleepScheduleSet =>
+      sleepController.bedtime.value != null &&
+      sleepController.waketime.value != null;
+
+  Widget _buildFirstTimeState() {
+    return Container(
+      width: 240,
+
+      decoration: BoxDecoration(shape: BoxShape.circle, color: white),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.bedtime_outlined, size: 50, color: AppColors.primaryColor),
+          SizedBox(height: 12),
+          Text(
+            "Set your bedtime",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          SizedBox(height: 6),
+          Text(
+            "We’ll track your sleep automatically",
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildInactiveSleepIndicator() {
     return Obx(() {
       final d = sleepController.deepSleepDuration.value;
@@ -589,7 +651,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                   ),
                 )
                 : const Text(
-                  "No Data",
+                  "No sleep yet",
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,

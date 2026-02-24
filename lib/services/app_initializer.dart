@@ -174,8 +174,8 @@ Future<void> initBackgroundService() async {
     androidConfiguration: AndroidConfiguration(
       onStart: unifiedBackgroundEntry,
       isForegroundMode: true,
-      autoStart: false,
-      autoStartOnBoot: false,
+      autoStart: true,
+      autoStartOnBoot: true,
       notificationChannelId: "flutter_background_service",
       initialNotificationTitle: "Health Tracking",
       initialNotificationContent: "Monitoring steps & sleep...",

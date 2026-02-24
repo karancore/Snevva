@@ -13,7 +13,7 @@ class HealthTipsScreen extends StatefulWidget {
 }
 
 class _HealthTipsScreenState extends State<HealthTipsScreen> {
-  final controller = Get.put(HealthTipsController());
+  final controller = Get.find<HealthTipsController>();
 
   @override
   void initState() {

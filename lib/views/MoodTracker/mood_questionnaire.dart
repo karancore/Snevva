@@ -5,7 +5,6 @@ import 'package:linear_progress_bar/linear_progress_bar.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_questions_controller.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
-import 'package:snevva/widgets/home_wrapper.dart' show HomeWrapper;
 
 import '../../consts/consts.dart';
 import '../../models/mood_questionnaire_model.dart';
@@ -404,7 +403,7 @@ class _MoodQuestionnaireState extends State<MoodQuestionnaire> {
                                     onPressed: () {
                                       if (_currentIndex ==
                                           questions.length - 1) {
-                                        Get.to(() => HomeWrapper());
+                                        Get.until((route) => route.isFirst);
                                       } else {
                                         _controller.nextPage(
                                           duration: Duration(milliseconds: 400),

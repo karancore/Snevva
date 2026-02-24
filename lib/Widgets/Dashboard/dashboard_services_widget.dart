@@ -1,3 +1,4 @@
+import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
@@ -11,6 +12,7 @@ import 'package:snevva/views/Information/mental_wellness_screen.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import 'package:snevva/views/WomenHealth/women_health_screen.dart';
+import '../../Controllers/WomenHealth/women_health_controller.dart';
 import '../../consts/consts.dart';
 import '../../views/Information/HydrationScreens/hydration_screen.dart';
 import '../../views/Information/Sleep Screen/sleep_bottom_sheet.dart';
@@ -136,7 +138,9 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
                     );
 
                     Future.microtask(() async {
-                      await stepController.updateStepGoal(goal);
+                      await Get.find<StepCounterController>().updateStepGoal(
+                        goal,
+                      );
                     });
                   }
                 } else {
@@ -240,7 +244,8 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
                     );
 
                     Future.microtask(() async {
-                      await sleepController.savesleepToLocalStorage();
+                      await Get.find<SleepController>()
+                          .savesleepToLocalStorage();
                     });
                   }
                 } else {
@@ -294,7 +299,7 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
                       );
 
                       Future.microtask(() async {
-                        await womenhealthController
+                        await Get.find<WomenHealthController>()
                             .saveWomenHealthToLocalStorage();
                       });
                     }
