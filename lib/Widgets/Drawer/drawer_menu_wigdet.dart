@@ -18,7 +18,6 @@ import 'package:snevva/Controllers/signupAndSignIn/otp_verification_controller.d
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/env/env.dart';
 import 'package:http/http.dart' as http;
-import 'package:snevva/bindings/initial_bindings.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/services/background_pedometer_service.dart';
 import 'package:snevva/services/decisiontree_service.dart';
@@ -26,10 +25,10 @@ import 'package:snevva/services/app_initializer.dart';
 import 'package:snevva/common/agent_debug_logger.dart';
 import 'package:snevva/services/hive_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
+import 'package:snevva/views/Settings/in_app_downloads.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import '../../consts/consts.dart';
-import '../home_wrapper.dart';
 import 'drawer_menu_item.dart';
 
 class DrawerMenuWidget extends StatefulWidget {
@@ -264,14 +263,10 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                         DrawerMenuItem(
                           menuIcon: homeIcon,
                           itemName: 'Home',
-                          onWidgetTap:
-                              () => {
-                                Get.back(),
-                                Get.to(
-                                  () => HomeWrapper(),
-                                  binding: InitialBindings(),
-                                ),
-                              },
+                          onWidgetTap: () {
+                            Get.back();
+                            Get.until((route) => route.isFirst);
+                          },
                         ),
 
                         DrawerMenuItem(
@@ -310,6 +305,15 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                               () => {
                                 Get.back(),
                                 Get.to(() => SettingsScreen()),
+                              },
+                        ),
+                        DrawerMenuItem(
+                          menuIcon: downloadIcon,
+                          itemName: 'In App Downloads',
+                          onWidgetTap:
+                              () => {
+                                Get.back(),
+                                Get.to(() => InAppDownloads()),
                               },
                         ),
 

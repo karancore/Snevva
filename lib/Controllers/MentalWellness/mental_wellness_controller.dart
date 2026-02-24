@@ -13,6 +13,7 @@ import '../../models/music/music_response.dart';
 class MentalWellnessController extends GetxController {
   RxBool isLoading = true.obs;
   RxBool hasError = false.obs;
+  Future<void>? _inFlightFetch;
 
   final RxList<Map<String, String>> generalUrls = <Map<String, String>>[].obs;
   final RxList<Map<String, String>> natureUrls = <Map<String, String>>[].obs;
@@ -36,6 +37,11 @@ class MentalWellnessController extends GetxController {
   final RxList<MusicItem> natureMusic = <MusicItem>[].obs;
   final RxList<MusicItem> selectedNatureMusics = <MusicItem>[].obs;
 
+  bool get hasCachedMusic =>
+      generalMusic.isNotEmpty &&
+      meditationMusic.isNotEmpty &&
+      natureMusic.isNotEmpty;
+
   @override
   void onInit() {
     super.onInit();
@@ -44,7 +50,24 @@ class MentalWellnessController extends GetxController {
   }
 
   // ================== FETCH ALL ==================
-  Future<void> fetchMusic(BuildContext context) async {
+  Future<void> fetchMusic(BuildContext context, {bool forceRefresh = false}) {
+    if (!forceRefresh && hasCachedMusic) {
+      isLoading.value = false;
+      hasError.value = false;
+      return Future<void>.value();
+    }
+
+    if (_inFlightFetch != null) {
+      return _inFlightFetch!;
+    }
+
+    _inFlightFetch = _fetchMusicInternal(context);
+    return _inFlightFetch!.whenComplete(() {
+      _inFlightFetch = null;
+    });
+  }
+
+  Future<void> _fetchMusicInternal(BuildContext context) async {
     debugPrint("🎵 fetchMusic() called");
 
     isLoading.value = true;
@@ -113,9 +136,15 @@ class MentalWellnessController extends GetxController {
       debugPrint(
         "✅ Selected General Music: ${selectedNatureMusics.map((e) => e.media.cdnUrl).toList()}",
       );
-      generalUrls.addAll(
+      generalUrls.assignAll(
         musicResponse.data
-            .map((e) => {"title": e.title, "cdnUrl": e.media.cdnUrl})
+            .map(
+              (e) => {
+                "title": e.title,
+                "cdnUrl": e.media.cdnUrl,
+                "thumbnailUrl": _normalizeUrl(e.thumbnailMedia),
+              },
+            )
             .toList(),
       );
 
@@ -170,9 +199,15 @@ class MentalWellnessController extends GetxController {
       debugPrint("🔍 Meditation Music Response: $decoded");
       final musicResponse = MusicResponse.fromJson(decoded);
 
-      meditationUrls.addAll(
+      meditationUrls.assignAll(
         musicResponse.data
-            .map((e) => {"title": e.media.title, "cdnUrl": e.media.cdnUrl})
+            .map(
+              (e) => {
+                "title": e.media.title,
+                "cdnUrl": e.media.cdnUrl,
+                "thumbnailUrl": _normalizeUrl(e.thumbnailMedia),
+              },
+            )
             .toList(),
       );
       print("Meditation music urls ${meditationUrls.length}");
@@ -227,9 +262,15 @@ class MentalWellnessController extends GetxController {
       debugPrint("🔍 Nature Music Response: $decoded");
       final musicResponse = MusicResponse.fromJson(decoded);
 
-      natureUrls.addAll(
+      natureUrls.assignAll(
         musicResponse.data
-            .map((e) => {"title": e.title, "cdnUrl": e.media.cdnUrl})
+            .map(
+              (e) => {
+                "title": e.title,
+                "cdnUrl": e.media.cdnUrl,
+                "thumbnailUrl": _normalizeUrl(e.thumbnailMedia),
+              },
+            )
             .toList(),
       );
       print("Nature music urls ${natureUrls.length}");
@@ -275,5 +316,12 @@ class MentalWellnessController extends GetxController {
     }
 
     debugPrint("🎧 CDN URLs (${shuffledCdnUrls.length}): $shuffledCdnUrls");
+  }
+
+  String _normalizeUrl(String? url) {
+    if (url == null || url.isEmpty) {
+      return '';
+    }
+    return url.startsWith('http') ? url : 'https://$url';
   }
 }

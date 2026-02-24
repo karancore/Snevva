@@ -91,6 +91,7 @@ const profileIcon = "assets/Icons/Drawer/user-3-line.svg";
 const addEmergencyContactIcon = "assets/Icons/Drawer/team-line.svg";
 const appointmentIcon = "assets/Icons/Drawer/user-3-line.svg";
 const gearIcon = "assets/Icons/Drawer/settings-2-line.svg";
+const downloadIconDrawer = "assets/Icons/Drawer/downloads-svgrepo-com.svg";
 const helpIcon = "assets/Icons/question-line.png";
 const logoutIcon = "assets/Icons/Drawer/exit.svg";
 const invitefriend = "assets/Icons/Drawer/invitefriend11.svg";

@@ -1,12 +1,9 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:snevva/Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/MentalWellness/mental_wellness_footer_widget.dart';
 import 'package:snevva/env/env.dart';
-import 'package:snevva/models/music/music_response.dart';
 import '../../Widgets/MentalWellness/mental_wellness_header_widget.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../common/global_variables.dart';
@@ -24,19 +21,27 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
   @override
   void initState() {
     super.initState();
-    debugPrint("🟢 MentalWellnessScreen initState called - fetching music");
-    controller.fetchMusic(context).then((_) {
-      debugPrint("✅ Music fetch completed in initState");
-    });
+    if (!controller.hasCachedMusic) {
+      debugPrint("🟢 MentalWellnessScreen initState called - fetching music");
+      controller.fetchMusic(context).then((_) {
+        debugPrint("✅ Music fetch completed in initState");
+      });
+    }
   }
 
-  Stream<String> emitBackgroundImages({int delaySeconds = 3}) async* {
-    int index = 0;
-    while (true) {
-      yield backgroundImageUrls[index];
-      index = (index + 1) % backgroundImageUrls.length;
-      await Future.delayed(Duration(seconds: delaySeconds));
-    }
+  String _pickFallback(List<String> images, int index) {
+    if (images.isEmpty) return '';
+    return images[index % images.length];
+  }
+
+  String _resolveArtwork({
+    required String? thumbnail,
+    required List<String> fallbackImages,
+    required int index,
+  }) {
+    final String cleaned = (thumbnail ?? '').trim();
+    if (cleaned.isNotEmpty) return cleaned;
+    return _pickFallback(fallbackImages, index);
   }
 
   @override
@@ -44,9 +49,6 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
-
-    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: CustomAppBar(appbarText: "Mental Wellness"),
@@ -79,36 +81,35 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: List.generate(generalMusic.length, (index) {
-                      final item = generalMusic[index];
+                child: Row(
+                  children: List.generate(generalMusic.length, (index) {
+                    final item = generalMusic[index];
 
-                      return Padding(
-                        padding: EdgeInsets.only(
-                          right: index == generalMusic.length - 1 ? 0 : 16,
-                        ),
-                        child: InkWell(
-                          child: MentalWellnessHeaderWidget(
-                            height: 180 * heightFactor,
-                            musicItem: item,
-                            width: 280 * widthFactor,
-                            playText: '',
-                            wellnessContainerImage:
-                                generalMusic[index].thumbnailMedia ??
-                                generalImageUrls[Random().nextInt(index + 1)],
-                            heading: generalMusic[index].title,
-                            subHeading:
-                                generalMusic[index].artistName == "Unknown"
-                                    ? ""
-                                    : generalMusic[index].artistName,
-                            boxFit: BoxFit.cover,
+                    return Padding(
+                      padding: EdgeInsets.only(
+                        right: index == generalMusic.length - 1 ? 0 : 16,
+                      ),
+                      child: InkWell(
+                        child: MentalWellnessHeaderWidget(
+                          height: 180 * heightFactor,
+                          musicItem: item,
+                          width: 280 * widthFactor,
+                          playText: '',
+                          wellnessContainerImage: _resolveArtwork(
+                            thumbnail: item.thumbnailMedia,
+                            fallbackImages: generalImageUrls,
+                            index: index,
                           ),
+                          heading: item.title,
+                          subHeading:
+                              item.artistName == "Unknown"
+                                  ? ""
+                                  : item.artistName,
+                          boxFit: BoxFit.cover,
                         ),
-                      );
-                    }),
-                  ),
+                      ),
+                    );
+                  }),
                 ),
               ),
 
@@ -144,16 +145,16 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                               musicItem: item,
                               width: 353 * widthFactor,
                               playText: "Play",
-                              wellnessContainerImage:
-                                  meditationMusic[index].thumbnailMedia ??
-                                  meditationImageUrls[Random().nextInt(
-                                    index + 3,
-                                  )],
-                              heading: meditationMusic[index].title,
+                              wellnessContainerImage: _resolveArtwork(
+                                thumbnail: item.thumbnailMedia,
+                                fallbackImages: meditationImageUrls,
+                                index: index,
+                              ),
+                              heading: item.title,
                               subHeading:
-                                  meditationMusic[index].artistName == "Unknown"
+                                  item.artistName == "Unknown"
                                       ? ""
-                                      : meditationMusic[index].artistName,
+                                      : item.artistName,
                               boxFit: BoxFit.cover,
                             ),
                           );
@@ -187,9 +188,11 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                             padding: const EdgeInsets.only(right: 16),
                             child: MentalWellnessFooterWidget(
                               musicItem: item,
-                              wellnessContainerImage:
-                                  item.thumbnailMedia ??
-                                  natureImageUrls[Random().nextInt(index + 2)],
+                              wellnessContainerImage: _resolveArtwork(
+                                thumbnail: item.thumbnailMedia,
+                                fallbackImages: natureImageUrls,
+                                index: index,
+                              ),
                               heading: item.title,
                               subHeading:
                                   item.artistName == "Unknown"
