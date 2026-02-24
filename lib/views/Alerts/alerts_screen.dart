@@ -136,12 +136,14 @@ class _AlertsScreenState extends State<AlertsScreen>
             Theme.of(context).brightness == Brightness.dark
                 ? Colors.grey.shade900
                 : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+       borderRadius: BorderRadius.circular(16),
+
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.grey.withOpacity(0.3),
+            spreadRadius: 2,
+            blurRadius: 6,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
