@@ -104,12 +104,6 @@ class _ReminderScreenState extends State<ReminderScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Image.asset(noReminders, scale: 2),
-                SizedBox(height: 8),
-                Text(
-                  "No reminders… for now!\nAdd one and I’ll make sure you don’t forget.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
               ],
             ),
           );
