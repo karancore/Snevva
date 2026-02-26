@@ -1,0 +1,65 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+6 0 obj
+<< /Length 3102 >>
+stream
+BT /F2 18 Tf 1 0 0 1 54 756 Tm (Snevva App - One Page Summary) Tj ET
+BT /F2 12 Tf 1 0 0 1 54 730 Tm (What it is) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 714 Tm (- Snevva is a Flutter mobile health companion app using GetX for app state and flow control.) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 701 Tm (- It combines daily health tracking, reminders, and Elly chat guidance with cloud APIs.) Tj ET
+BT /F2 12 Tf 1 0 0 1 54 688 Tm (Who it's for) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 672 Tm (- Primary persona: people who want one mobile app for daily health habits and core vitals.) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 659 Tm (- Female-profile users also get women's health tracking screens and reminders.) Tj ET
+BT /F2 12 Tf 1 0 0 1 54 646 Tm (What it does) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 630 Tm (- Tracks sleep goals/progress, including background sleep monitoring.) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 617 Tm (- Tracks daily steps with background pedometer updates and sync logic.) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 604 Tm (- Tracks hydration intake against user goals.) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 591 Tm (- Logs mood, vitals \(BPM and blood pressure\), and BMI.) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 578 Tm (- Manages medicine, water, meal, and event reminders with alarms/notifications.) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 565 Tm (- Provides health tips, diet plans, and mental wellness content/music.) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 552 Tm (- Offers Chat with Elly decision-tree guidance; AI Symptom Checker is present but disabled.) Tj ET
+BT /F2 12 Tf 1 0 0 1 54 539 Tm (How it works \(repo evidence only\)) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 523 Tm (- UI layer: Flutter views/widgets with bottom nav sections Home, My Health, Alerts, and Menu.) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 510 Tm (- State layer: GetX controllers for auth, steps, sleep, hydration, reminders, mood, vitals, etc.) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 497 Tm (- Service layer: ApiService/AuthService call endpoints at https://abdmstg.coretegra.com.) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 484 Tm (- Security path: requests can be encrypted via EncryptionService with x-data-hash headers.) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 471 Tm (- Local data: Hive boxes \(step_history, sleep_log, reminders_box, medicine_list\) and) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 458 Tm (  SharedPreferences for sessions, flags, and cached user values.) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 445 Tm (- Background/alerts: flutter_background_service tracks steps/sleep; Firebase Messaging and) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 432 Tm (  local notifications drive push alerts and scheduled reminders.) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 419 Tm (- Backend internals and database schema: Not found in repo.) Tj ET
+BT /F2 12 Tf 1 0 0 1 54 406 Tm (How to run \(minimal\)) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 390 Tm (1. Install Flutter SDK. Repo Dart constraint in pubspec: ^3.7.0.) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 377 Tm (2. From repo root: flutter pub get) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 364 Tm (3. Launch on a device/emulator: flutter run) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 351 Tm (4. Exact environment/bootstrap docs for .env and secrets/key.json: Not found in repo.) Tj ET
+endstream
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000000321 00000 n 
+0000000396 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+3550
+%%EOF
