@@ -66,8 +66,6 @@ class _DashboardState extends State<Dashboard>
     );
 
     _animationController.forward();
-
-    Get.put(StepCounterController());
   }
 
   @override
@@ -81,7 +79,6 @@ class _DashboardState extends State<Dashboard>
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
-    // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       key: _scaffoldKey,

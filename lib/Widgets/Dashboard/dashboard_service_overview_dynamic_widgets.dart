@@ -50,8 +50,9 @@ class _DashboardServiceOverviewDynamicWidgetsState
   void initState() {
     super.initState();
 
-    stepController = Get.put(StepCounterController());
-    sleepController = Get.put(SleepController());
+    stepController = Get.find<StepCounterController>();
+    stepController.activateRealtimeTracking();
+    sleepController = Get.find<SleepController>();
     waterController = Get.find<HydrationStatController>();
     vitalController = Get.find<VitalsController>();
     localStorage = Get.find<LocalStorageManager>();
@@ -236,7 +237,7 @@ class _DashboardServiceOverviewDynamicWidgetsState
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: Lottie.asset(
-                        'assets/Dashboard/lhWa8wKgs5.json',
+                        ecgDashboardLottie,
                         fit: BoxFit.contain,
                       ),
                     ),

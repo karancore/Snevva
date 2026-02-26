@@ -152,7 +152,6 @@ class GoogleAuthService extends GetxService {
       final prefs = await SharedPreferences.getInstance();
       prefs.setString('auth_token', token);
 
-
       await authService.handleSuccessfulSignIn(
         emailOrPhone: account.email,
         prefs: await SharedPreferences.getInstance(),

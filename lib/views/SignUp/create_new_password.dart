@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
+import '../../Controllers/local_storage_manager.dart';
 import '../../Controllers/signupAndSignIn/create_password_controller.dart';
 import '../../Controllers/signupAndSignIn/otp_verification_controller.dart';
 import '../../common/custom_snackbar.dart';
@@ -71,7 +72,8 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
         return;
       }
       if (widget.emailOrPhoneText.contains('@')) {
-        localStorageManager.userMap['Email'] = widget.emailOrPhoneText.trim();
+        Get.find<LocalStorageManager>().userMap['Email'] =
+            widget.emailOrPhoneText.trim();
         controller.createNewPasswordWithGmail(
           widget.emailOrPhoneText.trim(),
           widget.otp,
@@ -80,7 +82,7 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
           context,
         );
       } else if (RegExp(r'^\d{10,}$').hasMatch(widget.emailOrPhoneText)) {
-        localStorageManager.userMap['PhoneNumber'] =
+        Get.find<LocalStorageManager>().userMap['PhoneNumber'] =
             widget.emailOrPhoneText.trim();
         controller.createNewPasswordWithPhone(
           widget.emailOrPhoneText.trim(),

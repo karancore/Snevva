@@ -32,12 +32,12 @@ class ApiService {
       final deviceInfoHeader =
           await DeviceTokenService().buildDeviceInfoHeader();
       headers['X-Device-Info'] = deviceInfoHeader;
-      logLong("headers", headers.toString());
+      debugPrint("headers ${headers.toString()}");
 
       final encryptedRequestBody = jsonEncode({
         'data': encrypted['encryptedData'],
       });
-      logLong("encryptedRequestBody", encryptedRequestBody);
+      debugPrint("encryptedRequestBody, $encryptedRequestBody");
 
       final response = await http.post(
         uri,
@@ -76,9 +76,13 @@ class ApiService {
       String? bodyPayload;
       if (plainBody != null) bodyPayload = jsonEncode(plainBody);
 
+      print("bodyPayload $bodyPayload");
+
       final deviceInfoHeader =
           await DeviceTokenService().buildDeviceInfoHeader();
       headers['X-Device-Info'] = deviceInfoHeader;
+
+      print("headers ${headers.toString()}");
 
       final response = await http.post(
         uri,

@@ -14,7 +14,7 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initialProfileController = Get.put(ProfileSetupController());
+    final initialProfileController = Get.find<ProfileSetupController>();
 
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
@@ -99,12 +99,13 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+
                 SizedBox(height: 10),
                 Divider(color: Colors.grey),
                 SizedBox(height: 10),
                 Row(
                   children: [
-                    SvgPicture.asset(phoneIcon, color: AppColors.primaryColor),
+                    Icon(Icons.phone_outlined , color: AppColors.primaryColor,),
                     SizedBox(width: 8),
                     Text('Phone'),
                     Spacer(),

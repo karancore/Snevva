@@ -29,7 +29,8 @@ class ThemeController extends GetxController with WidgetsBindingObserver {
   }
 
   bool _isSystemDarkMode() {
-    final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    final brightness =
+        WidgetsBinding.instance.platformDispatcher.platformBrightness;
     return brightness == Brightness.dark;
   }
 

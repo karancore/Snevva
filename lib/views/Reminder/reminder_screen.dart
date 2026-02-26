@@ -26,13 +26,49 @@ class _ReminderScreenState extends State<ReminderScreen>
   );
   bool showReminderBar = true;
   int? expandedIndex;
+  int _lastAnimatedCount = 0;
+
+  late AnimationController listAnimationController;
 
   @override
   void initState() {
     super.initState();
+    listAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
     });
+  }
+
+  void _triggerListAnimationIfNeeded(int itemCount) {
+    if (itemCount == 0 || itemCount == _lastAnimatedCount) return;
+    _lastAnimatedCount = itemCount;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      listAnimationController
+        ..reset()
+        ..forward();
+    });
+  }
+
+  Animation<Offset> _slideForIndex(int index) {
+    final start = (index * 0.07).clamp(0.0, 1.0);
+    final end = (start + 0.3).clamp(0.0, 1.0);
+    return Tween<Offset>(begin: const Offset(-1, 0), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: listAnimationController,
+        curve: Interval(start, end, curve: Curves.easeOut),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    listAnimationController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -68,17 +104,14 @@ class _ReminderScreenState extends State<ReminderScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Image.asset(noReminders, scale: 2),
-                SizedBox(height: 8),
-                Text(
-                  'Tap "+ Add Reminder" to create one',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
               ],
             ),
           );
         }
 
         // Show reminder list
+        _triggerListAnimationIfNeeded(controller.reminders.length);
+
         return Column(
           children: [
             Expanded(
@@ -93,100 +126,111 @@ class _ReminderScreenState extends State<ReminderScreen>
                       final reminder = entry.value;
 
                       final category = reminder.category;
-                      return Container(
-                        margin: EdgeInsets.all(10.0),
-                        decoration: BoxDecoration(
-                          color: isDarkMode ? darkGray : white,
-                          borderRadius: BorderRadius.circular(8.0),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.4),
-                              spreadRadius: 2,
-                              blurRadius: 6,
-                              offset: Offset(0, 0),
-                            ),
-                          ],
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.only(
-                            left: 12,
-                            top: 8,
-                            right: 8,
-                            bottom: 8,
+                      return SlideTransition(
+                        position: _slideForIndex(index),
+                        child: Container(
+                          margin: EdgeInsets.all(10.0),
+                          decoration: BoxDecoration(
+                            color: isDarkMode ? darkGray : white,
+                            borderRadius: BorderRadius.circular(8.0),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.4),
+                                spreadRadius: 2,
+                                blurRadius: 6,
+                                offset: Offset(0, 0),
+                              ),
+                            ],
                           ),
-                          child: AnimatedCrossFade(
-                            duration: const Duration(milliseconds: 250),
-                            firstCurve: Curves.easeIn,
-                            secondCurve: Curves.easeOut,
-                            crossFadeState:
-                                expandedIndex == index
-                                    ? CrossFadeState.showSecond
-                                    : CrossFadeState.showFirst,
-
-                            firstChild: Column(
-                              children: [
-                                CollapsedHeader(
-                                  reminder: reminder,
-                                  category: category,
-                                  isDarkMode: isDarkMode,
-                                  onToggle: () {
-                                    setState(() {
-                                      expandedIndex =
-                                          expandedIndex == index ? null : index;
-                                    });
-                                  },
-                                  onEdit:
-                                      () => Get.to(
-                                        AddReminderScreen(reminder: reminder),
-                                      ),
-                                  onDelete:
-                                      () => _showDeleteConfirmation(reminder),
-                                ),
-                                const SizedBox(height: 6),
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 12.0),
-                                  child: _buildCategoryContent(
-                                    reminder,
-                                    category,
-                                  ),
-                                ),
-                              ],
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                              left: 12,
+                              top: 8,
+                              right: 8,
+                              bottom: 8,
                             ),
+                            child: AnimatedCrossFade(
+                              duration: const Duration(milliseconds: 250),
+                              firstCurve: Curves.easeIn,
+                              secondCurve: Curves.easeOut,
+                              crossFadeState:
+                                  expandedIndex == index
+                                      ? CrossFadeState.showSecond
+                                      : CrossFadeState.showFirst,
 
-                            secondChild: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                CollapsedHeader(
-                                  reminder: reminder,
-                                  category: category,
-                                  isDarkMode: isDarkMode,
-                                  isExpanded: true,
-                                  onToggle: () {
-                                    setState(() {
-                                      expandedIndex =
-                                          expandedIndex == index ? null : index;
-                                    });
-                                  },
-                                  onEdit:
-                                      () => Get.to(
-                                        AddReminderScreen(reminder: reminder),
-                                      ),
-                                  onDelete:
-                                      () => _showDeleteConfirmation(reminder),
-                                ),
-                                const SizedBox(height: 6),
-                                ReminderDetailsCard(
-                                  reminder: reminder,
-                                  index: index,
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 12.0),
-                                  child: _buildCategoryContent(
-                                    reminder,
-                                    category,
+                              firstChild: Column(
+                                children: [
+                                  CollapsedHeader(
+                                    reminder: reminder,
+                                    category: category,
+                                    isDarkMode: isDarkMode,
+                                    onToggle: () {
+                                      setState(() {
+                                        expandedIndex =
+                                            expandedIndex == index
+                                                ? null
+                                                : index;
+                                      });
+                                    },
+                                    onEdit:
+                                        () => Get.to(
+                                          AddReminderScreen(reminder: reminder),
+                                        ),
+                                    onDelete:
+                                        () => _showDeleteConfirmation(reminder),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 6),
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      bottom: 12.0,
+                                    ),
+                                    child: _buildCategoryContent(
+                                      reminder,
+                                      category,
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              secondChild: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  CollapsedHeader(
+                                    reminder: reminder,
+                                    category: category,
+                                    isDarkMode: isDarkMode,
+                                    isExpanded: true,
+                                    onToggle: () {
+                                      setState(() {
+                                        expandedIndex =
+                                            expandedIndex == index
+                                                ? null
+                                                : index;
+                                      });
+                                    },
+                                    onEdit:
+                                        () => Get.to(
+                                          AddReminderScreen(reminder: reminder),
+                                        ),
+                                    onDelete:
+                                        () => _showDeleteConfirmation(reminder),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  ReminderDetailsCard(
+                                    reminder: reminder,
+                                    index: index,
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      bottom: 12.0,
+                                    ),
+                                    child: _buildCategoryContent(
+                                      reminder,
+                                      category,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),

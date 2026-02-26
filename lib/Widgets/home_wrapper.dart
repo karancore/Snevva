@@ -1,5 +1,4 @@
 import 'package:alarm/alarm.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/instance_manager.dart';
@@ -7,32 +6,9 @@ import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/views/Dashboard/dashboard.dart';
 import 'package:snevva/views/Information/menu_screen.dart';
-import 'package:snevva/views/Reminder/reminder_screen.dart';
 import 'package:snevva/views/Reminder/reminder_wrapper.dart';
 import 'package:snevva/widgets/navbar.dart';
-import '../Controllers/BMI/bmi_controller.dart';
-import '../Controllers/DietPlan/diet_plan_controller.dart';
-import '../Controllers/HealthTips/healthtips_controller.dart';
-import '../Controllers/Hydration/hydration_stat_controller.dart';
-import '../Controllers/MentalWellness/mental_wellness_controller.dart';
-import '../Controllers/MoodTracker/mood_controller.dart';
-import '../Controllers/MoodTracker/mood_questions_controller.dart';
-import '../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
-import '../Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
-import '../Controllers/StepCounter/step_counter_controller.dart';
-import '../Controllers/Vitals/vitalsController.dart';
-import '../Controllers/WomenHealth/bottom_sheet_controller.dart';
-import '../Controllers/WomenHealth/women_health_controller.dart';
-import '../Controllers/alerts/alerts_controller.dart';
-import '../Controllers/signupAndSignIn/create_password_controller.dart';
-import '../Controllers/signupAndSignIn/forgot_password_controller.dart';
-import '../Controllers/signupAndSignIn/otp_verification_controller.dart';
-import '../Controllers/signupAndSignIn/sign_in_controller.dart';
-import '../Controllers/signupAndSignIn/sign_up_controller.dart';
-import '../Controllers/signupAndSignIn/update_old_password_controller.dart';
-import '../services/app_initializer.dart';
 import '../services/notification_channel.dart';
-import '../utils/theme_controller.dart';
 import '../views/My_Health/my_health_screen.dart';
 import 'Drawer/drawer_menu_wigdet.dart';
 
@@ -49,9 +25,34 @@ class _HomeWrapperState extends State<HomeWrapper> {
   int _selectedIndex = 0;
   final localStorageManager = Get.find<LocalStorageManager>();
   final bmiController = Get.find<BmiUpdateController>();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  static Future<void>? _sharedStartupTask;
+  late final List<Widget?> _pages;
+
+  Widget _buildPage(int index) {
+    switch (index) {
+      case 0:
+        return Dashboard(onTabSelected: onTabSelected);
+      case 1:
+        return const MyHealthScreen();
+      case 2:
+        return const ReminderScreenWrapper();
+      case 3:
+        return const MenuScreen();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  void _ensurePageInitialized(int index) {
+    if (_pages[index] != null) return;
+    _pages[index] = _buildPage(index);
+  }
 
   void onTabSelected(int index) {
+    if (_selectedIndex == index) return;
     setState(() {
+      _ensurePageInitialized(index);
       _selectedIndex = index;
     });
   }
@@ -59,10 +60,12 @@ class _HomeWrapperState extends State<HomeWrapper> {
   @override
   void initState() {
     super.initState();
+    _pages = List<Widget?>.filled(4, null, growable: false);
+    _ensurePageInitialized(_selectedIndex);
     bmiController.loadUserBMI();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _startupSequence();
+      await _ensureStartupSequence();
     });
 
     //fetchFCMToken();
@@ -158,6 +161,11 @@ class _HomeWrapperState extends State<HomeWrapper> {
     // Get.put(VitalsController(), permanent: true);
   }
 
+  Future<void> _ensureStartupSequence() async {
+    _sharedStartupTask ??= _startupSequence();
+    await _sharedStartupTask;
+  }
+
   // Future<void> checksession() async {
   //   final prefs = await SharedPreferences.getInstance();
   //   final token = prefs.getString('auth_token');
@@ -171,31 +179,29 @@ class _HomeWrapperState extends State<HomeWrapper> {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
-    final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
-
-    List<Widget> pages = [
-      Dashboard(onTabSelected: onTabSelected),
-      MyHealthScreen(),
-      ReminderScreenWrapper(),
-      MenuScreen(),
-    ];
 
     return Scaffold(
-      key: scaffoldKey,
+      key: _scaffoldKey,
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       body: GestureDetector(
         onHorizontalDragUpdate: (details) {
           if (details.delta.dx > 10) {
             // Swipe Right - Open drawer
-            scaffoldKey.currentState?.openDrawer();
+            _scaffoldKey.currentState?.openDrawer();
           } else if (details.delta.dx < -10) {
             // Swipe Left - Close drawer
-            if (scaffoldKey.currentState?.isDrawerOpen == true) {
+            if (_scaffoldKey.currentState?.isDrawerOpen == true) {
               Navigator.of(context).pop(); // Close the drawer
             }
           }
         },
-        child: pages[_selectedIndex],
+        child: IndexedStack(
+          index: _selectedIndex,
+          children: List<Widget>.generate(
+            _pages.length,
+            (index) => _pages[index] ?? const SizedBox.shrink(),
+          ),
+        ),
       ),
       bottomNavigationBar: Navbar(
         selectedIndex: _selectedIndex,

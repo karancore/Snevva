@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:get/get_connect/http/src/response/response.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/common/custom_snackbar.dart';
+import 'package:snevva/models/alerts.dart';
+import 'package:snevva/services/notification_service.dart';
 import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
 import '../../env/env.dart';
@@ -10,25 +12,34 @@ import '../../models/app_notification.dart';
 import '../../services/api_service.dart';
 
 class AlertsController extends GetxService {
-  final RxList<AppNotification> notifications = <AppNotification>[].obs;
+  RxList<Alerts> notifications = <Alerts>[].obs;
+  static const deletedKey = 'deleted_notifications';
 
-  static const _storageKey = 'notifications_list';
+  final RxSet<String> deletedCodes = <String>{}.obs;
 
   @override
   void onInit() {
     super.onInit();
     // _loadNotifications();
+    _loadDeletedNotifications();
   }
 
-  // @override
-  // void onReady() {
-  //   super.onReady();
-  //   // Future.wait([hitAlertsNotifications()]);
-  // }
+  Future<void> _loadDeletedNotifications() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getStringList(deletedKey) ?? [];
 
-  Future<void> hitAlertsNotifications() async {
-    debugPrint("Fetching alerts notifications...");
+    deletedCodes.clear();
+    deletedCodes.addAll(stored);
+  }
 
+  Future<void> markAsDeleted(String code) async {
+    deletedCodes.add(code);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(deletedKey, deletedCodes.toList());
+  }
+
+  Future<List<Alerts>> hitAlertsNotifications() async {
     try {
       final response = await ApiService.post(
         alertsnotification,
@@ -37,74 +48,44 @@ class AlertsController extends GetxService {
         encryptionRequired: true,
       );
 
-      if (response is http.Response) {
-        debugPrint("❌ HTTP error: ${response.statusCode}");
-        CustomSnackbar.showError(
-          context: Get.context!,
-          title: 'Error',
-          message: 'Failed to fetch step data: ${response.statusCode}',
+      final decoded = jsonDecode(jsonEncode(response));
+      final responseModel = AlertsResponse.fromJson(decoded);
+
+      var activeAlerts = responseModel.alerts.where((a) => a.isActive).toList();
+      final Map<String, Alerts> uniqueMap = {};
+      for (var alert in activeAlerts) {
+        uniqueMap[alert.dataCode] = alert;
+      }
+
+      final filtered =
+          responseModel.alerts
+              .where((alert) => !deletedCodes.contains(alert.dataCode))
+              .toList();
+
+      notifications.assignAll(filtered);
+
+      return filtered;
+    } catch (e) {
+      debugPrint("❌ error: $e");
+      return [];
+    }
+  }
+
+  Future<void> scheduleAllAlerts(List<Alerts> alerts) async {
+    final notificationService = NotificationService();
+    await notificationService.notificationsPlugin.cancelAll();
+    for (final alert in alerts) {
+      for (final timeString in alert.times) {
+        final parsed = parse24Hour(timeString);
+        final id = generateNotificationId(alert.dataCode, timeString);
+        await notificationService.scheduleAlertNotification(
+          id: id,
+          title: alert.heading,
+          body: alert.title,
+          hour: parsed.hour,
+          minute: parsed.minute,
         );
-        return;
       }
-
-      final decoded = jsonDecode(jsonEncode(response));
-
-      logLong('🔍 Alerts Notifications Raw JSON: ', decoded.toString());
-    } catch (e, s) {
-      debugPrint("❌ hitAlertsNotifications error: $e");
-      debugPrintStack(stackTrace: s);
     }
-  }
-
-  Future<void> loadAlerts() async {
-    debugPrint(" Loading alerts...");
-
-    try {
-      final payload = {
-        'Tags': ['General'],
-        'FetchAll': true,
-        'Count': 0,
-        'Index': 0,
-      };
-
-      final response = await ApiService.post(
-        genralmusicAPI,
-        payload,
-        withAuth: true,
-        encryptionRequired: true,
-      );
-
-      if (response is http.Response) {
-        debugPrint("❌ HTTP error: ${response.statusCode}");
-        return null;
-      }
-
-      final decoded = jsonDecode(jsonEncode(response));
-
-      debugPrint("🔍 General Music Raw JSON: $decoded");
-    } catch (e, s) {
-      debugPrint("❌ loadGeneralMusic() error: $e");
-      debugPrintStack(stackTrace: s);
-
-      return null;
-    }
-  }
-
-  Future<void> _saveNotifications() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _storageKey,
-      jsonEncode(notifications.map((e) => e.toJson()).toList()),
-    );
-  }
-
-  void addNotification(AppNotification notification) {
-    notifications.insert(0, notification);
-    _saveNotifications();
-  }
-
-  void clearNotifications() {
-    notifications.clear();
-    _saveNotifications();
   }
 }

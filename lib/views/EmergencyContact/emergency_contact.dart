@@ -74,8 +74,7 @@ class EmergencyContact extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            SvgPicture.asset(locationPin),
-
+                            Icon(Icons.location_on_rounded , color: Colors.red,),
                             SizedBox(width: 5),
 
                             Text(
@@ -95,10 +94,18 @@ class EmergencyContact extends StatelessWidget {
                     children: [
                       InkWell(
                         onTap: () {},
-                        child: SvgPicture.asset(
-                          emergencyButton,
+                        child: Container(
+
                           height: height / 7,
-                        ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryColor, // The color of the circle
+                            shape: BoxShape.circle, // Makes the container a circle
+                          ),
+                          child: Center(
+                            child: Icon(Icons.arrow_forward , color: white,),
+                          ),
+                        )
+                        ,
                       ),
                     ],
                   ),
@@ -115,7 +122,15 @@ class EmergencyContact extends StatelessWidget {
                   borderRadius: BorderRadius.circular(40),
                   child: Padding(
                     padding: const EdgeInsets.all(3.0),
-                    child: SvgPicture.asset(addCircularContainer, height: 64),
+                    child: CircleAvatar(
+                      radius: 50.0, // Defines the size of the circle (radius, not width/height)
+                      backgroundColor: AppColors.primaryColor, // Background color
+                      child: Icon( // Optional: Add a child
+                        Icons.add,
+                        color: Colors.white,
+                        size: 40.0,
+                      ),
+                    ),
                   ),
                 ),
 

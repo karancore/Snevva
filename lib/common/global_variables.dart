@@ -30,7 +30,25 @@ bool startsWithCapital(String value) {
   if (value.isEmpty) return false;
   return value[0] == value[0].toUpperCase();
 }
+class ParsedTime {
+  final int hour;
+  final int minute;
 
+  ParsedTime(this.hour, this.minute);
+}
+
+/// "23:59" -> 23 , 59
+ParsedTime parse24Hour(String time) {
+  final parts = time.split(':');
+  return ParsedTime(
+    int.parse(parts[0]),
+    int.parse(parts[1]),
+  );
+}
+
+int generateNotificationId(String dataCode, String time) {
+  return (dataCode + time).hashCode.abs();
+}
 class MaxValueTextInputFormatter extends TextInputFormatter {
   final int max;
 
