@@ -58,7 +58,7 @@ class _DrChatState extends State<DrChat> {
         elevation: 0,
         automaticallyImplyLeading: false,
         leading: IconButton(
-          icon: Image.asset(bacskarrowBlack), // your custom close icon
+          icon: Icon(Icons.arrow_back_ios_new), // your custom close icon
           onPressed: () {
             Navigator.pop(context);
           },

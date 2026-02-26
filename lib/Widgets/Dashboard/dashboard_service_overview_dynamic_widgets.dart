@@ -237,7 +237,7 @@ class _DashboardServiceOverviewDynamicWidgetsState
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: Lottie.asset(
-                        'assets/Dashboard/lhWa8wKgs5.json',
+                        ecgDashboardLottie,
                         fit: BoxFit.contain,
                       ),
                     ),

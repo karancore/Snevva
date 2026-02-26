@@ -99,12 +99,13 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+
                 SizedBox(height: 10),
                 Divider(color: Colors.grey),
                 SizedBox(height: 10),
                 Row(
                   children: [
-                    SvgPicture.asset(phoneIcon, color: AppColors.primaryColor),
+                    Icon(Icons.phone_outlined , color: AppColors.primaryColor,),
                     SizedBox(width: 8),
                     Text('Phone'),
                     Spacer(),
