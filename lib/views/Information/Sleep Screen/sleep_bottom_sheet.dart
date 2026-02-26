@@ -171,6 +171,10 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
       minutes: goalMinutes,
     );
 
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('manually_stopped', false);
+    await prefs.remove('manually_stopped_window_key');
+
     // ✅ FIX: Ensure background service is running before invoking
     await _ensureBackgroundServiceRunning();
 
@@ -367,6 +371,13 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
             onTap: () async {
               final prefs = await SharedPreferences.getInstance();
               await prefs.setBool('manually_stopped', true);
+              final activeWindowKey =
+                  prefs.getString('current_sleep_window_key') ??
+                  "${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}";
+              await prefs.setString(
+                'manually_stopped_window_key',
+                activeWindowKey,
+              );
 
               if (mounted) {
                 setState(() {
@@ -668,6 +679,7 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('manually_stopped', false);
+    await prefs.remove('manually_stopped_window_key');
 
     final bedtimeMinutes = bedHour * 60 + bedMinute;
     final waketimeMinutes = wakeHour * 60 + wakeMinute;
