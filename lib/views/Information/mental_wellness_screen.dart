@@ -66,12 +66,9 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
         final natureMusic = controller.natureMusic;
 
         if (generalMusic.isEmpty) {
-          return const Text("No suggestions");
+          return Center(child: Text("No suggestions available right now. \n Please try again later" , textAlign: TextAlign.center , style: TextStyle(fontSize: 18 , fontWeight: FontWeight.w400),));
         }
 
-        if (natureMusic.isEmpty) {
-          return const Text("No suggestions");
-        }
 
         return SingleChildScrollView(
           child: Column(

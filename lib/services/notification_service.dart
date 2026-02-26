@@ -1,10 +1,8 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
-import 'package:snevva/main.dart';
 import 'package:timezone/data/latest.dart' as tzd;
 import 'package:timezone/timezone.dart' as tz;
 
-import '../Controllers/SleepScreen/sleep_controller.dart';
 import '../consts/consts.dart';
 
 const int NOTIFICATION_ID = 999;
@@ -14,7 +12,7 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin notificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  var hasNewNotification = false.obs;
+  var hasNewNotification = true.obs;
 
   // -------------------------------------------------
   // Initialize notifications and timezone

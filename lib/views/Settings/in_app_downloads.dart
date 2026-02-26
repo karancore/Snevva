@@ -102,23 +102,25 @@ class _InAppDownloadsState extends State<InAppDownloads> {
 
             final tracks = snapshot.data ?? <_DownloadedTrackInfo>[];
             if (tracks.isEmpty) {
-              return ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(20),
-                children: const [
-                  SizedBox(height: 120),
-                  Icon(
-                    Icons.library_music_outlined,
-                    size: 56,
-                    color: mediumGrey,
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'No Snevva downloads yet.\nDownloaded tracks will appear here.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 15),
-                  ),
-                ],
+              return Center(
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(20),
+                  children: const [
+                    SizedBox(height: 120),
+                    Icon(
+                      Icons.library_music_outlined,
+                      size: 56,
+                      color: mediumGrey,
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'No Snevva downloads yet.\nDownloaded tracks will appear here.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 15),
+                    ),
+                  ],
+                ),
               );
             }
 

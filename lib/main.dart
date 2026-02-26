@@ -31,7 +31,6 @@ import 'package:snevva/services/hive_service.dart';
 import 'package:snevva/utils/theme_controller.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
-import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import 'Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import 'Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
@@ -46,7 +45,6 @@ import 'Controllers/signupAndSignIn/create_password_controller.dart';
 
 import 'common/ExceptionLogger.dart';
 import 'common/global_variables.dart';
-import 'common/loader.dart';
 
 import 'consts/consts.dart';
 
@@ -55,10 +53,18 @@ import 'models/app_notification.dart';
 import 'services/app_initializer.dart';
 import 'services/notification_channel.dart';
 import 'common/agent_debug_logger.dart';
+import 'performance/frame_timing_monitor.dart';
+import 'performance/refresh_rate_bootstrap.dart';
 import 'utils/theme.dart';
+import 'views/debug/high_fps_demo_screen.dart';
 import 'views/Reminder/reminder_screen.dart';
 import 'views/SignUp/sign_in_screen.dart';
 import 'widgets/home_wrapper.dart';
+
+const bool _kShowPerformanceOverlay = bool.fromEnvironment(
+  'SHOW_PERFORMANCE_OVERLAY',
+  defaultValue: false,
+);
 
 Future<void> ensureFirebaseInitialized() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -145,6 +151,13 @@ void main() {
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+      final refreshRateProfile = await RefreshRateBootstrap.initialize();
+
+      if (kDebugMode || kProfileMode) {
+        FrameTimingMonitor.instance.start(
+          targetFrameRateHz: refreshRateProfile.targetFrameRateHz,
+        );
+      }
 
       final prefs = await SharedPreferences.getInstance();
       final isRemembered = prefs.getBool('remember_me') ?? false;
@@ -154,7 +167,12 @@ void main() {
         _firebaseMessagingBackgroundHandler,
       );
 
-      runApp(MyApp(isRemembered: isRemembered));
+      runApp(
+        MyApp(
+          isRemembered: isRemembered,
+          refreshRateProfile: refreshRateProfile,
+        ),
+      );
     },
     (error, stack) async {
       await ExceptionLogger.log(exception: error, stackTrace: stack);
@@ -279,8 +297,13 @@ int _countLargePrefsCandidates(List<String> keys) {
 /// ------------------------------------------------------------
 class MyApp extends StatefulWidget {
   final bool isRemembered;
+  final RefreshRateProfile refreshRateProfile;
 
-  const MyApp({super.key, required this.isRemembered});
+  const MyApp({
+    super.key,
+    required this.isRemembered,
+    required this.refreshRateProfile,
+  });
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -299,6 +322,18 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     _themeController = Get.find<ThemeController>();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final updatedProfile = RefreshRateBootstrap.updateFromContext(context);
+      if (updatedProfile == null) return;
+
+      if (kDebugMode || kProfileMode) {
+        FrameTimingMonitor.instance.updateTargetFrameRate(
+          updatedProfile.targetFrameRateHz,
+        );
+      }
+    });
 
     _safeInit();
     _handlePendingNavigation();
@@ -521,6 +556,8 @@ class _MyAppState extends State<MyApp> {
     return Obx(
       () => GetMaterialApp(
         debugShowCheckedModeBanner: false,
+        showPerformanceOverlay:
+            _kShowPerformanceOverlay && (kDebugMode || kProfileMode),
         //initialBinding: InitialBindings(),
         title: 'Snevva',
         theme: SnevvaTheme.lightTheme,
@@ -533,6 +570,7 @@ class _MyAppState extends State<MyApp> {
           GetPage(name: '/home', page: () => HomeWrapper()),
           GetPage(name: '/reminder', page: () => ReminderScreen()),
           GetPage(name: '/mood', page: () => MoodTrackerScreen()),
+          GetPage(name: '/perf-120', page: () => const HighFpsDemoScreen()),
         ],
         home:
             _initState == AppInitState.loading
@@ -563,7 +601,7 @@ class InitializationSplash extends StatelessWidget {
     const double splashContentWidth = 220;
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final Color splashBackground =
-        isDarkMode ? const Color(0xFF0E1014) : Colors.white;
+        isDarkMode ? black : white;
     final Color subtitleColor = isDarkMode ? Colors.white70 : Colors.black54;
 
     return Scaffold(
