@@ -94,7 +94,7 @@ const syrupIcon = "assets/Icons/reminder/syrup.svg";
 const tabletIcon = "assets/Icons/reminder/tablet.svg";
 const dropsIcon = "assets/Icons/reminder/drops.svg";
 
-const pen = "assets/Icons/reminder/editIcon.svg";
+const pen = "assets/Icons/reminder/pencil.svg";
 const clockRemIcon = "assets/Icons/reminder/clock.svg";
 
 //Vitals Screen
