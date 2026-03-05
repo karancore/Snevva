@@ -26,10 +26,13 @@ class DietDetailsScreen extends StatefulWidget {
 
 class _DietDetailsScreenState extends State<DietDetailsScreen> {
   final dietController = Get.find<DietPlanController>();
+  final ScrollController dayScrollController = ScrollController();
+  final List<GlobalKey> dayKeys = [];
 
   @override
   void initState() {
     super.initState();
+    _initializeDayKeys();
     dietController.selectedDayIndex.value = 0;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (dietController.celebrityPageController.hasClients) {
@@ -39,8 +42,43 @@ class _DietDetailsScreenState extends State<DietDetailsScreen> {
   }
 
   @override
+  void didUpdateWidget(covariant DietDetailsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.daysList.length != widget.daysList.length) {
+      _initializeDayKeys();
+    }
+  }
+
+  @override
+  void dispose() {
+    dayScrollController.dispose();
+    super.dispose();
+  }
+
+  void _initializeDayKeys() {
+    dayKeys
+      ..clear()
+      ..addAll(List.generate(widget.daysList.length, (_) => GlobalKey()));
+  }
+
+  void scrollToSelectedDay(int index) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || index < 0 || index >= dayKeys.length) return;
+
+      final selectedDayContext = dayKeys[index].currentContext;
+      if (selectedDayContext == null) return;
+
+      Scrollable.ensureVisible(
+        selectedDayContext,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        alignment: 0.5,
+      );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    logLong("Celebrity Diet Plan", widget.diet.toJson().toString());
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
@@ -132,21 +170,16 @@ class _DietDetailsScreenState extends State<DietDetailsScreen> {
           //   }),
           // ),),
           SingleChildScrollView(
+            controller: dayScrollController,
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.only(left: 20),
             child: Obx(() {
               final dataList = widget.daysList;
-              logLong(
-                "Celebrity dietags response ",
-                dataList.length.toString(),
-              );
+
               if (dataList.isEmpty) {
                 return SizedBox.shrink();
               }
-              logLong(
-                "",
-                dietController.categoryResponse.value.data.toString(),
-              );
+
               return Column(
                 children: [
                   //Text(dietController.dietTagResponse.value.toJson().toString()) ,
@@ -161,11 +194,15 @@ class _DietDetailsScreenState extends State<DietDetailsScreen> {
                             top: 6,
                             bottom: 6,
                           ),
-                          child: dietDaysCont(
-                            index + 1,
-                            isDarkMode,
-                            isSelected:
-                                dietController.selectedDayIndex.value == index,
+                          child: Container(
+                            key: dayKeys[index],
+                            child: dietDaysCont(
+                              index + 1,
+                              isDarkMode,
+                              isSelected:
+                                  dietController.selectedDayIndex.value ==
+                                  index,
+                            ),
                           ),
                         ),
                       );
@@ -179,7 +216,10 @@ class _DietDetailsScreenState extends State<DietDetailsScreen> {
           Expanded(
             child: PageView.builder(
               controller: dietController.celebrityPageController,
-              onPageChanged: dietController.onCelebrityPageChanged,
+              onPageChanged: (index) {
+                dietController.onCelebrityPageChanged(index);
+                scrollToSelectedDay(index);
+              },
               itemCount: daysList.length, // <-- Number of days
               itemBuilder: (context, index) {
                 final dayMeal = daysList[index];

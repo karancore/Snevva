@@ -9,6 +9,8 @@ import '../../services/api_service.dart';
 import '../local_storage_manager.dart';
 
 class BmiUpdateController extends GetxService {
+  static const int _pageSize = 8;
+
   RxInt age = 0.obs;
   RxString bmi_text = "Great-Shape".obs;
   var customTips = <dynamic>[].obs;
@@ -20,15 +22,29 @@ class BmiUpdateController extends GetxService {
 
   var isLoading = true.obs;
   var hasError = false.obs;
+  var isLoadingMore = false.obs;
+  var hasMoreData = true.obs;
+  int pageIndex = 1;
 
   late LocalStorageManager localStorageManager;
   late EditprofileController editprofileController;
+  final ScrollController scrollController = ScrollController();
 
   @override
   void onInit() {
     super.onInit();
     localStorageManager = Get.find<LocalStorageManager>();
     editprofileController = Get.find<EditprofileController>();
+    scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!scrollController.hasClients) return;
+    final position = scrollController.position;
+    if (position.maxScrollExtent <= 0) return;
+    if (position.pixels >= position.maxScrollExtent - 200) {
+      GetCustomHealthTips(loadMore: true);
+    }
   }
 
   Future<bool> setHeightAndWeight(
@@ -150,7 +166,19 @@ class BmiUpdateController extends GetxService {
     }
   }
 
-  Future<void> GetCustomHealthTips() async {
+  Future<void> GetCustomHealthTips({bool loadMore = false}) async {
+    if (loadMore && (isLoadingMore.value || !hasMoreData.value)) return;
+
+    final targetPage = loadMore ? pageIndex + 1 : 1;
+    if (loadMore) {
+      isLoadingMore.value = true;
+    } else {
+      hasMoreData.value = true;
+      pageIndex = 1;
+      customTips.clear();
+      randomTips.clear();
+    }
+
     try {
       List<String> tags = ['BMI', bmi_text.value];
       if (age.value >= 13 && age.value <= 18) {
@@ -161,7 +189,12 @@ class BmiUpdateController extends GetxService {
         tags.add("Age 25 to 60");
       }
       // print(localStorageManager.userGoalDataMap['HeightData']['Value']);
-      final payload = {'Tags': tags, 'FetchAll': true, 'Count': 0, 'Index': 0};
+      final payload = {
+        'Tags': tags,
+        'FetchAll': false,
+        'Count': _pageSize,
+        'Index': targetPage,
+      };
 
       final response = await ApiService.post(
         genhealthtipsAPI,
@@ -175,16 +208,42 @@ class BmiUpdateController extends GetxService {
       }
 
       final parsedData = jsonDecode(jsonEncode(response));
-      customTips.value = parsedData['data'] ?? [];
+      final fetchedTips = List<dynamic>.from(parsedData['data'] ?? []);
+      if (fetchedTips.isEmpty) {
+        hasMoreData.value = false;
+        return;
+      }
 
-      final List<dynamic> allTips = List.from(customTips);
-      allTips.shuffle();
-      randomTips.assignAll(allTips.take(2).toList()); // ✅ use assignAll
-      isLoading.value = false;
+      pageIndex = targetPage;
+      if (loadMore) {
+        customTips.addAll(fetchedTips);
+        randomTips.addAll(fetchedTips);
+      } else {
+        customTips.assignAll(fetchedTips);
+        randomTips.assignAll(fetchedTips);
+      }
+
+      if (fetchedTips.length < _pageSize) {
+        hasMoreData.value = false;
+      }
     } catch (e) {
-      customTips.value = [];
-      randomTips.clear(); // ✅ safely clear reactive list
-      throw Exception('Error fetching custom health tips: $e');
+      if (!loadMore) {
+        customTips.clear();
+        randomTips.clear();
+      }
+      hasError.value = true;
+      debugPrint('Error fetching custom health tips: $e');
+    } finally {
+      if (loadMore) {
+        isLoadingMore.value = false;
+      }
     }
+  }
+
+  @override
+  void onClose() {
+    scrollController.removeListener(_onScroll);
+    scrollController.dispose();
+    super.onClose();
   }
 }

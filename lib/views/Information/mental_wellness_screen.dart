@@ -66,47 +66,65 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
         final natureMusic = controller.natureMusic;
 
         if (generalMusic.isEmpty) {
-          return Center(child: Text("No suggestions available right now. \n Please try again later" , textAlign: TextAlign.center , style: TextStyle(fontSize: 18 , fontWeight: FontWeight.w400),));
+          return Center(
+            child: Text(
+              "No suggestions available right now. \n Please try again later",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w400),
+            ),
+          );
         }
 
+        final generalItemCount =
+            generalMusic.length +
+            (controller.isGeneralLoadingMore.value ? 1 : 0);
+        final meditationItemCount =
+            meditationMusic.length +
+            (controller.isMeditationLoadingMore.value ? 1 : 0);
+        final natureItemCount =
+            natureMusic.length + (controller.isNatureLoadingMore.value ? 1 : 0);
 
         return SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // =================== General Music ===================
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: List.generate(generalMusic.length, (index) {
-                    final item = generalMusic[index];
-
-                    return Padding(
-                      padding: EdgeInsets.only(
-                        right: index == generalMusic.length - 1 ? 0 : 16,
-                      ),
-                      child: InkWell(
-                        child: MentalWellnessHeaderWidget(
-                          height: 180 * heightFactor,
-                          musicItem: item,
-                          width: 280 * widthFactor,
-                          playText: '',
-                          wellnessContainerImage: _resolveArtwork(
-                            thumbnail: item.thumbnailMedia,
-                            fallbackImages: generalImageUrls,
-                            index: index,
-                          ),
-                          heading: item.title,
-                          subHeading:
-                              item.artistName == "Unknown"
-                                  ? ""
-                                  : item.artistName,
-                          boxFit: BoxFit.cover,
+              SizedBox(
+                height: 180 * heightFactor,
+                child: ListView.separated(
+                  controller: controller.generalScrollController,
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: generalItemCount,
+                  separatorBuilder: (_, __) => const SizedBox(width: 16),
+                  itemBuilder: (context, index) {
+                    if (index >= generalMusic.length) {
+                      return const Center(
+                        child: SizedBox(
+                          width: 30,
+                          height: 30,
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         ),
+                      );
+                    }
+
+                    final item = generalMusic[index];
+                    return MentalWellnessHeaderWidget(
+                      height: 180 * heightFactor,
+                      musicItem: item,
+                      width: 280 * widthFactor,
+                      playText: '',
+                      wellnessContainerImage: _resolveArtwork(
+                        thumbnail: item.thumbnailMedia,
+                        fallbackImages: generalImageUrls,
+                        index: index,
                       ),
+                      heading: item.title,
+                      subHeading:
+                          item.artistName == "Unknown" ? "" : item.artistName,
+                      boxFit: BoxFit.cover,
                     );
-                  }),
+                  },
                 ),
               ),
 
@@ -124,38 +142,45 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                       ),
                     ),
                     const SizedBox(height: 18),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: List.generate(meditationMusic.length, (
-                          index,
-                        ) {
-                          final item = meditationMusic[index];
-
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              right:
-                                  index == meditationMusic.length - 1 ? 0 : 16,
-                            ),
-                            child: MentalWellnessHeaderWidget(
-                              height: 189 * heightFactor,
-                              musicItem: item,
-                              width: 353 * widthFactor,
-                              playText: "Play",
-                              wellnessContainerImage: _resolveArtwork(
-                                thumbnail: item.thumbnailMedia,
-                                fallbackImages: meditationImageUrls,
-                                index: index,
+                    SizedBox(
+                      height: 189 * heightFactor,
+                      child: ListView.separated(
+                        controller: controller.meditationScrollController,
+                        scrollDirection: Axis.horizontal,
+                        itemCount: meditationItemCount,
+                        separatorBuilder: (_, __) => const SizedBox(width: 16),
+                        itemBuilder: (context, index) {
+                          if (index >= meditationMusic.length) {
+                            return const Center(
+                              child: SizedBox(
+                                width: 30,
+                                height: 30,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               ),
-                              heading: item.title,
-                              subHeading:
-                                  item.artistName == "Unknown"
-                                      ? ""
-                                      : item.artistName,
-                              boxFit: BoxFit.cover,
+                            );
+                          }
+
+                          final item = meditationMusic[index];
+                          return MentalWellnessHeaderWidget(
+                            height: 189 * heightFactor,
+                            musicItem: item,
+                            width: 353 * widthFactor,
+                            playText: "Play",
+                            wellnessContainerImage: _resolveArtwork(
+                              thumbnail: item.thumbnailMedia,
+                              fallbackImages: meditationImageUrls,
+                              index: index,
                             ),
+                            heading: item.title,
+                            subHeading:
+                                item.artistName == "Unknown"
+                                    ? ""
+                                    : item.artistName,
+                            boxFit: BoxFit.cover,
                           );
-                        }),
+                        },
                       ),
                     ),
                     const SizedBox(height: 18),
@@ -173,31 +198,37 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
               // =================== Nature Sounds ===================
               Padding(
                 padding: const EdgeInsets.only(left: 20),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children:
-                        natureMusic.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final item = entry.value;
+                child: SizedBox(
+                  height: 130,
+                  child: ListView.separated(
+                    controller: controller.natureScrollController,
+                    scrollDirection: Axis.horizontal,
+                    itemCount: natureItemCount,
+                    separatorBuilder: (_, __) => const SizedBox(width: 16),
+                    itemBuilder: (context, index) {
+                      if (index >= natureMusic.length) {
+                        return const Center(
+                          child: SizedBox(
+                            width: 30,
+                            height: 30,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        );
+                      }
 
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 16),
-                            child: MentalWellnessFooterWidget(
-                              musicItem: item,
-                              wellnessContainerImage: _resolveArtwork(
-                                thumbnail: item.thumbnailMedia,
-                                fallbackImages: natureImageUrls,
-                                index: index,
-                              ),
-                              heading: item.title,
-                              subHeading:
-                                  item.artistName == "Unknown"
-                                      ? ""
-                                      : item.artistName,
-                            ),
-                          );
-                        }).toList(),
+                      final item = natureMusic[index];
+                      return MentalWellnessFooterWidget(
+                        musicItem: item,
+                        wellnessContainerImage: _resolveArtwork(
+                          thumbnail: item.thumbnailMedia,
+                          fallbackImages: natureImageUrls,
+                          index: index,
+                        ),
+                        heading: item.title,
+                        subHeading:
+                            item.artistName == "Unknown" ? "" : item.artistName,
+                      );
+                    },
                   ),
                 ),
               ),

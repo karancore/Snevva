@@ -10,11 +10,19 @@ import '../BMI/bmi_controller.dart';
 import '../local_storage_manager.dart';
 
 class DietPlanController extends GetxController {
+  static const int _pageSize = 8;
+
   final selectedDayIndex = 0.obs;
   final selectedCategoryIndex = 0.obs;
   final isCategoryLoading = false.obs;
   final isSuggestionsLoading = false.obs;
   final isCelebrityLoading = false.obs;
+  final isCategoryLoadingMore = false.obs;
+  final isSuggestionsLoadingMore = false.obs;
+  final isCelebrityLoadingMore = false.obs;
+  final hasMoreCategoryData = true.obs;
+  final hasMoreSuggestionsData = true.obs;
+  final hasMoreCelebrityData = true.obs;
 
   var categoryResponse = DietTagsResponse(data: []).obs;
   var categoryDataResponse = DietTagData(mealPlan: [], tags: []).obs;
@@ -23,6 +31,13 @@ class DietPlanController extends GetxController {
 
   // Replaces raw Map usage: typed list for celebrity responses
   var celebrityList = <DietTagData>[].obs;
+  int categoryPageIndex = 1;
+  int suggestionsPageIndex = 1;
+  int celebrityPageIndex = 1;
+  String selectedCategoryText = 'Vegetarian';
+  final ScrollController categoryScrollController = ScrollController();
+  final ScrollController suggestionsScrollController = ScrollController();
+  final ScrollController celebrityScrollController = ScrollController();
 
   late PageController celebrityPageController;
   late PageController categoryPageController;
@@ -36,8 +51,38 @@ class DietPlanController extends GetxController {
     categoryPageController = PageController(
       initialPage: selectedCategoryIndex.value,
     );
+    categoryScrollController.addListener(_onCategoryScroll);
+    suggestionsScrollController.addListener(_onSuggestionsScroll);
+    celebrityScrollController.addListener(_onCelebrityScroll);
 
     super.onInit();
+  }
+
+  void _onCategoryScroll() {
+    if (!categoryScrollController.hasClients) return;
+    final position = categoryScrollController.position;
+    if (position.maxScrollExtent <= 0) return;
+    if (position.pixels >= position.maxScrollExtent - 200) {
+      getAllDiets(null, selectedCategoryText, loadMore: true);
+    }
+  }
+
+  void _onSuggestionsScroll() {
+    if (!suggestionsScrollController.hasClients) return;
+    final position = suggestionsScrollController.position;
+    if (position.maxScrollExtent <= 0) return;
+    if (position.pixels >= position.maxScrollExtent - 200) {
+      getAllSuggestions(null, loadMore: true);
+    }
+  }
+
+  void _onCelebrityScroll() {
+    if (!celebrityScrollController.hasClients) return;
+    final position = celebrityScrollController.position;
+    if (position.maxScrollExtent <= 0) return;
+    if (position.pixels >= position.maxScrollExtent - 200) {
+      getCelebrity(null, loadMore: true);
+    }
   }
 
   void onCelebrityPageChanged(int index) {
@@ -75,17 +120,37 @@ class DietPlanController extends GetxController {
   }
 
   Future<DietTagsResponse?> getAllDiets(
-    BuildContext context,
-    String categoryText,
-  ) async {
+    BuildContext? context,
+    String categoryText, {
+    bool loadMore = false,
+  }) async {
+    if (loadMore &&
+        (isCategoryLoadingMore.value || !hasMoreCategoryData.value)) {
+      return null;
+    }
+
+    final String normalizedCategory =
+        categoryText.isEmpty ? "Vegetarian" : categoryText;
+    final int targetPage = loadMore ? categoryPageIndex + 1 : 1;
+
     debugPrint(
-      "🔍 [API - getAllDiets] Fetching category: ${categoryText.isEmpty ? 'Vegetarian (Default)' : categoryText}",
+      "🔍 [API - getAllDiets] Fetching category: $normalizedCategory (page $targetPage)",
     );
-    isCategoryLoading.value = true;
+    if (loadMore) {
+      isCategoryLoadingMore.value = true;
+    } else {
+      selectedCategoryText = normalizedCategory;
+      categoryPageIndex = 1;
+      hasMoreCategoryData.value = true;
+      isCategoryLoading.value = true;
+      categoryResponse.value = DietTagsResponse(data: []);
+    }
     try {
       final payload = {
-        "Tags": ["General", categoryText.isEmpty ? "Vegetarian" : categoryText],
-        "FetchAll": true,
+        "Tags": ["General", normalizedCategory],
+        "FetchAll": false,
+        "Count": _pageSize,
+        "Index": targetPage,
       };
       print("🚀 [API - getAllDiets] Payload: $payload");
 
@@ -106,7 +171,29 @@ class DietPlanController extends GetxController {
       // }
 
       final parsed = Map<String, dynamic>.from(response as Map);
-      categoryResponse.value = DietTagsResponse.fromJson(parsed);
+      final fetchedResponse = DietTagsResponse.fromJson(parsed);
+      final fetchedItems = List<DietTagData>.from(fetchedResponse.data ?? []);
+      if (fetchedItems.isEmpty) {
+        hasMoreCategoryData.value = false;
+        return fetchedResponse;
+      }
+
+      categoryPageIndex = targetPage;
+      final mergedItems =
+          loadMore
+              ? <DietTagData>[
+                ...(categoryResponse.value.data ?? <DietTagData>[]),
+                ...fetchedItems,
+              ]
+              : fetchedItems;
+
+      categoryResponse.value = DietTagsResponse(
+        status: fetchedResponse.status,
+        statusType: fetchedResponse.statusType,
+        message: fetchedResponse.message,
+        data: mergedItems,
+      );
+      hasMoreCategoryData.value = fetchedItems.length == _pageSize;
       logLong(
         'categoryResponse.value',
         categoryResponse.value.toJson().toString(),
@@ -118,7 +205,11 @@ class DietPlanController extends GetxController {
     } catch (e) {
       debugPrint("🔥 [API - getAllDiets] Exception: $e");
     } finally {
-      isCategoryLoading.value = false;
+      if (loadMore) {
+        isCategoryLoadingMore.value = false;
+      } else {
+        isCategoryLoading.value = false;
+      }
     }
     return null;
   }
@@ -140,12 +231,30 @@ class DietPlanController extends GetxController {
     return null;
   }
 
-  Future<void> getCelebrity(BuildContext context) async {
-    isCelebrityLoading.value = true;
+  Future<void> getCelebrity(
+    BuildContext? context, {
+    bool loadMore = false,
+  }) async {
+    if (loadMore &&
+        (isCelebrityLoadingMore.value || !hasMoreCelebrityData.value)) {
+      return;
+    }
+
+    final targetPage = loadMore ? celebrityPageIndex + 1 : 1;
+    if (loadMore) {
+      isCelebrityLoadingMore.value = true;
+    } else {
+      isCelebrityLoading.value = true;
+      celebrityPageIndex = 1;
+      hasMoreCelebrityData.value = true;
+      celebrityList.clear();
+    }
     try {
       final payload = {
         "Tags": ["General", "Celebrity"],
-        "FetchAll": true,
+        "FetchAll": false,
+        "Count": _pageSize,
+        "Index": targetPage,
       };
       print("🚀 [API - getCelebrity] Payload: $payload");
 
@@ -205,7 +314,18 @@ class DietPlanController extends GetxController {
             );
           }).toList();
 
-      celebrityList.value = parsedList;
+      if (parsedList.isEmpty) {
+        hasMoreCelebrityData.value = false;
+        return;
+      }
+
+      celebrityPageIndex = targetPage;
+      if (loadMore) {
+        celebrityList.addAll(parsedList);
+      } else {
+        celebrityList.assignAll(parsedList);
+      }
+      hasMoreCelebrityData.value = parsedList.length == _pageSize;
 
       logLong(
         'celebrityList',
@@ -218,50 +338,45 @@ class DietPlanController extends GetxController {
     } catch (e, stack) {
       debugPrint("🔥 [API - getCelebrity] Exception: $e\n$stack");
     } finally {
-      isCelebrityLoading.value = false;
+      if (loadMore) {
+        isCelebrityLoadingMore.value = false;
+      } else {
+        isCelebrityLoading.value = false;
+      }
     }
   }
 
-  Future<DietTagsResponse?> getAllSuggestions(BuildContext context) async {
+  Future<DietTagsResponse?> getAllSuggestions(
+    BuildContext? context, {
+    bool loadMore = false,
+  }) async {
+    if (loadMore &&
+        (isSuggestionsLoadingMore.value || !hasMoreSuggestionsData.value)) {
+      return null;
+    }
+
+    final targetPage = loadMore ? suggestionsPageIndex + 1 : 1;
     debugPrint("🧠 [Suggestions] Generating tags for user profile...");
     try {
-      isSuggestionsLoading.value = true;
-
-      List<String> tags = [];
-
-      final localStorageManager = Get.find<LocalStorageManager>();
-      final bmiController = Get.find<BmiController>();
-
-      // Tracking tag inputs
-      String bmiLabel = bmiController.bmi_text.value;
-      tags.add(bmiLabel);
-
-      final storedGender = localStorageManager.userMap['Gender'];
-      final activityLevel =
-          localStorageManager.userGoalDataMap["ActivityLevel"] ?? "";
-      final healthGoal =
-          localStorageManager.userGoalDataMap["HealthGoal"] ?? "";
-
-      if (activityLevel.isNotEmpty) tags.add(activityLevel);
-      if (healthGoal.isNotEmpty) tags.add(healthGoal);
-      if (storedGender == "Female") tags.add("Female");
-
-      // Age Logic
-      final year = localStorageManager.userMap['YearOfBirth'];
-
-      num age = DateTime.now().year - year;
-      print("🚀 [Suggestions] Calculated Age: $age");
-      if (age >= 13 && age <= 18) {
-        tags.add("Age 13 to 18");
-      } else if (age >= 19 && age <= 25) {
-        tags.add("Age 19 to 25");
-      } else if (age > 25 && age <= 60) {
-        tags.add("Age 25 to 60");
+      if (loadMore) {
+        isSuggestionsLoadingMore.value = true;
+      } else {
+        isSuggestionsLoading.value = true;
+        suggestionsPageIndex = 1;
+        hasMoreSuggestionsData.value = true;
+        suggestionsResponse.value = DietTagsResponse(data: []);
       }
+
+      final tags = _buildSuggestionTags();
       debugPrint("🚀 [Suggestions] Final Tag List: $tags");
 
-      final payload = {"Tags": tags, "FetchAll": true};
-      print("🚀 [Suggestions] Payload: {Tags: $payload, FetchAll: true}");
+      final payload = {
+        "Tags": tags,
+        "FetchAll": false,
+        "Count": _pageSize,
+        "Index": targetPage,
+      };
+      print("🚀 [Suggestions] Payload: $payload");
 
       final response = await ApiService.post(
         getDietByTags,
@@ -275,9 +390,31 @@ class DietPlanController extends GetxController {
         return null;
       }
 
-      suggestionsResponse.value = DietTagsResponse.fromJson(
+      final parsedResponse = DietTagsResponse.fromJson(
         Map<String, dynamic>.from(response as Map),
       );
+      final fetchedItems = List<DietTagData>.from(parsedResponse.data ?? []);
+      if (fetchedItems.isEmpty) {
+        hasMoreSuggestionsData.value = false;
+        return parsedResponse;
+      }
+
+      suggestionsPageIndex = targetPage;
+      final mergedItems =
+          loadMore
+              ? <DietTagData>[
+                ...(suggestionsResponse.value.data ?? <DietTagData>[]),
+                ...fetchedItems,
+              ]
+              : fetchedItems;
+      suggestionsResponse.value = DietTagsResponse(
+        status: parsedResponse.status,
+        statusType: parsedResponse.statusType,
+        message: parsedResponse.message,
+        data: mergedItems,
+      );
+      hasMoreSuggestionsData.value = fetchedItems.length == _pageSize;
+
       logLong(
         "suggestionsResponse.value",
         suggestionsResponse.value.toJson().toString(),
@@ -288,14 +425,61 @@ class DietPlanController extends GetxController {
     } catch (e, stack) {
       debugPrint("🔥 [Suggestions] Critical Error: $e\n$stack");
     } finally {
-      isSuggestionsLoading.value = false;
+      if (loadMore) {
+        isSuggestionsLoadingMore.value = false;
+      } else {
+        isSuggestionsLoading.value = false;
+      }
     }
     return null;
+  }
+
+  List<String> _buildSuggestionTags() {
+    final tags = <String>[];
+    final localStorageManager = Get.find<LocalStorageManager>();
+    final bmiController = Get.find<BmiController>();
+
+    final bmiLabel = bmiController.bmi_text.value;
+    if (bmiLabel.isNotEmpty) {
+      tags.add(bmiLabel);
+    }
+
+    final storedGender = localStorageManager.userMap['Gender'];
+    final activityLevel =
+        localStorageManager.userGoalDataMap["ActivityLevel"]?.toString() ?? "";
+    final healthGoal =
+        localStorageManager.userGoalDataMap["HealthGoal"]?.toString() ?? "";
+
+    if (activityLevel.isNotEmpty) tags.add(activityLevel);
+    if (healthGoal.isNotEmpty) tags.add(healthGoal);
+    if (storedGender == "Female") tags.add("Female");
+
+    final year = int.tryParse(
+      localStorageManager.userMap['YearOfBirth']?.toString() ?? '',
+    );
+    if (year != null) {
+      final age = DateTime.now().year - year;
+      if (age >= 13 && age <= 18) {
+        tags.add("Age 13 to 18");
+      } else if (age >= 19 && age <= 25) {
+        tags.add("Age 19 to 25");
+      } else if (age > 25 && age <= 60) {
+        tags.add("Age 25 to 60");
+      }
+    }
+
+    return tags;
   }
 
   @override
   void onClose() {
     debugPrint("🗑️ [DietPlanController] Disposing Controllers");
+    categoryScrollController.removeListener(_onCategoryScroll);
+    suggestionsScrollController.removeListener(_onSuggestionsScroll);
+    celebrityScrollController.removeListener(_onCelebrityScroll);
+    categoryScrollController.dispose();
+    suggestionsScrollController.dispose();
+    celebrityScrollController.dispose();
     celebrityPageController.dispose();
     categoryPageController.dispose();
     super.onClose();

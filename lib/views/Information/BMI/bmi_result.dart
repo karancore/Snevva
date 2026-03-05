@@ -7,11 +7,18 @@ import 'package:snevva/consts/images.dart';
 import '../../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../Health Tips/Nutrition_tips.dart/nutrition_tips.dart';
 
-class BmiResultPage extends StatelessWidget {
+class BmiResultPage extends StatefulWidget {
   final double bmi;
   final int age;
 
   const BmiResultPage({super.key, required this.bmi, required this.age});
+
+  @override
+  State<BmiResultPage> createState() => _BmiResultPageState();
+}
+
+class _BmiResultPageState extends State<BmiResultPage> {
+  late final BmiController controller;
 
   String getStatus(double bmi) {
     if (bmi < 18.5) return 'Underweight';
@@ -41,21 +48,27 @@ class BmiResultPage extends StatelessWidget {
   }
 
   @override
+  void initState() {
+    super.initState();
+    controller = Get.put(BmiController());
+    controller.age.value = widget.age;
+    controller.bmi_text.value = getStatus(widget.bmi);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.loadAllHealthTips(context);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
-    final controller = Get.put(BmiController());
-    controller.age.value = age;
-    controller.bmi_text.value = getStatus(bmi);
-
-    controller.loadAllHealthTips(context);
 
     // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final status = getStatus(bmi);
-    final statusColor = getStatusColor(bmi);
-    final imagePath = getImg(bmi);
+    final status = getStatus(widget.bmi);
+    final statusColor = getStatusColor(widget.bmi);
+    final imagePath = getImg(widget.bmi);
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
@@ -63,6 +76,7 @@ class BmiResultPage extends StatelessWidget {
 
       appBar: CustomAppBar(appbarText: "BMI Result"),
       body: SingleChildScrollView(
+        controller: controller.scrollController,
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
@@ -88,7 +102,7 @@ class BmiResultPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  bmi.toStringAsFixed(2),
+                  widget.bmi.toStringAsFixed(2),
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
@@ -122,7 +136,7 @@ class BmiResultPage extends StatelessWidget {
                     ),
                     Positioned(
                       left:
-                          getSliderPosition(bmi) *
+                          getSliderPosition(widget.bmi) *
                           MediaQuery.of(context).size.width *
                           0.8,
                       child: const Icon(
@@ -197,6 +211,16 @@ class BmiResultPage extends StatelessWidget {
                       }).toList(),
                 );
               }),
+
+              Obx(
+                () =>
+                    controller.isLoadingMore.value
+                        ? const Padding(
+                          padding: EdgeInsets.only(top: 16),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                        : const SizedBox.shrink(),
+              ),
 
               const SizedBox(height: 40),
             ],

@@ -90,6 +90,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: CustomAppBar(appbarText: "Diet Plan"),
       body: SingleChildScrollView(
+        controller: dietController.categoryScrollController,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -137,13 +138,25 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                 if (data == null || data.isEmpty) {
                   return Center(child: const Text("No data available"));
                 }
+                final showLoader =
+                    dietController.isSuggestionsLoadingMore.value;
                 return SizedBox(
                   height: 170,
                   child: ListView.separated(
+                    controller: dietController.suggestionsScrollController,
                     scrollDirection: Axis.horizontal,
-                    itemCount: data.length,
+                    itemCount: data.length + (showLoader ? 1 : 0),
                     separatorBuilder: (_, __) => SizedBox(width: defaultSize),
                     itemBuilder: (context, index) {
+                      if (index >= data.length) {
+                        return const Center(
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        );
+                      }
                       final item = data[index];
 
                       print(
@@ -191,13 +204,24 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                 if (data.isEmpty) {
                   return const Text("No celebrity plans available");
                 }
+                final showLoader = dietController.isCelebrityLoadingMore.value;
                 return SizedBox(
                   height: 170,
                   child: ListView.separated(
+                    controller: dietController.celebrityScrollController,
                     scrollDirection: Axis.horizontal,
-                    itemCount: data.length,
+                    itemCount: data.length + (showLoader ? 1 : 0),
                     separatorBuilder: (_, __) => SizedBox(width: defaultSize),
                     itemBuilder: (context, index) {
+                      if (index >= data.length) {
+                        return const Center(
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        );
+                      }
                       final item = data[index];
 
                       return KeyedSubtree(
@@ -260,10 +284,11 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                 return Center(child: const Text("No data available"));
               }
 
+              final showLoader = dietController.isCategoryLoadingMore.value;
               return GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: data.length,
+                itemCount: data.length + (showLoader ? 1 : 0),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
                   vertical: 8,
@@ -275,6 +300,15 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                   mainAxisExtent: 154,
                 ),
                 itemBuilder: (context, index) {
+                  if (index >= data.length) {
+                    return const Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    );
+                  }
                   final item = data[index];
                   return KeyedSubtree(
                     key: ValueKey(item.id ?? index), // if id exists, use it
@@ -371,7 +405,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
       child: InkWell(
         onTap: () {
           dietController.dietTagsDataResponse.value = item;
-          final daysList = item.mealPlan ?? [];
+          final daysList = item.mealPlan;
 
           Get.to(DietDetailsScreen(diet: item, daysList: daysList));
         },

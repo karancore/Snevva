@@ -10,14 +10,36 @@ import '../../services/api_service.dart';
 import '../local_storage_manager.dart';
 
 class HealthTipsController extends GetxService {
+  static const int _pageSize = 8;
+
   /// ✅ Reactive variables
-  dynamic generalTips;
+  var generalTips = <dynamic>[];
   var customTips = <dynamic>[].obs;
   var randomTips = <dynamic>[].obs;
   dynamic randomTip; // can be null
 
   var isLoading = true.obs;
   var hasError = false.obs;
+  var isLoadingMore = false.obs;
+  var hasMoreData = true.obs;
+  int pageIndex = 1;
+
+  final ScrollController scrollController = ScrollController();
+
+  @override
+  void onInit() {
+    super.onInit();
+    scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!scrollController.hasClients) return;
+    final position = scrollController.position;
+    if (position.maxScrollExtent <= 0) return;
+    if (position.pixels >= position.maxScrollExtent - 200) {
+      GetCustomHealthTips(loadMore: true);
+    }
+  }
 
   // @override
   // void onInit() {
@@ -47,9 +69,9 @@ class HealthTipsController extends GetxService {
     try {
       Map<String, dynamic> payload = {
         'Tags': ["Health Tips", "General"],
-        'FetchAll': true,
-        'Count': 0,
-        'Index': 0,
+        'FetchAll': false,
+        'Count': _pageSize,
+        'Index': 1,
       };
 
       final response = await ApiService.post(
@@ -71,17 +93,17 @@ class HealthTipsController extends GetxService {
       }
 
       final parsedData = jsonDecode(jsonEncode(response));
-      generalTips = parsedData['data'] ?? [];
+      generalTips = List<dynamic>.from(parsedData['data'] ?? []);
 
       // ✅ Check if list has elements before picking random
-      if (generalTips != null && generalTips.isNotEmpty) {
+      if (generalTips.isNotEmpty) {
         final random = Random();
         randomTip = generalTips[random.nextInt(generalTips.length)];
       } else {
         randomTip = null;
       }
     } catch (e) {
-      generalTips = [];
+      generalTips = <dynamic>[];
       randomTip = null;
       CustomSnackbar.showError(
         context: context,
@@ -91,7 +113,21 @@ class HealthTipsController extends GetxService {
     }
   }
 
-  Future<void> GetCustomHealthTips() async {
+  Future<void> GetCustomHealthTips({bool loadMore = false}) async {
+    if (loadMore && (isLoadingMore.value || !hasMoreData.value)) return;
+
+    final targetPage = loadMore ? pageIndex + 1 : 1;
+    if (loadMore) {
+      isLoadingMore.value = true;
+    } else {
+      hasMoreData.value = true;
+      pageIndex = 1;
+      isLoading.value = true;
+      hasError.value = false;
+      customTips.clear();
+      randomTips.clear();
+    }
+
     try {
       List<String> tags = ['Health Tips'];
       print("call2");
@@ -131,7 +167,12 @@ class HealthTipsController extends GetxService {
       }
       // print(localStorageManager.userGoalDataMap['HeightData']['Value']);
       // print(tags);
-      final payload = {'Tags': tags, 'FetchAll': true, 'Count': 0, 'Index': 0};
+      final payload = {
+        'Tags': tags,
+        'FetchAll': false,
+        'Count': _pageSize,
+        'Index': targetPage,
+      };
 
       final response = await ApiService.post(
         genhealthtipsAPI,
@@ -145,15 +186,44 @@ class HealthTipsController extends GetxService {
       }
 
       final parsedData = jsonDecode(jsonEncode(response));
-      customTips.value = parsedData['data'] ?? [];
+      final fetchedTips = List<dynamic>.from(parsedData['data'] ?? []);
 
-      final List<dynamic> allTips = List.from(customTips);
-      allTips.shuffle();
-      randomTips.assignAll(allTips.take(4).toList()); // ✅ use assignAll
+      if (fetchedTips.isEmpty) {
+        hasMoreData.value = false;
+        return;
+      }
+
+      pageIndex = targetPage;
+      if (loadMore) {
+        customTips.addAll(fetchedTips);
+        randomTips.addAll(fetchedTips);
+      } else {
+        customTips.assignAll(fetchedTips);
+        randomTips.assignAll(fetchedTips);
+      }
+      if (fetchedTips.length < _pageSize) {
+        hasMoreData.value = false;
+      }
     } catch (e) {
-      customTips.value = [];
-      randomTips.clear(); // ✅ safely clear reactive list
-      throw Exception('Error fetching custom health tips: $e');
+      if (!loadMore) {
+        customTips.clear();
+        randomTips.clear();
+      }
+      hasError.value = true;
+      debugPrint('Error fetching custom health tips: $e');
+    } finally {
+      if (loadMore) {
+        isLoadingMore.value = false;
+      } else {
+        isLoading.value = false;
+      }
     }
+  }
+
+  @override
+  void onClose() {
+    scrollController.removeListener(_onScroll);
+    scrollController.dispose();
+    super.onClose();
   }
 }

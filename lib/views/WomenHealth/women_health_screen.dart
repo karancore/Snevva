@@ -2,7 +2,6 @@ import 'package:modern_form_line_awesome_icons/modern_form_line_awesome_icons.da
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
-import 'package:snevva/models/tips_response.dart';
 import 'package:snevva/views/Reminder/reminder_wrapper.dart';
 import 'package:snevva/views/WomenHealth/women_health_history.dart';
 import 'package:snevva/widgets/Hydration/floating_button_bar.dart';
@@ -13,7 +12,6 @@ import '../../widgets/WomenHealth/calender.dart';
 import '../../widgets/WomenHealth/period_cycle_phase_cont.dart';
 import '../../widgets/WomenHealth/women_health_quotes_widget.dart';
 import '../../widgets/WomenHealth/women_health_top_cont.dart';
-import '../Reminder/reminder_screen.dart';
 
 class WomenHealthScreen extends StatefulWidget {
   const WomenHealthScreen({super.key});
@@ -55,6 +53,7 @@ class _WomenHealthScreenState extends State<WomenHealthScreen> {
       body: Stack(
         children: [
           SingleChildScrollView(
+            controller: womenController.tipsScrollController,
             child: Column(
               children: [
                 Padding(
@@ -226,6 +225,19 @@ class _WomenHealthScreenState extends State<WomenHealthScreen> {
                   );
                 }),
 
+                Obx(
+                  () =>
+                      womenController.isTipsLoadingMore.value
+                          ? const Padding(
+                            padding: EdgeInsets.only(top: 12),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.primaryColor,
+                              ),
+                            ),
+                          )
+                          : const SizedBox.shrink(),
+                ),
                 SizedBox(height: 120),
               ],
             ),
