@@ -32,7 +32,7 @@ class ApiService {
       final deviceInfoHeader =
           await DeviceTokenService().buildDeviceInfoHeader();
       headers['X-Device-Info'] = deviceInfoHeader;
-      debugPrint("headers ${headers.toString()}");
+      logLong("headers" , headers.toString());
 
       final encryptedRequestBody = jsonEncode({
         'data': encrypted['encryptedData'],

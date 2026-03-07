@@ -151,7 +151,20 @@ class EventController extends GetxController {
       await reminderController.saveReminderList(eventList, "event_list");
       debugPrint('💾 Event list saved to storage');
 
+
       await reminderController.loadAllReminderLists();
+
+      final eventData = ReminderPayloadModel(
+        id: id,
+        category: "event",
+        title: title,
+        notes: notes,
+        customReminder: CustomReminder(
+          timesPerDay: TimesPerDay(count: '1', list: [scheduledTime.toString()]),
+        ),
+      );
+      debugPrint('📦 Event ReminderPayloadModel created: ${eventData.toJson()}');
+      reminderController.addRemindertoAPI(eventData, context);
 
       // Cleaning up
       debugPrint('🧹 UI Controllers cleared');

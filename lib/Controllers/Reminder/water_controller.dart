@@ -350,7 +350,7 @@ class WaterController extends GetxController {
 
     print("Water Data setWaterAlarm: $waterData");
 
-    //reminderController.addRemindertoAPI(waterData, context);
+    reminderController.addRemindertoAPI(waterData, context);
 
     CustomSnackbar().showReminderBar(context);
     Get.back(result: true);
@@ -591,7 +591,7 @@ class WaterController extends GetxController {
 
     final waterData = ReminderPayloadModel(
       id: reminderGroupId,
-      category: ReminderCategory.water.toString(),
+      category: "water",
       title: model.title,
       notes: reminderController.notesController.text,
       reminderFrequencyType: Option.interval.toString(),
@@ -607,7 +607,7 @@ class WaterController extends GetxController {
     );
     print("Water Data setIntervalReminders: $waterData");
 
-    // reminderController.addRemindertoAPI(waterData, context);
+    reminderController.addRemindertoAPI(waterData, context!);
 
     if (context != null) {
       CustomSnackbar().showReminderBar(context);

@@ -76,49 +76,49 @@ class ReminderPayloadModel {
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'title': title,
-      'category': category,
-      'medicineName': medicineName,
-      'medicineType': medicineType,
-      'dosage': dosage?.toJson(),
-      'medicineFrequencyPerDay': medicineFrequencyPerDay,
-      'reminderFrequencyType': reminderFrequencyType,
-      'customReminder': customReminder?.toJson(),
-      'remindBefore': remindBefore?.toJson(),
-      'startDate': startDate,
-      'endDate': endDate,
-      'notes': notes,
-      'whenToTake': whenToTake,
-      'startWaterTime': startWaterTime,
-      'endWaterTime': endWaterTime,
+      'Id': id,
+      'Title': title,
+      'Category': category,
+      'MedicineName': medicineName,
+      'MedicineType': medicineType,
+      'Dosage': dosage?.toJson(),
+      'MedicineFrequencyPerDay': medicineFrequencyPerDay,
+      'ReminderFrequencyType': reminderFrequencyType,
+      'CustomReminder': customReminder?.toJson(),
+      'RemindBefore': remindBefore?.toJson(),
+      'StartDate': startDate,
+      'EndDate': endDate,
+      'Notes': notes,
+      'WhenToTake': whenToTake,
+      'StartWaterTime': startWaterTime,
+      'EndWaterTime': endWaterTime,
     };
   }
 
   factory ReminderPayloadModel.fromJson(Map<String, dynamic> json) {
     return ReminderPayloadModel(
-      id: json['id'] ?? 0,
-      title: json['title'] ?? '',
-      category: json['category'] ?? '',
-      medicineName: json['medicineName'],
-      medicineType: json['medicineType'],
-      dosage: json['dosage'] != null ? Dosage.fromJson(json['dosage']) : null,
-      whenToTake: json['whenToTake'],
-      medicineFrequencyPerDay: json['medicineFrequencyPerDay'],
-      reminderFrequencyType: json['reminderFrequencyType'],
+      id: json['Id'] ?? 0,
+      title: json['Title'] ?? '',
+      category: json['Category'] ?? '',
+      medicineName: json['MedicineName'],
+      medicineType: json['MedicineType'],
+      dosage: json['Dosage'] != null ? Dosage.fromJson(json['Dosage']) : null,
+      whenToTake: json['WhenToTake'],
+      medicineFrequencyPerDay: json['MedicineFrequencyPerDay'],
+      reminderFrequencyType: json['ReminderFrequencyType'],
       customReminder:
-          json['customReminder'] != null
-              ? CustomReminder.fromJson(json['customReminder'])
+          json['CustomReminder'] != null
+              ? CustomReminder.fromJson(json['CustomReminder'])
               : const CustomReminder(),
       remindBefore:
-          json['remindBefore'] != null
-              ? RemindBefore.fromJson(json['remindBefore'])
+          json['RemindBefore'] != null
+              ? RemindBefore.fromJson(json['RemindBefore'])
               : null,
-      startDate: json['startDate'],
-      endDate: json['endDate'],
-      notes: json['notes'],
-      startWaterTime: json['startWaterTime'],
-      endWaterTime: json['endWaterTime'],
+      startDate: json['StartDate'],
+      endDate: json['EndDate'],
+      notes: json['Notes'],
+      startWaterTime: json['StartWaterTime'],
+      endWaterTime: json['EndWaterTime'],
     );
   }
   @override
@@ -186,10 +186,10 @@ class Dosage {
 
   const Dosage({required this.value, required this.unit});
 
-  Map<String, dynamic> toJson() => {'value': value, 'unit': unit};
+  Map<String, dynamic> toJson() => {'Value': value, 'Unit': unit};
 
   factory Dosage.fromJson(Map<String, dynamic> json) =>
-      Dosage(value: json['value'], unit: json['unit']);
+      Dosage(value: json['Value'], unit: json['Unit']);
 }
 
 @HiveType(typeId: 22)
@@ -219,12 +219,12 @@ class CustomReminder {
       case Option.times:
         return CustomReminder(
           type: type,
-          timesPerDay: TimesPerDay.fromJson(json['timesPerDay'] ?? {}),
+          timesPerDay: TimesPerDay.fromJson(json['TimesPerDay'] ?? {}),
         );
       case Option.interval:
         return CustomReminder(
           type: type,
-          everyXHours: EveryXHours.fromJson(json['everyXHours'] ?? {}),
+          everyXHours: EveryXHours.fromJson(json['EveryXHours'] ?? {}),
         );
     }
   }
@@ -232,10 +232,10 @@ class CustomReminder {
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = {'type': type?.name};
     if (timesPerDay != null) {
-      data['timesPerDay'] = timesPerDay!.toJson();
+      data['TimesPerDay'] = timesPerDay!.toJson();
     }
     if (everyXHours != null) {
-      data['everyXHours'] = everyXHours!.toJson();
+      data['EveryXHours'] = everyXHours!.toJson();
     }
     return data;
   }
@@ -251,11 +251,11 @@ class TimesPerDay {
 
   const TimesPerDay({required this.count, required this.list});
 
-  Map<String, dynamic> toJson() => {'count': count, 'list': list};
+  Map<String, dynamic> toJson() => {'Count': count, 'List': list};
 
   factory TimesPerDay.fromJson(Map<String, dynamic> json) => TimesPerDay(
-    count: json['count'],
-    list: List<String>.from(json['list'] ?? []),
+    count: json['Count'],
+    list: List<String>.from(json['List'] ?? []),
   );
 }
 
@@ -277,15 +277,15 @@ class EveryXHours {
   });
 
   Map<String, dynamic> toJson() => {
-    'hours': hours,
-    'startTime': startTime,
-    'endTime': endTime,
+    'Hours': hours,
+    'StartTime': startTime,
+    'EndTime': endTime,
   };
 
   factory EveryXHours.fromJson(Map<String, dynamic> json) => EveryXHours(
-    hours: json['hours'],
-    startTime: json['startTime'],
-    endTime: json['endTime'],
+    hours: json['Hours'],
+    startTime: json['StartTime'],
+    endTime: json['EndTime'],
   );
 }
 
@@ -299,10 +299,10 @@ class RemindBefore {
 
   const RemindBefore({required this.time, required this.unit});
 
-  Map<String, dynamic> toJson() => {'time': time, 'unit': unit};
+  Map<String, dynamic> toJson() => {'Time': time, 'Unit': unit};
 
   factory RemindBefore.fromJson(Map<String, dynamic> json) =>
-      RemindBefore(time: json['time'], unit: json['unit']);
+      RemindBefore(time: json['Time'], unit: json['Unit']);
 }
 
 extension ReminderPayloadSafeAccess on ReminderPayloadModel {

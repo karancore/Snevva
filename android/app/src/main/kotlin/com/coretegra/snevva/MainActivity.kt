@@ -15,6 +15,7 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AlarmHelper.cancelSleepAlarms(this)
         requestHighestRefreshRate()
         Log.d("Lifecycle", "onCreate called")
     }
@@ -30,12 +31,9 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "startSleepService" -> {
-                        val intent = Intent(this, SleepNoticingService::class.java)
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            startForegroundService(intent)
-                        }
-                        Log.d("MainActivity", "SleepNoticingService started")
-                        result.success("SleepNoticingService started")
+                        AlarmHelper.cancelSleepAlarms(this@MainActivity)
+                        Log.d("MainActivity", "Native sleep service disabled; using unified background service")
+                        result.success("Native sleep service disabled")
                     }
 
                     "stopSleepService" -> {
@@ -43,6 +41,12 @@ class MainActivity : FlutterActivity() {
                         stopService(intent)
                         Log.d("MainActivity", "SleepNoticingService stopped")
                         result.success("SleepNoticingService stopped")
+                    }
+
+                    "updateSleepAlarms" -> {
+                        AlarmHelper.scheduleSleepAlarms(this@MainActivity)
+                        Log.d("MainActivity", "Sleep alarms updated via Flutter")
+                        result.success("Sleep alarms scheduled")
                     }
 
                     else -> {

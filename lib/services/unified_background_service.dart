@@ -91,26 +91,31 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
     // ═══════════════════════════════════════════════════════════════
 
     service.on("start_sleep").listen((event) async {
-      DateTime now = DateTime.now();
-      final wakeMinutes = prefs.getInt('flutter.user_waketime_ms') ?? 420;
+      if (prefs.getBool("is_sleeping") ?? false) {
+        print("⚠️ start_sleep ignored (already active)");
+        return;
+      }
 
-      final wakeTimeToday = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        wakeMinutes ~/ 60,
-        wakeMinutes % 60,
+      final now = DateTime.now();
+      final goalMinutes =
+          event?['goal_minutes'] as int? ??
+          prefs.getInt("sleep_goal_minutes") ??
+          480;
+
+      final bedtimeMinutes = _coerceMinutesOfDay(
+        event?['bedtime_minutes'] as int?,
+        fallback: _coerceMinutesOfDay(
+          prefs.getInt("user_bedtime_ms"),
+          fallback: 23 * 60,
+        ),
       );
-
-      DateTime sleepDay =
-          now.isBefore(wakeTimeToday) ? now.subtract(Duration(days: 1)) : now;
-
-      String key =
-          "flutter.sleep_intervals_${sleepDay.year}-${sleepDay.month.toString().padLeft(2, '0')}-${sleepDay.day.toString().padLeft(2, '0')}";
-
-      final goalMinutes = event?['goal_minutes'] as int? ?? 480;
-      final bedtimeMinutes = event?['bedtime_minutes'] as int? ?? 0;
-      final waketimeMinutes = event?['waketime_minutes'] as int? ?? 0;
+      final waketimeMinutes = _coerceMinutesOfDay(
+        event?['waketime_minutes'] as int?,
+        fallback: _coerceMinutesOfDay(
+          prefs.getInt("user_waketime_ms"),
+          fallback: 7 * 60,
+        ),
+      );
 
       await prefs.setBool("is_sleeping", true);
       await prefs.setString("sleep_start_time", now.toIso8601String());
@@ -376,8 +381,8 @@ Future<void> _restoreOrAutoStartSleepTracking({
 }) async {
   await prefs.reload();
 
-  final bedtimeMinutes = prefs.getInt("user_bedtime_ms") ?? 0;
-  final waketimeMinutes = prefs.getInt("user_waketime_ms") ?? 0;
+  final bedtimeMinutes = prefs.getInt("user_bedtime_ms");
+  final waketimeMinutes = prefs.getInt("user_waketime_ms");
   final nowTime = DateTime.now();
   final sleepWindow = _resolveSleepWindow(
     prefs: prefs,
@@ -444,17 +449,26 @@ Future<void> _restoreOrAutoStartSleepTracking({
     return;
   }
 
+  final normalizedBedtime = _coerceMinutesOfDay(
+    bedtimeMinutes,
+    fallback: sleepWindow.start.hour * 60 + sleepWindow.start.minute,
+  );
+  final normalizedWaketime = _coerceMinutesOfDay(
+    waketimeMinutes,
+    fallback: sleepWindow.end.hour * 60 + sleepWindow.end.minute,
+  );
+
   final goalMinutes = _calculateSleepGoalMinutes(
-    bedtimeMinutes: bedtimeMinutes,
-    waketimeMinutes: waketimeMinutes,
+    bedtimeMinutes: normalizedBedtime,
+    waketimeMinutes: normalizedWaketime,
   );
 
   await _startSleepTrackingSession(
     service: service,
     prefs: prefs,
     goalMinutes: goalMinutes,
-    bedtimeMinutes: bedtimeMinutes,
-    waketimeMinutes: waketimeMinutes,
+    bedtimeMinutes: normalizedBedtime,
+    waketimeMinutes: normalizedWaketime,
     markAsAutoStarted: true,
   );
 }
@@ -556,8 +570,8 @@ Future<void> _startSleepTrackingSession({
 
 _SleepWindow? _resolveSleepWindow({
   required SharedPreferences prefs,
-  required int bedtimeMinutes,
-  required int waketimeMinutes,
+  required int? bedtimeMinutes,
+  required int? waketimeMinutes,
   required DateTime nowTime,
 }) {
   final existingStart = prefs.getString("current_sleep_window_start");
@@ -575,14 +589,24 @@ _SleepWindow? _resolveSleepWindow({
     } catch (_) {}
   }
 
-  return _computeActiveSleepWindow(bedtimeMinutes, waketimeMinutes, nowTime);
+  if (!_isValidMinutesOfDay(bedtimeMinutes) ||
+      !_isValidMinutesOfDay(waketimeMinutes)) {
+    return null;
+  }
+
+  return _computeActiveSleepWindow(
+    bedtimeMinutes!,
+    waketimeMinutes!,
+    nowTime,
+  );
 }
 
 int _calculateSleepGoalMinutes({
   required int bedtimeMinutes,
   required int waketimeMinutes,
 }) {
-  if (bedtimeMinutes <= 0 && waketimeMinutes <= 0) {
+  if (!_isValidMinutesOfDay(bedtimeMinutes) ||
+      !_isValidMinutesOfDay(waketimeMinutes)) {
     return 480;
   }
 
@@ -696,27 +720,55 @@ Future<void> _stopSleepAndSave(
   final start = DateTime.parse(startString);
   final goalMinutes = prefs.getInt("sleep_goal_minutes") ?? 480;
   final windowKey = prefs.getString("current_sleep_window_key");
+  final windowStartString = prefs.getString("current_sleep_window_start");
+  final windowEndString = prefs.getString("current_sleep_window_end");
+
+  DateTime effectiveStart = start;
+  DateTime effectiveEnd = now;
+
+  if (windowStartString != null) {
+    try {
+      final windowStart = DateTime.parse(windowStartString);
+      if (effectiveStart.isBefore(windowStart)) {
+        effectiveStart = windowStart;
+      }
+    } catch (_) {}
+  }
+
+  if (windowEndString != null) {
+    try {
+      final windowEnd = DateTime.parse(windowEndString);
+      if (effectiveEnd.isAfter(windowEnd)) {
+        effectiveEnd = windowEnd;
+      }
+    } catch (_) {}
+  }
+
+  if (!effectiveEnd.isAfter(effectiveStart)) {
+    effectiveEnd = effectiveStart;
+  }
 
   // Get total sleep time from aggregated intervals
   // Get total sleep time from aggregated intervals (use service implementation)
   final totalSleepMinutes = await _sleepNoticingService.getTotalSleepMinutes();
 
   print("💾 Saving sleep data:");
-  print("   Start: $start");
-  print("   End: $now");
+  print("   Start: $effectiveStart");
+  print("   End: $effectiveEnd");
   print("   Total sleep: $totalSleepMinutes mins");
   print("   Goal: $goalMinutes mins");
 
   // Save to Hive
   if (windowKey != null) {
+    final logDate = DateTime.tryParse(windowKey) ?? effectiveStart;
     await sleepBox.put(
       windowKey,
       SleepLog(
-        date: DateTime.parse(windowKey),
+        date: DateTime(logDate.year, logDate.month, logDate.day),
         // Use the sleep window date
         durationMinutes: totalSleepMinutes,
-        startTime: start,
-        endTime: now,
+        startTime: effectiveStart,
+        endTime: effectiveEnd,
         goalMinutes: goalMinutes,
       ),
     );
@@ -742,8 +794,8 @@ Future<void> _stopSleepAndSave(
   service.invoke("sleep_saved", {
     "duration": totalSleepMinutes,
     "goal_minutes": goalMinutes,
-    "start_time": start.toIso8601String(),
-    "end_time": now.toIso8601String(),
+    "start_time": effectiveStart.toIso8601String(),
+    "end_time": effectiveEnd.toIso8601String(),
   });
 
   // Stop interval aggregator
@@ -817,4 +869,12 @@ class _SleepWindow {
   final String dateKey;
 
   _SleepWindow({required this.start, required this.end, required this.dateKey});
+}
+
+bool _isValidMinutesOfDay(int? value) {
+  return value != null && value >= 0 && value < 24 * 60;
+}
+
+int _coerceMinutesOfDay(int? value, {required int fallback}) {
+  return _isValidMinutesOfDay(value) ? value! : fallback;
 }

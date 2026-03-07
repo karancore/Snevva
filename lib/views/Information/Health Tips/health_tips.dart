@@ -51,12 +51,12 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
         }
 
         final randomTip = controller.randomTip;
-        final List<dynamic> randomTips = controller.randomTips;
         final cdnUrl = randomTip?["ThumbnailMedia"]?["CdnUrl"];
         // final firstTipUrl = ?["ThumbnailMedia"]?["CdnUrl"];
         // final secondTipUrl = randomTip?["ThumbnailMedia"]?["CdnUrl"];
 
         return SingleChildScrollView(
+          controller: controller.scrollController,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -206,6 +206,11 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
                 ),
               ),
 
+              if (controller.isLoadingMore.value)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 16),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
               const SizedBox(height: 20),
             ],
           ),

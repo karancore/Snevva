@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:snevva/common/global_variables.dart';
 
 import '../../consts/consts.dart';
 import '../../models/music/music_response.dart';
@@ -21,6 +20,9 @@ class MentalWellnessFooterWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double circleSize =
+        (MediaQuery.sizeOf(context).width * 0.28).clamp(88.0, 120.0).toDouble();
+
     return InkWell(
       onTap:
           () => Get.to(
@@ -32,13 +34,12 @@ class MentalWellnessFooterWidget extends StatelessWidget {
           ),
       child: Card(
         elevation: 5,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
-        child: SizedBox(
-          height: 100 * heightFactor,
-          width: 100 * widthFactor,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: SizedBox.square(
+          dimension: circleSize,
 
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(50),
+          child: ClipOval(
             child: Stack(
               fit: StackFit.expand,
               children: [

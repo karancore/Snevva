@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/models/tips_response.dart';
@@ -15,6 +13,8 @@ import 'package:http/http.dart' as http;
 import '../../common/custom_snackbar.dart';
 
 class WomenHealthController extends GetxService {
+  static const int _pageSize = 8;
+
   var periodDays = "5".obs;
   var periodCycleDays = "28".obs;
   var periodLastPeriodDay = "".obs;
@@ -27,6 +27,10 @@ class WomenHealthController extends GetxService {
   Timer? _apiDebounce;
 
   var womenHealthTips = <TipData>[].obs;
+  var isTipsLoadingMore = false.obs;
+  var hasMoreTipsData = true.obs;
+  int tipsPageIndex = 1;
+  final ScrollController tipsScrollController = ScrollController();
   dynamic randomTip;
   var periodDay = 0;
   var periodMonth = 0;
@@ -40,6 +44,12 @@ class WomenHealthController extends GetxService {
 
   DateTime _selectedDate = DateTime.now();
   final DateTime _currentDate = DateTime.now();
+
+  @override
+  void onInit() {
+    super.onInit();
+    tipsScrollController.addListener(_onTipsScroll);
+  }
 
   // @override
   // void onInit() {
@@ -57,8 +67,22 @@ class WomenHealthController extends GetxService {
   @override
   void onClose() {
     // Save data when controller is disposed
+    _apiDebounce?.cancel();
+    tipsScrollController.removeListener(_onTipsScroll);
+    tipsScrollController.dispose();
     saveWomenHealthToLocalStorage();
     super.onClose();
+  }
+
+  void _onTipsScroll() {
+    if (!tipsScrollController.hasClients) return;
+    final position = tipsScrollController.position;
+    if (position.maxScrollExtent <= 0) return;
+    if (position.pixels >= position.maxScrollExtent - 200) {
+      if (Get.context != null) {
+        getWomenHealthQuotes(Get.context!, loadMore: true);
+      }
+    }
   }
 
   void formattedDate() {
@@ -437,13 +461,29 @@ class WomenHealthController extends GetxService {
     }
   }
 
-  Future<void> getWomenHealthQuotes(BuildContext context) async {
+  Future<void> getWomenHealthQuotes(
+    BuildContext context, {
+    bool loadMore = false,
+  }) async {
+    if (loadMore && (isTipsLoadingMore.value || !hasMoreTipsData.value)) {
+      return;
+    }
+
+    final targetPage = loadMore ? tipsPageIndex + 1 : 1;
+    if (loadMore) {
+      isTipsLoadingMore.value = true;
+    } else {
+      tipsPageIndex = 1;
+      hasMoreTipsData.value = true;
+      womenHealthTips.clear();
+    }
+
     try {
       Map<String, dynamic> payload = {
         'Tags': ["Female", "Women Health", "Pre-Period Nudges"],
-        'FetchAll': true,
-        'Count': 0,
-        'Index': 0,
+        'FetchAll': false,
+        'Count': _pageSize,
+        'Index': targetPage,
       };
 
       final response = await ApiService.post(
@@ -457,17 +497,34 @@ class WomenHealthController extends GetxService {
       debugPrint(" women health tips : $parsedData", wrapWidth: 1024);
 
       final List list = parsedData['data'] ?? [];
-      womenHealthTips.value = list.map((e) => TipData.fromJson(e)).toList();
+      final fetchedTips = list.map((e) => TipData.fromJson(e)).toList();
+      if (fetchedTips.isEmpty) {
+        hasMoreTipsData.value = false;
+        return;
+      }
+
+      tipsPageIndex = targetPage;
+      if (loadMore) {
+        womenHealthTips.addAll(fetchedTips);
+      } else {
+        womenHealthTips.assignAll(fetchedTips);
+      }
+      hasMoreTipsData.value = fetchedTips.length == _pageSize;
       debugPrint("general tips : $womenHealthTips", wrapWidth: 1024);
     } catch (e) {
-      womenHealthTips.value = [];
+      if (!loadMore) {
+        womenHealthTips.value = [];
+      }
       print(e);
       CustomSnackbar.showError(
         context: context,
         title: 'Error',
         message: 'Failed to load women health tips',
       );
+    } finally {
+      if (loadMore) {
+        isTipsLoadingMore.value = false;
+      }
     }
-    return null;
   }
 }

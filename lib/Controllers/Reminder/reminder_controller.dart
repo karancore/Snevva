@@ -18,6 +18,7 @@ import 'package:snevva/env/env.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart'
     as reminder_payload;
 import 'package:snevva/services/api_service.dart';
+import 'package:snevva/services/reminder/reminder_scheduler.dart';
 
 import '../../common/global_variables.dart';
 import '../../models/reminders/medicine_reminder_model.dart'
@@ -1017,7 +1018,7 @@ class ReminderController extends GetxController {
     }
   }
 
-  Future<dynamic> getReminderFromAPI(BuildContext context) async {
+  Future<List<reminder_payload.ReminderPayloadModel>> getReminderFromAPI(BuildContext context) async {
     try {
       final response = await ApiService.post(
         getreminderApi,
@@ -1036,45 +1037,63 @@ class ReminderController extends GetxController {
       }
 
       final enc = jsonEncode(response);
-      final decbody = jsonDecode(enc);
-      final List remindersList = decbody['data']['Reminders'] as List;
-      return remindersList.map((e) => e as Map<String, dynamic>).toList();
-    } catch (e) {
-      debugPrint("Exception while fetching reminders: $e");
+      final decodedBody = jsonDecode(enc);
+      final List remindersList = decodedBody['data']['Reminders'] as List;
 
+      final List<reminder_payload.ReminderPayloadModel> reminders = remindersList
+          .map((e) => reminder_payload.ReminderPayloadModel.fromJson(
+                e as Map<String, dynamic>,
+              ))
+          .toList();
+      ReminderScheduler().scheduleAll(reminders);
+      return reminders;
+    } catch (e) {
       return [];
     }
   }
 
-  // Future<void> addRemindertoAPI(
-  //   reminder_payload.ReminderPayloadModel reminderData,
-  //   BuildContext context,
-  // ) async {
-  //   try {
-  //     final response = await ApiService.post(
-  //       addreminderApi,
-  //       reminderData.toJson(),
-  //       withAuth: true,
-  //       encryptionRequired: true,
-  //     );
-  //
-  //     print("response addRemindertoAPI $response");
-  //
-  //     if (response is http.Response && response.statusCode >= 400) {
-  //       CustomSnackbar.showError(
-  //         context: context,
-  //         title: 'Error',
-  //         message: 'Failed to save Reminder record: ${response.statusCode}',
-  //       );
-  //     }
-  //     // else {
-  //     //   await getReminders(context);
-  //     // }
-  //   } catch (e) {
-  //     debugPrint("Exception while saving Reminder record: $e");
-  //   }
-  // }
+  Future<void> addRemindertoAPI(
+      reminder_payload.ReminderPayloadModel reminderData,
+      BuildContext context,
+      ) async {
+    try {
+      debugPrint("🚀 addRemindertoAPI called");
+      debugPrint("📦 Payload: ${reminderData.toJson()}");
 
+      debugPrint("🌐 Hitting API: $addreminderApi");
+
+      final response = await ApiService.post(
+        addreminderApi,
+        reminderData.toJson(),
+        withAuth: true,
+        encryptionRequired: true,
+      );
+
+      debugPrint("📡 Raw Response: $response");
+
+      if (response is http.Response) {
+        debugPrint("📊 Status Code: ${response.statusCode}");
+        debugPrint("📄 Response Body: ${response.body}");
+      }
+
+      if (response is http.Response && response.statusCode >= 400) {
+        debugPrint("❌ API Error occurred");
+
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Failed to save Reminder record: ${response.statusCode}',
+        );
+      } else {
+        debugPrint("✅ Reminder saved successfully, fetching updated reminders...");
+        await getReminders(context);
+        debugPrint("🔄 getReminders completed");
+      }
+    } catch (e, stackTrace) {
+      debugPrint("🔥 Exception while saving Reminder record: $e");
+      debugPrint("📍 StackTrace: $stackTrace");
+    }
+  }
   Future<void> updateReminder(
     reminder_payload.ReminderPayloadModel reminderData,
     BuildContext context,

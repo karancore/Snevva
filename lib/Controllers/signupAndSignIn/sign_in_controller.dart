@@ -339,12 +339,13 @@ class SignInController extends GetxService {
           await DeviceTokenService().buildDeviceInfoHeader();
       headers['X-Device-Info'] = deviceInfoHeader;
 
-      // debugPrint("📱 X-Device-Info: $deviceInfoHeader");
-      // debugPrint("📦 Headers: $headers");
+      debugPrint("📱 X-Device-Info: $deviceInfoHeader");
+      debugPrint("📦 Headers: $headers");
 
       final encryptedRequestBody = jsonEncode({
         'data': encryptedPhone['encryptedData'],
       });
+      debugPrint("encryptedRequestBody, $encryptedRequestBody");
 
       final response = await http.post(
         uri,

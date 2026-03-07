@@ -80,16 +80,6 @@ Future<void> ensureFirebaseInitialized() async {
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // await ensureFirebaseInitialized();
   await FirebaseInit.init();
-
-  final prefs = await SharedPreferences.getInstance();
-  final List existing = jsonDecode(
-    prefs.getString('notifications_list') ?? '[]',
-  );
-
-  existing.insert(0, AppNotification.fromRemoteMessage(message).toJson());
-
-  await prefs.setString('notifications_list', jsonEncode(existing));
-
   final fln = FlutterLocalNotificationsPlugin();
 
   const androidDetails = AndroidNotificationDetails(
@@ -113,7 +103,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 /// ------------------------------------------------------------
 void main() {
   ErrorWidget.builder = (FlutterErrorDetails details) {
-    // fire-and-forget
+
     ExceptionLogger.log(
       exception: details.exception,
       stackTrace: details.stack,

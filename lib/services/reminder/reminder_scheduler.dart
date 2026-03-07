@@ -18,7 +18,7 @@ class ReminderScheduler {
   static ReminderController get _reminderController =>
       Get.find<ReminderController>(tag: 'reminder');
 
-  static Future<void> scheduleAll(
+  Future<void> scheduleAll(
     List<reminder_payload.ReminderPayloadModel> reminders,
   ) async {
     for (final reminder in reminders) {
@@ -36,6 +36,7 @@ class ReminderScheduler {
   ) async {
     switch (reminder.category) {
       case 'medicine':
+        scheduleMedicineReminder(reminder: reminder);
         break;
       case 'water':
         await scheduleWaterReminder(reminder: reminder);
