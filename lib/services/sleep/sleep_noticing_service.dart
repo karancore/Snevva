@@ -25,10 +25,15 @@ class SleepNoticingService {
   // ─────────────────────────────────────────────
 
   void startMonitoring() {
+    if (_subscription != null) {
+      debugPrint('ℹ️ SleepNoticingService already monitoring');
+      return;
+    }
+
     debugPrint('🚀 SleepNoticingService.startMonitoring');
 
     try {
-      _subscription = _screen.screenStateStream?.listen((event) {
+      _subscription = _screen.screenStateStream.listen((event) {
         debugPrint('📱 Screen event received: $event');
 
         if (event == ScreenStateEvent.SCREEN_OFF) {
@@ -173,19 +178,16 @@ class SleepNoticingService {
 
     // Append interval
     final existing = prefs.getString(intervalsKey);
-    final newEntry = '${start.toIso8601String()}|${end.toIso8601String()}';
+    final intervals = _parseIntervals(existing);
+    intervals.add(_TimeInterval(start: start, end: end));
+    final merged = _mergeIntervals(intervals);
+    final serialized = _serializeIntervals(merged);
 
-    final updated =
-        (existing == null || existing.isEmpty)
-            ? newEntry
-            : '$existing,$newEntry';
-
-    await prefs.setString(intervalsKey, updated);
+    await prefs.setString(intervalsKey, serialized);
     await prefs.remove(lastOffKey);
 
     debugPrint('💾 Interval saved → $intervalsKey');
-    debugPrint('   entry: $newEntry');
-    debugPrint('   total intervals: ${updated.split(',').length}');
+    debugPrint('   merged intervals: ${merged.length}');
   }
 
   // ─────────────────────────────────────────────
@@ -205,20 +207,11 @@ class SleepNoticingService {
 
     int totalMinutes = 0;
 
-    // Count saved intervals
+    // Count saved intervals (merged to avoid duplicate/overlapping entries)
     if (intervalsStr != null && intervalsStr.isNotEmpty) {
-      final intervals = intervalsStr.split(',');
-      for (final intervalStr in intervals) {
-        final parts = intervalStr.split('|');
-        if (parts.length == 2) {
-          try {
-            final start = DateTime.parse(parts[0]);
-            final end = DateTime.parse(parts[1]);
-            totalMinutes += end.difference(start).inMinutes;
-          } catch (e) {
-            debugPrint('⚠️ Failed to parse interval: $intervalStr');
-          }
-        }
+      final merged = _mergeIntervals(_parseIntervals(intervalsStr));
+      for (final interval in merged) {
+        totalMinutes += interval.end.difference(interval.start).inMinutes;
       }
     }
 
@@ -237,10 +230,12 @@ class SleepNoticingService {
 
         if (end.isAfter(start)) {
           final openIntervalMinutes = end.difference(start).inMinutes;
-          totalMinutes += openIntervalMinutes;
-          debugPrint(
-            '📱 Open interval (screen still off): $openIntervalMinutes mins',
-          );
+          if (openIntervalMinutes >= minSleepGap.inMinutes) {
+            totalMinutes += openIntervalMinutes;
+            debugPrint(
+              '📱 Open interval (screen still off): $openIntervalMinutes mins',
+            );
+          }
         }
       } catch (e) {
         debugPrint('⚠️ Failed to parse open interval: $e');
@@ -387,6 +382,54 @@ class SleepNoticingService {
         '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
     return key;
   }
+
+  List<_TimeInterval> _parseIntervals(String? intervals) {
+    if (intervals == null || intervals.isEmpty) {
+      return <_TimeInterval>[];
+    }
+
+    final parsed = <_TimeInterval>[];
+    for (final raw in intervals.split(',')) {
+      final parts = raw.split('|');
+      if (parts.length != 2) continue;
+      try {
+        final start = DateTime.parse(parts[0]);
+        final end = DateTime.parse(parts[1]);
+        if (end.isAfter(start)) {
+          parsed.add(_TimeInterval(start: start, end: end));
+        }
+      } catch (_) {}
+    }
+    return parsed;
+  }
+
+  List<_TimeInterval> _mergeIntervals(List<_TimeInterval> intervals) {
+    if (intervals.isEmpty) return <_TimeInterval>[];
+
+    final sorted = [...intervals]
+      ..sort((a, b) => a.start.compareTo(b.start));
+
+    final merged = <_TimeInterval>[sorted.first];
+    for (var i = 1; i < sorted.length; i++) {
+      final current = sorted[i];
+      final last = merged.last;
+
+      if (!current.start.isAfter(last.end)) {
+        final end = current.end.isAfter(last.end) ? current.end : last.end;
+        merged[merged.length - 1] = _TimeInterval(start: last.start, end: end);
+      } else {
+        merged.add(current);
+      }
+    }
+
+    return merged;
+  }
+
+  String _serializeIntervals(List<_TimeInterval> intervals) {
+    return intervals
+        .map((i) => '${i.start.toIso8601String()}|${i.end.toIso8601String()}')
+        .join(',');
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -397,4 +440,11 @@ class _SleepWindow {
   final String dateKey;
 
   _SleepWindow({required this.start, required this.end, required this.dateKey});
+}
+
+class _TimeInterval {
+  final DateTime start;
+  final DateTime end;
+
+  const _TimeInterval({required this.start, required this.end});
 }

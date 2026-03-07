@@ -33,10 +33,11 @@ class MealController extends GetxController {
     // };
     final mealData = ReminderPayloadModel(
       id: id,
-      category: ReminderCategory.meal.toString(),
+      category: "meal",
       title: title,
       notes: notes.isNotEmpty ? notes : "",
       customReminder: CustomReminder(
+        type: Option.times,
         timesPerDay: TimesPerDay(count: '1', list: [scheduledTime.toString()]),
       ),
     );
@@ -78,7 +79,8 @@ class MealController extends GetxController {
 
       // Reload the combined list
       await reminderController.loadAllReminderLists();
-      //reminderController.addRemindertoAPI(mealData, context);
+      print("Meal data before API call: ${mealData.toJson()}");
+      reminderController.addRemindertoAPI(mealData, context);
 
       // CustomSnackbar.showSuccess(
       //   context: context,

@@ -118,7 +118,7 @@ Log.e("SleepNoticingService", "Error recovering pending screen off")
             Log.e("SleepNoticingService", "Failed to register receiver")
         }
 
-        return START_REDELIVER_INTENT
+        return START_STICKY
 
 
     }
@@ -207,14 +207,14 @@ Log.e("SleepNoticingService", "Error recovering pending screen off")
 
     private fun computeActiveSleepWindow(): SleepWindow? {
         // Get bedtime/waketime from prefs (Flutter-prefixed keys)
-        val bedMin = prefs.getInt("flutter.user_bedtime_ms", -1)
-        val wakeMin = prefs.getInt("flutter.user_waketime_ms", -1)
-        if (bedMin == -1 || wakeMin == -1) return null
+        val bedMin = prefs.getLong("flutter.user_bedtime_ms", -1L)
+        val wakeMin = prefs.getLong("flutter.user_waketime_ms", -1L)
+        if (bedMin == -1L || wakeMin == -1L) return null
 
-        val bedHour = bedMin / 60
-        val bedMinute = bedMin % 60
-        val wakeHour = wakeMin / 60
-        val wakeMinute = wakeMin % 60
+        val bedHour = (bedMin / 60).toInt()
+        val bedMinute = (bedMin % 60).toInt()
+        val wakeHour = (wakeMin / 60).toInt()
+        val wakeMinute = (wakeMin % 60).toInt()
 
         val now = Calendar.getInstance()
         val start = Calendar.getInstance().apply {
@@ -279,16 +279,9 @@ class ScreenReceiver(private val callback: (String) -> Unit) : android.content.B
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
-            val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-            val isSleeping = prefs.getBoolean("flutter.is_sleeping", false)
-
-            if (isSleeping) {
-                val serviceIntent = Intent(context, SleepNoticingService::class.java)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                    context.startForegroundService(serviceIntent)
-                else
-                    context.startService(serviceIntent)
-            }
+            // After device reboot, reschedule alarms for sleep tracking
+            AlarmHelper.scheduleSleepAlarms(context)
+            Log.d("BootReceiver", "Re-scheduled sleep alarms on Boot")
         }
     }
 }

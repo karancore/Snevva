@@ -432,7 +432,7 @@ class _MyAppState extends State<MyApp> {
 
       if (!hasSession) {
         _runStage3BackgroundTasks(hasSession: false);
-        Get.offAll(() => HomeWrapper());
+        Get.offAll(() => SignInScreen());
         return;
       }
 

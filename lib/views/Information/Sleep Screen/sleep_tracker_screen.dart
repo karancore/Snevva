@@ -79,14 +79,12 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
       final goalMinutes = prefs.getInt("sleep_goal_minutes") ?? 480;
 
       if (startString != null) {
-        final start = DateTime.parse(startString);
-        final elapsed = DateTime.now().difference(start);
-
         setState(() {
           _isSleeping = true;
-          _currentSleepDuration = elapsed;
+          // Real elapsed sleep comes from background sleep_update events.
+          _currentSleepDuration = Duration.zero;
           _sleepGoal = Duration(minutes: goalMinutes);
-          _progress = (elapsed.inMinutes / goalMinutes).clamp(0.0, 1.0);
+          _progress = 0.0;
         });
       }
     }
@@ -486,7 +484,9 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
                   final points =
                       sleepController.isMonthlyView.value
-                          ? sleepController.getMonthlyDeepSleepSpots(now)
+                          ? sleepController.getMonthlyDeepSleepSpots(
+                            _selectedMonth,
+                          )
                           : sleepController.deepSleepSpots
                               .take(daysSinceMonday + 1)
                               .toList();
@@ -515,6 +515,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                     measureUnit: 'h',
                     isSleepGraph: true,
                     isWaterGraph: false,
+                    // selectedMonthForHeader: _selectedMonth,
                   );
                 }),
               ),

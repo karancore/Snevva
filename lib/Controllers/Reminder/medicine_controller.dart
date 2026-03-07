@@ -426,7 +426,7 @@ class MedicineController extends GetxController {
       id: id,
       alarmIds: alarms.map((e) => e.id).toList(),
       title: title,
-      category: ReminderCategory.medicine.toString(),
+      category: "medicine",
       medicineName: medicineName,
       medicineType: medicineType,
       whenToTake: selectedWhenToTake.value,
@@ -445,10 +445,10 @@ class MedicineController extends GetxController {
     await reminderController.saveReminderList(medicineList, "medicine_list");
     await reminderController.loadAllReminderLists();
 
-    // await reminderController.addRemindertoAPI(
-    //   medicine.toReminderPayload(),
-    //   context,
-    // );
+    await reminderController.addRemindertoAPI(
+      medicine.toReminderPayload(),
+      context,
+    );
     CustomSnackbar().showReminderBar(context);
     Get.back(result: true);
     return true;

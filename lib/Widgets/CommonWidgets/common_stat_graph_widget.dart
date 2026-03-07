@@ -22,6 +22,7 @@ class CommonStatGraphWidget extends StatelessWidget {
     required this.isWaterGraph,
     this.maxXForWeek,
     this.weekLabels,
+    this.selectedMonthForHeader,
   });
 
   final bool isDarkMode;
@@ -39,6 +40,7 @@ class CommonStatGraphWidget extends StatelessWidget {
   final List<FlSpot> points; // Data points for the graph
   final List<String>?
   weekLabels; // Can be days (Mon-Sun) or month days (1,5,10...)
+  final DateTime? selectedMonthForHeader;
 
   @override
   Widget build(BuildContext context) {
@@ -67,9 +69,19 @@ class CommonStatGraphWidget extends StatelessWidget {
       todayIndex = resolvedIndex.clamp(0, labels.length - 1).toInt();
     }
 
-    final String formattedDate = DateFormat(
-      'd MMM, yyyy',
-    ).format(DateTime.now());
+    final now = DateTime.now();
+    DateTime headerDate = now;
+    if (isMonthlyView && selectedMonthForHeader != null) {
+      final selected = selectedMonthForHeader!;
+      final isCurrentMonth =
+          selected.year == now.year && selected.month == now.month;
+      headerDate =
+          isCurrentMonth
+              ? DateTime(now.year, now.month, now.day)
+              : DateTime(selected.year, selected.month + 1, 0);
+    }
+
+    final String formattedDate = DateFormat('d MMM, yyyy').format(headerDate);
 
     return Material(
       elevation: 3,

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:get/get.dart';
 import 'package:get/get_connect/http/src/response/response.dart' as http;
@@ -249,6 +250,16 @@ class SleepController extends GetxService {
   // ═══════════════════════════════════════════════════════════════
   // SLEEP SCHEDULE METHODS
   // ═══════════════════════════════════════════════════════════════
+  static const MethodChannel _nativeSleepChannel = MethodChannel('com.coretegra.snevva/sleep_service');
+
+  void _updateNativeSleepAlarms() {
+    try {
+      _nativeSleepChannel.invokeMethod('updateSleepAlarms');
+      print('🔔 Native sleep alarms updated');
+    } catch (e) {
+      print('❌ Failed to update native sleep alarms: $e');
+    }
+  }
 
   void setBedtime(TimeOfDay time) {
     bedtime.value = time;
@@ -257,6 +268,7 @@ class SleepController extends GetxService {
 
     SharedPreferences.getInstance().then((prefs) {
       prefs.setInt(BEDTIME_KEY, minutes);
+      _updateNativeSleepAlarms();
     });
 
     print('🛏️ Bedtime set → $time');
@@ -269,6 +281,7 @@ class SleepController extends GetxService {
 
     SharedPreferences.getInstance().then((prefs) {
       prefs.setInt(WAKETIME_KEY, minutes);
+      _updateNativeSleepAlarms();
     });
 
     print('⏰ Waketime set → $time');
@@ -328,19 +341,17 @@ class SleepController extends GetxService {
 
         if (startString != null) {
           final start = DateTime.parse(startString);
-          final elapsed = DateTime.now().difference(start);
 
           isSleeping.value = true;
           sleepStartTime.value = start;
-          currentSleepDuration.value = elapsed;
+          // Real elapsed sleep comes from background `sleep_update` events
+          // and is already clamped to the sleep window.
+          currentSleepDuration.value = Duration.zero;
           sleepGoal.value = Duration(minutes: goalMinutes);
-          sleepProgress.value = (elapsed.inMinutes / goalMinutes).clamp(
-            0.0,
-            1.0,
-          );
+          sleepProgress.value = 0.0;
 
           print(
-            "🔄 Restored active sleep session: ${elapsed.inMinutes}m / ${goalMinutes}m",
+            "🔄 Restored active sleep session (waiting for background sleep_update)",
           );
         }
       }
@@ -926,7 +937,7 @@ class SleepController extends GetxService {
       savesleepToLocalStorage();
 
       final int totalDays =
-          (year == year && month == month)
+          (year == DateTime.now().year && month == DateTime.now().month)
               ? DateTime.now()
                   .day // 🔥 only till today
               : daysInMonth(year, month);

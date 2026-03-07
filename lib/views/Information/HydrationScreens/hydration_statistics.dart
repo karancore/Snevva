@@ -305,6 +305,7 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                       weekLabels: labels,
                       measureUnit: 'L',
                       isSleepGraph: false,
+                      // selectedMonthForHeader: _selectedMonth,
                     );
                   }),
                 );
