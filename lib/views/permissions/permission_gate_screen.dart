@@ -73,10 +73,17 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
       barrierDismissible: false,
       builder: (dialogContext) {
         return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: const Text('Permission Required'),
           content: Text(
             '$permissionName is required for step and sleep tracking. '
             'Please enable it in Settings.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: mediumGrey,
+                  height: 1.35,
+                ),
           ),
           actions: [
             TextButton(
@@ -90,7 +97,10 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
                 Navigator.of(dialogContext).pop();
                 await openAppSettings();
               },
-              child: const Text('Open Settings'),
+              child: Text(
+                'Open Settings',
+                style: TextStyle(color: AppColors.primaryColor),
+              ),
             ),
           ],
         );
@@ -138,6 +148,9 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: const Text('Skip Permissions?'),
           content: const Text(
             'Step and sleep tracking will not work until permissions are granted.',
@@ -164,6 +177,87 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final Color backgroundColor =
         isDarkMode ? scaffoldColorDark : scaffoldColorLight;
+    final Color cardColor =
+        isDarkMode ? Colors.white.withValues(alpha: 0.06) : Colors.white;
+    final Color cardBorder =
+        isDarkMode ? Colors.white.withValues(alpha: 0.12) : Colors.black12;
+
+    Widget permissionTile(
+      PermissionRequirement req,
+      PermissionStatus status,
+    ) {
+      final granted = _isGranted(status);
+      final Color accent = granted ? Colors.green : AppColors.primaryColor;
+      final Color badgeBg = granted
+          ? Colors.green.withValues(alpha: 0.12)
+          : AppColors.primaryColor.withValues(alpha: 0.12);
+
+      String badgeText = 'Required';
+      if (granted) {
+        badgeText = 'Granted';
+      } else if (!req.requestable) {
+        badgeText = 'Enable in Settings';
+      }
+
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 36,
+              width: 36,
+              decoration: BoxDecoration(
+                color: badgeBg,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                granted ? Icons.check_rounded : Icons.lock_outline_rounded,
+                size: 18,
+                color: accent,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    req.title,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    req.description,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: mediumGrey,
+                          height: 1.35,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: badgeBg,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                badgeText,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: accent,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return WillPopScope(
       onWillPop: () async {
@@ -178,105 +272,180 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
         backgroundColor: backgroundColor,
         appBar: AppBar(
           automaticallyImplyLeading: false,
+          elevation: 0,
+          backgroundColor: backgroundColor,
+          foregroundColor: isDarkMode ? Colors.white : Colors.black,
           title: const Text('Enable Tracking'),
         ),
         body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 8),
-                Text(
-                  'This app tracks your steps and sleep even when the app is closed.',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: isDarkMode ? Colors.white70 : Colors.black87,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: widget.requirements.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final req = widget.requirements[index];
-                      final status =
-                          _statuses[req.id] ?? PermissionStatus.denied;
-                      final granted = _isGranted(status);
-
-                      return ListTile(
-                        leading: Icon(
-                          granted
-                              ? Icons.check_circle
-                              : Icons.radio_button_unchecked,
-                          color:
-                              granted
-                                  ? Colors.green
-                                  : (isDarkMode
-                                      ? Colors.white38
-                                      : Colors.black38),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 520),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: cardColor,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: cardBorder),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                height: 48,
+                                width: 48,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryColor.withValues(
+                                    alpha: 0.12,
+                                  ),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.health_and_safety_rounded,
+                                  color: AppColors.primaryColor,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Keep Tracking Active',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'This app tracks your steps and sleep even when the app is closed.',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall?.copyWith(
+                                            color: mediumGrey,
+                                            height: 1.4,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        title: Text(req.title),
-                        subtitle: Text(req.description),
-                        trailing:
-                            granted
-                                ? const Icon(Icons.check, color: Colors.green)
-                                : (req.requestable
-                                    ? const Icon(Icons.chevron_right)
-                                    : const SizedBox.shrink()),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed:
-                        _requesting
-                            ? null
-                            : (_allGranted
-                                ? () => Navigator.of(context).pop(true)
-                                : _requestSequentially),
-                    child:
-                        _requesting
-                            ? const SizedBox(
-                              height: 18,
-                              width: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                            : Text(
-                              _allGranted ? 'Continue' : 'Grant Permissions',
+                        const SizedBox(height: 18),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: cardColor,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: cardBorder),
+                          ),
+                          child: Column(
+                            children: [
+                              for (int i = 0;
+                                  i < widget.requirements.length;
+                                  i++) ...[
+                                if (i > 0)
+                                  Divider(
+                                    height: 1,
+                                    color: cardBorder,
+                                  ),
+                                permissionTile(
+                                  widget.requirements[i],
+                                  _statuses[widget.requirements[i].id] ??
+                                      PermissionStatus.denied,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed:
+                                _requesting
+                                    ? null
+                                    : (_allGranted
+                                        ? () =>
+                                            Navigator.of(context).pop(true)
+                                        : _requestSequentially),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              backgroundColor: AppColors.primaryColor,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 0,
                             ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      side: BorderSide(color: AppColors.primaryColor),
+                            child: _requesting
+                                ? const SizedBox(
+                                    height: 18,
+                                    width: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(
+                                    _allGranted
+                                        ? 'Continue'
+                                        : 'Grant Permissions',
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: _requesting
+                                ? null
+                                : () async {
+                                    final skip = await _confirmSkip();
+                                    if (skip && mounted) {
+                                      Navigator.of(context).pop(false);
+                                    }
+                                  },
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              foregroundColor: AppColors.primaryColor,
+                              side: BorderSide(color: AppColors.primaryColor),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: const Text('Skip for Now'),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        if (!_allGranted)
+                          Text(
+                            'You can update permissions later in Settings.',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: mediumGrey),
+                          ),
+                      ],
                     ),
-                    child: Text('Skip for Now'),
                   ),
                 ),
-
-                const SizedBox(height: 8),
-                if (!_allGranted)
-                  Text(
-                    'You can update permissions later in Settings.',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: mediumGrey),
-                  ),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),
