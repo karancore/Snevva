@@ -569,7 +569,8 @@ class _MyAppState extends State<MyApp> {
                   duration: const Duration(milliseconds: 300),
                   child: const InitializationSplash(),
                 )
-                : _initState == AppInitState.success
+                :
+            _initState == AppInitState.success
                 ? HomeWrapper()
                 : ErrorPlaceholder(
                   onRetry: () {
@@ -855,7 +856,7 @@ class ErrorPlaceholder extends StatelessWidget {
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 20),
-              ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+              TextButton(onPressed: onRetry, child: const Text('Retry')),
             ],
           ],
         ),

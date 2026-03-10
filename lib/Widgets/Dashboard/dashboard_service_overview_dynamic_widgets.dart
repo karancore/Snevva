@@ -239,6 +239,7 @@ class _DashboardServiceOverviewDynamicWidgetsState
                       child: Lottie.asset(
                         ecgDashboardLottie,
                         fit: BoxFit.contain,
+                        animate: TickerMode.of(context),
                       ),
                     ),
                   ),

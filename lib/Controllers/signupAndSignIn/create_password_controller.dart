@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/common/custom_snackbar.dart';
+import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/services/auth_header_helper.dart';
 import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/services/encryption_service.dart';
@@ -137,6 +138,8 @@ class CreatePasswordController extends GetxService {
 
         localStorageManager.registerDeviceFCMIfNeeded();
 
+        await AuthService().ensurePostLoginPermissionsAndStartTracking();
+
         Get.offAll(() => ProfileSetupInitial()); // 👈 clears previous stack
       }
     } catch (e) {
@@ -227,6 +230,8 @@ class CreatePasswordController extends GetxService {
         );
 
         localStorageManager.registerDeviceFCMIfNeeded();
+
+        await AuthService().ensurePostLoginPermissionsAndStartTracking();
 
         Get.offAll(() => ProfileSetupInitial()); // 👈 clears previous stack
       } else {

@@ -27,6 +27,7 @@ import 'package:snevva/env/env.dart';
 import 'package:snevva/models/hive_models/steps_model.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
+import 'package:snevva/views/permissions/permission_gate_screen.dart';
 
 import '../Controllers/signupAndSignIn/otp_verification_controller.dart';
 import '../Controllers/signupAndSignIn/sign_in_controller.dart';
@@ -41,6 +42,8 @@ import 'background_pedometer_service.dart';
 import 'decisiontree_service.dart';
 import 'device_token_service.dart';
 import 'encryption_service.dart';
+import 'permission_manager.dart';
+import 'tracking_service_manager.dart';
 
 class AuthService {
   static bool _isLoggingOut = false;
@@ -212,6 +215,44 @@ class AuthService {
     debugPrint("🟩 LOGIN_FLOW: $msg");
   }
 
+  Future<bool> _ensurePostLoginPermissionsAndStartTracking() async {
+    final permissionManager = PermissionManager();
+    final prefs = await SharedPreferences.getInstance();
+    final shouldRun = await permissionManager.shouldRunPostLoginFlow(prefs);
+    final requirements = await permissionManager.getRequiredPermissions();
+    final alreadyGranted = await permissionManager.areAllRequiredGranted(
+      requirements,
+    );
+
+    if (!shouldRun && !alreadyGranted) {
+      return false;
+    }
+
+    bool granted = alreadyGranted;
+    if (shouldRun && !alreadyGranted) {
+      granted =
+          await Get.to<bool>(
+            () => PermissionGateScreen(
+              permissionManager: permissionManager,
+              requirements: requirements,
+            ),
+          ) ??
+          false;
+    }
+
+    await permissionManager.markPostLoginFlowDone(prefs);
+
+    if (granted) {
+      await TrackingServiceManager.instance.start();
+    }
+
+    return granted;
+  }
+
+  Future<bool> ensurePostLoginPermissionsAndStartTracking() async {
+    return _ensurePostLoginPermissionsAndStartTracking();
+  }
+
   Future<void> handleSuccessfulSignIn({
     required String emailOrPhone,
     required SharedPreferences prefs,
@@ -228,13 +269,19 @@ class AuthService {
 
     /// PERMISSIONS
     loginLog("Requesting permissions...");
-    await requestAllPermissions();
-    loginLog("Permissions granted");
+    final permissionsGranted =
+        await _ensurePostLoginPermissionsAndStartTracking();
+    loginLog(
+      permissionsGranted
+          ? "Permissions granted"
+          : "Permissions not granted",
+    );
 
-    /// BACKGROUND SERVICE
-    loginLog("Initializing background service...");
-    await initBackgroundService();
-    loginLog("Background service started");
+    if (permissionsGranted) {
+      loginLog("Background service started");
+    } else {
+      loginLog("Tracking services not started (missing permissions)");
+    }
 
     /// HEALTH DATA LOAD
     loginLog("Loading Steps...");

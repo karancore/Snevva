@@ -278,18 +278,88 @@ class _ReminderScreenState extends State<ReminderScreen>
   }
 
   void _showDeleteConfirmation(ReminderPayloadModel reminder) {
-    Get.defaultDialog(
-      title: "Delete Reminder",
-      middleText: "Are you sure you want to delete this reminder?",
-      textConfirm: "Delete",
-      textCancel: "Cancel",
-      confirmTextColor: white,
-      buttonColor: AppColors.primaryColor,
-      onConfirm: () async {
-        await controller.deleteReminder(reminder);
-        Navigator.pop(context);
-      },
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 4),
+              Container(
+                height: 56,
+                width: 56,
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.delete_forever_rounded,
+                  color: Colors.red,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "Delete Reminder",
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Are you sure you want to delete this reminder? This action can’t be undone.",
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: mediumGrey,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Get.back(),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    side: BorderSide(color: AppColors.primaryColor),
+                  ),
+                  child: const Text("Cancel"),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    await controller.deleteReminder(reminder);
+                    Get.back();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text("Delete"),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      barrierDismissible: false,
     );
+
   }
 
   Widget _buildCategoryContent(ReminderPayloadModel reminder, String category) {

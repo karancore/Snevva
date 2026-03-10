@@ -63,26 +63,8 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
     // Ensure we observe app lifecycle to refresh on resume
     WidgetsBinding.instance.addObserver(this);
 
-    // Ensure controller's Hive data is loaded so weekly graph can render immediately
-    // Trigger load and refresh UI once complete
-    stepController.loadTodayStepsFromHive().then((_) {
-      if (!mounted) return;
-      setState(() {});
-    });
-
-    // Watch stepSpots so UI updates when controller updates the weekly points
-    ever(stepController.stepSpots, (val) {
-      print("📈 stepSpots updated: ${stepController.stepSpots}");
-      if (!mounted) return;
-      setState(() {});
-    });
-
-    // Also listen to changes in todaySteps for the counter updates
-    stepController.todaySteps.listen((steps) {
-      print("👣 Reactive update: todaySteps = $steps");
-      if (!mounted) return;
-      setState(() {});
-    });
+    // Keep initial load without forcing full-screen rebuilds.
+    stepController.loadTodayStepsFromHive();
   }
 
   // Future<void> _startAndAttachService() async {
@@ -115,6 +97,10 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _locationSub?.cancel();
+    _uiRefreshTimer?.cancel();
+    _debounce?.cancel();
+    _secretResetTimer?.cancel();
     // Remove lifecycle observer
     WidgetsBinding.instance.removeObserver(this);
     // No need to cancel _serviceSub anymore
@@ -471,7 +457,7 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
 
                   final points =
                       _isMonthlyView
-                          ? stepController.getMonthlyStepsSpots(DateTime.now())
+                          ? stepController.getMonthlyStepsSpots(_selectedMonth)
                           : stepController.stepSpots
                               .take(daysSinceMonday + 1)
                               .toList();

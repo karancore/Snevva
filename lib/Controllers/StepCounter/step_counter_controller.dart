@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:get/get.dart';
@@ -108,8 +109,12 @@ class StepCounterController extends GetxController {
   Timer? _hivePoller;
   StreamSubscription? _stepsUpdatedSubscription;
   bool _isRealtimeTrackingActive = false;
+  DateTime _lastServiceEventAt = DateTime.fromMillisecondsSinceEpoch(0);
+  final Map<String, List<FlSpot>> _monthlySpotsCache =
+      <String, List<FlSpot>>{};
 
   static const Duration _syncInterval = Duration(hours: 4);
+  static const Duration _hiveFallbackPollInterval = Duration(seconds: 30);
   static const String _lastSyncKey = "last_step_sync_time";
 
   // =======================
@@ -234,7 +239,7 @@ class StepCounterController extends GetxController {
     _stepsUpdatedSubscription = _service.on("steps_updated").listen((
       event,
     ) async {
-      print("🔔 Background service event received: $event");
+      _lastServiceEventAt = DateTime.now();
       if (event == null) return;
 
       final int newSteps = event["steps"] ?? 0;
@@ -252,8 +257,6 @@ class StepCounterController extends GetxController {
 
       // Trigger API sync if needed
       await _maybeSyncSteps();
-
-      print("🔄 Controller received (from service): $newSteps steps");
     });
   }
 
@@ -262,10 +265,17 @@ class StepCounterController extends GetxController {
 
     _isRealtimeTrackingActive = true;
     _listenToBackgroundSteps();
+    _lastServiceEventAt = DateTime.now();
     _hivePoller?.cancel();
     _hivePoller = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) => _pollHiveToday(),
+      _hiveFallbackPollInterval,
+      (_) {
+        // Fallback path: poll Hive only when we haven't seen recent service events.
+        if (DateTime.now().difference(_lastServiceEventAt) >=
+            _hiveFallbackPollInterval) {
+          _pollHiveToday();
+        }
+      },
     );
   }
 
@@ -317,14 +327,14 @@ class StepCounterController extends GetxController {
         todaySteps.refresh();
         await updateStepSpots();
         stepSpots.refresh();
-        print(
+        _debugLog(
           "🔎 Hive poll detected change: todaySteps = $effective (hive=$steps pref=$prefSteps)",
         );
         // _checkDayReset();
       }
     } catch (e) {
       // ignore polling errors
-      print('❌ Poll hive error: $e');
+      _debugLog('❌ Poll hive error: $e');
       // attempt reopen if filesystem issue
       if (e is FileSystemException) await _reopenStepBox();
     }
@@ -336,6 +346,8 @@ class StepCounterController extends GetxController {
 
     // Persist safely
     await _safePutSteps(key, StepEntry(date: _startOfDay(today), steps: steps));
+
+    _invalidateMonthlySpotsCache(month: today);
 
     // Update graph immediately and notify observers
     await updateStepSpots();
@@ -467,9 +479,8 @@ class StepCounterController extends GetxController {
       // ✅ Build map + graph (will merge with Hive inside)
       await buildStepsHistoryMap();
 
-      print("📊 Map: $stepsHistoryByDate");
-      print("📈 Spots: $stepSpots");
-      print("✅ Loaded steps from API: ${stepsHistoryList.length}");
+      _invalidateMonthlySpotsCache(month: DateTime(year, month));
+      _debugLog("✅ Loaded steps from API: ${stepsHistoryList.length}");
     } catch (e) {
       print("❌ Error loading steps from API: $e");
     }
@@ -494,24 +505,25 @@ class StepCounterController extends GetxController {
   }
 
   List<FlSpot> getMonthlyStepsSpots(DateTime month) {
-    print("📅 [MonthlyGraph] Requested month: ${month.year}-${month.month}");
+    final normalizedMonth = DateTime(month.year, month.month);
+    final cacheKey = _monthCacheKey(normalizedMonth);
+    final cached = _monthlySpotsCache[cacheKey];
+    if (cached != null) {
+      return cached;
+    }
 
     // Determine the total days to plot (only till today if current month)
     final int totalDays =
-        (month.year == DateTime.now().year &&
-                month.month == DateTime.now().month)
+        (normalizedMonth.year == DateTime.now().year &&
+                normalizedMonth.month == DateTime.now().month)
             ? DateTime.now().day
-            : DateTime(month.year, month.month + 1, 0).day;
-
-    print("📆 [MonthlyGraph] Total days to plot: $totalDays");
-    print(
-      "🗂️ [MonthlyGraph] stepsHistoryList entries: ${stepsHistoryList.length}",
-    );
+            : DateTime(normalizedMonth.year, normalizedMonth.month + 1, 0).day;
 
     // Build a lookup map from API / stored data
     final Map<int, int> dayToSteps = {};
     for (final entry in stepsHistoryList) {
-      if (entry.date.year == month.year && entry.date.month == month.month) {
+      if (entry.date.year == normalizedMonth.year &&
+          entry.date.month == normalizedMonth.month) {
         // Keep the maximum steps per day if multiple entries exist
         dayToSteps[entry.date.day] = max(
           dayToSteps[entry.date.day] ?? 0,
@@ -520,26 +532,19 @@ class StepCounterController extends GetxController {
       }
     }
 
-    print("📌 [MonthlyGraph] dayToSteps mapping:");
-    dayToSteps.forEach((day, steps) => print("   • Day $day → $steps steps"));
-
     // Generate FlSpots for the graph
-    List<FlSpot> spots = [];
+    final List<FlSpot> spots = [];
     for (int day = 1; day <= totalDays; day++) {
       final steps = dayToSteps[day] ?? 0;
-      print("➡️ [Day $day] Steps: $steps");
-
       spots.add(FlSpot((day - 1).toDouble(), steps.toDouble()));
     }
 
-    print("📈 [MonthlyGraph] Generated FlSpots:");
-    for (final s in spots) {
-      print("   • x=${s.x}, y=${s.y}");
-    }
-
-    print("✅ [MonthlyGraph] Total spots generated: ${spots.length}");
-
-    return spots;
+    final unmodifiableSpots = List<FlSpot>.unmodifiable(spots);
+    _monthlySpotsCache[cacheKey] = unmodifiableSpots;
+    _debugLog(
+      "📅 [MonthlyGraph] cached ${unmodifiableSpots.length} spots for $cacheKey",
+    );
+    return unmodifiableSpots;
   }
 
   Future<void> updateStepGoal(int goal) async {
@@ -640,6 +645,7 @@ class StepCounterController extends GetxController {
   Future<void> buildStepsHistoryMap() async {
     // Start by populating map from local Hive (local source of truth when API is not called)
     stepsHistoryByDate.clear();
+    _invalidateMonthlySpotsCache();
 
     // Ensure the box is available
     await _ensureStepBox();
@@ -731,4 +737,20 @@ class StepCounterController extends GetxController {
 
   Future<void> putStepsForKey(String key, StepEntry entry) async =>
       _safePutSteps(key, entry);
+
+  String _monthCacheKey(DateTime date) => '${date.year}-${date.month}';
+
+  void _invalidateMonthlySpotsCache({DateTime? month}) {
+    if (month == null) {
+      _monthlySpotsCache.clear();
+      return;
+    }
+    _monthlySpotsCache.remove(_monthCacheKey(DateTime(month.year, month.month)));
+  }
+
+  void _debugLog(String message) {
+    if (kDebugMode) {
+      debugPrint(message);
+    }
+  }
 }

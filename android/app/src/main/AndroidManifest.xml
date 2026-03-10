@@ -23,6 +23,7 @@
     <!-- 🏃 Step counting & sensors -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
     <uses-permission android:name="android.permission.BODY_SENSORS" />
+    <uses-permission android:name="android.permission.BODY_SENSORS_BACKGROUND" />
 
     <!-- 📍 Location -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -32,6 +33,7 @@
     <!-- ⚙️ Foreground service types -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
 
     <!-- 🔋 Battery optimization ignore -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
@@ -143,14 +145,14 @@
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"
             android:exported="false"
-            android:foregroundServiceType="dataSync"
+            android:foregroundServiceType="dataSync|health"
             tools:replace="android:exported,android:foregroundServiceType" />
 
         <!-- 🌙 Sleep NoticingService (Native) -->
         <service
             android:name=".SleepNoticingService"
             android:exported="false"
-            android:foregroundServiceType="dataSync" />
+            android:foregroundServiceType="dataSync|health" />
 
         <receiver android:name=".StartSleepReceiver" android:exported="false" />
         <receiver android:name=".StopSleepReceiver" android:exported="false" />
