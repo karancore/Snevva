@@ -1,21 +1,10 @@
-import 'dart:convert';
 
 import 'package:flutter/rendering.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
-import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
-import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
-
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Alerts/alerts_screen.dart';
-import 'package:snevva/views/SignUp/sign_in_screen.dart';
-import '../../Controllers/Hydration/hydration_stat_controller.dart';
 
-import '../../Controllers/Vitals/vitalsController.dart';
-import '../../common/global_variables.dart';
 import '../../services/notification_service.dart';
 import '../../widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../widgets/dashboard/dashboard_ads_carousel_slider.dart';
