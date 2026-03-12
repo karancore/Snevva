@@ -1,13 +1,11 @@
 import 'package:alarm/alarm.dart';
-import 'package:alarm/model/alarm_settings.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-
 import '../../common/global_variables.dart';
 
 class ReminderNotificationsScreen extends StatefulWidget {
-  AlarmSettings alarmSettings;
-  ReminderNotificationsScreen({super.key, required this.alarmSettings});
+
+  final AlarmSettings alarmSettings;
+  const ReminderNotificationsScreen({super.key, required this.alarmSettings});
 
   @override
   State<ReminderNotificationsScreen> createState() =>

@@ -218,19 +218,22 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
                   return const Text("No suggestions found.");
                 }
 
+                print("Image URL: ${tips[0]['ThumbnailMedia']?['CdnUrl']}");
+
                 return Wrap(
                   spacing: 16,
                   runSpacing: 16,
                   children:
                       tips.map((tip) {
+                        print("Image URL: ${tip['ThumbnailMedia']?['CdnUrl']}");
+
                         return SizedBox(
                           width: (width - 56) / 2,
                           child: _buildTipCard(
                             heading: tip['Heading'] ?? '',
                             title: tip['Title'] ?? '',
                             image:
-                                tip['ThumbnailMedia']?['CdnUrl'] ??
-                                "https://d3byuuhm0bg21i.cloudfront.net/derivatives/c3d47d00-8a25-46ef-bba3-ec5609c49b08/thumb.webp",
+                                "https://${tip['ThumbnailMedia']?['CdnUrl']}" ,
                             isDarkMode: isDarkMode,
                             onButtonTap:
                                 () => Get.to(
