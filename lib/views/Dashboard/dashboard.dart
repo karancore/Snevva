@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/rendering.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -44,6 +45,10 @@ class _DashboardState extends State<Dashboard>
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final notificationController = NotificationService();
 
+
+  final scrollController = ScrollController();
+  bool _showAppBar = true;
+
   @override
   void initState() {
     super.initState();
@@ -66,10 +71,28 @@ class _DashboardState extends State<Dashboard>
     );
 
     _animationController.forward();
+      scrollController.addListener(() {
+        if (scrollController.position.userScrollDirection ==
+            ScrollDirection.reverse) {
+          if (_showAppBar) {
+            setState(() {
+              _showAppBar = false;
+            });
+          }
+        } else if (scrollController.position.userScrollDirection ==
+            ScrollDirection.forward) {
+          if (!_showAppBar) {
+            setState(() {
+              _showAppBar = true;
+            });
+          }
+        }
+      });
   }
 
   @override
   void dispose() {
+    scrollController.dispose();
     _animationController.dispose();
     super.dispose();
   }
@@ -81,70 +104,78 @@ class _DashboardState extends State<Dashboard>
     final width = mediaQuery.size.width;
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
+
       key: _scaffoldKey,
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
-      appBar: AppBar(
-        title: Padding(
-          padding: const EdgeInsets.only(left: 8.0, top: 10),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Obx(
-                () => Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('🖐🏻 Hello', style: TextStyle(fontSize: 16)),
-                    Text(
-                      localStorageManager.userMap['Name']?.toString() ?? 'User',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              Obx(() {
-                bool hasNewNotif =
-                    notificationController.hasNewNotification.value;
-                return Stack(
-                  children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.notifications_none,
-                        size: 28,
-                        color: AppColors.primaryColor,
-                      ),
-                      onPressed: () {
-                        Get.to(() => AlertsScreen());
-                        notificationController.hasNewNotification.value = false;
-                      },
-                    ),
-                    if (hasNewNotif)
-                      Positioned(
-                        right: 8,
-                        top: 8,
-                        child: Container(
-                          height: 10,
-                          width: 10,
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(_showAppBar ? kToolbarHeight : 0),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: _showAppBar ? 1.0 : 0.0,
+          child: AppBar(
+            title: Padding(
+              padding: const EdgeInsets.only(left: 8.0, top: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Obx(
+                    () => Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('🖐🏻 Hello', style: TextStyle(fontSize: 16)),
+                        Text(
+                          localStorageManager.userMap['Name']?.toString() ?? 'User',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                  ],
-                );
-              }),
-            ],
-          ),
-        ),
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 4.0),
-          child: IconButton(
-            icon: SvgPicture.asset(drawerIcon),
-            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  Obx(() {
+                    bool hasNewNotif =
+                        notificationController.hasNewNotification.value;
+                    return Stack(
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.notifications_none,
+                            size: 28,
+                            color: AppColors.primaryColor,
+                          ),
+                          onPressed: () {
+                            Get.to(() => AlertsScreen());
+                            notificationController.hasNewNotification.value = false;
+                          },
+                        ),
+                        if (hasNewNotif)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              height: 10,
+                              width: 10,
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  }),
+                ],
+              ),
+            ),
+            leading: Padding(
+              padding: const EdgeInsets.only(left: 4.0),
+              child: IconButton(
+                icon: SvgPicture.asset(drawerIcon),
+                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+              ),
+            ),
           ),
         ),
       ),
@@ -159,12 +190,15 @@ class _DashboardState extends State<Dashboard>
           }
         },
         child: SafeArea(
+
           child: ScrollConfiguration(
+
             behavior: ScrollBehavior().copyWith(
               scrollbars: false,
               overscroll: false,
             ),
             child: SingleChildScrollView(
+              controller: scrollController,
               padding: const EdgeInsets.only(
                 left: 16,
                 right: 16,
