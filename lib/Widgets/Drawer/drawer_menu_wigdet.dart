@@ -250,7 +250,11 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                       fit: BoxFit.cover,
                       placeholder:
                           (_, __) =>
-                              const Center(child: CircularProgressIndicator()),
+                              CircleAvatar(
+                                radius: 60,
+                                backgroundColor: Colors.grey,
+                                child:  SizedBox(),
+                              ),
                       errorWidget:
                           (_, __, ___) =>
                               CircleAvatar(
@@ -276,7 +280,7 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                         radius: 60,
                         backgroundColor: grey,
                         child: Icon(
-                          Icons.person,
+                          Icons.person_2,
                           size: 200 * 0.50,
                           color: white,
                         ),
