@@ -7,6 +7,7 @@ import 'package:snevva/Widgets/ProfileSetupAndQuestionnaire/answer_selection_wid
 
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/bindings/initial_bindings.dart';
+import 'package:snevva/views/permissions/permission_gate_screen.dart';
 import 'package:snevva/widgets/home_wrapper.dart' show HomeWrapper;
 
 import '../../consts/consts.dart';

@@ -1,13 +1,16 @@
 import 'package:alarm/alarm.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:get/instance_manager.dart';
 import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
+import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/views/Dashboard/dashboard.dart';
 import 'package:snevva/views/Information/menu_screen.dart';
 import 'package:snevva/views/Reminder/reminder_wrapper.dart';
+import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import 'package:snevva/widgets/navbar.dart';
 import '../services/notification_channel.dart';
 import '../views/My_Health/my_health_screen.dart';
@@ -29,6 +32,7 @@ class _HomeWrapperState extends State<HomeWrapper> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   static Future<void>? _sharedStartupTask;
   late final List<Widget?> _pages;
+  bool _hasRedirectedToProfileSetup = false;
 
   Widget _buildPage(int index) {
     switch (index) {
@@ -68,6 +72,8 @@ class _HomeWrapperState extends State<HomeWrapper> {
     bmiController.loadUserBMI();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      if (_redirectToProfileSetupIfNeeded()) return;
       await _ensureStartupSequence();
     });
 
@@ -86,6 +92,15 @@ class _HomeWrapperState extends State<HomeWrapper> {
   Future<void> _ensureStartupSequence() async {
     _sharedStartupTask ??= _startupSequence();
     await _sharedStartupTask;
+  }
+
+  bool _redirectToProfileSetupIfNeeded() {
+    if (_hasRedirectedToProfileSetup) return true;
+    if (isProfileSetupInitialComplete(localStorageManager.userMap)) return false;
+
+    _hasRedirectedToProfileSetup = true;
+    Get.offAll(() => const ProfileSetupInitial());
+    return true;
   }
 
   void _setStepRealtimeTracking(bool isDashboardVisible) {

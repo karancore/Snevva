@@ -253,16 +253,34 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                               const Center(child: CircularProgressIndicator()),
                       errorWidget:
                           (_, __, ___) =>
-                              Image.asset(profileMainImg, fit: BoxFit.cover),
+                              CircleAvatar(
+                                radius: 60,
+                                backgroundColor: Colors.grey,
+                                child:  Icon(
+                                  Icons.person,
+                                  size: 200 * 0.75,
+                                  color: Colors.white,
+                                ),
+                              )
                     );
                   }
                   // 3️⃣ Default asset
                   else {
-                    imageWidget = Image.asset(
-                      profileMainImg,
-                      width: 120,
-                      height: 120,
-                      fit: BoxFit.cover,
+                    imageWidget = Container(
+                      padding: const EdgeInsets.all(4), // border thickness
+                      decoration: const BoxDecoration(
+                        color: white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: CircleAvatar(
+                        radius: 60,
+                        backgroundColor: grey,
+                        child: Icon(
+                          Icons.person,
+                          size: 200 * 0.50,
+                          color: white,
+                        ),
+                      ),
                     );
                   }
 
@@ -275,7 +293,7 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                 const SizedBox(height: 8),
                 Text(
                   localStorageManager.userMap['Name']?.toString() ?? 'User',
-                  style: const TextStyle(color: Colors.white, fontSize: 24),
+                  style: const TextStyle(color: white, fontSize: 24),
                 ),
               ],
             ),

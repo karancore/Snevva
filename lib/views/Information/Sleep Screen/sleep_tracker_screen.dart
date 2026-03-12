@@ -157,6 +157,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
       event,
     ) {
       if (event != null && mounted) {
+        sleepController.stopSleep();
         Get.snackbar(
           '🎉 Goal Reached!',
           'You\'ve completed your sleep goal!',

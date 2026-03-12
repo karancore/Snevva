@@ -92,8 +92,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       extendBodyBehindAppBar: true,
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryLight4PercentOpacity,
-
+        backgroundColor: Colors.transparent,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         centerTitle: true,
         title: Text(
           "Edit Profile",
@@ -170,7 +171,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               final String? cdnUrl =
                               localStorageManager.userMap['ProfilePicture']?['CdnUrl'];
 
-                              ImageProvider imageProvider;
+                              ImageProvider ? imageProvider;
 
                               // 1️⃣ Highest Priority → User picked image
                               if (pickedFile != null) {
@@ -184,14 +185,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               }
 
                               // 3️⃣ Fallback → Default asset
-                              else {
-                                imageProvider = AssetImage(profileMainImg);
-                              }
+
 
                               return CircleAvatar(
                                 radius: 60,
-                                backgroundColor: Colors.grey.shade200,
+                                backgroundColor: grey,
                                 backgroundImage: imageProvider,
+                                child: imageProvider == null
+                                    ? Icon(
+                                  Icons.person,
+                                  size: 200 * 0.75,
+                                  color: white,
+                                )
+                                    : null,
                               );
                             }),
                           ),
@@ -204,8 +210,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     .pickImageFromGallery();
                               },
                               icon: SizedBox(
-                                height: 32,
-                                width: 32,
+                                height: 42,
+                                width: 42,
                                 child: CircleAvatar(
                                   backgroundColor: AppColors.primaryColor,
                                   child: Icon(

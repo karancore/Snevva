@@ -28,7 +28,7 @@ class SleepController extends GetxService {
   final Rx<Duration> sleepGoal = const Duration(hours: 8).obs;
   final RxBool isSleeping = false.obs;
   final Rx<DateTime?> sleepStartTime = Rxn<DateTime>();
-  final RxDouble sleepProgress = 0.0.obs; // 0.0 to 1.0
+  final RxDouble sleepProgress = 0.0.obs;
 
   // User sleep schedule
   final Rxn<TimeOfDay> bedtime = Rxn<TimeOfDay>();

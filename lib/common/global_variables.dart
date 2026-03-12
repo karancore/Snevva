@@ -134,6 +134,43 @@ bool hasEmptyValue(dynamic value) {
   return false;
 }
 
+bool isProfileSetupInitialComplete(Map user) {
+  if (user.isEmpty) return false;
+
+  final bool nameValid = _hasNonEmptyString(user['Name']);
+  final bool genderValid = _hasNonEmptyString(user['Gender']);
+
+  final int? day = _asPositiveInt(user['DayOfBirth']);
+  final int? month = _asPositiveInt(user['MonthOfBirth']);
+  final int? year = _asPositiveInt(user['YearOfBirth']);
+  final bool dobValid = day != null && month != null && year != null;
+
+  bool occupationValid = false;
+  final occupationData = user['OccupationData'];
+  if (occupationData is Map) {
+    occupationValid = _hasNonEmptyString(occupationData['Name']);
+  }
+  if (!occupationValid) {
+    occupationValid = _hasNonEmptyString(user['Occupation']);
+  }
+
+  return nameValid && genderValid && dobValid && occupationValid;
+}
+
+bool _hasNonEmptyString(dynamic value) {
+  if (value is String) return value.trim().isNotEmpty;
+  return false;
+}
+
+int? _asPositiveInt(dynamic value) {
+  if (value is int && value > 0) return value;
+  if (value is String) {
+    final parsed = int.tryParse(value);
+    if (parsed != null && parsed > 0) return parsed;
+  }
+  return null;
+}
+
 String formatDurationToHM(Duration d) {
   final int hours = d.inHours;
   final int minutes = d.inMinutes % 60;

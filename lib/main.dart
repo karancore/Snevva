@@ -31,6 +31,7 @@ import 'package:snevva/services/hive_service.dart';
 import 'package:snevva/utils/theme_controller.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
+import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import 'Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import 'Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
