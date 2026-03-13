@@ -71,7 +71,11 @@ const hydrationEleBottom = "assets/Dashboard/Rectangle 31.webp";
 // Dashboard_containers
 const ecgDashboardLottie = 'assets/Dashboard/lhWa8wKgs5.json';
 // Dashboard Ads Images
-const adImg1 = 'assets/Dashboard/Frame 231.webp';
+const adImg1 = "assets/Dashboard/Slider 1 - Daily Wellness v2.png";
+const adImg2 = "assets/Dashboard/Slider 2 - Smart Reminders.png";
+const adImg3 = "assets/Dashboard/Slider 3 - Health Insights.png";
+const adImg4 = "assets/Dashboard/Slider 4 - Mental Wellness.png";
+const adImg5 = "assets/Dashboard/Slider 5 - Health Companion.png";
 
 //Drawer_menu
 const homeIcon = "assets/Icons/Drawer/home-line.svg";

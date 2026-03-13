@@ -148,14 +148,6 @@ class ReminderController extends GetxController {
     super.onClose();
   }
 
-  // BoxShadow(
-  // color: Colors.grey.withOpacity(0.4), // Shadow color
-  // spreadRadius: 2, // How widely the shadow spreads
-  // blurRadius: 6, // How blurry the shadow is
-
-  // offset: Offset(0, 0), // Horizontal and vertical offset
-  // ),
-
   Future<void> handleRemindMeBefore({
     required RxnInt option,
     required TimeOfDay? timeOfDay,

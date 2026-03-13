@@ -12,7 +12,7 @@ class DashboardAdsCarouselSlider extends StatefulWidget {
       _DashboardAdsCarouselSliderState();
 }
 
-final items = [adImg1, adImg1, adImg1, adImg1, adImg1];
+final items = [adImg1, adImg2, adImg3, adImg4, adImg5];
 final List<AssetImage> _adImages =
     items.map((path) => AssetImage(path)).toList(growable: false);
 
