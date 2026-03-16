@@ -105,10 +105,15 @@ class AuthService {
     debugPrint("🟩 LOGIN_FLOW: $msg");
   }
 
-  Future<bool> _ensurePostLoginPermissionsAndStartTracking() async {
+  Future<bool> _ensurePostLoginPermissionsAndStartTracking({
+    bool ignoreSessionGuard = false,
+  }) async {
     final permissionManager = PermissionManager();
     final prefs = await SharedPreferences.getInstance();
-    final shouldRun = await permissionManager.shouldRunPostLoginFlow(prefs);
+    final shouldRun =
+        ignoreSessionGuard
+            ? true
+            : await permissionManager.shouldRunPostLoginFlow(prefs);
     final requirements = await permissionManager.getRequiredPermissions();
     final alreadyGranted = await permissionManager.areAllRequiredGranted(
       requirements,
@@ -139,8 +144,13 @@ class AuthService {
     return granted;
   }
 
-  Future<bool> ensurePostLoginPermissionsAndStartTracking() async {
-    return _ensurePostLoginPermissionsAndStartTracking();
+  Future<bool> ensurePostLoginPermissionsAndStartTracking({
+    bool ignoreSessionGuard = false,
+  }) async {
+    print("Ensuring post-login permissions and starting tracking if granted...");
+    return _ensurePostLoginPermissionsAndStartTracking(
+      ignoreSessionGuard: ignoreSessionGuard,
+    );
   }
 
   Future<void> handleSuccessfulSignIn({
@@ -157,14 +167,12 @@ class AuthService {
       prefs.setString('user_credential', emailOrPhone);
     }
 
-    /// PERMISSIONS
+    //PERMISSIONS
     loginLog("Requesting permissions...");
     final permissionsGranted =
         await _ensurePostLoginPermissionsAndStartTracking();
     loginLog(
-      permissionsGranted
-          ? "Permissions granted"
-          : "Permissions not granted",
+      permissionsGranted ? "Permissions granted" : "Permissions not granted",
     );
 
     if (permissionsGranted) {

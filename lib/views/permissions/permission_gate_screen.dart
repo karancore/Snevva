@@ -1,5 +1,7 @@
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../Widgets/home_wrapper.dart';
+import '../../bindings/initial_bindings.dart';
 import '../../consts/consts.dart';
 import '../../services/permission_manager.dart';
 
@@ -80,10 +82,9 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
           content: Text(
             '$permissionName is required for step and sleep tracking. '
             'Please enable it in Settings.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: mediumGrey,
-                  height: 1.35,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: mediumGrey, height: 1.35),
           ),
           actions: [
             TextButton(
@@ -161,7 +162,9 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
               child: const Text('Stay'),
             ),
             TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
+              onPressed: () {
+                Get.offAll(HomeWrapper(), binding: InitialBindings());
+              },
               child: const Text('Skip'),
             ),
           ],
@@ -182,15 +185,13 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
     final Color cardBorder =
         isDarkMode ? Colors.white.withValues(alpha: 0.12) : Colors.black12;
 
-    Widget permissionTile(
-      PermissionRequirement req,
-      PermissionStatus status,
-    ) {
+    Widget permissionTile(PermissionRequirement req, PermissionStatus status) {
       final granted = _isGranted(status);
       final Color accent = granted ? Colors.green : AppColors.primaryColor;
-      final Color badgeBg = granted
-          ? Colors.green.withValues(alpha: 0.12)
-          : AppColors.primaryColor.withValues(alpha: 0.12);
+      final Color badgeBg =
+          granted
+              ? Colors.green.withValues(alpha: 0.12)
+              : AppColors.primaryColor.withValues(alpha: 0.12);
 
       String badgeText = 'Required';
       if (granted) {
@@ -207,10 +208,7 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
             Container(
               height: 36,
               width: 36,
-              decoration: BoxDecoration(
-                color: badgeBg,
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: badgeBg, shape: BoxShape.circle),
               child: Icon(
                 granted ? Icons.check_rounded : Icons.lock_outline_rounded,
                 size: 18,
@@ -225,16 +223,16 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
                   Text(
                     req.title,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     req.description,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: mediumGrey,
-                          height: 1.35,
-                        ),
+                      color: mediumGrey,
+                      height: 1.35,
+                    ),
                   ),
                 ],
               ),
@@ -249,9 +247,9 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
               child: Text(
                 badgeText,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: accent,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: accent,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -274,7 +272,7 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
           automaticallyImplyLeading: false,
           elevation: 0,
           backgroundColor: backgroundColor,
-          foregroundColor: isDarkMode ? Colors.white : Colors.black,
+          foregroundColor: isDarkMode ? white : black,
           title: const Text('Enable Tracking'),
         ),
         body: SafeArea(
@@ -323,8 +321,8 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
                                       style: Theme.of(
                                         context,
                                       ).textTheme.titleMedium?.copyWith(
-                                            fontWeight: FontWeight.w700,
-                                          ),
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
                                     const SizedBox(height: 6),
                                     Text(
@@ -332,9 +330,9 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
                                       style: Theme.of(
                                         context,
                                       ).textTheme.bodySmall?.copyWith(
-                                            color: mediumGrey,
-                                            height: 1.4,
-                                          ),
+                                        color: mediumGrey,
+                                        height: 1.4,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -355,14 +353,13 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
                           ),
                           child: Column(
                             children: [
-                              for (int i = 0;
-                                  i < widget.requirements.length;
-                                  i++) ...[
+                              for (
+                                int i = 0;
+                                i < widget.requirements.length;
+                                i++
+                              ) ...[
                                 if (i > 0)
-                                  Divider(
-                                    height: 1,
-                                    color: cardBorder,
-                                  ),
+                                  Divider(height: 1, color: cardBorder),
                                 permissionTile(
                                   widget.requirements[i],
                                   _statuses[widget.requirements[i].id] ??
@@ -380,8 +377,7 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
                                 _requesting
                                     ? null
                                     : (_allGranted
-                                        ? () =>
-                                            Navigator.of(context).pop(true)
+                                        ? () => Navigator.of(context).pop(true)
                                         : _requestSequentially),
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -392,34 +388,36 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
                               ),
                               elevation: 0,
                             ),
-                            child: _requesting
-                                ? const SizedBox(
-                                    height: 18,
-                                    width: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
+                            child:
+                                _requesting
+                                    ? const SizedBox(
+                                      height: 18,
+                                      width: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                    : Text(
+                                      _allGranted
+                                          ? 'Continue'
+                                          : 'Grant Permissions',
                                     ),
-                                  )
-                                : Text(
-                                    _allGranted
-                                        ? 'Continue'
-                                        : 'Grant Permissions',
-                                  ),
                           ),
                         ),
                         const SizedBox(height: 10),
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton(
-                            onPressed: _requesting
-                                ? null
-                                : () async {
-                                    final skip = await _confirmSkip();
-                                    if (skip && mounted) {
-                                      Navigator.of(context).pop(false);
-                                    }
-                                  },
+                            onPressed:
+                                _requesting
+                                    ? null
+                                    : () async {
+                                      final skip = await _confirmSkip();
+                                      if (skip && mounted) {
+                                        Navigator.of(context).pop(false);
+                                      }
+                                    },
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               foregroundColor: AppColors.primaryColor,
@@ -435,10 +433,9 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
                         if (!_allGranted)
                           Text(
                             'You can update permissions later in Settings.',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(color: mediumGrey),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodySmall?.copyWith(color: mediumGrey),
                           ),
                       ],
                     ),

@@ -7,6 +7,8 @@ import 'package:snevva/Widgets/ProfileSetupAndQuestionnaire/answer_selection_wid
 
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/bindings/initial_bindings.dart';
+import 'package:snevva/services/auth_service.dart';
+import 'package:snevva/services/permission_manager.dart';
 import 'package:snevva/views/permissions/permission_gate_screen.dart';
 import 'package:snevva/widgets/home_wrapper.dart' show HomeWrapper;
 
@@ -61,6 +63,8 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
   List<Question> get questions {
     return [...healthQuestions, ...hobbyQuestions, ...finalStepQuestions];
   }
+
+  final authService = AuthService();
 
   int _currentIndex = 0;
 
@@ -288,7 +292,26 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                         curve: Curves.ease,
                       );
 
-                      Get.offAll(HomeWrapper(), binding: InitialBindings());
+
+                      final result = await authService
+                          .ensurePostLoginPermissionsAndStartTracking(
+                            ignoreSessionGuard: true,
+                          );
+
+                      if(result == true) {
+                        Get.offAll(() => HomeWrapper());
+                      } else {
+                        CustomSnackbar.showError(
+                          context: context,
+                          title: 'Permissions Required',
+                          message:
+                              'Please grant the necessary permissions to continue.',
+                        );
+                        final permissionManager = PermissionManager();
+                        final requirements = await permissionManager.getRequiredPermissions();
+                        Get.offAll(() => PermissionGateScreen(permissionManager: permissionManager, requirements:requirements,));
+                      }
+
                     } else {
                       await questionScreenController.saveAnswer(
                         _currentIndex,

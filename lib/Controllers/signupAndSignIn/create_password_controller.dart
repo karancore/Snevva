@@ -231,7 +231,7 @@ class CreatePasswordController extends GetxService {
 
         localStorageManager.registerDeviceFCMIfNeeded();
 
-        await AuthService().ensurePostLoginPermissionsAndStartTracking();
+        // await AuthService().ensurePostLoginPermissionsAndStartTracking();
 
         Get.offAll(() => ProfileSetupInitial()); // 👈 clears previous stack
       } else {

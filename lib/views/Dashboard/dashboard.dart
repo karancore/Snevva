@@ -112,6 +112,7 @@ class _DashboardState extends State<Dashboard>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('🖐🏻 Hello', style: TextStyle(fontSize: 16)),
+
                         Text(
                           localStorageManager.userMap['Name']?.toString() ?? 'User',
                           style: const TextStyle(

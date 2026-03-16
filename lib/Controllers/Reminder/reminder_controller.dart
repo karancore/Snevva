@@ -131,7 +131,7 @@ class ReminderController extends GetxController {
   }
 
   Future<void> _runDeferredInit() async {
-    await checkAndroidNotificationPermission();
+    // await checkAndroidNotificationPermission();
     await checkAndroidScheduleExactAlarmPermission();
     await cleanupExpiredBeforeAlarms();
     await loadAlarms();

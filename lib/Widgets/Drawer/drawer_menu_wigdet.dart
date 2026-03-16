@@ -416,12 +416,12 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                         duration: const Duration(milliseconds: 200),
                         child:
                             isLoading
-                                ? const SizedBox(
+                                ? SizedBox(
                                   height: 20,
                                   width: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2.5,
-                                    color: Colors.deepPurple,
+                                    color: AppColors.primaryColor,
                                   ),
                                 )
                                 : Row(

@@ -50,9 +50,6 @@ class HeightWeightController extends GetxController {
     heightInCm.value = cm;
   }
 
-  // Weight
-
-  // var weight = 52.0.obs;
 
   var weightInKg = 52.0.obs;
 

@@ -13,6 +13,7 @@ import 'package:snevva/models/queryParamViewModels/occupation_vm.dart';
 import 'package:snevva/models/queryParamViewModels/string_value_vm.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/height_and_weight_screen.dart';
 import '../../Widgets/ProfileSetupAndQuestionnaire/gender_radio_button.dart';
+import '../../common/first_letter_upper_case_formatter.dart';
 import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
 
@@ -43,52 +44,64 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
       permanent: true,
     );
 
-    // Load existing stored name (if any)
+    // Read stored values without mutating Rx during build.
     final storedName = localStorageManager.userMap['Name'];
-    if (storedName != null && storedName is String && storedName.isNotEmpty) {
-      initialProfileController.userNameText.value = storedName;
-      initialProfileController.userNameController.text = storedName;
-    }
-
-    // Load Gender
     final storedGender = localStorageManager.userMap['Gender'];
-    if (storedGender != null &&
-        storedGender is String &&
-        storedGender.isNotEmpty) {
-      initialProfileController.userGenderValue.value = storedGender;
-    }
-
-    // Load Occupation
     final occupationMap = localStorageManager.userMap['OccupationData'];
     final storedOccupation = occupationMap?['Name'];
-    if (storedOccupation != null &&
-        storedOccupation is String &&
-        storedOccupation.isNotEmpty) {
-      initialProfileController.selectedOccupation.value = storedOccupation;
-    }
 
-    // Load or default DOB (do this once here)
+    // Load or default DOB (compute now, persist after first frame if needed)
     final day = localStorageManager.userMap['DayOfBirth'];
     final month = localStorageManager.userMap['MonthOfBirth'];
     final year = localStorageManager.userMap['YearOfBirth'];
-
-    if (day == null ||
+    final bool needsDobPersist = day == null ||
         month == null ||
         year == null ||
         day == 0 ||
         month == 0 ||
-        year == 0) {
+        year == 0;
+
+    if (needsDobPersist) {
       dob = DateTime.now();
-      localStorageManager.userMap['DayOfBirth'] = dob!.day;
-      localStorageManager.userMap['MonthOfBirth'] = dob!.month;
-      localStorageManager.userMap['YearOfBirth'] = dob!.year;
     } else {
       dob = DateTime(year, month, day);
     }
 
-    // Set observable DOB string once (NOT inside build)
-    initialProfileController.userDob.value =
-        "${dob!.day.toString().padLeft(2, '0')}/${dob!.month.toString().padLeft(2, '0')}/${dob!.year}";
+    // Update controller text immediately; defer Rx writes to post-frame.
+    if (storedName != null && storedName is String && storedName.isNotEmpty) {
+      initialProfileController.userNameController.text = storedName;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      if (storedName != null &&
+          storedName is String &&
+          storedName.isNotEmpty) {
+        initialProfileController.userNameText.value = storedName;
+      }
+
+      if (storedGender != null &&
+          storedGender is String &&
+          storedGender.isNotEmpty) {
+        initialProfileController.userGenderValue.value = storedGender;
+      }
+
+      if (storedOccupation != null &&
+          storedOccupation is String &&
+          storedOccupation.isNotEmpty) {
+        initialProfileController.selectedOccupation.value = storedOccupation;
+      }
+
+      if (needsDobPersist) {
+        localStorageManager.userMap['DayOfBirth'] = dob!.day;
+        localStorageManager.userMap['MonthOfBirth'] = dob!.month;
+        localStorageManager.userMap['YearOfBirth'] = dob!.year;
+      }
+
+      initialProfileController.userDob.value =
+          "${dob!.day.toString().padLeft(2, '0')}/${dob!.month.toString().padLeft(2, '0')}/${dob!.year}";
+    });
   }
 
   @override
@@ -196,6 +209,7 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                 controller:
                                     initialProfileController.userNameController,
                                 style: const TextStyle(color: Colors.white),
+                                inputFormatters: [FirstLetterUpperCaseFormatter()],
                                 decoration: InputDecoration(
                                   filled: true,
                                   fillColor: Colors.transparent,

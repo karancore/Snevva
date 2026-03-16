@@ -109,7 +109,6 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
           icon: Icon(Icons.arrow_back_ios, size: 18),
           onPressed: () {
             Get.delete<OTPVerificationController>();
-
             Get.to(SignInScreen());
           },
         ),

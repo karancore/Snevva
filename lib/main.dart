@@ -31,6 +31,7 @@ import 'package:snevva/services/hive_service.dart';
 import 'package:snevva/utils/theme_controller.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
+import 'package:snevva/views/ProfileAndQuestionnaire/height_and_weight_screen.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import 'Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
@@ -110,32 +111,41 @@ void main() {
       stackTrace: details.stack,
     );
 
-    return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Image.asset(errorIcon, scale: 2),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Oops! Something went wrong.',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+    return Builder(
+      builder: (context) {
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final overlay = Overlay.of(context);
+
+          overlay?.insert(
+            OverlayEntry(
+              builder: (context) {
+                return Material(
+                  color: white,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.asset(errorIcon, scale: 2),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Oops! Something went wrong.',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
           );
-        },
-      ),
+        });
+
+        return const SizedBox(); // 👈 REQUIRED return
+      },
     );
   };
 
