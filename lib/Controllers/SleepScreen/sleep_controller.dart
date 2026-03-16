@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:get/get.dart';
-import 'package:get/get_connect/http/src/response/response.dart' as http;
 import 'package:get_storage/get_storage.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/env/env.dart';
@@ -575,8 +575,54 @@ class SleepController extends GetxService {
   }
 
   DateTime _parseTime(int year, int month, int day, String time) {
-    final parts = time.split(':');
-    return DateTime(year, month, day, int.parse(parts[0]), int.parse(parts[1]));
+    final trimmed = time.trim();
+    if (trimmed.isEmpty) {
+      return DateTime(year, month, day);
+    }
+
+    // Supports:
+    // - "23:59"
+    // - "23:59:00"
+    // - "11:30 PM" / "11:30PM"
+    final ampmRe = RegExp(
+      r'^\s*(\d{1,2})\s*:\s*(\d{2})(?::\s*(\d{2}))?\s*([ap]m)\s*$',
+      caseSensitive: false,
+    );
+    final m = ampmRe.firstMatch(trimmed);
+    if (m != null) {
+      int hour = int.parse(m.group(1)!);
+      final minute = int.parse(m.group(2)!);
+      final meridiem = m.group(4)!.toLowerCase();
+      if (meridiem == 'pm' && hour < 12) hour += 12;
+      if (meridiem == 'am' && hour == 12) hour = 0;
+      return DateTime(year, month, day, hour, minute);
+    }
+
+    final parts = trimmed.split(':');
+    if (parts.length >= 2) {
+      final hour = int.parse(parts[0].trim());
+      final minute = int.parse(parts[1].trim());
+      return DateTime(year, month, day, hour, minute);
+    }
+
+    // As a last resort, default to midnight of the given date.
+    return DateTime(year, month, day);
+  }
+
+  List<FlSpot> _buildMonthlySpots(DateTime monthRef, Map<String, Duration> data) {
+    final int totalDays =
+        (monthRef.year == DateTime.now().year &&
+                monthRef.month == DateTime.now().month)
+            ? DateTime.now().day
+            : daysInMonth(monthRef.year, monthRef.month);
+
+    final List<FlSpot> spots = [];
+    for (int day = 1; day <= totalDays; day++) {
+      final key = dateKey(DateTime(monthRef.year, monthRef.month, day));
+      final minutes = data[key]?.inMinutes ?? 0;
+      spots.add(FlSpot((day - 1).toDouble(), minutes / 60.0));
+    }
+    return spots;
   }
 
   Future<void> savesleepToLocalStorage() async {
@@ -790,6 +836,12 @@ class SleepController extends GetxService {
     print("🗂️ [MonthlyGraph] monthlyDeepSleepHistory keys:");
     monthlyDeepSleepHistory.keys.forEach((k) => print("   • $k"));
 
+    // Prefer API-fetched values when present, but fall back to local (Hive-loaded)
+    // history so monthly view still works offline.
+    final merged = <String, Duration>{}
+      ..addAll(Map<String, Duration>.from(weeklyDeepSleepHistory))
+      ..addAll(Map<String, Duration>.from(monthlyDeepSleepHistory));
+
     List<FlSpot> spots = [];
 
     for (int day = 1; day <= totalDays; day++) {
@@ -798,8 +850,8 @@ class SleepController extends GetxService {
 
       print("➡️ [Day $day] Checking key: $key");
 
-      if (monthlyDeepSleepHistory.containsKey(key)) {
-        final duration = monthlyDeepSleepHistory[key]!;
+      if (merged.containsKey(key)) {
+        final duration = merged[key]!;
         final hours = duration.inMinutes / 60.0;
 
         print(
@@ -864,11 +916,23 @@ class SleepController extends GetxService {
         final int year =
             int.tryParse(item['Year'].toString()) ?? 0; // Convert to int
 
-        final String from = item['SleepingFrom'];
-        final String to = item['SleepingTo'];
+        final String from = item['SleepingFrom']?.toString() ?? '';
+        final String to = item['SleepingTo']?.toString() ?? '';
 
-        DateTime bedTime = _parseTime(year, month, day, from);
-        DateTime wakeTime = _parseTime(year, month, day, to);
+        if (day <= 0 || month <= 0 || year <= 0 || from.isEmpty || to.isEmpty) {
+          debugPrint('⚠️ Skipping invalid sleep item: $item');
+          continue;
+        }
+
+        DateTime bedTime;
+        DateTime wakeTime;
+        try {
+          bedTime = _parseTime(year, month, day, from);
+          wakeTime = _parseTime(year, month, day, to);
+        } catch (e) {
+          debugPrint('⚠️ Failed to parse sleep times for item: $item ($e)');
+          continue;
+        }
 
         // 🌙 If wake time is next day
         if (wakeTime.isBefore(bedTime)) {
@@ -895,6 +959,7 @@ class SleepController extends GetxService {
           weeklyDeepSleepHistory[key] = duration;
         }
       }
+      monthlyDeepSleepHistory.refresh();
 
       if (sleepData.isNotEmpty) {
         final latestSleep = sleepData.first;
@@ -967,10 +1032,22 @@ class SleepController extends GetxService {
     isMonthlyView.value = true;
 
     try {
-      final spots = await loadSleepfromAPI(month: month, year: year);
+      final monthRef = DateTime(year, month, 1);
+      final merged = <String, Duration>{}
+        ..addAll(Map<String, Duration>.from(weeklyDeepSleepHistory))
+        ..addAll(Map<String, Duration>.from(monthlyDeepSleepHistory));
+
+      // Immediate local fallback so the chart has data even if API fetch fails.
       monthlySleepSpots
-        ..value = spots
+        ..value = _buildMonthlySpots(monthRef, merged)
         ..refresh();
+
+      final spots = await loadSleepfromAPI(month: month, year: year);
+      if (spots.isNotEmpty) {
+        monthlySleepSpots
+          ..value = spots
+          ..refresh();
+      }
     } catch (e) {
       debugPrint('❌ loadMonthlySleep error: $e');
     }

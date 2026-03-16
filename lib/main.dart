@@ -113,10 +113,8 @@ void main() {
 
     return Builder(
       builder: (context) {
-
         WidgetsBinding.instance.addPostFrameCallback((_) {
           final overlay = Overlay.of(context);
-
           overlay?.insert(
             OverlayEntry(
               builder: (context) {

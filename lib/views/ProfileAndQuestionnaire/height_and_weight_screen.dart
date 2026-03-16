@@ -265,9 +265,7 @@ class _HeightWeightScreenState extends State<HeightWeightScreen> {
                                 context,
                               );
 
-                              if (context.mounted) {
-                                Get.to(() => QuestionnaireScreen());
-                              }
+
                             },
 
                             child: Padding(

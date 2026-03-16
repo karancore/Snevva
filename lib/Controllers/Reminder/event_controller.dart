@@ -84,11 +84,6 @@ class EventController extends GetxController {
       );
       debugPrint('📦 RemindBefore Object created: ${remindBefore.toJson()}');
 
-      final timeOfDay = TimeOfDay(
-        hour: scheduledTime.hour,
-        minute: scheduledTime.minute,
-      );
-
       // debugPrint('🔄 Calling add event alarm handleRemindMeBefore...');
       // await reminderController.handleRemindMeBefore(
       //   option: eventRemindMeBefore,
@@ -159,12 +154,17 @@ class EventController extends GetxController {
         category: "event",
         title: title,
         notes: notes,
+        reminderFrequencyType: Option.times.name,
         customReminder: CustomReminder(
-          timesPerDay: TimesPerDay(count: '1', list: [scheduledTime.toString()]),
+          type: Option.times,
+          timesPerDay: TimesPerDay(
+            count: '1',
+            list: [scheduledTime.toIso8601String()],
+          ),
         ),
       );
       debugPrint('📦 Event ReminderPayloadModel created: ${eventData.toJson()}');
-      reminderController.addRemindertoAPI(eventData, context);
+      await reminderController.addRemindertoAPI(eventData, context);
 
       // Cleaning up
       debugPrint('🧹 UI Controllers cleared');

@@ -8,6 +8,8 @@ import 'package:snevva/models/queryParamViewModels/weight_vm.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:http/http.dart' as http;
 
+import '../../views/ProfileAndQuestionnaire/questionnaire_screen.dart';
+
 class HeightWeightController extends GetxController {
   // height
 
@@ -51,7 +53,7 @@ class HeightWeightController extends GetxController {
   }
 
 
-  var weightInKg = 52.0.obs;
+  var weightInKg = 0.0.obs;
 
   void setWeight(double weightValue) {
     weightInKg.value = weightValue;
@@ -63,6 +65,25 @@ class HeightWeightController extends GetxController {
     BuildContext context,
   ) async {
     print('🟢 saveData() CALLED');
+
+    if(height.value == null || weight.value == null) {
+      print('⚠️ Height or Weight value is null. Aborting save.');
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Height and Weight values cannot be null.',
+      );
+      return;
+    }
+    if(height.value! <= 0 || weight.value! <= 0) {
+      print('⚠️ Height or Weight value is non-positive. Aborting save.');
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Height and Weight values must be greater than zero.',
+      );
+      return;
+    }
 
     try {
       print('📥 Incoming HeightVM: ${height.toString()}');
@@ -175,6 +196,9 @@ class HeightWeightController extends GetxController {
           title: 'Success',
           message: 'Profile data saved successfully.',
         );
+        if (context.mounted) {
+          Get.to(() => QuestionnaireScreen());
+        }
       }
     } catch (e, stack) {
       print('❌ EXCEPTION IN saveData');

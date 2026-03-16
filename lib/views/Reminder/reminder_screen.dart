@@ -73,6 +73,8 @@ class _ReminderScreenState extends State<ReminderScreen>
 
   Future<void> _loadData() async {
     await controller.loadAllReminderLists();
+    final remindersApi = await controller.getReminderFromAPI(context);
+    controller.reminders.assignAll(remindersApi);
   }
 
   @override

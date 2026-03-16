@@ -335,7 +335,7 @@ TimeOfDay parseTimeNew(String input) {
 String pluralizeHour(int value) => value > 1 ? 'hours' : 'hour';
 
 void logLong(String tag, String text) {
-  const chunkSize = 800;
+  const chunkSize = 2000;
   for (var i = 0; i < text.length; i += chunkSize) {
     debugPrint(
       '$tag ${text.substring(i, i + chunkSize > text.length ? text.length : i + chunkSize)}',

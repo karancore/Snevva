@@ -118,8 +118,15 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
               onTap: () async {
                 final prefs = await SharedPreferences.getInstance();
                 final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
+                final int? backendGoal =
+                    stepgoal is num
+                        ? stepgoal.toInt()
+                        : stepgoal is String
+                        ? int.tryParse(stepgoal)
+                        : null;
+                final bool hasCompletedSetup = isGoalSet || backendGoal != null;
 
-                if (stepgoal == null || !isGoalSet) {
+                if (!hasCompletedSetup) {
                   final goal = await showStepCounterBottomSheet(
                     context,
                     isDarkMode,
@@ -144,7 +151,18 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
                     });
                   }
                 } else {
-                  final goal = prefs.getInt('stepGoalValue') ?? 10000;
+                  if (!isGoalSet) {
+                    await prefs.setBool('isStepGoalSet', true);
+                  }
+                  if (backendGoal != null) {
+                    final stored = prefs.getInt('stepGoalValue');
+                    if (stored != backendGoal) {
+                      await prefs.setInt('stepGoalValue', backendGoal);
+                    }
+                  }
+
+                  final goal =
+                      backendGoal ?? prefs.getInt('stepGoalValue') ?? 10000;
 
                   if (!context.mounted) return;
 

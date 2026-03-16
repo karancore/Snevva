@@ -36,9 +36,13 @@ class MealController extends GetxController {
       category: "meal",
       title: title,
       notes: notes.isNotEmpty ? notes : "",
+      reminderFrequencyType: Option.times.name,
       customReminder: CustomReminder(
         type: Option.times,
-        timesPerDay: TimesPerDay(count: '1', list: [scheduledTime.toString()]),
+        timesPerDay: TimesPerDay(
+          count: '1',
+          list: [scheduledTime.toIso8601String()],
+        ),
       ),
     );
     print("Meal Data: $mealData");
@@ -70,7 +74,6 @@ class MealController extends GetxController {
       // Reload list from Hive to ensure we have the latest data and don't override
       mealsList.value = await reminderController.loadReminderList("meals_list");
 
-      final reminderId = DateTime.now().millisecondsSinceEpoch;
       final displayTitle = title.isNotEmpty ? title : 'MEAL REMINDER';
 
       mealsList.add({displayTitle: alarmSettings});
@@ -80,7 +83,7 @@ class MealController extends GetxController {
       // Reload the combined list
       await reminderController.loadAllReminderLists();
       print("Meal data before API call: ${mealData.toJson()}");
-      reminderController.addRemindertoAPI(mealData, context);
+      await reminderController.addRemindertoAPI(mealData, context);
 
       // CustomSnackbar.showSuccess(
       //   context: context,

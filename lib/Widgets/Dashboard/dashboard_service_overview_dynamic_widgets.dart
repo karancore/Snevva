@@ -256,8 +256,11 @@ class _DashboardServiceOverviewDynamicWidgetsState
                 onTap: () async {
                   final prefs = await SharedPreferences.getInstance();
                   final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
+                  final int? backendGoal = stepgoal;
+                  final bool hasCompletedSetup =
+                      isGoalSet || backendGoal != null;
 
-                  if (stepgoal == null || !isGoalSet) {
+                  if (!hasCompletedSetup) {
                     final goal = await showStepCounterBottomSheet(
                       context,
                       widget.isDarkMode,
@@ -283,7 +286,18 @@ class _DashboardServiceOverviewDynamicWidgetsState
                       });
                     }
                   } else {
-                    final goal = prefs.getInt('stepGoalValue') ?? 10000;
+                    if (!isGoalSet) {
+                      await prefs.setBool('isStepGoalSet', true);
+                    }
+                    if (backendGoal != null) {
+                      final stored = prefs.getInt('stepGoalValue');
+                      if (stored != backendGoal) {
+                        await prefs.setInt('stepGoalValue', backendGoal);
+                      }
+                    }
+
+                    final goal =
+                        backendGoal ?? prefs.getInt('stepGoalValue') ?? 10000;
 
                     if (!context.mounted) return;
 
