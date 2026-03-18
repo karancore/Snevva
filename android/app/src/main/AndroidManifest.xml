@@ -146,6 +146,12 @@
             android:exported="false"
             android:foregroundServiceType="health" />
 
+        <!-- 🛌 Flutter Background Service (Sleep Tracking + others) -->
+        <service
+            android:name="id.flutter.flutter_background_service.BackgroundService"
+            android:foregroundServiceType="dataSync|health"
+            android:exported="true" />
+
         <!-- Worker Initialization (if needed, usually auto-inits) -->
     </application>
 
