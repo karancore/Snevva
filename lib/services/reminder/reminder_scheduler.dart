@@ -51,18 +51,20 @@ class ReminderScheduler {
       reminder_payload.ReminderPayloadModel reminder) async {
     debugPrint("📂 Routing reminder category → ${reminder.category}");
 
-    switch (reminder.category) {
-      case 'Medicine':
+    final category = (reminder.category ?? '').trim().toLowerCase();
+
+    switch (category) {
+      case 'medicine':
         debugPrint("💊 Scheduling Medicine Reminder");
         await scheduleMedicineReminder(reminder: reminder);
         break;
 
-      case 'Water':
+      case 'water':
         debugPrint("💧 Scheduling Water Reminder");
         await scheduleWaterReminder(reminder: reminder);
         break;
 
-      case 'Meal':
+      case 'meal':
         debugPrint("🍽 Scheduling Meal Reminder");
         await scheduleReminderFromModel(
           reminder: reminder,
@@ -72,7 +74,7 @@ class ReminderScheduler {
         );
         break;
 
-      case 'Event':
+      case 'event':
         debugPrint("📅 Scheduling Event Reminder");
 
         final timesList = reminder.medicineTimesSafe;
@@ -83,26 +85,24 @@ class ReminderScheduler {
         if (reminder.remindBefore != null && timesList.isNotEmpty) {
           final timeString = timesList.first;
 
-          final mainTime = buildDateTimeFromTimeString(time: timeString);
-
-          debugPrint("⏳ Scheduling pre reminder before event");
-
-          schedulePreReminder(
-            mainTime: mainTime,
-            category: 'event',
-            body: "Your scheduled event will start in ",
-            reminder: reminder,
+          final mainTime = buildDateTimeFromTimeString(
+            time: timeString,
+            date: date,
           );
-        }
 
-        await scheduleReminderFromModel(
-          reminder: reminder,
-          category: 'event',
-          date: date,
-          reminderList: eventList,
-          keyName: "event_list",
-        );
-        break;
+          if (mainTime.isBefore(DateTime.now())) {
+            debugPrint("⛔ Skipping pre-reminder, event already passed");
+          } else {
+            debugPrint("⏳ Scheduling pre reminder before event");
+
+            await schedulePreReminder(
+              mainTime: mainTime,
+              category: 'event',
+              body: "Your scheduled event will start in ",
+              reminder: reminder,
+            );
+          }
+        }
 
       default:
         debugPrint("⚠️ Unknown category ${reminder.category}");
@@ -145,6 +145,11 @@ class ReminderScheduler {
 
     for (final scheduledTime in scheduledTimes) {
       debugPrint("⏰ Scheduling medicine alarm at $scheduledTime");
+
+      if (scheduledTime.isBefore(DateTime.now())) {
+        debugPrint("⛔ Skipping past medicine reminder at $scheduledTime");
+        continue;
+      }
 
       final alarmId = alarmsId();
 
@@ -292,12 +297,17 @@ class ReminderScheduler {
 
     DateTime beforeTime = mainTime.subtract(offset);
 
+    if (beforeTime.isBefore(DateTime.now())) {
+      debugPrint("⛔ Skipping past pre-reminder at $beforeTime");
+      return;
+    }
+
     debugPrint("MainTime: $mainTime");
     debugPrint("PreReminderTime: $beforeTime");
 
     final alarmSettings = AlarmSettings(
-      id: scheduledReminderId(reminderId: reminder.id, time: mainTime),
-      dateTime: mainTime,
+      id: scheduledReminderId(reminderId: reminder.id, time: beforeTime),
+      dateTime: beforeTime,
       assetAudioPath: alarmSound,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
@@ -342,6 +352,12 @@ class ReminderScheduler {
     for (final time in times) {
       final dateTime =
       buildDateTimeFromTimeString(time: time, date: date);
+
+      if (dateTime.isBefore(DateTime.now())) {
+        debugPrint("⛔ Skipping past $category reminder at $dateTime");
+        continue;
+      }
+
 
       debugPrint("⏰ Scheduling $category alarm at $dateTime");
 

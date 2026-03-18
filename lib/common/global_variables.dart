@@ -405,6 +405,9 @@ List<List<FlSpot>> splitByZero(List<FlSpot> points) {
 }
 
 DateTime buildDateTimeFromTimeString({required String time, String? date}) {
+  if (time.contains('T')) {
+    return DateTime.parse(time);
+  }
   final now = DateTime.now();
   final timeParts = time.split(':');
   final hours = int.parse(timeParts[0]);
