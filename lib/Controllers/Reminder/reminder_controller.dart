@@ -1121,6 +1121,34 @@ class ReminderController extends GetxController {
     }
   }
 
+
+  Future<void> deleteReminderFromAPI(
+    String reminderId,
+    BuildContext context,
+  ) async {
+    try {
+      final response = await ApiService.post(
+        deletereminderApi,
+        {"id": reminderId},
+        withAuth: true,
+        encryptionRequired: true,
+      );
+
+      if (response is http.Response && response.statusCode >= 400) {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message: 'Failed to delete Reminder record: ${response.statusCode}',
+        );
+      }
+      // else {
+      //   await getReminders(context);
+      // }
+    } catch (e) {
+      debugPrint("Exception while deleting Reminder record: $e");
+    }
+  }
+
   Future<bool> validateAndSave({
     required BuildContext context,
     num? dosage,

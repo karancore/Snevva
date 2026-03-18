@@ -85,6 +85,7 @@ const String editperioddata = '/api/upsert/editperioddata';
 const String addreminderApi = '/api/upsert/addreminder';
 const String editreminderApi = '/api/upsert/editreminder';
 const String getreminderApi = '/api/fetchinfo/reminders';
+const String deletereminderApi = '/api/upsert/deletereminder';
 
 const String genhealthtipsAPI = '/api/tips/getbyTags';
 const String genralmusicAPI = '/api/mentalwellness/getbyTags';
