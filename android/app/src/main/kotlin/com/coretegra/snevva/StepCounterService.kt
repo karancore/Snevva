@@ -13,6 +13,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.FlutterEngineCache
 import io.flutter.embedding.engine.dart.DartExecutor
 import io.flutter.plugin.common.MethodChannel
+import android.content.pm.ServiceInfo
 
 class StepCounterService : Service(), SensorEventListener {
 
@@ -28,6 +29,10 @@ class StepCounterService : Service(), SensorEventListener {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        return START_STICKY
+    }
+
     override fun onCreate() {
         super.onCreate()
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
@@ -42,7 +47,11 @@ class StepCounterService : Service(), SensorEventListener {
             .setOngoing(true)
             .build()
 
-        startForeground(1, notification)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH)
+        } else {
+            startForeground(1, notification)
+        }
         registerStepListener()
 
         Log.d("StepService", "🚀 StepCounterService started.")

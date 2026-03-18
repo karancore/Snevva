@@ -32,6 +32,7 @@
     <!-- ⚙️ Foreground service types -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
 
     <!-- 🔋 Battery optimization ignore -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
@@ -139,22 +140,13 @@
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="high_importance_channel" />
 
-        <!-- 🦶 Step Tracking Background Service -->
+        <!-- 🦶 Step Tracking Background Service (Native) -->
         <service
-            android:name="id.flutter.flutter_background_service.BackgroundService"
+            android:name=".StepCounterService"
             android:exported="false"
-            android:foregroundServiceType="dataSync"
-            tools:replace="android:exported,android:foregroundServiceType" />
+            android:foregroundServiceType="health" />
 
-        <!-- 🌙 Sleep NoticingService (Native) -->
-        <service
-            android:name=".SleepNoticingService"
-            android:exported="false"
-            android:foregroundServiceType="dataSync" />
-
-        <receiver android:name=".StartSleepReceiver" android:exported="false" />
-        <receiver android:name=".StopSleepReceiver" android:exported="false" />
-
+        <!-- Worker Initialization (if needed, usually auto-inits) -->
     </application>
 
     <!-- 🧭 Queries (text processing support) -->

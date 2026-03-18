@@ -10,8 +10,9 @@ import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_bottom_sheet.dart';
 import '../../../Controllers/SleepScreen/sleep_controller.dart';
-import '../../../Widgets/CommonWidgets/common_stat_graph_widget.dart';
-import '../../../common/global_variables.dart';
+import 'package:snevva/Widgets/CommonWidgets/common_stat_graph_widget.dart';
+import 'package:snevva/common/global_variables.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 enum StatViewMode { weekly, monthly }
 
@@ -59,7 +60,34 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await sleepController.loadDeepSleepData();
       sleepController.loadUserSleepTimes();
+      _checkBatteryOptimizations();
     });
+  }
+
+  Future<void> _checkBatteryOptimizations() async {
+    final status = await Permission.ignoreBatteryOptimizations.status;
+    if (!status.isGranted && mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Keep Tracking Alive"),
+          content: const Text("To ensure sleep is tracked automatically overnight, please disable battery optimizations for Snevva."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context), 
+              child: const Text("Later")
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await Permission.ignoreBatteryOptimizations.request();
+              }, 
+              child: const Text("Allow")
+            ),
+          ]
+        )
+      );
+    }
   }
 
   @override

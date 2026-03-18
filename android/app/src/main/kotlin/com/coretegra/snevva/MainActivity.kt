@@ -32,20 +32,21 @@ class MainActivity : FlutterActivity() {
                 when (call.method) {
                     "startSleepService" -> {
                         AlarmHelper.cancelSleepAlarms(this@MainActivity)
-                        Log.d("MainActivity", "Native sleep service disabled; using unified background service")
-                        result.success("Native sleep service disabled")
+                        SleepCalcWorker.scheduleNext(this@MainActivity)
+                        Log.d("MainActivity", "Native sleep service disabled; scheduled WorkManager instead")
+                        result.success("WorkManager scheduled")
                     }
 
                     "stopSleepService" -> {
-                        val intent = Intent(this, SleepNoticingService::class.java)
-                        stopService(intent)
-                        Log.d("MainActivity", "SleepNoticingService stopped")
-                        result.success("SleepNoticingService stopped")
+                        androidx.work.WorkManager.getInstance(this@MainActivity).cancelUniqueWork("SLEEP_CALC_WORK")
+                        Log.d("MainActivity", "Sleep tracking work cancelled")
+                        result.success("SleepCalcWorker stopped")
                     }
 
                     "updateSleepAlarms" -> {
                         AlarmHelper.scheduleSleepAlarms(this@MainActivity)
-                        Log.d("MainActivity", "Sleep alarms updated via Flutter")
+                        SleepCalcWorker.scheduleNext(this@MainActivity)
+                        Log.d("MainActivity", "Sleep alarms updated and WorkManager scheduled via Flutter")
                         result.success("Sleep alarms scheduled")
                     }
 

@@ -32,7 +32,9 @@ android {
         create("release") {
             keyAlias = keystoreProperties.getProperty("keyAlias")
             keyPassword = keystoreProperties.getProperty("keyPassword")
-            storeFile = file(keystoreProperties.getProperty("storeFile"))
+            keystoreProperties.getProperty("storeFile")?.let {
+                storeFile = file(it)
+            }
             storePassword = keystoreProperties.getProperty("storePassword")
         }
     }
@@ -89,6 +91,7 @@ dependencies {
 
     implementation(multidexVersion)
     implementation(playServicesAuth)
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 
     coreLibraryDesugaring(desugarJdkLibs)
 }
