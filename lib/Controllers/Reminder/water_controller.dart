@@ -270,8 +270,11 @@ class WaterController extends GetxController {
       final scheduledTime =
           time.isBefore(DateTime.now()) ? time.add(Duration(days: 1)) : time;
 
-      final alarmId =
-          reminderGroupId * 100000 + scheduledTime.hour * 100 + scheduledTime.minute;
+      final alarmId = buildAlarmId(
+        groupId: reminderGroupId,
+        time: scheduledTime,
+        salt: 'water-times',
+      );
       final alarmSettings = AlarmSettings(
         id: alarmId,
         dateTime: scheduledTime,
@@ -534,8 +537,11 @@ class WaterController extends GetxController {
     final reminderGroupId = alarmsId();
     final List<AlarmSettings> createdAlarms = [];
     for (var reminderTime in intervalReminders) {
-      final alarmId =
-          reminderGroupId * 100000 + reminderTime.hour * 100 + reminderTime.minute;
+      final alarmId = buildAlarmId(
+        groupId: reminderGroupId,
+        time: reminderTime,
+        salt: 'water-interval',
+      );
       final alarmSettings = AlarmSettings(
         id: alarmId,
         dateTime: reminderTime,

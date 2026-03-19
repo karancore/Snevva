@@ -215,6 +215,39 @@ int alarmsId() {
   return DateTime.now().millisecondsSinceEpoch % 2147483647;
 }
 
+// The `alarm` plugin validates ids against 32-bit signed int max.
+// Keep IDs <= 2147483647 and (when possible) deterministic across restarts.
+const int _kAlarmIdIntMax = 2147483647;
+const int _kLegacyAlarmIdMaxGroup = 21474; // 21474*100000+2359 <= 2147483647
+
+int _fnv1a32(String input) {
+  var hash = 0x811C9DC5; // 2166136261
+  for (final unit in input.codeUnits) {
+    hash ^= unit;
+    hash = (hash * 0x01000193) & 0xFFFFFFFF; // 16777619
+  }
+  return hash;
+}
+
+int buildAlarmId({
+  required int groupId,
+  required DateTime time,
+  String? salt,
+}) {
+  final normalizedSalt = (salt ?? '').trim();
+
+  // Backward-compatible deterministic IDs for older schedules (only when safe).
+  if (normalizedSalt.isEmpty &&
+      groupId >= 0 &&
+      groupId <= _kLegacyAlarmIdMaxGroup) {
+    return groupId * 100000 + time.hour * 100 + time.minute;
+  }
+
+  final seed = '$normalizedSalt|$groupId|${time.toIso8601String()}';
+  final hashed = _fnv1a32(seed) & _kAlarmIdIntMax; // 0..2147483647
+  return hashed == 0 ? 1 : hashed;
+}
+
 int generateWaterAlarmId(int reminderId, int index) {
   return reminderId * 10 + index;
 }
@@ -405,22 +438,82 @@ List<List<FlSpot>> splitByZero(List<FlSpot> points) {
 }
 
 DateTime buildDateTimeFromTimeString({required String time, String? date}) {
-  if (time.contains('T')) {
-    return DateTime.parse(time);
+  final trimmedTime = time.trim();
+  if (trimmedTime.isEmpty) {
+    throw const FormatException('Time string is empty');
   }
-  final now = DateTime.now();
-  final timeParts = time.split(':');
-  final hours = int.parse(timeParts[0]);
-  final minutes = int.parse(timeParts[1]);
+
+  // 1) Full datetime (ISO or Dart's DateTime.toString() formats).
+  final parsedDirect = DateTime.tryParse(trimmedTime);
+  if (parsedDirect != null) {
+    return parsedDirect.isUtc ? parsedDirect.toLocal() : parsedDirect;
+  }
+
+  // 2) Time-only (12h with AM/PM or 24h).
+  final timeMatch = RegExp(
+    r'^\s*(\d{1,2})\s*:\s*(\d{1,2})(?:\s*:\s*(\d{1,2}))?\s*([AaPp][Mm])?\s*$',
+  ).firstMatch(trimmedTime);
+  if (timeMatch == null) {
+    throw FormatException('Unsupported time format: "$time"');
+  }
+
+  final rawHour = int.parse(timeMatch.group(1)!);
+  final rawMinute = int.parse(timeMatch.group(2)!);
+
+  if (rawMinute < 0 || rawMinute > 59) {
+    throw FormatException('Invalid minute in time: "$time"');
+  }
+
+  final meridiem = timeMatch.group(4);
+  int hours;
+  if (meridiem != null) {
+    if (rawHour < 1 || rawHour > 12) {
+      throw FormatException('Invalid hour in 12-hour time: "$time"');
+    }
+    final isPm = meridiem.toUpperCase() == 'PM';
+    if (rawHour == 12) {
+      hours = isPm ? 12 : 0;
+    } else {
+      hours = isPm ? rawHour + 12 : rawHour;
+    }
+  } else {
+    if (rawHour < 0 || rawHour > 23) {
+      throw FormatException('Invalid hour in 24-hour time: "$time"');
+    }
+    hours = rawHour;
+  }
+
+  final minutes = rawMinute;
 
   DateTime scheduled;
-  if (date != null && date.isNotEmpty) {
-    final dateParts = date.split('-');
+  final dateHint = (date ?? '').trim();
+  if (dateHint.isNotEmpty) {
+    final parsedDate = DateTime.tryParse(dateHint);
+    final localDate = parsedDate != null
+        ? (parsedDate.isUtc ? parsedDate.toLocal() : parsedDate)
+        : null;
+
+    if (localDate != null) {
+      scheduled = DateTime(
+        localDate.year,
+        localDate.month,
+        localDate.day,
+        hours,
+        minutes,
+      );
+      return scheduled;
+    }
+
+    final dateParts = dateHint.split('-');
+    if (dateParts.length != 3) {
+      throw FormatException('Unsupported date format: "$date"');
+    }
     final year = int.parse(dateParts[0]);
     final month = int.parse(dateParts[1]);
     final day = int.parse(dateParts[2]);
     scheduled = DateTime(year, month, day, hours, minutes);
   } else {
+    final now = DateTime.now();
     scheduled = DateTime(now.year, now.month, now.day, hours, minutes);
     if (scheduled.isBefore(now)) {
       scheduled = scheduled.add(const Duration(days: 1));

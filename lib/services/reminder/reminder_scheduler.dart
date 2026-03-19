@@ -139,7 +139,7 @@ class ReminderScheduler {
     required int reminderId,
     required DateTime time,
   }) {
-    final id = reminderId * 100000 + time.hour * 100 + time.minute;
+    final id = buildAlarmId(groupId: reminderId, time: time);
     debugPrint("🔢 Generated alarm id: $id");
     return id;
   }
@@ -253,14 +253,70 @@ class ReminderScheduler {
     debugPrint("💧 scheduleWaterReminder called");
 
     final customReminder = reminder.customReminder;
+    final waterController = Get.find<WaterController>();
 
-    final times = reminder.waterTimesCountSafe;
+    if (customReminder.everyXHours != null) {
+      final interval = customReminder.everyXHours!;
+      final start = reminder.waterStartSafe;
+      final end = reminder.waterEndSafe;
 
-    debugPrint("Water times per day: $times");
+      debugPrint(
+        "Water interval: every ${interval.hours} hour(s) between $start and $end",
+      );
+
+      final startTod = parseTimeNew(start);
+      final endTod = parseTimeNew(end);
+
+      final intervalTimes = waterController.generateEveryXHours(
+        start: startTod,
+        end: endTod,
+        intervalHours: interval.hours,
+      );
+
+      debugPrint("Generated water interval times: $intervalTimes");
+
+      for (final time in intervalTimes) {
+        final scheduledTime =
+            time.isBefore(DateTime.now())
+                ? time.add(const Duration(days: 1))
+                : time;
+
+        debugPrint("⏰ Scheduling water interval alarm at $scheduledTime");
+
+        final alarmSettings = AlarmSettings(
+          id: scheduledReminderId(reminderId: reminder.id, time: scheduledTime),
+          dateTime: scheduledTime,
+          assetAudioPath: waterSound,
+          volumeSettings: VolumeSettings.fade(
+            volume: 0.8,
+            fadeDuration: Duration(seconds: 5),
+            volumeEnforced: true,
+          ),
+          payload: jsonEncode({
+            "groupId": reminder.id.toString(),
+            "category": ReminderCategory.water.name,
+            "type": "interval",
+          }),
+          notificationSettings: NotificationSettings(
+            title: reminder.title,
+            body: reminder.notes ?? '',
+            stopButton: 'Stop',
+            icon: 'alarm',
+            iconColor: AppColors.primaryColor,
+          ),
+        );
+
+        final success = await Alarm.set(alarmSettings: alarmSettings);
+        debugPrint("Water interval alarm set result: $success");
+      }
+      return;
+    }
 
     if (customReminder.timesPerDay != null) {
+      final times = reminder.waterTimesCountSafe;
+      debugPrint("Water times per day: $times");
       final alarmTimes =
-      Get.find<WaterController>().generateTimesBetween(
+      waterController.generateTimesBetween(
         startTime: reminder.waterStartSafe,
         endTime: reminder.waterEndSafe,
         times: times,
@@ -277,7 +333,7 @@ class ReminderScheduler {
         final alarmSettings = AlarmSettings(
           id: scheduledReminderId(reminderId: reminder.id, time: scheduledTime),
           dateTime: scheduledTime,
-          assetAudioPath: alarmSound,
+          assetAudioPath: waterSound,
           volumeSettings: VolumeSettings.fade(
             volume: 0.8,
             fadeDuration: Duration(seconds: 5),
@@ -301,7 +357,10 @@ class ReminderScheduler {
 
         debugPrint("Water alarm set result: $success");
       }
+      return;
     }
+
+    debugPrint("⚠️ Water reminder has no schedule data, skipping (id=${reminder.id})");
   }
 
   /// ==============================

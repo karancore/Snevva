@@ -156,9 +156,11 @@ class _ReminderDetailsCardState extends State<ReminderDetailsCard>
         (custom!.timesPerDay!.count?.toString().isNotEmpty ?? false);
 
     final intervalHours = custom?.everyXHours?.hours;
-    final startHour = widget.reminder.startWaterTime;
+    final startHour =
+        widget.reminder.startWaterTime ?? custom?.everyXHours?.startTime;
 
-    final endHour = widget.reminder.endWaterTime;
+    final endHour =
+        widget.reminder.endWaterTime ?? custom?.everyXHours?.endTime;
 
     final timesCount =
         int.tryParse(custom?.timesPerDay?.count?.toString() ?? '0') ?? 0;

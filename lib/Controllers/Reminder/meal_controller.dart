@@ -24,8 +24,11 @@ class MealController extends GetxController {
     BuildContext context,
   ) async {
     final reminderGroupId = alarmsId();
-    final alarmId =
-        reminderGroupId * 100000 + scheduledTime.hour * 100 + scheduledTime.minute;
+    final alarmId = buildAlarmId(
+      groupId: reminderGroupId,
+      time: scheduledTime,
+      salt: 'meal',
+    );
     final title = reminderController.titleController.text.trim();
     final notes = reminderController.notesController.text.trim();
     // Map<String, dynamic> mealData = {
