@@ -113,6 +113,17 @@ class ReminderPayloadModel {
   }
 
   factory ReminderPayloadModel.fromJson(Map<String, dynamic> json) {
+    final custom =
+        json['CustomReminder'] != null
+            ? CustomReminder.fromJson(json['CustomReminder'])
+            : const CustomReminder();
+
+    final interval = custom.everyXHours;
+    final startWaterTime =
+        json['StartWaterTime'] ?? interval?.startTime;
+    final endWaterTime =
+        json['EndWaterTime'] ?? interval?.endTime;
+
     return ReminderPayloadModel(
       id: json['Id'] ?? 0,
       title: json['Title'] ?? '',
@@ -123,10 +134,7 @@ class ReminderPayloadModel {
       whenToTake: json['WhenToTake'],
       medicineFrequencyPerDay: json['MedicineFrequencyPerDay'],
       reminderFrequencyType: json['ReminderFrequencyType'],
-      customReminder:
-          json['CustomReminder'] != null
-              ? CustomReminder.fromJson(json['CustomReminder'])
-              : const CustomReminder(),
+      customReminder: custom,
       remindBefore:
           json['RemindBefore'] != null
               ? RemindBefore.fromJson(json['RemindBefore'])
@@ -134,8 +142,8 @@ class ReminderPayloadModel {
       startDate: json['StartDate'],
       endDate: json['EndDate'],
       notes: json['Notes'],
-      startWaterTime: json['StartWaterTime'],
-      endWaterTime: json['EndWaterTime'],
+      startWaterTime: startWaterTime,
+      endWaterTime: endWaterTime,
     );
   }
   @override
@@ -363,17 +371,29 @@ extension ReminderPayloadSafeAccess on ReminderPayloadModel {
 
   String get waterStartSafe {
     _ensure('water');
-    return startWaterTime!;
+    final start = (startWaterTime ?? customReminder.everyXHours?.startTime)?.trim();
+    if (start == null || start.isEmpty) {
+      throw Exception("Water reminder $id missing startWaterTime");
+    }
+    return start;
   }
 
   String get waterEndSafe {
     _ensure('water');
-    return endWaterTime!;
+    final end = (endWaterTime ?? customReminder.everyXHours?.endTime)?.trim();
+    if (end == null || end.isEmpty) {
+      throw Exception("Water reminder $id missing endWaterTime");
+    }
+    return end;
   }
 
   int get waterTimesCountSafe {
     _ensure('water');
-    return int.parse(customReminder.timesPerDay!.count);
+    final rawCount = customReminder.timesPerDay?.count;
+    if (rawCount == null || rawCount.toString().trim().isEmpty) {
+      throw Exception("Water reminder $id missing timesPerDay count");
+    }
+    return int.parse(rawCount.toString());
   }
 
   // ---------------- EVENT / MEAL ----------------
