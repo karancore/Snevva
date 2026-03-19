@@ -23,8 +23,10 @@ class ReminderScheduler {
   /// SCHEDULE ALL REMINDERS
   /// ==============================
   Future<void> scheduleAll(
-      List<reminder_payload.ReminderPayloadModel> reminders,
-      ) async {
+    List<reminder_payload.ReminderPayloadModel> reminders, {
+    Set<int> deletedGroupIds = const {},
+    Set<int> deletedAlarmIds = const {},
+  }) async {
     debugPrint("📌 scheduleAll() called with ${reminders.length} reminders");
 
     for (final reminder in reminders) {
@@ -34,7 +36,11 @@ class ReminderScheduler {
 
         reminder.validate();
 
-        await _scheduleByCategory(reminder);
+        await _scheduleByCategory(
+          reminder,
+          deletedGroupIds: deletedGroupIds,
+          deletedAlarmIds: deletedAlarmIds,
+        );
 
         debugPrint("✅ Reminder scheduled successfully ID:${reminder.id}");
       } catch (e, s) {
@@ -48,18 +54,23 @@ class ReminderScheduler {
   /// CATEGORY ROUTER
   /// ==============================
   static Future<void> _scheduleByCategory(
-      reminder_payload.ReminderPayloadModel reminder) async {
+    reminder_payload.ReminderPayloadModel reminder, {
+    required Set<int> deletedGroupIds,
+    required Set<int> deletedAlarmIds,
+  }) async {
     debugPrint("📂 Routing reminder category → ${reminder.category}");
 
     final category = (reminder.category ?? '').trim().toLowerCase();
 
     switch (category) {
       case 'medicine':
+        if (deletedGroupIds.contains(reminder.id)) return;
         debugPrint("💊 Scheduling Medicine Reminder");
         await scheduleMedicineReminder(reminder: reminder);
         break;
 
       case 'water':
+        if (deletedGroupIds.contains(reminder.id)) return;
         debugPrint("💧 Scheduling Water Reminder");
         await scheduleWaterReminder(reminder: reminder);
         break;
@@ -71,16 +82,27 @@ class ReminderScheduler {
           category: 'meal',
           keyName: "meals_list",
           reminderList: mealsList,
+          deletedAlarmIds: deletedAlarmIds,
         );
         break;
 
       case 'event':
         debugPrint("📅 Scheduling Event Reminder");
 
-        final timesList = reminder.medicineTimesSafe;
+        final timesList = reminder.timesSafe;
         final date = reminder.startDate;
 
         debugPrint("Event times list: $timesList");
+
+        // Schedule main event alarm(s)
+        await scheduleReminderFromModel(
+          reminder: reminder,
+          category: 'event',
+          keyName: "event_list",
+          reminderList: eventList,
+          date: date,
+          deletedAlarmIds: deletedAlarmIds,
+        );
 
         if (reminder.remindBefore != null && timesList.isNotEmpty) {
           final timeString = timesList.first;
@@ -103,6 +125,7 @@ class ReminderScheduler {
             );
           }
         }
+        break;
 
       default:
         debugPrint("⚠️ Unknown category ${reminder.category}");
@@ -252,8 +275,7 @@ class ReminderScheduler {
         debugPrint("⏰ Scheduling water alarm at $scheduledTime");
 
         final alarmSettings = AlarmSettings(
-          id: scheduledReminderId(
-              reminderId: reminder.id, time: scheduledTime),
+          id: scheduledReminderId(reminderId: reminder.id, time: scheduledTime),
           dateTime: scheduledTime,
           assetAudioPath: alarmSound,
           volumeSettings: VolumeSettings.fade(
@@ -261,6 +283,11 @@ class ReminderScheduler {
             fadeDuration: Duration(seconds: 5),
             volumeEnforced: true,
           ),
+          payload: jsonEncode({
+            "groupId": reminder.id.toString(),
+            "category": ReminderCategory.water.name,
+            "type": "times",
+          }),
           notificationSettings: NotificationSettings(
             title: reminder.title,
             body: reminder.notes ?? '',
@@ -314,6 +341,12 @@ class ReminderScheduler {
         fadeDuration: Duration(seconds: 5),
         volumeEnforced: true,
       ),
+      payload: jsonEncode({
+        "groupId": reminder.id.toString(),
+        "category": category,
+        "type": "before",
+        "mainTime": mainTime.toIso8601String(),
+      }),
       notificationSettings: NotificationSettings(
         title: "Upcoming ${category.capitalizeFirst} Reminder",
         body: "$body $amount $unit",
@@ -337,6 +370,7 @@ class ReminderScheduler {
     required RxList<Map<String, AlarmSettings>> reminderList,
     required String keyName,
     String? date,
+    Set<int> deletedAlarmIds = const {},
   }) async {
     debugPrint("📌 scheduleReminderFromModel called for $category");
 
@@ -358,11 +392,16 @@ class ReminderScheduler {
         continue;
       }
 
+      final alarmId = scheduledReminderId(reminderId: reminder.id, time: dateTime);
+      if (deletedAlarmIds.contains(alarmId)) {
+        debugPrint("🧹 Skip deleted $category occurrence (alarmId=$alarmId)");
+        continue;
+      }
 
       debugPrint("⏰ Scheduling $category alarm at $dateTime");
 
       final alarmSettings = AlarmSettings(
-        id: scheduledReminderId(reminderId: reminder.id, time: dateTime),
+        id: alarmId,
         dateTime: dateTime,
         assetAudioPath: alarmSound,
         volumeSettings: VolumeSettings.fade(
@@ -370,6 +409,11 @@ class ReminderScheduler {
           fadeDuration: Duration(seconds: 5),
           volumeEnforced: true,
         ),
+        payload: jsonEncode({
+          "groupId": reminder.id.toString(),
+          "category": category,
+          "type": "times",
+        }),
         notificationSettings: NotificationSettings(
           title: reminder.title,
           body: reminder.notes ?? '',

@@ -63,6 +63,9 @@ import 'views/Reminder/reminder_screen.dart';
 import 'views/SignUp/sign_in_screen.dart';
 import 'widgets/home_wrapper.dart';
 
+
+//Test User - 7814252736
+//Admin@1234
 const bool _kShowPerformanceOverlay = bool.fromEnvironment(
   'SHOW_PERFORMANCE_OVERLAY',
   defaultValue: false,

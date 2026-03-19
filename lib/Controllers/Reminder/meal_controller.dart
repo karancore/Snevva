@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:alarm/alarm.dart';
 import 'package:alarm/model/alarm_settings.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
@@ -21,7 +23,9 @@ class MealController extends GetxController {
     DateTime scheduledTime,
     BuildContext context,
   ) async {
-    final id = alarmsId();
+    final reminderGroupId = alarmsId();
+    final alarmId =
+        reminderGroupId * 100000 + scheduledTime.hour * 100 + scheduledTime.minute;
     final title = reminderController.titleController.text.trim();
     final notes = reminderController.notesController.text.trim();
     // Map<String, dynamic> mealData = {
@@ -32,7 +36,7 @@ class MealController extends GetxController {
     //   "scheduledTime": scheduledTime.toIso8601String(),
     // };
     final mealData = ReminderPayloadModel(
-      id: id,
+      id: reminderGroupId,
       category: "meal",
       title: title,
       notes: notes.isNotEmpty ? notes : "",
@@ -47,7 +51,7 @@ class MealController extends GetxController {
     );
     print("Meal Data: $mealData");
     final alarmSettings = AlarmSettings(
-      id: id,
+      id: alarmId,
       dateTime: scheduledTime,
       assetAudioPath: alarmSound,
       loopAudio: true,
@@ -57,6 +61,11 @@ class MealController extends GetxController {
         fadeDuration: Duration(seconds: 5),
         volumeEnforced: true,
       ),
+      payload: jsonEncode({
+        "groupId": reminderGroupId.toString(),
+        "category": "meal",
+        "type": "times",
+      }),
       notificationSettings: NotificationSettings(
         title:
             title.isNotEmpty
