@@ -2,6 +2,7 @@ import 'package:snevva/consts/consts.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:http/http.dart' as http;
+import 'package:snevva/services/auth_service.dart';
 
 import '../../common/custom_snackbar.dart';
 
@@ -29,6 +30,8 @@ class QuestionScreenController extends GetxController {
     }
     selectedAnswers[questionIndex] = List.from(currentSelection);
   }
+
+  final authService = AuthService();
 
   /// Check if an option is selected
   bool isSelected(int questionIndex, String optionText) {
@@ -96,6 +99,8 @@ class QuestionScreenController extends GetxController {
       }
 
       print("✅ Q${questionIndex + 1} saved → $answers");
+      // await authService
+      //     .ensurePostLoginPermissionsAndStartTracking();
     } catch (e) {
       CustomSnackbar.showError(
         context: context,

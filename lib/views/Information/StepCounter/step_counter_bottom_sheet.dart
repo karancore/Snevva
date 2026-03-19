@@ -3,6 +3,7 @@ import 'package:get/utils.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/common/statement_of_use_bottom_sheet.dart';
 import 'package:snevva/consts/consts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wheel_picker/wheel_picker.dart';
 import 'package:snevva/Widgets/CommonWidgets/common_question_bottom_sheet.dart';
 
@@ -14,7 +15,7 @@ class StepCounterBottomSheet extends StatelessWidget {
     this.unit = "Steps",
     this.image = "assets/Images/Steps/walk-ele.svg",
     this.heading = "Set your daily walking goal",
-    this.subHeading = "Lorem ipsum dolor sit amet, eiusmod adipi.",
+    this.subHeading = "Choose how many steps you want to walk each day to stay active. ",
     this.multiplier = 1000,
     this.initialIndex = 8,
     this.onConfirm,
@@ -54,6 +55,10 @@ class StepCounterBottomSheet extends StatelessWidget {
       questionSubHeading: subHeading,
       onNext: () async {
         final value = (wheel.selected + 1) * multiplier;
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isStepGoalSet', true);
+        await prefs.setInt('stepGoalValue', value);
 
         if (onConfirm != null) {
           await onConfirm!(value); // wait for controller update

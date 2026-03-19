@@ -242,25 +242,6 @@ class _SignInScreenState extends State<SignInScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                // Row(
-                                //   children: [
-                                //     Checkbox(
-                                //       value: rememberMe,
-                                //       activeColor: AppColors.primaryColor,
-                                //       onChanged: (value) {
-                                //         setState(() {
-                                //           rememberMe = value!;
-                                //         });
-                                //       },
-                                //     ),
-                                //     Text(
-                                //       AppLocalizations.of(
-                                //         context,
-                                //       )!.checkboxRememberMe,
-                                //       style: TextStyle(fontSize: 14),
-                                //     ),
-                                //   ],
-                                // ),
                                 TextButton(
                                   onPressed: () {
                                     Navigator.push(

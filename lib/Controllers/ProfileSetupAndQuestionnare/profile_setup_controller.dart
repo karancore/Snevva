@@ -286,6 +286,9 @@ class ProfileSetupController extends GetxService {
       localStorageManager.userMap['MonthOfBirth'] = dob.monthOfBirth;
       localStorageManager.userMap['YearOfBirth'] = dob.yearOfBirth;
       localStorageManager.userMap['Occupation'] = occupation.name;
+      localStorageManager.userMap['OccupationData'] ??= {
+        'Name': occupation.name,
+      };
 
       SharedPreferences prefs = await SharedPreferences.getInstance();
       prefs.setString('user_gender', gender.value);
@@ -321,6 +324,10 @@ class ProfileSetupController extends GetxService {
         }
       }
       if (allSuccessful) {
+        await prefs.setString(
+          'userdata',
+          jsonEncode(Map<String, dynamic>.from(localStorageManager.userMap)),
+        );
         CustomSnackbar.showSuccess(
           context: context,
           title: 'Success',

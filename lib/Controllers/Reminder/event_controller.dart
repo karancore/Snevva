@@ -28,13 +28,15 @@ class EventController extends GetxController {
     DateTime scheduledTime,
     BuildContext context,
   ) async {
-    final id = alarmsId();
+    final reminderGroupId = alarmsId();
+    final alarmId =
+        reminderGroupId * 100000 + scheduledTime.hour * 100 + scheduledTime.minute;
     final title = reminderController.titleController.text.trim();
     final notes = reminderController.notesController.text.trim();
     RemindBefore? remindBefore;
 
     debugPrint('🚀 Starting addEventAlarm');
-    debugPrint('🆔 Generated Alarm ID: $id');
+    debugPrint('🆔 Generated Alarm ID: $alarmId (groupId=$reminderGroupId)');
     debugPrint('⏰ Scheduled Time: $scheduledTime');
     debugPrint('🔔 Title: $title');
     debugPrint('🟡 RemindMeBefore value: ${eventRemindMeBefore.value}');
@@ -84,11 +86,6 @@ class EventController extends GetxController {
       );
       debugPrint('📦 RemindBefore Object created: ${remindBefore.toJson()}');
 
-      final timeOfDay = TimeOfDay(
-        hour: scheduledTime.hour,
-        minute: scheduledTime.minute,
-      );
-
       // debugPrint('🔄 Calling add event alarm handleRemindMeBefore...');
       // await reminderController.handleRemindMeBefore(
       //   option: eventRemindMeBefore,
@@ -110,6 +107,9 @@ class EventController extends GetxController {
     debugPrint('📅 Payload startDate value: "$startDateValue"');
 
     final payloadData = {
+      "groupId": reminderGroupId.toString(),
+      "category": "event",
+      "type": "times",
       "startDate": startDateValue,
       "remindBefore": remindBefore?.toJson(),
     };
@@ -117,7 +117,7 @@ class EventController extends GetxController {
     debugPrint('📤 Encoded Payload: $encodedPayload');
 
     final alarmSettings = AlarmSettings(
-      id: id,
+      id: alarmId,
       dateTime: scheduledTime,
       assetAudioPath: alarmSound,
       loopAudio: true,
@@ -154,17 +154,24 @@ class EventController extends GetxController {
 
       await reminderController.loadAllReminderLists();
 
-      final eventData = ReminderPayloadModel(
-        id: id,
+    final eventData = ReminderPayloadModel(
+        id: reminderGroupId,
         category: "event",
         title: title,
         notes: notes,
+        reminderFrequencyType: Option.times.name,
         customReminder: CustomReminder(
-          timesPerDay: TimesPerDay(count: '1', list: [scheduledTime.toString()]),
+          type: Option.times,
+          timesPerDay: TimesPerDay(
+            count: '1',
+            list: [scheduledTime.toIso8601String()],
+          ),
         ),
+        remindBefore: remindBefore,
+        startDate: startDateValue,
       );
       debugPrint('📦 Event ReminderPayloadModel created: ${eventData.toJson()}');
-      reminderController.addRemindertoAPI(eventData, context);
+      await reminderController.addRemindertoAPI(eventData, context);
 
       // Cleaning up
       debugPrint('🧹 UI Controllers cleared');

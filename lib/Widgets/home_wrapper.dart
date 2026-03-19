@@ -1,12 +1,16 @@
 import 'package:alarm/alarm.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:get/instance_manager.dart';
 import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
+import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
+import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/views/Dashboard/dashboard.dart';
 import 'package:snevva/views/Information/menu_screen.dart';
 import 'package:snevva/views/Reminder/reminder_wrapper.dart';
+import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import 'package:snevva/widgets/navbar.dart';
 import '../services/notification_channel.dart';
 import '../views/My_Health/my_health_screen.dart';
@@ -28,6 +32,7 @@ class _HomeWrapperState extends State<HomeWrapper> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   static Future<void>? _sharedStartupTask;
   late final List<Widget?> _pages;
+  bool _hasRedirectedToProfileSetup = false;
 
   Widget _buildPage(int index) {
     switch (index) {
@@ -51,6 +56,8 @@ class _HomeWrapperState extends State<HomeWrapper> {
 
   void onTabSelected(int index) {
     if (_selectedIndex == index) return;
+
+    _setStepRealtimeTracking(index == 0);
     setState(() {
       _ensurePageInitialized(index);
       _selectedIndex = index;
@@ -65,100 +72,21 @@ class _HomeWrapperState extends State<HomeWrapper> {
     bmiController.loadUserBMI();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      if (_redirectToProfileSetupIfNeeded()) return;
       await _ensureStartupSequence();
     });
 
-    //fetchFCMToken();
-    // checksession();
-    // localStorageManager.checksession();
   }
-  // void initialiseControllers(){
-  //   Get.put(LocalStorageManager(), permanent: true);
-  //
-  //   if (!Get.isRegistered<AlertsController>()) {
-  //     Get.put(AlertsController(), permanent: true);
-  //   }
-  //
-  //   // Auth
-  //   if (!Get.isRegistered<SignInController>()) {
-  //     Get.lazyPut(() => SignInController(), fenix: true);
-  //   }
-  //   if (!Get.isRegistered<SignUpController>()) {
-  //     Get.lazyPut(() => SignUpController(), fenix: true);
-  //   }
-  //   if (!Get.isRegistered<OTPVerificationController>()) {
-  //     Get.lazyPut(() => OTPVerificationController(), fenix: true);
-  //   }
-  //   if (!Get.isRegistered<UpdateOldPasswordController>()) {
-  //     Get.lazyPut(() => UpdateOldPasswordController(), fenix: true);
-  //   }
-  //   if (!Get.isRegistered<CreatePasswordController>()) {
-  //     Get.lazyPut(() => CreatePasswordController(), fenix: true);
-  //   }
-  //   if (!Get.isRegistered<ForgotPasswordController>()) {
-  //     Get.lazyPut(() => ForgotPasswordController(), fenix: true);
-  //   }
-  //   if (!Get.isRegistered<ProfileSetupController>()) {
-  //     Get.lazyPut(() => ProfileSetupController(), fenix: true);
-  //   }
-  //
-  //
-  //   if (!Get.isRegistered<WomenHealthController>()) {
-  //     Get.lazyPut(() => WomenHealthController(), fenix: true);
-  //   }
-  //
-  //   Get.put(VitalsController(), permanent: true);
-  //   Get.put(HydrationStatController(), permanent: true);
-  //   Get.put(MoodController(), permanent: true);
-  //   Get.put(EditprofileController(), permanent: true);
-  //
-  //   if (!Get.isRegistered<StepCounterController>()) {
-  //     Get.put(StepCounterController(), permanent: true);
-  //   }
-  //
-  //   // Feature
-  //   if (!Get.isRegistered<BmiController>()) {
-  //     Get.lazyPut(() => BmiController(), fenix: true);
-  //   }
-  //   if (!Get.isRegistered<DietPlanController>()) {
-  //     Get.lazyPut(() => DietPlanController(), fenix: true);
-  //   }
-  //   if (!Get.isRegistered<HealthTipsController>()) {
-  //     Get.lazyPut(() => HealthTipsController(), fenix: true);
-  //   }
-  //
-  //   if (!Get.isRegistered<MentalWellnessController>()) {
-  //     Get.lazyPut(() => MentalWellnessController(), fenix: true);
-  //   }
-  //
-  //   Get.lazyPut(() => MoodQuestionController(), fenix: true);
-  //
-  //   if (!Get.isRegistered<BottomSheetController>()) {
-  //     Get.lazyPut(() => BottomSheetController(), fenix: true);
-  //   }
-  //   if (!Get.isRegistered<ThemeController>()) {
-  //     Get.lazyPut(() => ThemeController(), fenix: true);
-  //   }
-  //
-  // }
+
 
   Future<void> _startupSequence() async {
-    // 1️⃣ Permissions first
-
-    // 2️⃣ Wait for app to fully resume
-    // await Future.delayed(const Duration(seconds: 1));
-
-    // 3️⃣ THEN start background service
-    // await initBackgroundService();autoStart
 
     await FirebaseMessaging.instance.requestPermission();
     await setupNotificationChannel();
     await Alarm.init();
 
-    // Get.put(ThemeController(), permanent: true);
-    //
-    //
-    // Get.put(VitalsController(), permanent: true);
+
   }
 
   Future<void> _ensureStartupSequence() async {
@@ -166,13 +94,31 @@ class _HomeWrapperState extends State<HomeWrapper> {
     await _sharedStartupTask;
   }
 
-  // Future<void> checksession() async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   final token = prefs.getString('auth_token');
-  //   if(token == null){
-  //     Get.to(SignInScreen());
-  //   }
-  // }
+  bool _redirectToProfileSetupIfNeeded() {
+    if (_hasRedirectedToProfileSetup) return true;
+    if (isProfileSetupInitialComplete(localStorageManager.userMap)) return false;
+
+    _hasRedirectedToProfileSetup = true;
+    Get.offAll(() => const ProfileSetupInitial());
+    return true;
+  }
+
+  void _setStepRealtimeTracking(bool isDashboardVisible) {
+    if (!Get.isRegistered<StepCounterController>()) return;
+    final stepController = Get.find<StepCounterController>();
+    if (isDashboardVisible) {
+      stepController.activateRealtimeTracking();
+    } else {
+      stepController.deactivateRealtimeTracking();
+    }
+  }
+
+
+  @override
+  void dispose() {
+    _setStepRealtimeTracking(false);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -199,7 +145,10 @@ class _HomeWrapperState extends State<HomeWrapper> {
           index: _selectedIndex,
           children: List<Widget>.generate(
             _pages.length,
-            (index) => _pages[index] ?? const SizedBox.shrink(),
+            (index) => TickerMode(
+              enabled: _selectedIndex == index,
+              child: _pages[index] ?? const SizedBox.shrink(),
+            ),
           ),
         ),
       ),

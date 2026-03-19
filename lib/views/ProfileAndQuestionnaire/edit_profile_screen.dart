@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dropdown_flutter/custom_dropdown.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
@@ -26,6 +27,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   String profilePictureUrl = '';
   final controller = Get.put(EditprofileController());
+
+  final ScrollController _scrollController = ScrollController();
+  bool _showAppBar = true;
 
   @override
   void initState() {
@@ -77,8 +81,35 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     localStorageManager.userMap['ProfilePicture']?['CdnUrl'];
 
     profilePictureUrl = 'https://$cdnUrl';
-    print("Profile picture url is https://$cdnUrl");
+
+    _scrollController.addListener(() {
+      if (_scrollController.position.userScrollDirection ==
+          ScrollDirection.reverse) {
+        if (_showAppBar) {
+          setState(() {
+            _showAppBar = false;
+          });
+        }
+      }
+
+      if (_scrollController.position.userScrollDirection ==
+          ScrollDirection.forward) {
+        if (!_showAppBar) {
+          setState(() {
+            _showAppBar = true;
+          });
+        }
+      }
+    });
   }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -87,56 +118,76 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final width = mediaQuery.size.width;
     // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    String heightValue;
     return Scaffold(
       extendBodyBehindAppBar: true,
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
-      appBar: AppBar(
-        backgroundColor: AppColors.primaryLight4PercentOpacity,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(_showAppBar ? kToolbarHeight : 0),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: _showAppBar ? 1.0 : 0.0,
+          child: SafeArea(
+            bottom: false,
+            child: AppBar(
+              backgroundColor: Colors.transparent,
+              scrolledUnderElevation: 0,
+              surfaceTintColor: AppColors.primaryColor,
 
-        centerTitle: true,
-        title: Text(
-          "Edit Profile",
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w500,
-            color: white,
-          ),
-        ),
-
-        // Conditionally show leading drawer icon
-        leading: Builder(
-          builder:
-              (context) => IconButton(
-                icon: SvgPicture.asset(
-                  isDarkMode ? drawerIconWhite : drawerIcon,
+              centerTitle: true,
+              title: Text(
+                "Edit Profile",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w500,
                   color: white,
                 ),
-                onPressed: () => Scaffold.of(context).openDrawer(),
-              ),
-        ),
 
-        // Conditionally show close (cross) icon
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 20),
-            child: InkWell(
-              onTap: () => Navigator.pop(context),
-              child: SizedBox(
-                height: 24,
-                width: 24,
-                child: Icon(
-                  Icons.clear,
-                  size: 21,
-                  color: white, // Adapt to theme
+              ),
+              flexibleSpace: Container(
+                decoration: BoxDecoration(
+
+                  color: Colors.transparent
+
                 ),
               ),
+
+              // Conditionally show leading drawer icon
+              leading: Builder(
+                builder:
+                    (context) => IconButton(
+                      icon: SvgPicture.asset(
+                        isDarkMode ? drawerIconWhite : drawerIcon,
+                        color: white,
+                      ),
+                      onPressed: () => Scaffold.of(context).openDrawer(),
+                    ),
+              ),
+
+              // Conditionally show close (cross) icon
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 20),
+                  child: InkWell(
+                    onTap: () => Navigator.pop(context),
+                    child: SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: Icon(
+                        Icons.clear,
+                        size: 21,
+                        color: white, // Adapt to theme
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
 
       body: SingleChildScrollView(
+        controller: _scrollController,
         child: Column(
           children: [
             SizedBox(
@@ -170,7 +221,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               final String? cdnUrl =
                               localStorageManager.userMap['ProfilePicture']?['CdnUrl'];
 
-                              ImageProvider imageProvider;
+                              ImageProvider ? imageProvider;
 
                               // 1️⃣ Highest Priority → User picked image
                               if (pickedFile != null) {
@@ -184,14 +235,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               }
 
                               // 3️⃣ Fallback → Default asset
-                              else {
-                                imageProvider = AssetImage(profileMainImg);
-                              }
+
 
                               return CircleAvatar(
                                 radius: 60,
-                                backgroundColor: Colors.grey.shade200,
+                                backgroundColor: grey,
                                 backgroundImage: imageProvider,
+                                child: imageProvider == null
+                                    ? Icon(
+                                  Icons.person,
+                                  size: 200 * 0.75,
+                                  color: white,
+                                )
+                                    : null,
                               );
                             }),
                           ),
@@ -204,8 +260,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     .pickImageFromGallery();
                               },
                               icon: SizedBox(
-                                height: 32,
-                                width: 32,
+                                height: 42,
+                                width: 42,
                                 child: CircleAvatar(
                                   backgroundColor: AppColors.primaryColor,
                                   child: Icon(

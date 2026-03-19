@@ -22,11 +22,13 @@ import 'package:snevva/Controllers/WomenHealth/bottom_sheet_controller.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/common/custom_snackbar.dart';
+import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/models/hive_models/steps_model.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
+import 'package:snevva/views/permissions/permission_gate_screen.dart';
 
 import '../Controllers/signupAndSignIn/otp_verification_controller.dart';
 import '../Controllers/signupAndSignIn/sign_in_controller.dart';
@@ -41,6 +43,8 @@ import 'background_pedometer_service.dart';
 import 'decisiontree_service.dart';
 import 'device_token_service.dart';
 import 'encryption_service.dart';
+import 'permission_manager.dart';
+import 'tracking_service_manager.dart';
 
 class AuthService {
   static bool _isLoggingOut = false;
@@ -97,119 +101,56 @@ class AuthService {
     }
   }
 
-  // Future<void> handleSuccessfulSignIn({
-  //   required String emailOrPhone,
-  //   required SharedPreferences prefs,
-  //   required BuildContext context,
-  //   required bool rememberMe,
-  // }) async {
-  //   if (rememberMe) {
-  //     prefs.setBool('remember_me', true);
-  //     prefs.setString('user_credential', emailOrPhone);
-  //   }
-  //
-  //   // #endregion
-  //
-  //   await requestAllPermissions();
-  //   await initBackgroundService();
-  //
-  //   // #endregion
-  //
-  //   await stepController.loadStepsfromAPI(
-  //     month: DateTime.now().month,
-  //     year: DateTime.now().year,
-  //   );
-  //
-  //   await sleepController.loadSleepfromAPI(
-  //     month: DateTime.now().month,
-  //     year: DateTime.now().year,
-  //   );
-  //
-  //   await waterController.loadWaterIntakefromAPI(
-  //     month: DateTime.now().month,
-  //     year: DateTime.now().year,
-  //   );
-  //
-  //   await vitalsController.loadvitalsfromAPI(
-  //     month: DateTime.now().month,
-  //     year: DateTime.now().year,
-  //   );
-  //
-  //   localStorageManager.registerDeviceFCMIfNeeded();
-  //   await reminderController.getReminderFromAPI(context);
-  //
-  //   // await bottomsheetcontroller.loaddatafromAPI();
-  //   // await womenhealthController.lastPeriodDatafromAPI();
-  //
-  //   await moodcontroller.loadmoodfromAPI(
-  //     month: DateTime.now().month,
-  //     year: DateTime.now().year,
-  //   );
-  //
-  //   final userInfo = await signInController.userInfo();
-  //   final userData = userInfo['data'];
-  //   print(userData);
-  //   await prefs.setString('userdata', jsonEncode(userData));
-  //   localStorageManager.userMap.value = userData ?? {};
-  //
-  //   final PatientCode = userData['PatientCode']?.toString() ?? '';
-  //   await prefs.setString('PatientCode', PatientCode);
-  //
-  //   final nameValid = userData['Name']?.toString().trim().isNotEmpty ?? false;
-  //   final genderValid =
-  //       userData['Gender']?.toString().trim().isNotEmpty ?? false;
-  //   final occupationValid = userData['OccupationData'] != null;
-  //
-  //   final gender = userData['Gender']?.toString() ?? 'Unknown';
-  //   print("Gender is $gender");
-  //   if (gender == 'Female') {
-  //     await bottomsheetcontroller.loaddatafromAPI();
-  //     await womenhealthController.lastPeriodDatafromAPI();
-  //   }
-  //
-  //   if (nameValid && genderValid && occupationValid) {
-  //     final userActiveDataResponse = signInController.userGoalData;
-  //     final userActiveData = userActiveDataResponse['data'];
-  //     print(userActiveData);
-  //
-  //     localStorageManager.userGoalDataMap.value = userActiveData ?? {};
-  //     prefs.setString('userGoalDataMap', jsonEncode(userActiveData));
-  //
-  //     if (userActiveData != null && userActiveData is Map) {
-  //       await prefs.setString('useractivedata', jsonEncode(userActiveData));
-  //
-  //       // 🚀 Final check 1 → All goals set → go home
-  //       if (userActiveData['ActivityLevel'] != null &&
-  //           userActiveData['HealthGoal'] != null) {
-  //         Get.offAll(() => HomeWrapper(), binding: InitialBindings());
-  //         return; // <<< CRITICAL
-  //       }
-  //
-  //       // 🚀 Final check 2 → Ask only remaining questions
-  //       if (userActiveData['HeightData'] != null &&
-  //           userActiveData['WeightData'] != null) {
-  //         Get.offAll(() => QuestionnaireScreen());
-  //         return; // <<< CRITICAL
-  //       }
-  //
-  //       // 🚀 Missing height/weight
-  //       final gender = userData['Gender']?.toString() ?? 'Unknown';
-  //       Get.offAll(() => HeightWeightScreen(gender: gender));
-  //       return; // <<< CRITICAL
-  //     }
-  //
-  //     // If userActiveData invalid
-  //     Get.offAll(() => HomeWrapper(), binding: InitialBindings());
-  //     return;
-  //   }
-  //
-  //   // Missing basic profile info
-  //   Get.offAll(() => ProfileSetupInitial());
-  //   return;
-  // }
-
   void loginLog(String msg) {
     debugPrint("🟩 LOGIN_FLOW: $msg");
+  }
+
+  Future<bool> _ensurePostLoginPermissionsAndStartTracking({
+    bool ignoreSessionGuard = false,
+  }) async {
+    final permissionManager = PermissionManager();
+    final prefs = await SharedPreferences.getInstance();
+    final shouldRun =
+        ignoreSessionGuard
+            ? true
+            : await permissionManager.shouldRunPostLoginFlow(prefs);
+    final requirements = await permissionManager.getRequiredPermissions();
+    final alreadyGranted = await permissionManager.areAllRequiredGranted(
+      requirements,
+    );
+
+    if (!shouldRun && !alreadyGranted) {
+      return false;
+    }
+
+    bool granted = alreadyGranted;
+    if (shouldRun && !alreadyGranted) {
+      granted =
+          await Get.to<bool>(
+            () => PermissionGateScreen(
+              permissionManager: permissionManager,
+              requirements: requirements,
+            ),
+          ) ??
+          false;
+    }
+
+    await permissionManager.markPostLoginFlowDone(prefs);
+
+    if (granted) {
+      await TrackingServiceManager.instance.start();
+    }
+
+    return granted;
+  }
+
+  Future<bool> ensurePostLoginPermissionsAndStartTracking({
+    bool ignoreSessionGuard = false,
+  }) async {
+    print("Ensuring post-login permissions and starting tracking if granted...");
+    return _ensurePostLoginPermissionsAndStartTracking(
+      ignoreSessionGuard: ignoreSessionGuard,
+    );
   }
 
   Future<void> handleSuccessfulSignIn({
@@ -226,15 +167,19 @@ class AuthService {
       prefs.setString('user_credential', emailOrPhone);
     }
 
-    /// PERMISSIONS
+    //PERMISSIONS
     loginLog("Requesting permissions...");
-    await requestAllPermissions();
-    loginLog("Permissions granted");
+    final permissionsGranted =
+        await _ensurePostLoginPermissionsAndStartTracking();
+    loginLog(
+      permissionsGranted ? "Permissions granted" : "Permissions not granted",
+    );
 
-    /// BACKGROUND SERVICE
-    loginLog("Initializing background service...");
-    await initBackgroundService();
-    loginLog("Background service started");
+    if (permissionsGranted) {
+      loginLog("Background service started");
+    } else {
+      loginLog("Tracking services not started (missing permissions)");
+    }
 
     /// HEALTH DATA LOAD
     loginLog("Loading Steps...");
@@ -293,12 +238,10 @@ class AuthService {
     await prefs.setString('PatientCode', PatientCode);
     loginLog("PatientCode saved: $PatientCode");
 
-    final nameValid = userData['Name']?.toString().trim().isNotEmpty ?? false;
-    final genderValid =
-        userData['Gender']?.toString().trim().isNotEmpty ?? false;
-    final occupationValid = userData['OccupationData'] != null;
+    final Map userMap = localStorageManager.userMap;
+    final bool profileComplete = isProfileSetupInitialComplete(userMap);
 
-    final gender = userData['Gender']?.toString() ?? 'Unknown';
+    final gender = userMap['Gender']?.toString() ?? 'Unknown';
     loginLog("Gender: $gender");
 
     if (gender == 'Female') {
@@ -308,9 +251,9 @@ class AuthService {
     }
 
     /// PROFILE CHECK
-    loginLog("Checking basic profile completeness...");
-    if (nameValid && genderValid && occupationValid) {
-      loginLog("Basic profile complete");
+    loginLog("Checking ProfileSetupInitial completeness...");
+    if (profileComplete) {
+      loginLog("Profile setup initial complete");
 
       final userActiveDataResponse = signInController.userGoalData;
       final userActiveData = userActiveDataResponse['data'];
@@ -350,7 +293,7 @@ class AuthService {
     }
 
     /// PROFILE SETUP
-    loginLog("Basic profile missing → ProfileSetupInitial");
+    loginLog("Profile setup initial missing → ProfileSetupInitial");
     Get.offAll(() => ProfileSetupInitial());
   }
 

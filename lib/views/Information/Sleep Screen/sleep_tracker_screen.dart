@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
@@ -157,6 +158,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
       event,
     ) {
       if (event != null && mounted) {
+        sleepController.stopSleep();
         Get.snackbar(
           '🎉 Goal Reached!',
           'You\'ve completed your sleep goal!',
@@ -208,16 +210,18 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
   }
 
   void _toggleView() async {
-    sleepController.isMonthlyView.value = !sleepController.isMonthlyView.value;
+    final nextIsMonthly = !sleepController.isMonthlyView.value;
+    sleepController.isMonthlyView.value = nextIsMonthly;
 
-    if (sleepController.isMonthlyView.value) {
-      await sleepController.loadSleepfromAPI(
+    if (nextIsMonthly) {
+      await sleepController.loadMonthlySleep(
         month: _selectedMonth.month,
         year: _selectedMonth.year,
       );
-    } else {
-      sleepController.updateDeepSleepSpots();
+      return;
     }
+
+    sleepController.updateDeepSleepSpots();
   }
 
   void _changeMonth(int delta) async {
@@ -229,10 +233,12 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
     setState(() => _selectedMonth = newMonth);
 
-    await sleepController.loadSleepfromAPI(
-      month: newMonth.month,
-      year: newMonth.year,
-    );
+    if (sleepController.isMonthlyView.value) {
+      await sleepController.loadMonthlySleep(
+        month: newMonth.month,
+        year: newMonth.year,
+      );
+    }
   }
 
   @override
@@ -484,9 +490,9 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
                   final points =
                       sleepController.isMonthlyView.value
-                          ? sleepController.getMonthlyDeepSleepSpots(
-                            _selectedMonth,
-                          )
+                          ? (sleepController.monthlySleepSpots.isEmpty
+                              ? <FlSpot>[]
+                              : sleepController.monthlySleepSpots.toList())
                           : sleepController.deepSleepSpots
                               .take(daysSinceMonday + 1)
                               .toList();

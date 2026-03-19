@@ -5,6 +5,7 @@ import 'package:snevva/Controllers/DietPlan/diet_plan_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/models/diet_tags_response.dart';
 
+import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../common/global_variables.dart';
 import '../../common/loader.dart';
 import '../../consts/consts.dart';
@@ -91,6 +92,7 @@ class _DietDetailsScreenState extends State<DietDetailsScreen> {
           appbarText: widget.diet.heading ?? widget.diet.title ?? "Diet Plan",
         ),
       ),
+      drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       body: Column(
         children: [
           Padding(

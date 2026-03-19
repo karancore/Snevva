@@ -163,8 +163,9 @@ class StepStatGraphWidget extends StatelessWidget {
       padding: const EdgeInsets.only(top: 52),
       height: height * 0.28,
       width: chartWidth,
-      child: LineChart(
-        LineChartData(
+      child: RepaintBoundary(
+        child: LineChart(
+          LineChartData(
           minX: 0,
           maxX: safeMaxx,
           minY: 0,
@@ -292,6 +293,7 @@ class StepStatGraphWidget extends StatelessWidget {
                 }).toList();
               },
             ),
+          ),
           ),
         ),
       ),

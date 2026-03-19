@@ -74,17 +74,34 @@ class ReminderPayloadModel {
     this.endWaterTime,
   });
 
+  static String _normalizeCategoryForApi(String raw) {
+    final normalized = raw.trim();
+    if (normalized.isEmpty) return normalized;
+    switch (normalized.toLowerCase()) {
+      case 'medicine':
+        return 'Medicine';
+      case 'water':
+        return 'Water';
+      case 'meal':
+        return 'Meal';
+      case 'event':
+        return 'Event';
+      default:
+        return normalized;
+    }
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'Id': id,
       'Title': title,
-      'Category': category,
+      'Category': _normalizeCategoryForApi(category),
       'MedicineName': medicineName,
       'MedicineType': medicineType,
       'Dosage': dosage?.toJson(),
       'MedicineFrequencyPerDay': medicineFrequencyPerDay,
       'ReminderFrequencyType': reminderFrequencyType,
-      'CustomReminder': customReminder?.toJson(),
+      'CustomReminder': customReminder.toJson(),
       'RemindBefore': remindBefore?.toJson(),
       'StartDate': startDate,
       'EndDate': endDate,
@@ -207,10 +224,10 @@ class CustomReminder {
 
   factory CustomReminder.fromJson(Map<String, dynamic> json) {
     final type = Option.values.firstWhere(
-      (e) => e.name == json['type'],
+      (e) => e.name == json['Type'],
 
       orElse: () {
-        debugPrint("Unknown reminder type:  ${json['type']}");
+        debugPrint("Unknown reminder type:  ${json['Type']}");
         return Option.times;
       },
     );
@@ -230,13 +247,18 @@ class CustomReminder {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = {'type': type?.name};
+    final Map<String, dynamic> data = {
+      'Type': type?.name,
+    };
+
     if (timesPerDay != null) {
       data['TimesPerDay'] = timesPerDay!.toJson();
     }
+
     if (everyXHours != null) {
       data['EveryXHours'] = everyXHours!.toJson();
     }
+
     return data;
   }
 }
@@ -251,10 +273,14 @@ class TimesPerDay {
 
   const TimesPerDay({required this.count, required this.list});
 
-  Map<String, dynamic> toJson() => {'Count': count, 'List': list};
+  Map<String, dynamic> toJson() => {
+    // API expects Int32; keep Hive field as String for backward compatibility.
+    'Count': int.tryParse(count) ?? 0,
+    'List': list,
+  };
 
   factory TimesPerDay.fromJson(Map<String, dynamic> json) => TimesPerDay(
-    count: json['Count'],
+    count: (json['Count'] ?? '').toString(),
     list: List<String>.from(json['List'] ?? []),
   );
 }

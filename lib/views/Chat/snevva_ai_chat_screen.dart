@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:intl/intl.dart';
 import 'package:snevva/consts/colors.dart';
 import 'package:snevva/consts/images.dart';
@@ -199,8 +201,12 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         elevation: 0,
+        automaticallyImplyLeading: false,
         backgroundColor: isDarkMode ? black : white,
-        iconTheme: IconThemeData(color: isDarkMode ? white : black),
+        leading: IconButton(onPressed: (){
+          Get.back();
+        }, icon: const Icon(Icons.arrow_back_ios_new)),
+        iconTheme: IconThemeData(color: isDarkMode ? white : black ),
         title: Text(
           "Chat with Elly",
           style: TextStyle(
