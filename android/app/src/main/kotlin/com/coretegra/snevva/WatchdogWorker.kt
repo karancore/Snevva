@@ -12,7 +12,8 @@ class WatchdogWorker(context: Context, params: WorkerParameters) : Worker(contex
     override fun doWork(): Result {
         Log.d("WatchdogWorker", "Bark! Checking if FlutterBackgroundService is alive...")
         try {
-            val serviceIntent = Intent(applicationContext, id.flutter.flutter_background_service.BackgroundService::class.java)
+            val serviceIntent = Intent()
+            serviceIntent.setClassName(applicationContext, "id.flutter.flutter_background_service.BackgroundService")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 applicationContext.startForegroundService(serviceIntent)
             } else {
