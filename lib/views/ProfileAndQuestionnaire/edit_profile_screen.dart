@@ -13,6 +13,7 @@ import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../Widgets/CommonWidgets/common_date_widget.dart';
 import '../../Widgets/ProfileSetupAndQuestionnaire/height_and_weight_field.dart';
 import '../../consts/consts.dart';
+import '../../services/google_auth.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -223,6 +224,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                               ImageProvider ? imageProvider;
 
+
+                              final String? googlePicUrl = Get.find<GoogleAuthService>().googlePicUrl.value;
+
+
                               // 1️⃣ Highest Priority → User picked image
                               if (pickedFile != null) {
                                 imageProvider = FileImage(pickedFile);
@@ -232,6 +237,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               else if (cdnUrl != null && cdnUrl.isNotEmpty) {
                                 imageProvider =
                                     CachedNetworkImageProvider("https://$cdnUrl");
+                              }
+
+                              else if (googlePicUrl != null && googlePicUrl.isNotEmpty) {
+                                imageProvider = CachedNetworkImageProvider(
+                                  googlePicUrl
+                                );
                               }
 
                               // 3️⃣ Fallback → Default asset

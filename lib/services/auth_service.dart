@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:alarm/alarm.dart';
 import 'package:hive/hive.dart';
@@ -48,6 +49,7 @@ import 'tracking_service_manager.dart';
 
 class AuthService {
   static bool _isLoggingOut = false;
+  static const Duration _cleanupStepTimeout = Duration(seconds: 4);
 
   StepCounterController get stepController => Get.find<StepCounterController>();
   SleepController get sleepController => Get.find<SleepController>();
@@ -108,40 +110,32 @@ class AuthService {
   static Future<void> clearReminderSessionState() async {
     debugPrint('🧹 Clearing reminder alarms and local reminder state...');
 
-    try {
+    await _runCleanupStep('stop reminder alarms', () async {
       await Alarm.stopAll();
 
       final remainingAlarms = await Alarm.getAlarms();
       for (final alarm in remainingAlarms) {
         await Alarm.stop(alarm.id);
       }
-    } catch (e) {
-      debugPrint('⚠️ Failed to stop reminder alarms during logout: $e');
-    }
+    });
 
-    try {
+    await _runCleanupStep('clear reminder Hive data', () async {
       final hiveService = HiveService();
       final remindersBox = await hiveService.remindersBox();
       final medicineBox = await hiveService.medicineBox();
       await remindersBox.clear();
       await medicineBox.clear();
-    } catch (e) {
-      debugPrint('⚠️ Failed to clear reminder Hive data during logout: $e');
-    }
+    });
 
-    try {
+    await _runCleanupStep('clear reminder prefs', () async {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('reminder_scheduled');
-    } catch (e) {
-      debugPrint('⚠️ Failed to clear reminder prefs during logout: $e');
-    }
+    });
 
-    try {
+    await _runCleanupStep('detach reminder listener', () async {
       await ReminderController.subscription?.cancel();
       ReminderController.subscription = null;
-    } catch (e) {
-      debugPrint('⚠️ Failed to detach reminder listener during logout: $e');
-    }
+    });
 
     if (Get.isRegistered<ReminderController>(tag: 'reminder')) {
       try {
@@ -169,6 +163,21 @@ class AuthService {
     }
     if (Get.isRegistered<MealController>()) {
       Get.delete<MealController>(force: true);
+    }
+
+    debugPrint('✅ Reminder session cleanup finished');
+  }
+
+  static Future<void> _runCleanupStep(
+    String label,
+    Future<void> Function() action,
+  ) async {
+    try {
+      await action().timeout(_cleanupStepTimeout);
+    } on TimeoutException {
+      debugPrint('⚠️ Reminder cleanup step timed out: $label');
+    } catch (e) {
+      debugPrint('⚠️ Failed to $label: $e');
     }
   }
 

@@ -341,7 +341,7 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-enum AppInitState { loading, success, error }
+enum AppInitState { loading, success, unauthenticated, error }
 
 class _MyAppState extends State<MyApp> {
   AppInitState _initState = AppInitState.loading;
@@ -473,9 +473,19 @@ class _MyAppState extends State<MyApp> {
       final hasSession = (prefs.getString('auth_token') ?? '').isNotEmpty;
 
       if (!hasSession) {
-        await AuthService.clearReminderSessionState();
+        _timeoutTimer?.cancel();
+
+        if (mounted) {
+          setState(() => _initState = AppInitState.unauthenticated);
+        }
+
+        unawaited(
+          AuthService.clearReminderSessionState().catchError((Object error, StackTrace stack) {
+            logLong('SESSION CLEANUP ERROR', '$error\n$stack');
+          }),
+        );
+
         _runStage3BackgroundTasks(hasSession: false);
-        Get.offAll(() => SignInScreen());
         return;
       }
 
@@ -614,6 +624,8 @@ class _MyAppState extends State<MyApp> {
                 )
                 : _initState == AppInitState.success
                 ? HomeWrapper()
+                : _initState == AppInitState.unauthenticated
+                ? const SignInScreen()
                 : ErrorPlaceholder(
                   onRetry: () {
                     _startTimeout();
