@@ -13,16 +13,12 @@ class BootReceiver : BroadcastReceiver() {
             
             Log.d("BootReceiver", "Device rebooted or package replaced. Restarting services...")
             
-            // 1. Restart StepCounterService
-            val serviceIntent = Intent(context, StepCounterService::class.java)
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                context.startForegroundService(serviceIntent)
-            } else {
-                context.startService(serviceIntent)
-            }
+            // StepCounterService removed to prevent duplicate/ghost tracking.
+            // Flutter auto-starts flutter_background_service on boot natively.
             
             // 2. Schedule SleepCalcWorker to calculate sleep gracefully
             SleepCalcWorker.scheduleNext(context)
+            WatchdogWorker.start(context)
             
             // 3. Keep old AlarmHelper behavior for reminders
             AlarmHelper.scheduleSleepAlarms(context)
