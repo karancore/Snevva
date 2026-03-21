@@ -26,6 +26,7 @@ import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/update_old_password_controller.dart';
 import 'package:snevva/services/firebase_init.dart';
+import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/services/google_auth.dart';
 import 'package:snevva/services/hive_service.dart';
 import 'package:snevva/utils/theme_controller.dart';
@@ -54,6 +55,7 @@ import 'firebase_options.dart';
 import 'models/app_notification.dart';
 import 'services/app_initializer.dart';
 import 'services/notification_channel.dart';
+import 'services/reminder/reminder_notification_profile.dart';
 import 'common/agent_debug_logger.dart';
 import 'performance/frame_timing_monitor.dart';
 import 'performance/refresh_rate_bootstrap.dart';
@@ -64,7 +66,7 @@ import 'views/SignUp/sign_in_screen.dart';
 import 'widgets/home_wrapper.dart';
 
 
-//Test User - 7814252484
+//Test User - 7814252736
 //Admin@1234
 const bool _kShowPerformanceOverlay = bool.fromEnvironment(
   'SHOW_PERFORMANCE_OVERLAY',
@@ -87,19 +89,47 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await FirebaseInit.init();
   final fln = FlutterLocalNotificationsPlugin();
 
-  const androidDetails = AndroidNotificationDetails(
-    'high_importance_channel',
-    'High Importance Notifications',
-    importance: Importance.max,
-    priority: Priority.high,
-    icon: 'snevva_elly',
+  await setupNotificationChannel(
+    localNotifications: fln,
+    requestReminderOverrides: false,
   );
 
   await fln.show(
     DateTime.now().millisecondsSinceEpoch ~/ 1000,
     message.notification?.title ?? message.data['title'],
     message.notification?.body ?? message.data['body'],
-    const NotificationDetails(android: androidDetails),
+    _isReminderFcmMessage(message)
+        ? buildCriticalReminderNotificationDetails(
+          body: message.notification?.body ?? message.data['body'] ?? '',
+          icon: 'snevva_elly',
+        )
+        : const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'high_importance_channel',
+            'High Importance Notifications',
+            importance: Importance.max,
+            priority: Priority.high,
+            icon: 'snevva_elly',
+          ),
+        ),
+  );
+}
+
+bool _isReminderFcmMessage(RemoteMessage message) {
+  final values = <String>[
+    message.data['type']?.toString() ?? '',
+    message.data['category']?.toString() ?? '',
+    message.data['notificationType']?.toString() ?? '',
+    message.data['screen']?.toString() ?? '',
+  ].map((value) => value.toLowerCase());
+
+  return values.any(
+    (value) =>
+        value == 'reminder' ||
+        value == 'medicine' ||
+        value == 'water' ||
+        value == 'meal' ||
+        value == 'event',
   );
 }
 
@@ -443,6 +473,7 @@ class _MyAppState extends State<MyApp> {
       final hasSession = (prefs.getString('auth_token') ?? '').isNotEmpty;
 
       if (!hasSession) {
+        await AuthService.clearReminderSessionState();
         _runStage3BackgroundTasks(hasSession: false);
         Get.offAll(() => SignInScreen());
         return;
@@ -581,8 +612,7 @@ class _MyAppState extends State<MyApp> {
                   duration: const Duration(milliseconds: 300),
                   child: const InitializationSplash(),
                 )
-                :
-            _initState == AppInitState.success
+                : _initState == AppInitState.success
                 ? HomeWrapper()
                 : ErrorPlaceholder(
                   onRetry: () {
@@ -603,8 +633,7 @@ class InitializationSplash extends StatelessWidget {
   Widget build(BuildContext context) {
     const double splashContentWidth = 220;
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final Color splashBackground =
-        isDarkMode ? black : white;
+    final Color splashBackground = isDarkMode ? black : white;
     final Color subtitleColor = isDarkMode ? Colors.white70 : Colors.black54;
 
     return Scaffold(

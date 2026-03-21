@@ -3,12 +3,13 @@ import 'package:alarm/alarm.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Controllers/Reminder/water_controller.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart'
-as reminder_payload;
+    as reminder_payload;
 import 'package:snevva/models/reminders/water_reminder_model.dart';
 
 import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
 import '../../models/reminders/medicine_reminder_model.dart' as medicine_model;
+import 'reminder_notification_profile.dart';
 
 class ReminderScheduler {
   static var waterList = <WaterReminderModel>[].obs;
@@ -32,7 +33,8 @@ class ReminderScheduler {
     for (final reminder in reminders) {
       try {
         debugPrint(
-            "➡️ Processing reminder ID:${reminder.id} | Category:${reminder.category}");
+          "➡️ Processing reminder ID:${reminder.id} | Category:${reminder.category}",
+        );
 
         reminder.validate();
 
@@ -158,15 +160,27 @@ class ReminderScheduler {
 
     final date = reminder.startDate;
 
-    List<DateTime> scheduledTimes = timesList
-        .map((e) => buildDateTimeFromTimeString(time: e, date: date))
-        .toList();
+    List<DateTime> scheduledTimes =
+        timesList
+            .map((e) => buildDateTimeFromTimeString(time: e, date: date))
+            .toList();
 
     debugPrint("Generated scheduledTimes: $scheduledTimes");
 
     final List<AlarmSettings> alarms = [];
 
-    for (final scheduledTime in scheduledTimes) {
+    for (var scheduledTime in scheduledTimes) {
+      final normalized = normalizeReminderScheduleDate(
+        scheduledTime,
+        startDate: reminder.startDate,
+        endDate: reminder.endDate,
+      );
+      if (normalized == null) {
+        debugPrint("⛔ Skipping medicine reminder outside date range");
+        continue;
+      }
+      scheduledTime = normalized;
+
       debugPrint("⏰ Scheduling medicine alarm at $scheduledTime");
 
       if (scheduledTime.isBefore(DateTime.now())) {
@@ -174,15 +188,18 @@ class ReminderScheduler {
         continue;
       }
 
-      final alarmId = alarmsId();
+      final alarmId = buildAlarmId(
+        groupId: reminder.id,
+        time: scheduledTime,
+        salt: 'medicine',
+      );
 
-      final alarmSettings = AlarmSettings(
+      final alarmSettings = buildCriticalReminderAlarmSettings(
         id: alarmId,
         dateTime: scheduledTime,
         assetAudioPath: alarmSound,
         loopAudio: true,
         vibrate: true,
-        androidFullScreenIntent: true,
         volumeSettings: VolumeSettings.fade(
           volume: 0.8,
           fadeDuration: const Duration(seconds: 5),
@@ -193,17 +210,13 @@ class ReminderScheduler {
           "category": ReminderCategory.medicine.toString(),
           "type": "times",
         }),
-        notificationSettings: NotificationSettings(
-          title: reminder.title,
-          body: buildMedicineNotificationText(
-            medicineName: reminder.medicineNameSafe,
-            dosage: reminder.dosage?.value ?? 0,
-            reminder: reminder,
-          ),
-          stopButton: 'Stop',
-          icon: 'alarm',
-          iconColor: AppColors.primaryColor,
+        notificationTitle: reminder.title,
+        notificationBody: buildMedicineNotificationText(
+          medicineName: reminder.medicineNameSafe,
+          dosage: reminder.dosage?.value ?? 0,
+          reminder: reminder,
         ),
+        iconColor: AppColors.primaryColor,
       );
 
       final success = await Alarm.set(alarmSettings: alarmSettings);
@@ -229,18 +242,21 @@ class ReminderScheduler {
     final type = reminder.medicineType;
     final unit = reminder.dosage?.unit ?? '';
     final plural = dosage > 1 ? 's' : '';
+    final whenToTake = (reminder.whenToTake ?? '').trim();
+    final whenToTakeText =
+        whenToTake.isEmpty ? '' : ' When to take: $whenToTake.';
 
     switch (type) {
       case 'Tablet':
-        return 'Take $dosage $medicineName tablet$plural.';
+        return 'Take $dosage $medicineName tablet$plural.$whenToTakeText';
       case 'Syrup':
-        return 'Take $dosage $unit of $medicineName.';
+        return 'Take $dosage $unit of $medicineName.$whenToTakeText';
       case 'Injection':
-        return 'Take $dosage $unit of $medicineName.';
+        return 'Take $dosage $unit of $medicineName.$whenToTakeText';
       case 'Drops':
-        return 'Take $dosage $unit of $medicineName.';
+        return 'Take $dosage $unit of $medicineName.$whenToTakeText';
       default:
-        return 'Take $medicineName.';
+        return 'Take $medicineName.$whenToTakeText';
     }
   }
 
@@ -276,20 +292,32 @@ class ReminderScheduler {
       debugPrint("Generated water interval times: $intervalTimes");
 
       for (final time in intervalTimes) {
-        final scheduledTime =
+        var scheduledTime =
             time.isBefore(DateTime.now())
                 ? time.add(const Duration(days: 1))
                 : time;
 
+        final normalized = normalizeReminderScheduleDate(
+          scheduledTime,
+          startDate: reminder.startDate,
+          endDate: reminder.endDate,
+        );
+        if (normalized == null) {
+          debugPrint("⛔ Skipping water interval reminder outside date range");
+          continue;
+        }
+        scheduledTime = normalized;
+
         debugPrint("⏰ Scheduling water interval alarm at $scheduledTime");
 
-        final alarmSettings = AlarmSettings(
+        final alarmSettings = buildCriticalReminderAlarmSettings(
           id: scheduledReminderId(reminderId: reminder.id, time: scheduledTime),
           dateTime: scheduledTime,
           assetAudioPath: waterSound,
+          loopAudio: false,
           volumeSettings: VolumeSettings.fade(
             volume: 0.8,
-            fadeDuration: Duration(seconds: 5),
+            fadeDuration: const Duration(seconds: 5),
             volumeEnforced: true,
           ),
           payload: jsonEncode({
@@ -297,13 +325,9 @@ class ReminderScheduler {
             "category": ReminderCategory.water.name,
             "type": "interval",
           }),
-          notificationSettings: NotificationSettings(
-            title: reminder.title,
-            body: reminder.notes ?? '',
-            stopButton: 'Stop',
-            icon: 'alarm',
-            iconColor: AppColors.primaryColor,
-          ),
+          notificationTitle: reminder.title,
+          notificationBody: reminder.notes ?? '',
+          iconColor: AppColors.primaryColor,
         );
 
         final success = await Alarm.set(alarmSettings: alarmSettings);
@@ -315,8 +339,7 @@ class ReminderScheduler {
     if (customReminder.timesPerDay != null) {
       final times = reminder.waterTimesCountSafe;
       debugPrint("Water times per day: $times");
-      final alarmTimes =
-      waterController.generateTimesBetween(
+      final alarmTimes = waterController.generateTimesBetween(
         startTime: reminder.waterStartSafe,
         endTime: reminder.waterEndSafe,
         times: times,
@@ -325,18 +348,30 @@ class ReminderScheduler {
       debugPrint("Generated water alarm times: $alarmTimes");
 
       for (var time in alarmTimes) {
-        final scheduledTime =
-        time.isBefore(DateTime.now()) ? time.add(Duration(days: 1)) : time;
+        var scheduledTime =
+            time.isBefore(DateTime.now()) ? time.add(Duration(days: 1)) : time;
+
+        final normalized = normalizeReminderScheduleDate(
+          scheduledTime,
+          startDate: reminder.startDate,
+          endDate: reminder.endDate,
+        );
+        if (normalized == null) {
+          debugPrint("⛔ Skipping water reminder outside date range");
+          continue;
+        }
+        scheduledTime = normalized;
 
         debugPrint("⏰ Scheduling water alarm at $scheduledTime");
 
-        final alarmSettings = AlarmSettings(
+        final alarmSettings = buildCriticalReminderAlarmSettings(
           id: scheduledReminderId(reminderId: reminder.id, time: scheduledTime),
           dateTime: scheduledTime,
           assetAudioPath: waterSound,
+          loopAudio: false,
           volumeSettings: VolumeSettings.fade(
             volume: 0.8,
-            fadeDuration: Duration(seconds: 5),
+            fadeDuration: const Duration(seconds: 5),
             volumeEnforced: true,
           ),
           payload: jsonEncode({
@@ -344,13 +379,9 @@ class ReminderScheduler {
             "category": ReminderCategory.water.name,
             "type": "times",
           }),
-          notificationSettings: NotificationSettings(
-            title: reminder.title,
-            body: reminder.notes ?? '',
-            stopButton: 'Stop',
-            icon: 'alarm',
-            iconColor: AppColors.primaryColor,
-          ),
+          notificationTitle: reminder.title,
+          notificationBody: reminder.notes ?? '',
+          iconColor: AppColors.primaryColor,
         );
 
         final success = await Alarm.set(alarmSettings: alarmSettings);
@@ -360,7 +391,9 @@ class ReminderScheduler {
       return;
     }
 
-    debugPrint("⚠️ Water reminder has no schedule data, skipping (id=${reminder.id})");
+    debugPrint(
+      "⚠️ Water reminder has no schedule data, skipping (id=${reminder.id})",
+    );
   }
 
   /// ==============================
@@ -379,7 +412,7 @@ class ReminderScheduler {
     final unit = before.unit;
 
     final offset =
-    unit == 'minutes' ? Duration(minutes: amount) : Duration(hours: amount);
+        unit == 'minutes' ? Duration(minutes: amount) : Duration(hours: amount);
 
     DateTime beforeTime = mainTime.subtract(offset);
 
@@ -391,13 +424,14 @@ class ReminderScheduler {
     debugPrint("MainTime: $mainTime");
     debugPrint("PreReminderTime: $beforeTime");
 
-    final alarmSettings = AlarmSettings(
+    final alarmSettings = buildCriticalReminderAlarmSettings(
       id: scheduledReminderId(reminderId: reminder.id, time: beforeTime),
       dateTime: beforeTime,
       assetAudioPath: alarmSound,
+      loopAudio: false,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
-        fadeDuration: Duration(seconds: 5),
+        fadeDuration: const Duration(seconds: 5),
         volumeEnforced: true,
       ),
       payload: jsonEncode({
@@ -406,13 +440,9 @@ class ReminderScheduler {
         "type": "before",
         "mainTime": mainTime.toIso8601String(),
       }),
-      notificationSettings: NotificationSettings(
-        title: "Upcoming ${category.capitalizeFirst} Reminder",
-        body: "$body $amount $unit",
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      ),
+      notificationTitle: "Upcoming ${category.capitalizeFirst} Reminder",
+      notificationBody: "$body $amount $unit",
+      iconColor: AppColors.primaryColor,
     );
 
     final success = await Alarm.set(alarmSettings: alarmSettings);
@@ -443,15 +473,26 @@ class ReminderScheduler {
     }
 
     for (final time in times) {
-      final dateTime =
-      buildDateTimeFromTimeString(time: time, date: date);
+      final normalizedDateTime = normalizeReminderScheduleDate(
+        buildDateTimeFromTimeString(time: time, date: date),
+        startDate: reminder.startDate,
+        endDate: reminder.endDate,
+      );
+      if (normalizedDateTime == null) {
+        debugPrint("⛔ Skipping $category reminder outside date range");
+        continue;
+      }
+      final dateTime = normalizedDateTime;
 
       if (dateTime.isBefore(DateTime.now())) {
         debugPrint("⛔ Skipping past $category reminder at $dateTime");
         continue;
       }
 
-      final alarmId = scheduledReminderId(reminderId: reminder.id, time: dateTime);
+      final alarmId = scheduledReminderId(
+        reminderId: reminder.id,
+        time: dateTime,
+      );
       if (deletedAlarmIds.contains(alarmId)) {
         debugPrint("🧹 Skip deleted $category occurrence (alarmId=$alarmId)");
         continue;
@@ -459,13 +500,13 @@ class ReminderScheduler {
 
       debugPrint("⏰ Scheduling $category alarm at $dateTime");
 
-      final alarmSettings = AlarmSettings(
+      final alarmSettings = buildCriticalReminderAlarmSettings(
         id: alarmId,
         dateTime: dateTime,
         assetAudioPath: alarmSound,
         volumeSettings: VolumeSettings.fade(
           volume: 0.8,
-          fadeDuration: Duration(seconds: 5),
+          fadeDuration: const Duration(seconds: 5),
           volumeEnforced: true,
         ),
         payload: jsonEncode({
@@ -473,13 +514,9 @@ class ReminderScheduler {
           "category": category,
           "type": "times",
         }),
-        notificationSettings: NotificationSettings(
-          title: reminder.title,
-          body: reminder.notes ?? '',
-          stopButton: 'Stop',
-          icon: 'alarm',
-          iconColor: AppColors.primaryColor,
-        ),
+        notificationTitle: reminder.title,
+        notificationBody: reminder.notes ?? '',
+        iconColor: AppColors.primaryColor,
       );
 
       final success = await Alarm.set(alarmSettings: alarmSettings);

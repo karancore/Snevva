@@ -30,6 +30,7 @@ bool startsWithCapital(String value) {
   if (value.isEmpty) return false;
   return value[0] == value[0].toUpperCase();
 }
+
 class ParsedTime {
   final int hour;
   final int minute;
@@ -40,15 +41,13 @@ class ParsedTime {
 /// "23:59" -> 23 , 59
 ParsedTime parse24Hour(String time) {
   final parts = time.split(':');
-  return ParsedTime(
-    int.parse(parts[0]),
-    int.parse(parts[1]),
-  );
+  return ParsedTime(int.parse(parts[0]), int.parse(parts[1]));
 }
 
 int generateNotificationId(String dataCode, String time) {
   return (dataCode + time).hashCode.abs();
 }
+
 class MaxValueTextInputFormatter extends TextInputFormatter {
   final int max;
 
@@ -229,11 +228,7 @@ int _fnv1a32(String input) {
   return hash;
 }
 
-int buildAlarmId({
-  required int groupId,
-  required DateTime time,
-  String? salt,
-}) {
+int buildAlarmId({required int groupId, required DateTime time, String? salt}) {
   final normalizedSalt = (salt ?? '').trim();
 
   // Backward-compatible deterministic IDs for older schedules (only when safe).
@@ -278,29 +273,28 @@ TimeOfDay stringToTimeOfDay(String time) {
   return TimeOfDay.fromDateTime(dateTime);
 }
 
-String formatReminderTime(List remindTimes) {
-  if (remindTimes.isEmpty) return 'N/A';
+String formatReminderTime(List<dynamic>? remindTimes) {
+  final formattedTimes = <String>[];
 
-  List<String> formattedTimes = [];
-  for (var time in remindTimes) {
+  for (final time in remindTimes ?? const []) {
     try {
       if (time is String) {
-        try {
-          DateTime dateTime = DateTime.parse(time);
-          formattedTimes.add(DateFormat('hh:mm a').format(dateTime));
-        } catch (e) {
-          formattedTimes.add(time);
-        }
+        final trimmed = time.trim();
+        if (trimmed.isEmpty) continue;
+
+        final dateTime = DateTime.tryParse(trimmed);
+        formattedTimes.add(
+          dateTime != null ? DateFormat('hh:mm a').format(dateTime) : trimmed,
+        );
       } else if (time is DateTime) {
         formattedTimes.add(DateFormat('hh:mm a').format(time));
       }
     } catch (e) {
-      print('Error formatting time: $e');
-      formattedTimes.add(time.toString());
+      debugPrint('Error formatting time: $e');
     }
   }
 
-  return formattedTimes.join(', ');
+  return formattedTimes.where((time) => time.trim().isNotEmpty).join(', ');
 }
 
 String formatDate(int? day, int? month, int? year) {
@@ -382,6 +376,72 @@ int medicineAlarmId(String title, String medicineName, TimeOfDay time) {
 
 DateTime buildDateTime(DateTime date, TimeOfDay time) {
   return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+}
+
+DateTime dateOnlyLocal(DateTime value) {
+  return DateTime(value.year, value.month, value.day);
+}
+
+DateTime? parseReminderDate(String? raw) {
+  final trimmed = (raw ?? '').trim();
+  if (trimmed.isEmpty) return null;
+
+  final parsed = DateTime.tryParse(trimmed);
+  if (parsed != null) {
+    final local = parsed.isUtc ? parsed.toLocal() : parsed;
+    return dateOnlyLocal(local);
+  }
+
+  final parts = trimmed.split('-');
+  if (parts.length != 3) return null;
+
+  final year = int.tryParse(parts[0]);
+  final month = int.tryParse(parts[1]);
+  final day = int.tryParse(parts[2]);
+  if (year == null || month == null || day == null) return null;
+
+  return DateTime(year, month, day);
+}
+
+DateTime applyDateToDateTime(DateTime value, DateTime date) {
+  return DateTime(
+    date.year,
+    date.month,
+    date.day,
+    value.hour,
+    value.minute,
+    value.second,
+    value.millisecond,
+    value.microsecond,
+  );
+}
+
+DateTime resolveReminderBaseDate({String? startDate, DateTime? fallback}) {
+  return parseReminderDate(startDate) ??
+      dateOnlyLocal(fallback ?? DateTime.now());
+}
+
+DateTime? normalizeReminderScheduleDate(
+  DateTime scheduled, {
+  String? startDate,
+  String? endDate,
+}) {
+  final start = parseReminderDate(startDate);
+  final end = parseReminderDate(endDate);
+
+  var normalized = scheduled;
+  final scheduledDate = dateOnlyLocal(normalized);
+
+  if (start != null && scheduledDate.isBefore(start)) {
+    normalized = applyDateToDateTime(normalized, start);
+  }
+
+  final normalizedDate = dateOnlyLocal(normalized);
+  if (end != null && normalizedDate.isAfter(end)) {
+    return null;
+  }
+
+  return normalized;
 }
 
 // String buildMedicineText(dynamic medicineList) {
@@ -489,9 +549,10 @@ DateTime buildDateTimeFromTimeString({required String time, String? date}) {
   final dateHint = (date ?? '').trim();
   if (dateHint.isNotEmpty) {
     final parsedDate = DateTime.tryParse(dateHint);
-    final localDate = parsedDate != null
-        ? (parsedDate.isUtc ? parsedDate.toLocal() : parsedDate)
-        : null;
+    final localDate =
+        parsedDate != null
+            ? (parsedDate.isUtc ? parsedDate.toLocal() : parsedDate)
+            : null;
 
     if (localDate != null) {
       scheduled = DateTime(

@@ -7,6 +7,7 @@ import 'package:alarm/model/alarm_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:snevva/Controllers/Reminder/water_controller.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
+import 'package:snevva/services/reminder/reminder_notification_profile.dart';
 import '../../common/custom_snackbar.dart';
 import '../../common/global_variables.dart';
 import '../../consts/colors.dart';
@@ -119,7 +120,7 @@ class EventController extends GetxController {
     final encodedPayload = jsonEncode(payloadData);
     debugPrint('📤 Encoded Payload: $encodedPayload');
 
-    final alarmSettings = AlarmSettings(
+    final alarmSettings = buildCriticalReminderAlarmSettings(
       id: alarmId,
       dateTime: scheduledTime,
       assetAudioPath: alarmSound,
@@ -130,13 +131,9 @@ class EventController extends GetxController {
         volumeEnforced: true,
       ),
       payload: encodedPayload,
-      notificationSettings: NotificationSettings(
-        title: title.isNotEmpty ? title : 'EVENT REMINDER',
-        body: notes.isNotEmpty ? notes : '',
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      ),
+      notificationTitle: title.isNotEmpty ? title : 'EVENT REMINDER',
+      notificationBody: notes.isNotEmpty ? notes : '',
+      iconColor: AppColors.primaryColor,
     );
 
     debugPrint('📡 Setting alarm via Alarm.set...');
@@ -192,30 +189,25 @@ class EventController extends GetxController {
     int alarmId,
   ) async {
     // Use same AlarmSettings logic as _addEventAlarm but with alarmId
-    final alarmSettings = AlarmSettings(
+    final alarmSettings = buildCriticalReminderAlarmSettings(
       id: alarmId,
       dateTime: scheduledTime,
       assetAudioPath: alarmSound,
       loopAudio: true,
-      androidFullScreenIntent: true,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
         fadeDuration: const Duration(seconds: 5),
         volumeEnforced: true,
       ),
-      notificationSettings: NotificationSettings(
-        title:
-            reminderController.titleController.text.isNotEmpty
-                ? reminderController.titleController.text
-                : 'EVENT REMINDER',
-        body:
-            reminderController.notesController.text.isNotEmpty
-                ? reminderController.notesController.text
-                : '',
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      ),
+      notificationTitle:
+          reminderController.titleController.text.isNotEmpty
+              ? reminderController.titleController.text
+              : 'EVENT REMINDER',
+      notificationBody:
+          reminderController.notesController.text.isNotEmpty
+              ? reminderController.notesController.text
+              : '',
+      iconColor: AppColors.primaryColor,
     );
 
     await Alarm.set(alarmSettings: alarmSettings);

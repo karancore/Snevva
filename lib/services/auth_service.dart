@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer' as AgentDebugLogger;
 import 'package:alarm/alarm.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
@@ -43,6 +42,7 @@ import 'background_pedometer_service.dart';
 import 'decisiontree_service.dart';
 import 'device_token_service.dart';
 import 'encryption_service.dart';
+import 'hive_service.dart';
 import 'permission_manager.dart';
 import 'tracking_service_manager.dart';
 
@@ -105,6 +105,73 @@ class AuthService {
     debugPrint("🟩 LOGIN_FLOW: $msg");
   }
 
+  static Future<void> clearReminderSessionState() async {
+    debugPrint('🧹 Clearing reminder alarms and local reminder state...');
+
+    try {
+      await Alarm.stopAll();
+
+      final remainingAlarms = await Alarm.getAlarms();
+      for (final alarm in remainingAlarms) {
+        await Alarm.stop(alarm.id);
+      }
+    } catch (e) {
+      debugPrint('⚠️ Failed to stop reminder alarms during logout: $e');
+    }
+
+    try {
+      final hiveService = HiveService();
+      final remindersBox = await hiveService.remindersBox();
+      final medicineBox = await hiveService.medicineBox();
+      await remindersBox.clear();
+      await medicineBox.clear();
+    } catch (e) {
+      debugPrint('⚠️ Failed to clear reminder Hive data during logout: $e');
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('reminder_scheduled');
+    } catch (e) {
+      debugPrint('⚠️ Failed to clear reminder prefs during logout: $e');
+    }
+
+    try {
+      await ReminderController.subscription?.cancel();
+      ReminderController.subscription = null;
+    } catch (e) {
+      debugPrint('⚠️ Failed to detach reminder listener during logout: $e');
+    }
+
+    if (Get.isRegistered<ReminderController>(tag: 'reminder')) {
+      try {
+        final reminderController = Get.find<ReminderController>(
+          tag: 'reminder',
+        );
+        reminderController.alarms.clear();
+        reminderController.reminders.clear();
+      } catch (e) {
+        debugPrint('⚠️ Failed to reset reminder controller state: $e');
+      }
+    }
+
+    if (Get.isRegistered<ReminderController>(tag: 'reminder')) {
+      Get.delete<ReminderController>(tag: 'reminder', force: true);
+    }
+    if (Get.isRegistered<WaterController>()) {
+      Get.delete<WaterController>(force: true);
+    }
+    if (Get.isRegistered<MedicineController>()) {
+      Get.delete<MedicineController>(force: true);
+    }
+    if (Get.isRegistered<EventController>()) {
+      Get.delete<EventController>(force: true);
+    }
+    if (Get.isRegistered<MealController>()) {
+      Get.delete<MealController>(force: true);
+    }
+  }
+
   Future<bool> _ensurePostLoginPermissionsAndStartTracking({
     bool ignoreSessionGuard = false,
   }) async {
@@ -147,7 +214,9 @@ class AuthService {
   Future<bool> ensurePostLoginPermissionsAndStartTracking({
     bool ignoreSessionGuard = false,
   }) async {
-    print("Ensuring post-login permissions and starting tracking if granted...");
+    print(
+      "Ensuring post-login permissions and starting tracking if granted...",
+    );
     return _ensurePostLoginPermissionsAndStartTracking(
       ignoreSessionGuard: ignoreSessionGuard,
     );
@@ -214,7 +283,7 @@ class AuthService {
     localStorageManager.registerDeviceFCMIfNeeded();
 
     loginLog("Fetching reminders...");
-     await reminderController.getReminderFromAPI(context);
+    await reminderController.getReminderFromAPI(context);
     loginLog("Reminders loaded");
 
     loginLog("Loading mood...");
@@ -391,20 +460,14 @@ class AuthService {
       debugPrint('🧠 Clearing DecisionTreeService...');
       await DecisionTreeService().clearAll();
 
-      // ❌ REMOVE THIS
-      // Get.deleteAll(force: true);
-      await Alarm.stopAll();
-      // ✅ Delete only app controllers
+      await clearReminderSessionState();
+
       Get.delete<DietPlanController>();
       Get.delete<HealthTipsController>();
       Get.delete<HydrationStatController>();
       Get.delete<MentalWellnessController>();
       Get.delete<MoodController>();
       Get.delete<MoodQuestionController>();
-      Get.delete<WaterController>();
-      Get.delete<MedicineController>();
-      Get.delete<EventController>();
-      Get.delete<MealController>();
       Get.delete<SignInController>(force: true);
       Get.delete<OTPVerificationController>(force: true);
       Get.delete<SleepController>();

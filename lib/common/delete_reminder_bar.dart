@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:snevva/consts/colors.dart';
 
-class AnimatedReminderBar extends StatefulWidget {
-  const AnimatedReminderBar({super.key, this.show});
+class DeleteReminderBar extends StatefulWidget {
+  const DeleteReminderBar({super.key, this.show});
 
   final bool? show;
 
   @override
-  State<AnimatedReminderBar> createState() => _AnimatedReminderBarState();
+  State<DeleteReminderBar> createState() => _DeleteReminderBarState();
 }
 
-class _AnimatedReminderBarState extends State<AnimatedReminderBar>
+class _DeleteReminderBarState extends State<DeleteReminderBar>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late bool _showBar;
@@ -61,17 +61,17 @@ class _AnimatedReminderBarState extends State<AnimatedReminderBar>
               LinearProgressIndicator(
                 value: _controller.value,
                 backgroundColor: grey.withOpacity(0.1),
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
+                valueColor: const AlwaysStoppedAnimation<Color>(Colors.red),
               ),
               const SizedBox(height: 4),
               Row(
                 children: [
                   const SizedBox(width: 8),
-                  const Icon(Icons.check_box, color: Colors.green),
+                  const Icon(Icons.check_box, color: Colors.red),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      "Reminder has been saved and scheduled.",
+                      "Reminder has been deleted successfully.",
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
@@ -81,7 +81,7 @@ class _AnimatedReminderBarState extends State<AnimatedReminderBar>
                   ),
                   const Text(
                     "DONE",
-                    style: TextStyle(color: Color(0xff00CA5B)),
+                    style: TextStyle(color: Colors.redAccent),
                   ),
                   const SizedBox(width: 8),
                 ],

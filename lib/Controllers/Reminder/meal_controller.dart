@@ -6,6 +6,7 @@ import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Controllers/Reminder/water_controller.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
+import 'package:snevva/services/reminder/reminder_notification_profile.dart';
 
 import '../../common/custom_snackbar.dart';
 import '../../common/global_variables.dart';
@@ -53,15 +54,14 @@ class MealController extends GetxController {
       ),
     );
     print("Meal Data: $mealData");
-    final alarmSettings = AlarmSettings(
+    final alarmSettings = buildCriticalReminderAlarmSettings(
       id: alarmId,
       dateTime: scheduledTime,
       assetAudioPath: alarmSound,
       loopAudio: true,
-      androidFullScreenIntent: true,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
-        fadeDuration: Duration(seconds: 5),
+        fadeDuration: const Duration(seconds: 5),
         volumeEnforced: true,
       ),
       payload: jsonEncode({
@@ -69,16 +69,12 @@ class MealController extends GetxController {
         "category": "meal",
         "type": "times",
       }),
-      notificationSettings: NotificationSettings(
-        title:
-            title.isNotEmpty
-                ? reminderController.titleController.text
-                : 'MEAL REMINDER',
-        body: notes,
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      ),
+      notificationTitle:
+          title.isNotEmpty
+              ? reminderController.titleController.text
+              : 'MEAL REMINDER',
+      notificationBody: notes,
+      iconColor: AppColors.primaryColor,
     );
 
     final success = await Alarm.set(alarmSettings: alarmSettings);
@@ -115,30 +111,25 @@ class MealController extends GetxController {
     int alarmId,
   ) async {
     // Use same AlarmSettings logic as _addMealAlarm but with alarmId
-    final alarmSettings = AlarmSettings(
+    final alarmSettings = buildCriticalReminderAlarmSettings(
       id: alarmId,
       dateTime: scheduledTime,
       assetAudioPath: alarmSound,
-      androidFullScreenIntent: true,
       loopAudio: true,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
         fadeDuration: const Duration(seconds: 5),
         volumeEnforced: true,
       ),
-      notificationSettings: NotificationSettings(
-        title:
-            reminderController.titleController.text.isNotEmpty
-                ? reminderController.titleController.text
-                : 'MEAL REMINDER',
-        body:
-            reminderController.notesController.text.isNotEmpty
-                ? reminderController.notesController.text
-                : '',
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      ),
+      notificationTitle:
+          reminderController.titleController.text.isNotEmpty
+              ? reminderController.titleController.text
+              : 'MEAL REMINDER',
+      notificationBody:
+          reminderController.notesController.text.isNotEmpty
+              ? reminderController.notesController.text
+              : '',
+      iconColor: AppColors.primaryColor,
     );
 
     await Alarm.set(alarmSettings: alarmSettings);

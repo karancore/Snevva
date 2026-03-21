@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:alarm/alarm.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:share_plus/share_plus.dart';
@@ -23,6 +22,7 @@ import 'package:snevva/services/api_service.dart';
 import 'package:snevva/services/background_pedometer_service.dart';
 import 'package:snevva/services/decisiontree_service.dart';
 import 'package:snevva/services/app_initializer.dart';
+import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/common/agent_debug_logger.dart';
 import 'package:snevva/services/hive_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
@@ -146,12 +146,6 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
       debugPrint('⚠️ DecisionTree cleanup failed: $e');
     }
 
-    try {
-      await Alarm.stopAll();
-    } catch (e) {
-      debugPrint('⚠️ Alarm stopAll failed: $e');
-    }
-
     debugPrint('🗑️ Deleting GetX controllers...');
     _deleteControllerIfRegistered<DietPlanController>(force: true);
     _deleteControllerIfRegistered<HealthTipsController>(force: true);
@@ -181,15 +175,15 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
 
       await _clearAuthPrefs();
       _resetLocalStorageManager();
+      await AuthService.clearReminderSessionState();
 
       if (apiSuccess) {
+        await stopAndHiveFuture;
         debugPrint('➡️ Navigating to SignInScreen');
         Get.offAll(() => SignInScreen());
 
         // Finish the heavy cleanup in background after navigation.
-        unawaited(
-          Future.wait([stopAndHiveFuture, _runPostNavigationCleanup()]),
-        );
+        unawaited(_runPostNavigationCleanup());
       } else {
         await stopAndHiveFuture;
         debugPrint('⚠️ Skipping navigation due to logout API failure');
@@ -249,23 +243,21 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                       height: 120,
                       fit: BoxFit.cover,
                       placeholder:
-                          (_, __) =>
-                              CircleAvatar(
-                                radius: 60,
-                                backgroundColor: Colors.grey,
-                                child:  SizedBox(),
-                              ),
+                          (_, __) => CircleAvatar(
+                            radius: 60,
+                            backgroundColor: Colors.grey,
+                            child: SizedBox(),
+                          ),
                       errorWidget:
-                          (_, __, ___) =>
-                              CircleAvatar(
-                                radius: 60,
-                                backgroundColor: Colors.grey,
-                                child:  Icon(
-                                  Icons.person,
-                                  size: 200 * 0.75,
-                                  color: Colors.white,
-                                ),
-                              )
+                          (_, __, ___) => CircleAvatar(
+                            radius: 60,
+                            backgroundColor: Colors.grey,
+                            child: Icon(
+                              Icons.person,
+                              size: 200 * 0.75,
+                              color: Colors.white,
+                            ),
+                          ),
                     );
                   }
                   // 3️⃣ Default asset

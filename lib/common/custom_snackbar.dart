@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:snevva/common/delete_reminder_bar.dart';
 import 'package:snevva/env/env.dart';
 
 import '../consts/colors.dart';
@@ -34,6 +35,35 @@ class CustomSnackbar {
       overlay?.remove();
     });
   }
+
+  void showDeleteBar(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    final double topPadding =
+        MediaQuery.of(context).padding.top + 10; // 👈 safe area + 10
+
+    overlay = OverlayEntry(
+      builder: (context) {
+        return Positioned(
+          top: topPadding,
+          left: 0,
+          right: 0,
+          child: Material(
+            color: isDarkMode ? white : black,
+            child: DeleteReminderBar(show: true),
+          ),
+        );
+      },
+    );
+
+    Overlay.of(context).insert(overlay!);
+
+    // Remove after 3 seconds + animation
+    Future.delayed(const Duration(seconds: 4), () {
+      overlay?.remove();
+    });
+  }
+
 
   static void showError({
     required BuildContext context,

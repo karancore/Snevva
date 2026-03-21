@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
 import 'package:alarm/model/alarm_settings.dart';
-import 'package:alarm/model/notification_settings.dart';
 import 'package:alarm/model/volume_settings.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +11,7 @@ import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
+import 'package:snevva/services/reminder/reminder_notification_profile.dart';
 import 'package:snevva/services/hive_service.dart';
 
 import '../../common/custom_snackbar.dart';
@@ -102,30 +102,25 @@ class WaterController extends GetxController {
 
     debugPrint("🔔 Next water alarm at $nextTime");
 
-    final alarm = AlarmSettings(
+    final alarm = buildCriticalReminderAlarmSettings(
       id: alarmsId(),
       dateTime: nextTime,
       assetAudioPath: alarmSound,
       loopAudio: false,
-      androidFullScreenIntent: true,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
         fadeDuration: const Duration(seconds: 5),
         volumeEnforced: true,
       ),
-      notificationSettings: NotificationSettings(
-        title:
-            reminderController.titleController.text.isNotEmpty
-                ? reminderController.titleController.text
-                : 'WATER REMINDER',
-        body:
-            reminderController.notesController.text.isNotEmpty
-                ? reminderController.notesController.text
-                : 'Time to drink water!',
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      ),
+      notificationTitle:
+          reminderController.titleController.text.isNotEmpty
+              ? reminderController.titleController.text
+              : 'WATER REMINDER',
+      notificationBody:
+          reminderController.notesController.text.isNotEmpty
+              ? reminderController.notesController.text
+              : 'Time to drink water!',
+      iconColor: AppColors.primaryColor,
     );
 
     await Alarm.set(alarmSettings: alarm);
@@ -196,12 +191,18 @@ class WaterController extends GetxController {
 
     if (waterReminderOption.value == Option.interval) {
       final intervalHours = int.tryParse(everyHourController.text) ?? 0;
+      final normalizedStartDate =
+          reminderController.startDateString.value == 'Start Date'
+              ? ''
+              : reminderController.startDateString.value;
+      final baseDate = resolveReminderBaseDate(startDate: normalizedStartDate);
       debugPrint("⏱ Interval mode → every $intervalHours hours");
 
       final reminders = generateEveryXHours(
         start: stringToTimeOfDay(startWaterTimeController.text),
         end: stringToTimeOfDay(endWaterTimeController.text),
         intervalHours: intervalHours,
+        baseDate: baseDate,
       );
 
       debugPrint("⏰ Generated ${reminders.length} interval alarms");
@@ -256,10 +257,21 @@ class WaterController extends GetxController {
       return;
     }
 
+    final normalizedStartDate =
+        reminderController.startDateString.value == 'Start Date'
+            ? ''
+            : reminderController.startDateString.value;
+    final normalizedEndDate =
+        reminderController.endDateString.value == 'End Date'
+            ? ''
+            : reminderController.endDateString.value;
+    final baseDate = resolveReminderBaseDate(startDate: normalizedStartDate);
+
     final alarmTimes = generateTimesBetween(
       startTime: startWaterTimeController.text,
       endTime: endWaterTimeController.text,
       times: times,
+      baseDate: baseDate,
     );
 
     final reminderGroupId = alarmsId();
@@ -267,23 +279,32 @@ class WaterController extends GetxController {
 
     for (var i = 0; i < alarmTimes.length; i++) {
       final time = alarmTimes[i];
-      final scheduledTime =
+      var scheduledTime =
           time.isBefore(DateTime.now()) ? time.add(Duration(days: 1)) : time;
+      final normalized = normalizeReminderScheduleDate(
+        scheduledTime,
+        startDate: normalizedStartDate,
+        endDate: normalizedEndDate,
+      );
+      if (normalized == null) {
+        debugPrint("⛔ Skipping water reminder outside date range");
+        continue;
+      }
+      scheduledTime = normalized;
 
       final alarmId = buildAlarmId(
         groupId: reminderGroupId,
         time: scheduledTime,
         salt: 'water-times',
       );
-      final alarmSettings = AlarmSettings(
+      final alarmSettings = buildCriticalReminderAlarmSettings(
         id: alarmId,
         dateTime: scheduledTime,
         assetAudioPath: audioPath,
         loopAudio: false,
-        androidFullScreenIntent: true,
         volumeSettings: VolumeSettings.fade(
           volume: 0.8,
-          fadeDuration: Duration(seconds: 5),
+          fadeDuration: const Duration(seconds: 5),
           volumeEnforced: true,
         ),
         payload: jsonEncode({
@@ -291,23 +312,29 @@ class WaterController extends GetxController {
           "type": "times",
           "category": ReminderCategory.water.name,
         }),
-        notificationSettings: NotificationSettings(
-          title:
-              reminderController.titleController.text.isNotEmpty
-                  ? reminderController.titleController.text
-                  : 'WATER REMINDER',
-          body:
-              reminderController.notesController.text.isNotEmpty
-                  ? reminderController.notesController.text
-                  : 'Time to drink water!',
-          stopButton: 'Stop',
-          icon: 'alarm',
-          iconColor: AppColors.primaryColor,
-        ),
+        notificationTitle:
+            reminderController.titleController.text.isNotEmpty
+                ? reminderController.titleController.text
+                : 'WATER REMINDER',
+        notificationBody:
+            reminderController.notesController.text.isNotEmpty
+                ? reminderController.notesController.text
+                : 'Time to drink water!',
+        iconColor: AppColors.primaryColor,
       );
 
       await Alarm.set(alarmSettings: alarmSettings);
       createdAlarms.add(alarmSettings);
+    }
+
+    if (createdAlarms.isEmpty) {
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message:
+            'No water alarms fall within the selected start/end date range',
+      );
+      return;
     }
 
     final model = WaterReminderModel(
@@ -348,6 +375,8 @@ class WaterController extends GetxController {
         type: Option.times,
         timesPerDay: TimesPerDay(count: times.toString(), list: list),
       ),
+      startDate: normalizedStartDate,
+      endDate: normalizedEndDate,
       startWaterTime: startWaterTimeController.text.trim(),
       endWaterTime: endWaterTimeController.text.trim(),
     );
@@ -364,6 +393,7 @@ class WaterController extends GetxController {
     required String startTime,
     required String endTime,
     required int times,
+    DateTime? baseDate,
   }) {
     debugPrint(
       "🧮 generateTimesBetween → start=$startTime end=$endTime times=$times",
@@ -374,17 +404,19 @@ class WaterController extends GetxController {
     final start = DateFormat('hh:mm a').parse(startTime);
     final end = DateFormat('hh:mm a').parse(endTime);
 
+    final anchorDate = dateOnlyLocal(baseDate ?? now);
+
     DateTime startDT = DateTime(
-      now.year,
-      now.month,
-      now.day,
+      anchorDate.year,
+      anchorDate.month,
+      anchorDate.day,
       start.hour,
       start.minute,
     );
     DateTime endDT = DateTime(
-      now.year,
-      now.month,
-      now.day,
+      anchorDate.year,
+      anchorDate.month,
+      anchorDate.day,
       end.hour,
       end.minute,
     );
@@ -410,12 +442,43 @@ class WaterController extends GetxController {
     required TimeOfDay start,
     required TimeOfDay end,
     required int intervalHours,
+    DateTime? baseDate,
   }) {
     debugPrint("⏱ generateEveryXHours → every $intervalHours hours");
 
     if (intervalHours <= 0) return [];
 
-    final window = buildTimeWindow(start, end);
+    final anchorDate = dateOnlyLocal(baseDate ?? now);
+    final window = DateTimeRange(
+      start: DateTime(
+        anchorDate.year,
+        anchorDate.month,
+        anchorDate.day,
+        start.hour,
+        start.minute,
+      ),
+      end:
+          (() {
+            var endDateTime = DateTime(
+              anchorDate.year,
+              anchorDate.month,
+              anchorDate.day,
+              end.hour,
+              end.minute,
+            );
+            final startDateTime = DateTime(
+              anchorDate.year,
+              anchorDate.month,
+              anchorDate.day,
+              start.hour,
+              start.minute,
+            );
+            if (endDateTime.isBefore(startDateTime)) {
+              endDateTime = endDateTime.add(const Duration(days: 1));
+            }
+            return endDateTime;
+          })(),
+    );
     final reminders = <DateTime>[];
 
     DateTime current = window.start.add(Duration(hours: intervalHours));
@@ -485,15 +548,19 @@ class WaterController extends GetxController {
           }
 
           /// Create new alarm
-          final newAlarm = AlarmSettings(
+          final newAlarm = buildCriticalReminderAlarmSettings(
             id: rangAlarmId,
-            // reuse SAME id
             dateTime: nextTime,
             assetAudioPath: alarm.assetAudioPath,
             loopAudio: true,
             vibrate: true,
             volumeSettings: alarm.volumeSettings,
-            notificationSettings: alarm.notificationSettings,
+            payload: alarm.payload,
+            notificationTitle: alarm.notificationSettings.title,
+            notificationBody: alarm.notificationSettings.body,
+            stopButton: alarm.notificationSettings.stopButton ?? 'Stop',
+            icon: alarm.notificationSettings.icon,
+            iconColor: alarm.notificationSettings.iconColor,
           );
 
           /// Schedule again
@@ -535,43 +602,73 @@ class WaterController extends GetxController {
     String audioPath = alarmSound,
   }) async {
     final reminderGroupId = alarmsId();
+    final normalizedStartDate =
+        reminderController.startDateString.value == 'Start Date'
+            ? ''
+            : reminderController.startDateString.value;
+    final normalizedEndDate =
+        reminderController.endDateString.value == 'End Date'
+            ? ''
+            : reminderController.endDateString.value;
     final List<AlarmSettings> createdAlarms = [];
     for (var reminderTime in intervalReminders) {
+      var scheduledTime =
+          reminderTime.isBefore(DateTime.now())
+              ? reminderTime.add(const Duration(days: 1))
+              : reminderTime;
+      final normalized = normalizeReminderScheduleDate(
+        scheduledTime,
+        startDate: normalizedStartDate,
+        endDate: normalizedEndDate,
+      );
+      if (normalized == null) {
+        debugPrint("⛔ Skipping water interval reminder outside date range");
+        continue;
+      }
+      scheduledTime = normalized;
+
       final alarmId = buildAlarmId(
         groupId: reminderGroupId,
-        time: reminderTime,
+        time: scheduledTime,
         salt: 'water-interval',
       );
-      final alarmSettings = AlarmSettings(
+      final alarmSettings = buildCriticalReminderAlarmSettings(
         id: alarmId,
-        dateTime: reminderTime,
-        notificationSettings: NotificationSettings(
-          title:
-              reminderController.titleController.text.isNotEmpty
-                  ? reminderController.titleController.text
-                  : '$title reminder',
-          body: body,
-          stopButton: 'Stop',
-          icon: 'alarm',
-          iconColor: AppColors.primaryColor,
+        dateTime: scheduledTime,
+        assetAudioPath: audioPath,
+        loopAudio: false,
+        volumeSettings: VolumeSettings.fade(
+          volume: 0.8,
+          fadeDuration: const Duration(seconds: 5),
+          volumeEnforced: true,
         ),
-        androidFullScreenIntent: true,
         payload: jsonEncode({
           "groupId": reminderGroupId.toString(),
           "type": "interval",
           "category": ReminderCategory.water.name,
         }),
-
-        assetAudioPath: audioPath,
-        volumeSettings: VolumeSettings.fade(
-          volume: 0.8,
-          fadeDuration: Duration(seconds: 5),
-          volumeEnforced: true,
-        ),
+        notificationTitle:
+            reminderController.titleController.text.isNotEmpty
+                ? reminderController.titleController.text
+                : '$title reminder',
+        notificationBody: body,
+        iconColor: AppColors.primaryColor,
       );
 
       await Alarm.set(alarmSettings: alarmSettings);
       createdAlarms.add(alarmSettings);
+    }
+
+    if (createdAlarms.isEmpty) {
+      if (context != null) {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Error',
+          message:
+              'No water interval alarms fall within the selected start/end date range',
+        );
+      }
+      return;
     }
 
     final model = WaterReminderModel(
@@ -612,6 +709,8 @@ class WaterController extends GetxController {
           endTime: endWaterTimeController.text,
         ),
       ),
+      startDate: normalizedStartDate,
+      endDate: normalizedEndDate,
       startWaterTime: startWaterTimeController.text.trim(),
       endWaterTime: endWaterTimeController.text.trim(),
     );

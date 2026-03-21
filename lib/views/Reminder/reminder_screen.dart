@@ -73,8 +73,7 @@ class _ReminderScreenState extends State<ReminderScreen>
 
   Future<void> _loadData() async {
     await controller.loadAllReminderLists();
-    final remindersApi = await controller.getReminderFromAPI(context);
-    controller.reminders.assignAll(remindersApi);
+    await controller.getReminderFromAPI(context);
   }
 
   @override
@@ -104,9 +103,7 @@ class _ReminderScreenState extends State<ReminderScreen>
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(noReminders, scale: 2),
-              ],
+              children: [Image.asset(noReminders, scale: 2)],
             ),
           );
         }
@@ -117,129 +114,117 @@ class _ReminderScreenState extends State<ReminderScreen>
         return Column(
           children: [
             Expanded(
-              child: RefreshIndicator(
-                onRefresh: _loadData,
-                color: AppColors.primaryColor,
-                child: ListView(
-                  padding: EdgeInsets.only(left: 16, right: 16, bottom: 16),
-                  children: [
-                    ...controller.reminders.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final reminder = entry.value;
+              child: ListView(
+                padding: EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                children: [
+                  ...controller.reminders.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final reminder = entry.value;
 
-                      final category = reminder.category;
-                      return SlideTransition(
-                        position: _slideForIndex(index),
-                        child: Container(
-                          margin: EdgeInsets.all(10.0),
-                          decoration: BoxDecoration(
-                            color: isDarkMode ? darkGray : white,
-                            borderRadius: BorderRadius.circular(8.0),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.4),
-                                spreadRadius: 2,
-                                blurRadius: 6,
-                                offset: Offset(0, 0),
-                              ),
-                            ],
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.only(
-                              left: 12,
-                              top: 8,
-                              right: 8,
-                              bottom: 8,
+                    final category = reminder.category;
+                    return SlideTransition(
+                      position: _slideForIndex(index),
+                      child: Container(
+                        margin: EdgeInsets.all(10.0),
+                        decoration: BoxDecoration(
+                          color: isDarkMode ? darkGray : white,
+                          borderRadius: BorderRadius.circular(8.0),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.4),
+                              spreadRadius: 2,
+                              blurRadius: 6,
+                              offset: Offset(0, 0),
                             ),
-                            child: AnimatedCrossFade(
-                              duration: const Duration(milliseconds: 250),
-                              firstCurve: Curves.easeIn,
-                              secondCurve: Curves.easeOut,
-                              crossFadeState:
-                                  expandedIndex == index
-                                      ? CrossFadeState.showSecond
-                                      : CrossFadeState.showFirst,
+                          ],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            left: 12,
+                            top: 8,
+                            right: 8,
+                            bottom: 8,
+                          ),
+                          child: AnimatedCrossFade(
+                            duration: const Duration(milliseconds: 250),
+                            firstCurve: Curves.easeIn,
+                            secondCurve: Curves.easeOut,
+                            crossFadeState:
+                                expandedIndex == index
+                                    ? CrossFadeState.showSecond
+                                    : CrossFadeState.showFirst,
 
-                              firstChild: Column(
-                                children: [
-                                  CollapsedHeader(
-                                    reminder: reminder,
-                                    category: category,
-                                    isDarkMode: isDarkMode,
-                                    onToggle: () {
-                                      setState(() {
-                                        expandedIndex =
-                                            expandedIndex == index
-                                                ? null
-                                                : index;
-                                      });
-                                    },
-                                    onEdit:
-                                        () => Get.to(
-                                          AddReminderScreen(reminder: reminder),
-                                        ),
-                                    onDelete:
-                                        () => _showDeleteConfirmation(reminder),
+                            firstChild: Column(
+                              children: [
+                                CollapsedHeader(
+                                  reminder: reminder,
+                                  category: category,
+                                  isDarkMode: isDarkMode,
+                                  onToggle: () {
+                                    setState(() {
+                                      expandedIndex =
+                                          expandedIndex == index ? null : index;
+                                    });
+                                  },
+                                  onEdit:
+                                      () => Get.to(
+                                        AddReminderScreen(reminder: reminder),
+                                      ),
+                                  onDelete:
+                                      () => _showDeleteConfirmation(reminder),
+                                ),
+                                const SizedBox(height: 6),
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 12.0),
+                                  child: _buildCategoryContent(
+                                    reminder,
+                                    category,
                                   ),
-                                  const SizedBox(height: 6),
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      bottom: 12.0,
-                                    ),
-                                    child: _buildCategoryContent(
-                                      reminder,
-                                      category,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
+                            ),
 
-                              secondChild: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  CollapsedHeader(
-                                    reminder: reminder,
-                                    category: category,
-                                    isDarkMode: isDarkMode,
-                                    isExpanded: true,
-                                    onToggle: () {
-                                      setState(() {
-                                        expandedIndex =
-                                            expandedIndex == index
-                                                ? null
-                                                : index;
-                                      });
-                                    },
-                                    onEdit:
-                                        () => Get.to(
-                                          AddReminderScreen(reminder: reminder),
-                                        ),
-                                    onDelete:
-                                        () => _showDeleteConfirmation(reminder),
+                            secondChild: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                CollapsedHeader(
+                                  reminder: reminder,
+                                  category: category,
+                                  isDarkMode: isDarkMode,
+                                  isExpanded: true,
+                                  onToggle: () {
+                                    setState(() {
+                                      expandedIndex =
+                                          expandedIndex == index ? null : index;
+                                    });
+                                  },
+                                  onEdit:
+                                      () => Get.to(
+                                        AddReminderScreen(reminder: reminder),
+                                      ),
+                                  onDelete:
+                                      () => _showDeleteConfirmation(reminder),
+                                ),
+                                const SizedBox(height: 6),
+                                ReminderDetailsCard(
+                                  reminder: reminder,
+                                  index: index,
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 12.0),
+                                  child: _buildCategoryContent(
+                                    reminder,
+                                    category,
                                   ),
-                                  const SizedBox(height: 6),
-                                  ReminderDetailsCard(
-                                    reminder: reminder,
-                                    index: index,
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      bottom: 12.0,
-                                    ),
-                                    child: _buildCategoryContent(
-                                      reminder,
-                                      category,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      );
-                    }),
-                  ],
-                ),
+                      ),
+                    );
+                  }),
+                ],
               ),
             ),
           ],
@@ -307,9 +292,9 @@ class _ReminderScreenState extends State<ReminderScreen>
               Text(
                 "Delete Reminder",
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
               Text(
@@ -340,8 +325,16 @@ class _ReminderScreenState extends State<ReminderScreen>
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () async {
-                    await controller.deleteReminder(reminder);
                     Get.back();
+                    await Future.wait([
+                      controller.deleteReminder(reminder),
+                      controller.deleteReminderFromAPI(
+                        reminder.id.toString(),
+                        context,
+                      ),
+                    ]);
+                    if (!mounted) return;
+                    CustomSnackbar().showDeleteBar(context);
                   },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -361,35 +354,38 @@ class _ReminderScreenState extends State<ReminderScreen>
       ),
       barrierDismissible: false,
     );
+  }
 
+  String _formattedReminderTimes(ReminderPayloadModel reminder) {
+    final times = reminder.customReminder.timesPerDay?.list ?? const <String>[];
+    return formatReminderTime(times);
   }
 
   Widget _buildCategoryContent(ReminderPayloadModel reminder, String category) {
     final int frequencyHour =
         int.tryParse(
-          reminder.customReminder?.everyXHours?.hours.toString() ?? '0',
+          reminder.customReminder.everyXHours?.hours.toString() ?? '0',
         ) ??
         0;
     final int timesPerDay =
         int.tryParse(
-          reminder.customReminder?.timesPerDay?.count?.toString() ?? '1',
+          reminder.customReminder.timesPerDay?.count.toString() ?? '1',
         ) ??
         1;
 
     switch (category) {
       case 'medicine':
+        final String whenToTake = (reminder.whenToTake ?? '').trim();
+        final String notes = (reminder.notes ?? '').trim();
+        final String formattedTime = _formattedReminderTimes(reminder);
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (reminder.medicineName != null)
-              // Text(
-              //   'Medicine : {buildMedicineText(reminder['MedicineName'])}',
-              //   style: TextStyle(fontSize: 12, color: Color(0xff878787)),
-              // ),
-              if (reminder.notes != null &&
-                  reminder.notes.toString().isNotEmpty)
+              if (whenToTake.isNotEmpty)
                 Text(
-                  "Note : ${reminder.notes}",
+                  "When to take : $whenToTake",
                   style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xff878787),
@@ -397,22 +393,34 @@ class _ReminderScreenState extends State<ReminderScreen>
                 )
               else
                 const SizedBox.shrink(),
+            if (notes.isNotEmpty)
+              Text(
+                "Note : $notes",
+                style: const TextStyle(fontSize: 12, color: Color(0xff878787)),
+              )
+            else
+              const SizedBox.shrink(),
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                SvgPicture.asset(
-                  clockRemIcon,
-                  color: const Color(0xff878787),
-                  width: 12,
-                  height: 12,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  formatReminderTime(reminder.customReminder.timesPerDay!.list),
-                  style: TextStyle(fontSize: 12, color: Color(0xff878787)),
-                ),
-                Spacer(),
+                if (formattedTime.isNotEmpty) ...[
+                  SvgPicture.asset(
+                    clockRemIcon,
+                    color: const Color(0xff878787),
+                    width: 12,
+                    height: 12,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    formattedTime,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xff878787),
+                    ),
+                  ),
+                ],
+                const Spacer(),
                 InkWell(
                   onTap: () {
                     // Get.snackbar(
@@ -518,25 +526,29 @@ class _ReminderScreenState extends State<ReminderScreen>
         );
 
       case 'meal':
+        final String formattedTime = _formattedReminderTimes(reminder);
+
         return Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            SvgPicture.asset(
-              clockRemIcon,
-              color: Color(0xff878787),
-              width: 12,
-              height: 12,
-            ),
-            const SizedBox(width: 4),
-
-            Text(
-              formatReminderTime(
-                reminder.customReminder?.timesPerDay?.list ?? [],
+            if (formattedTime.isNotEmpty) ...[
+              SvgPicture.asset(
+                clockRemIcon,
+                color: const Color(0xff878787),
+                width: 12,
+                height: 12,
               ),
-              style: TextStyle(fontSize: 12, color: Color(0xff878787)),
-            ),
-            Spacer(),
+              const SizedBox(width: 4),
+              Text(
+                formattedTime,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xff878787),
+                ),
+              ),
+            ],
+            const Spacer(),
             InkWell(
               onTap: () {
                 // Get.snackbar(
@@ -575,6 +587,8 @@ class _ReminderScreenState extends State<ReminderScreen>
         );
 
       case 'event':
+        final String formattedTime = _formattedReminderTimes(reminder);
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -582,23 +596,23 @@ class _ReminderScreenState extends State<ReminderScreen>
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                SvgPicture.asset(
-                  clockRemIcon,
-                  color: Color(0xff878787),
-                  width: 12,
-                  height: 12,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  formatReminderTime(
-                    reminder.customReminder!.timesPerDay!.list ?? [],
+                if (formattedTime.isNotEmpty) ...[
+                  SvgPicture.asset(
+                    clockRemIcon,
+                    color: const Color(0xff878787),
+                    width: 12,
+                    height: 12,
                   ),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xff878787),
+                  const SizedBox(width: 4),
+                  Text(
+                    formattedTime,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xff878787),
+                    ),
                   ),
-                ),
-                Spacer(),
+                ],
+                const Spacer(),
                 InkWell(
                   onTap: () {
                     // Get.snackbar(
@@ -633,17 +647,6 @@ class _ReminderScreenState extends State<ReminderScreen>
                 ),
               ],
             ),
-            // Text(
-            //   "Title: ${reminder['Title'] ?? 'N/A'}",
-            //   style: TextStyle(fontSize: 12, color: Color(0xff878787)),
-            // ),
-            // if (controller.notesController.text.isEmpty)
-            //   SizedBox.shrink()
-            // else
-            //   Text(
-            //     "Notes: ${reminder['Description'] ?? 'N/A'}",
-            //     style: TextStyle(fontSize: 12, color: Color(0xff878787)),
-            //   ),
           ],
         );
 

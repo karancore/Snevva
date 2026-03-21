@@ -8,6 +8,7 @@ import 'package:hive/hive.dart';
 import 'package:pinput/pinput.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/models/mappers/medicine_to_reminder_mapper.dart';
+import 'package:snevva/services/reminder/reminder_notification_profile.dart';
 import 'package:snevva/services/hive_service.dart';
 
 import '../../common/custom_snackbar.dart';
@@ -100,7 +101,7 @@ class MedicineController extends GetxController {
 
       if (savedTimes.value != value) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          savedTimes.value = value; 
+          savedTimes.value = value;
         });
       }
     });
@@ -160,21 +161,24 @@ class MedicineController extends GetxController {
     final type = selectedType.value;
     final unit = typeToDosage[type] ?? '';
     final plural = dosage > 1 ? 's' : '';
+    final whenToTake = selectedWhenToTake.value.trim();
+    final whenToTakeText =
+        whenToTake.isEmpty ? '' : '${whenToTake.toLowerCase()}.';
 
     switch (type) {
       case 'Tablet':
-        return 'Take $dosage $medicineName tablet$plural.';
+        return 'Take $dosage $medicineName tablet$plural $whenToTakeText';
       case 'Syrup':
-        return 'Take $dosage $unit of $medicineName.';
+        return 'Take $dosage $unit of $medicineName $whenToTakeText';
 
       case 'Injection':
-        return 'Take $dosage $unit of $medicineName.';
+        return 'Take $dosage $unit of $medicineName $whenToTakeText';
 
       case 'Drops':
-        return 'Take $dosage $unit of $medicineName.';
+        return 'Take $dosage $unit of $medicineName $whenToTakeText';
 
       default:
-        return 'Take $medicineName.';
+        return 'Take $medicineName.$whenToTakeText';
     }
   }
 
@@ -218,6 +222,10 @@ class MedicineController extends GetxController {
       start: start,
       end: end,
       intervalHours: parsedIntervalHours,
+      baseDate: resolveReminderBaseDate(
+        startDate:
+            startDateString.value == 'Start Date' ? '' : startDateString.value,
+      ),
     );
 
     if (reminders.isEmpty) {
@@ -236,14 +244,32 @@ class MedicineController extends GetxController {
         endDateString.value == 'End Date' ? '' : endDateString.value;
 
     for (final reminderTime in reminders) {
-      final alarmId = alarmsId();
-      final alarmSettings = AlarmSettings(
+      var scheduledTime =
+          reminderTime.isBefore(DateTime.now())
+              ? reminderTime.add(const Duration(days: 1))
+              : reminderTime;
+      final normalized = normalizeReminderScheduleDate(
+        scheduledTime,
+        startDate: normalizedStartDate,
+        endDate: normalizedEndDate,
+      );
+      if (normalized == null) {
+        debugPrint("⛔ Skipping medicine interval outside date range");
+        continue;
+      }
+      scheduledTime = normalized;
+
+      final alarmId = buildAlarmId(
+        groupId: reminderGroupId,
+        time: scheduledTime,
+        salt: 'medicine',
+      );
+      final alarmSettings = buildCriticalReminderAlarmSettings(
         id: alarmId,
-        dateTime: reminderTime,
+        dateTime: scheduledTime,
         assetAudioPath: alarmSound,
         loopAudio: true,
         vibrate: true,
-        androidFullScreenIntent: true,
         volumeSettings: VolumeSettings.fade(
           volume: 0.8,
           fadeDuration: const Duration(seconds: 5),
@@ -254,16 +280,12 @@ class MedicineController extends GetxController {
           "category": ReminderCategory.medicine.toString(),
           "type": "interval",
         }),
-        notificationSettings: NotificationSettings(
-          title: title.isNotEmpty ? title : 'MEDICINE REMINDER',
-          body: buildMedicineNotificationText(
-            medicineName: medicineName,
-            dosage: dosage ?? 0,
-          ),
-          stopButton: 'Stop',
-          icon: 'alarm',
-          iconColor: AppColors.primaryColor,
+        notificationTitle: title.isNotEmpty ? title : 'MEDICINE REMINDER',
+        notificationBody: buildMedicineNotificationText(
+          medicineName: medicineName,
+          dosage: dosage ?? 0,
         ),
+        iconColor: AppColors.primaryColor,
       );
       final success = await Alarm.set(alarmSettings: alarmSettings);
       if (success) {
@@ -336,17 +358,39 @@ class MedicineController extends GetxController {
 
     final reminderGroupId = alarmsId();
     final List<AlarmSettings> alarms = [];
+    final normalizedStartDate =
+        startDateString.value == 'Start Date' ? '' : startDateString.value;
+    final normalizedEndDate =
+        endDateString.value == 'End Date' ? '' : endDateString.value;
 
-    for (final scheduledTime in scheduledTimes) {
-      final alarmId = alarmsId();
+    for (final rawScheduledTime in scheduledTimes) {
+      var scheduledTime =
+          rawScheduledTime.isBefore(DateTime.now())
+              ? rawScheduledTime.add(const Duration(days: 1))
+              : rawScheduledTime;
+      final normalized = normalizeReminderScheduleDate(
+        scheduledTime,
+        startDate: normalizedStartDate,
+        endDate: normalizedEndDate,
+      );
+      if (normalized == null) {
+        debugPrint("⛔ Skipping medicine reminder outside date range");
+        continue;
+      }
+      scheduledTime = normalized;
 
-      final alarmSettings = AlarmSettings(
+      final alarmId = buildAlarmId(
+        groupId: reminderGroupId,
+        time: scheduledTime,
+        salt: 'medicine',
+      );
+
+      final alarmSettings = buildCriticalReminderAlarmSettings(
         id: alarmId,
         dateTime: scheduledTime,
         assetAudioPath: alarmSound,
         loopAudio: true,
         vibrate: true,
-        androidFullScreenIntent: true,
         volumeSettings: VolumeSettings.fade(
           volume: 0.8,
           fadeDuration: const Duration(seconds: 5),
@@ -357,19 +401,15 @@ class MedicineController extends GetxController {
           "category": ReminderCategory.medicine.toString(),
           "type": "times",
         }),
-        notificationSettings: NotificationSettings(
-          title:
-              reminderController.titleController.text.isNotEmpty
-                  ? reminderController.titleController.text
-                  : 'MEDICINE REMINDER',
-          body: buildMedicineNotificationText(
-            medicineName: medicineName,
-            dosage: dosage ?? 0,
-          ),
-          stopButton: 'Stop',
-          icon: 'alarm',
-          iconColor: AppColors.primaryColor,
+        notificationTitle:
+            reminderController.titleController.text.isNotEmpty
+                ? reminderController.titleController.text
+                : 'MEDICINE REMINDER',
+        notificationBody: buildMedicineNotificationText(
+          medicineName: medicineName,
+          dosage: dosage ?? 0,
         ),
+        iconColor: AppColors.primaryColor,
       );
 
       final success = await Alarm.set(alarmSettings: alarmSettings);
@@ -389,10 +429,6 @@ class MedicineController extends GetxController {
     final notes = reminderController.notesController.text.trim();
     final medicineType = selectedType.value;
     final unit = typeToDosage[medicineType] ?? 'DROP';
-    final normalizedStartDate =
-        startDateString.value == 'Start Date' ? '' : startDateString.value;
-    final normalizedEndDate =
-        endDateString.value == 'End Date' ? '' : endDateString.value;
     final timesPerDay = getEffectiveTimesPerDay();
     final everyXHours = everyHourController.text.trim();
     final reminderFrequencyType = selectedFrequency.value;
@@ -561,9 +597,8 @@ class MedicineController extends GetxController {
     int alarmId,
   ) async {
     // 1. Re-set the alarm with the SAME ID
-    final alarmSettings = AlarmSettings(
+    final alarmSettings = buildCriticalReminderAlarmSettings(
       id: alarmId,
-      androidFullScreenIntent: true,
       dateTime: scheduledTime,
       assetAudioPath: alarmSound,
       loopAudio: true,
@@ -573,17 +608,13 @@ class MedicineController extends GetxController {
         fadeDuration: const Duration(seconds: 5),
         volumeEnforced: true,
       ),
-      notificationSettings: NotificationSettings(
-        title:
-            reminderController.titleController.text.isNotEmpty
-                ? reminderController.titleController.text
-                : 'MEDICINE REMINDER',
-        body:
-            'Take ${medicineController.text.trim()}. ${reminderController.notesController.text}',
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      ),
+      notificationTitle:
+          reminderController.titleController.text.isNotEmpty
+              ? reminderController.titleController.text
+              : 'MEDICINE REMINDER',
+      notificationBody:
+          'Take ${medicineController.text.trim()}. ${reminderController.notesController.text}',
+      iconColor: AppColors.primaryColor,
     );
 
     await Alarm.set(alarmSettings: alarmSettings);
@@ -804,14 +835,32 @@ class MedicineController extends GetxController {
     required TimeOfDay start,
     required TimeOfDay end,
     required int intervalHours,
+    DateTime? baseDate,
   }) {
     if (intervalHours <= 0) return [];
 
-    final window = buildTimeWindow(start, end);
+    final anchorDate = dateOnlyLocal(baseDate ?? now);
+    final startDateTime = DateTime(
+      anchorDate.year,
+      anchorDate.month,
+      anchorDate.day,
+      start.hour,
+      start.minute,
+    );
+    var endDateTime = DateTime(
+      anchorDate.year,
+      anchorDate.month,
+      anchorDate.day,
+      end.hour,
+      end.minute,
+    );
+    if (endDateTime.isBefore(startDateTime)) {
+      endDateTime = endDateTime.add(const Duration(days: 1));
+    }
     final reminders = <DateTime>[];
 
-    DateTime current = window.start.add(Duration(hours: intervalHours));
-    while (!current.isAfter(window.end)) {
+    DateTime current = startDateTime.add(Duration(hours: intervalHours));
+    while (!current.isAfter(endDateTime)) {
       reminders.add(current);
       current = current.add(Duration(hours: intervalHours));
     }
