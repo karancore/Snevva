@@ -1,8 +1,11 @@
 package com.coretegra.snevva
 
 import android.content.Intent
+import android.app.KeyguardManager
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.util.Log
 import android.view.Display
 import io.flutter.embedding.android.FlutterActivity
@@ -47,6 +50,10 @@ class MainActivity : FlutterActivity() {
                         AlarmHelper.scheduleSleepAlarms(this@MainActivity)
                         Log.d("MainActivity", "Sleep alarms updated via Flutter")
                         result.success("Sleep alarms scheduled")
+                    }
+
+                    "getCurrentScreenState" -> {
+                        result.success(getCurrentScreenState())
                     }
 
                     else -> {
@@ -137,6 +144,28 @@ class MainActivity : FlutterActivity() {
             display
         } else {
             windowManager.defaultDisplay
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun getCurrentScreenState(): String {
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+
+        val screenOn = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
+            powerManager.isInteractive
+        } else {
+            powerManager.isScreenOn
+        }
+
+        if (!screenOn) {
+            return "screen_off"
+        }
+
+        return if (keyguardManager.isKeyguardLocked) {
+            "screen_on"
+        } else {
+            "screen_unlocked"
         }
     }
 }

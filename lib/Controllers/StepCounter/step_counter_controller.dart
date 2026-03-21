@@ -107,6 +107,8 @@ class StepCounterController extends GetxController {
 
   late SharedPreferences _prefs;
   Timer? _hivePoller;
+  Timer? _midnightResetTimer;
+  Timer? _stepPushTimer;
   StreamSubscription? _stepsUpdatedSubscription;
   bool _isRealtimeTrackingActive = false;
   DateTime _lastServiceEventAt = DateTime.fromMillisecondsSinceEpoch(0);
@@ -134,6 +136,10 @@ class StepCounterController extends GetxController {
   @override
   void onClose() {
     deactivateRealtimeTracking();
+    _midnightResetTimer?.cancel();
+    _midnightResetTimer = null;
+    _stepPushTimer?.cancel();
+    _stepPushTimer = null;
     super.onClose();
   }
 
@@ -186,7 +192,8 @@ class StepCounterController extends GetxController {
   void scheduleMidnightReset() {
     final now = DateTime.now();
     final nextMidnight = DateTime(now.year, now.month, now.day + 1);
-    Timer(nextMidnight.difference(now), () {
+    _midnightResetTimer?.cancel();
+    _midnightResetTimer = Timer(nextMidnight.difference(now), () {
       _checkDayReset();
       scheduleMidnightReset();
     });
@@ -727,7 +734,8 @@ class StepCounterController extends GetxController {
   }
 
   void scheduleStepPush() {
-    Timer.periodic(Duration(hours: 4), (timer) {
+    _stepPushTimer?.cancel();
+    _stepPushTimer = Timer.periodic(const Duration(hours: 4), (timer) {
       saveStepRecordToServer();
     });
   }

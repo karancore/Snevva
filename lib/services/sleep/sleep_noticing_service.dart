@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:screen_state/screen_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,10 +10,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// and aggregates sleep intervals for total sleep time calculation.
 class SleepNoticingService {
   static const Duration minSleepGap = Duration(minutes: 3);
+  static const MethodChannel _platformChannel = MethodChannel(
+    'com.coretegra.snevva/sleep_service',
+  );
 
   // ✅ FIX: Use the same plain keys as SharedPreferences everywhere — no 'flutter.' prefix
   static const String _bedtimeKey = 'user_bedtime_ms';
   static const String _waketimeKey = 'user_waketime_ms';
+  static const String _screenStateKey = 'sleep_screen_state';
 
   StreamSubscription<ScreenStateEvent>? _subscription;
   final Screen _screen = Screen();
@@ -38,7 +43,8 @@ class SleepNoticingService {
 
         if (event == ScreenStateEvent.SCREEN_OFF) {
           _onScreenTurnedOff();
-        } else if (event == ScreenStateEvent.SCREEN_ON) {
+        } else if (event == ScreenStateEvent.SCREEN_ON ||
+            event == ScreenStateEvent.SCREEN_UNLOCKED) {
           _onScreenTurnedOn();
         }
       });
@@ -61,13 +67,20 @@ class SleepNoticingService {
     final window = await _computeActiveSleepWindow(prefs);
     if (window == null) return;
 
+    _screenIsOn = await _fetchCurrentScreenState(prefs: prefs, window: window);
+
     final now = DateTime.now();
     if (_isWithinWindow(now, window.start, window.end) && !_screenIsOn) {
       final lastOffKey = 'last_screen_off_${window.dateKey}';
-      // Initialize open interval from window start
-      await prefs.setString(lastOffKey, window.start.toIso8601String());
+      final existingLastOff = prefs.getString(lastOffKey);
+      if (existingLastOff == null) {
+        // Rebuild an open interval after process/service restarts while the
+        // screen is already off. We do not know the exact off timestamp, so
+        // use the sleep window start as the safest recovery point.
+        await prefs.setString(lastOffKey, window.start.toIso8601String());
+      }
       debugPrint(
-        '🔒 Initialized open interval from window start: ${window.start}',
+        '🔒 Initialized/recovered open interval for off screen: ${window.start}',
       );
     }
   }
@@ -81,6 +94,7 @@ class SleepNoticingService {
     _screenIsOn = false; // Add this: Update state
 
     final prefs = await SharedPreferences.getInstance();
+    await _persistScreenState(prefs, isOn: false);
 
     // Check if sleep tracking is active
     final isSleeping = prefs.getBool("is_sleeping") ?? false;
@@ -120,6 +134,7 @@ class SleepNoticingService {
     _screenIsOn = true; // Add this: Update state
 
     final prefs = await SharedPreferences.getInstance();
+    await _persistScreenState(prefs, isOn: true);
 
     // Check if sleep tracking is active
     final isSleeping = prefs.getBool("is_sleeping") ?? false;
@@ -342,21 +357,6 @@ class SleepNoticingService {
     return DateTime(base.year, base.month, base.day, tod.hour, tod.minute);
   }
 
-  DateTime _resolveSleepStart(DateTime now, TimeOfDay bedtime) {
-    DateTime start = _buildDateTime(now, bedtime);
-
-    debugPrint('🛠️ resolveSleepStart');
-    debugPrint('   now: $now');
-    debugPrint('   raw start: $start');
-
-    if (start.isAfter(now.add(const Duration(minutes: 5)))) {
-      start = start.subtract(const Duration(days: 1));
-      debugPrint('   ⏪ shifted to yesterday: $start');
-    }
-
-    return start;
-  }
-
   DateTime _resolveSleepEnd(DateTime sleepStart, TimeOfDay waketime) {
     DateTime end = DateTime(
       sleepStart.year,
@@ -429,6 +429,57 @@ class SleepNoticingService {
     return intervals
         .map((i) => '${i.start.toIso8601String()}|${i.end.toIso8601String()}')
         .join(',');
+  }
+
+  Future<bool> _fetchCurrentScreenState({
+    required SharedPreferences prefs,
+    required _SleepWindow window,
+  }) async {
+    try {
+      final rawState = await _platformChannel.invokeMethod<String>(
+        'getCurrentScreenState',
+      );
+      final isOn = _isScreenConsideredOn(rawState);
+      await _persistScreenState(prefs, isOn: isOn);
+      debugPrint('📟 Current screen state fetched from platform: $rawState');
+      return isOn;
+    } catch (e) {
+      debugPrint('⚠️ Failed to fetch current screen state from platform: $e');
+    }
+
+    final persistedState = prefs.getString(_screenStateKey);
+    if (persistedState != null) {
+      final isOn = _isScreenConsideredOn(persistedState);
+      debugPrint('📟 Falling back to persisted screen state: $persistedState');
+      return isOn;
+    }
+
+    final lastOffKey = 'last_screen_off_${window.dateKey}';
+    if (prefs.getString(lastOffKey) != null) {
+      debugPrint('📟 Falling back to open sleep interval state: screen off');
+      return false;
+    }
+
+    return true;
+  }
+
+  bool _isScreenConsideredOn(String? rawState) {
+    switch (rawState) {
+      case 'screen_off':
+        return false;
+      case 'screen_on':
+      case 'screen_unlocked':
+        return true;
+      default:
+        return true;
+    }
+  }
+
+  Future<void> _persistScreenState(
+    SharedPreferences prefs, {
+    required bool isOn,
+  }) async {
+    await prefs.setString(_screenStateKey, isOn ? 'screen_on' : 'screen_off');
   }
 }
 
