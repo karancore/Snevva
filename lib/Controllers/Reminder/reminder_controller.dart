@@ -1105,7 +1105,9 @@ class ReminderController extends GetxController {
     }
   }
 
-  Future<List<reminder_payload.ReminderPayloadModel>> getReminderFromAPI(BuildContext context) async {
+  Future<List<reminder_payload.ReminderPayloadModel>> getReminderFromAPI(
+    BuildContext context,
+  ) async {
     try {
       final response = await ApiService.post(
         getreminderApi,
@@ -1120,14 +1122,15 @@ class ReminderController extends GetxController {
           title: 'Error',
           message: 'Failed to fetch reminders: ${response.statusCode}',
         );
-        return [];
+        return List<reminder_payload.ReminderPayloadModel>.from(reminders);
       }
 
       final enc = jsonEncode(response);
       final decodedBody = jsonDecode(enc);
       final List remindersList = decodedBody['data']['Reminders'] as List;
 
-      final List<reminder_payload.ReminderPayloadModel> reminders = remindersList
+      final List<reminder_payload.ReminderPayloadModel> apiReminders =
+          remindersList
           .map((e) {
         final map = e as Map<String, dynamic>;
 
@@ -1148,7 +1151,7 @@ class ReminderController extends GetxController {
 
       // 🔥 STEP 2: SAVE INTO CORRECT CATEGORY LISTS
       await _saveToCategoryWiseLists(
-        reminders,
+        apiReminders,
         deletedGroupIds: deletedGroupIds,
         deletedAlarmIds: deletedAlarmIds,
       );
@@ -1156,19 +1159,19 @@ class ReminderController extends GetxController {
       // Ensure UI reflects persisted (and filtered) state, not raw API payload.
       await loadAllReminderLists();
 
-      logLong("getRemindersFromAPI", reminders.toString());
+      logLong("getRemindersFromAPI", apiReminders.toString());
       // Scheduling many alarms can take time and shouldn't block the caller
       // (e.g. post-login flow), otherwise UI loaders may appear "stuck".
       unawaited(
         ReminderScheduler().scheduleAll(
-          reminders,
+          apiReminders,
           deletedGroupIds: deletedGroupIds,
           deletedAlarmIds: deletedAlarmIds,
         ),
       );
-      return reminders;
+      return List<reminder_payload.ReminderPayloadModel>.from(reminders);
     } catch (e) {
-      return [];
+      return List<reminder_payload.ReminderPayloadModel>.from(reminders);
     }
   }
 
@@ -1677,10 +1680,19 @@ class ReminderController extends GetxController {
     if (rawTimes == null || rawTimes.isEmpty) return const [];
     final normalized = <String>[];
     for (final raw in rawTimes) {
-      final dt = DateTime.tryParse(raw.trim());
-      if (dt == null) continue;
-      final local = dt.isUtc ? dt.toLocal() : dt;
-      normalized.add(local.toIso8601String());
+      final trimmed = raw.trim();
+      if (trimmed.isEmpty) continue;
+
+      final dt = _tryParseDateTime(trimmed);
+      if (dt != null) {
+        final local = dt.isUtc ? dt.toLocal() : dt;
+        normalized.add(local.toIso8601String());
+        continue;
+      }
+
+      // Preserve non-ISO but valid-looking legacy time strings like "11:54 AM"
+      // so local reminder cards can still render and rehydrate correctly.
+      normalized.add(trimmed);
     }
     return normalized;
   }

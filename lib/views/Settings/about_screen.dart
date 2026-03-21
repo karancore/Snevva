@@ -15,6 +15,17 @@ class AboutScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios,
+            size: 24,
+            color:
+            isDarkMode ? white : black,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+
         title: AutoSizeText('About'),
         iconTheme: IconThemeData(color: isDarkMode ? white : black, size: 20),
       ),
