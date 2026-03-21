@@ -60,6 +60,15 @@ Future<void> requestAllPermissions() async {
   // ✅ Request permissions without blocking
   final statuses = await req.request();
 
+  // For reliable background step counting, battery optimization must be ignored.
+  if (statuses[Permission.ignoreBatteryOptimizations]?.isDenied ?? true) {
+    print(
+      "⚠️ Ignoring battery optimizations is NOT granted, background isolate might drop.",
+    );
+     // Note: If you want 100% 24/7 reliability, you must prompt the user 
+     // to disable battery optimizations for Snevva in Android Settings.
+  }
+
   // Only show settings if user permanently denied
   if (statuses.values.any((p) => p.isPermanentlyDenied)) {
     print(

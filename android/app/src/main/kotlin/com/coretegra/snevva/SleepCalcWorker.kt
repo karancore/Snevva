@@ -60,6 +60,9 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
                 
             WorkManager.getInstance(applicationContext).enqueue(syncRequest)
 
+            // Reschedule exactly for the next day's wake time so the chain isn't broken
+            scheduleNext(applicationContext)
+
             return Result.success()
         } catch (e: Exception) {
             Log.e("SleepCalcWorker", "Error calculating sleep", e)

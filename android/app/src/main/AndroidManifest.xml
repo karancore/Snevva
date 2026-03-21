@@ -117,11 +117,14 @@
             </intent-filter>
         </receiver>
 
-        <!-- <receiver android:name=".ScreenReceiver" android:exported="false">
+        <!-- Boot Receiver for rescheduling alarms and workers -->
+        <receiver android:name=".BootReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
             </intent-filter>
-        </receiver> -->
+        </receiver>
 
 
 
