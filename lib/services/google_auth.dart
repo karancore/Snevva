@@ -18,6 +18,7 @@ class GoogleAuthService extends GetxService {
   StreamSubscription<GoogleSignInAuthenticationEvent>? _authEventsSub;
   bool _initialized = false;
 
+  RxString googlePicUrl = ''.obs;
   // ---------------- INIT ----------------
   Future<void> init(BuildContext context) async {
     if (_initialized) {
@@ -46,6 +47,7 @@ class GoogleAuthService extends GetxService {
           debugPrint("   ID: ${account.id}");
 
           user.value = account;
+          googlePicUrl.value = account.photoUrl ?? '';
 
           await _handleBackendLogin(account, context, account.email);
         }

@@ -30,6 +30,7 @@ import 'package:snevva/views/Settings/in_app_downloads.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import '../../consts/consts.dart';
+import '../../services/google_auth.dart';
 import 'drawer_menu_item.dart';
 
 class DrawerMenuWidget extends StatefulWidget {
@@ -221,6 +222,8 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                   final String? cdnUrl =
                       localStorageManager.userMap['ProfilePicture']?['CdnUrl'];
 
+                  final String? googlePicUrl = Get.find<GoogleAuthService>().googlePicUrl.value;
+
                   Widget imageWidget;
 
                   // 1️⃣ User picked image (highest priority)
@@ -260,6 +263,32 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                           ),
                     );
                   }
+                  else if (googlePicUrl != null && googlePicUrl.isNotEmpty) {
+
+                    imageWidget = CachedNetworkImage(
+                      imageUrl: googlePicUrl,
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.cover,
+                      placeholder:
+                          (_, __) => CircleAvatar(
+                            radius: 60,
+                            backgroundColor: Colors.grey,
+                            child: SizedBox(),
+                          ),
+                      errorWidget:
+                          (_, __, ___) => CircleAvatar(
+                            radius: 60,
+                            backgroundColor: Colors.grey,
+                            child: Icon(
+                              Icons.person,
+                              size: 200 * 0.75,
+                              color: Colors.white,
+                            ),
+                          ),
+                    );
+                  }
+
                   // 3️⃣ Default asset
                   else {
                     imageWidget = Container(

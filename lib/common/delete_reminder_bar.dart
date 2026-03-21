@@ -23,10 +23,10 @@ class _DeleteReminderBarState extends State<DeleteReminderBar>
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 3),
+      duration: const Duration(seconds: 2),
     )..forward();
 
-    // ❗ Hide bar when animation completes
+    
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         setState(() {

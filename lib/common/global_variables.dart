@@ -228,23 +228,77 @@ int _fnv1a32(String input) {
   return hash;
 }
 
-int buildAlarmId({required int groupId, required DateTime time, String? salt}) {
+int buildAlarmId({
+  required int groupId,
+  required DateTime time,
+  String? salt,
+  String? type, // optional namespace
+}) {
   final normalizedSalt = (salt ?? '').trim();
+  final normalizedType = (type ?? 'default');
 
-  // Backward-compatible deterministic IDs for older schedules (only when safe).
-  if (normalizedSalt.isEmpty &&
-      groupId >= 0 &&
-      groupId <= _kLegacyAlarmIdMaxGroup) {
-    return groupId * 100000 + time.hour * 100 + time.minute;
+  // Normalize time → minute precision (avoid ms noise)
+  final t = DateTime(
+    time.year,
+    time.month,
+    time.day,
+    time.hour,
+    time.minute,
+  ).millisecondsSinceEpoch;
+
+  // Combine fields into 64-bit space
+  int hash = 0xcbf29ce484222325; // FNV-1a 64-bit offset basis
+
+  void mix(int value) {
+    hash ^= value;
+    hash = (hash * 0x100000001b3) & 0xFFFFFFFFFFFFFFFF;
   }
 
-  final seed = '$normalizedSalt|$groupId|${time.toIso8601String()}';
-  final hashed = _fnv1a32(seed) & _kAlarmIdIntMax; // 0..2147483647
-  return hashed == 0 ? 1 : hashed;
+  // Mix components
+  mix(groupId);
+  mix(t);
+  mix(normalizedType.hashCode);
+
+  if (normalizedSalt.isNotEmpty) {
+    mix(normalizedSalt.hashCode);
+  }
+
+  // Fold 64-bit → 31-bit positive int (Android safe)
+  final folded = (hash ^ (hash >> 32)) & 0x7FFFFFFF;
+
+  return folded == 0 ? 1 : folded;
 }
 
-int generateWaterAlarmId(int reminderId, int index) {
-  return reminderId * 10 + index;
+int generateWaterAlarmId({
+  required int reminderId,
+  required int index,
+  DateTime? time, // optional but recommended
+}) {
+  final t = time != null
+      ? DateTime(
+    time.year,
+    time.month,
+    time.day,
+    time.hour,
+    time.minute,
+  ).millisecondsSinceEpoch
+      : 0;
+
+  int hash = 0xcbf29ce484222325; // 64-bit FNV offset
+
+  void mix(int value) {
+    hash ^= value;
+    hash = (hash * 0x100000001b3) & 0xFFFFFFFFFFFFFFFF;
+  }
+
+  mix(reminderId);
+  mix(index);
+  mix(t);
+
+  // Fold to 31-bit positive int
+  final folded = (hash ^ (hash >> 32)) & 0x7FFFFFFF;
+
+  return folded == 0 ? 1 : folded;
 }
 
 DateTime combineWithToday(TimeOfDay time) {
