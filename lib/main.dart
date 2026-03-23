@@ -61,6 +61,9 @@ import 'views/Reminder/reminder_screen.dart';
 import 'views/SignUp/sign_in_screen.dart';
 import 'widgets/home_wrapper.dart';
 
+import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter/services.dart';
+
 const bool _kShowPerformanceOverlay = bool.fromEnvironment(
   'SHOW_PERFORMANCE_OVERLAY',
   defaultValue: false,
@@ -141,6 +144,16 @@ void main() {
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+      
+      const stepChannel = MethodChannel('com.coretegra.snevva/step_detector');
+      stepChannel.setMethodCallHandler((call) async {
+        if (call.method == 'onStepDetected') {
+          FlutterBackgroundService().invoke('onStepDetected', {'steps': call.arguments});
+        } else if (call.method == 'onAlarmWakeup') {
+          FlutterBackgroundService().invoke('onAlarmWakeup');
+        }
+      });
+
       final refreshRateProfile = await RefreshRateBootstrap.initialize();
 
       if (kDebugMode || kProfileMode) {

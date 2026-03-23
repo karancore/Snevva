@@ -13,9 +13,9 @@ import '../common/agent_debug_logger.dart';
 import '../services/sleep/sleep_noticing_service.dart';
 
 // Global references
-const MethodChannel _bgEventChannel = MethodChannel(
-  'com.coretegra.snevva/bg_events',
-);
+// const MethodChannel _bgEventChannel = MethodChannel(
+//   'com.coretegra.snevva/bg_events',
+// );
 
 const String _lastAutoStartedSleepWindowKey = 'last_auto_started_sleep_window';
 const String _manualStoppedWindowKey = 'manually_stopped_window_key';
@@ -186,105 +186,76 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
     // ═══════════════════════════════════════════════════════════════
     print("👣 Initializing step counter at ${DateTime.now()}...");
 
-    _bgEventChannel.setMethodCallHandler((call) async {
-      if (call.method == 'onStepDetected') {
-        int steps = call.arguments as int;
+    service.on('onStepDetected').listen((event) async {
+      if (event == null) return;
+      
+      final int newTotalSteps = event['steps'] as int;
 
-        await _ensureCurrentDayStepState(
-          service: service,
-          prefs: prefs,
-          stepBox: stepBox,
-        );
+      await prefs.reload();
+      final savedSteps = prefs.getInt("total_steps_so_far") ?? 0;
+      final stepDifference = (newTotalSteps - savedSteps).clamp(0, 9999);
 
-        final now = DateTime.now();
-        final todayKey = "${now.year}-${now.month}-${now.day}";
-
-        final lastRawSteps = prefs.getInt('lastRawSteps') ?? steps;
-        int diff = steps - lastRawSteps;
-
-        if (diff < 0) {
-          diff = steps;
-        }
-
-        final todayEntry = stepBox.get(todayKey);
-        final currentSteps = todayEntry?.steps ?? 0;
-        final newSteps = currentSteps + diff;
-
-        await stepBox.put(todayKey, StepEntry(date: now, steps: newSteps));
-        await prefs.setInt('today_steps', newSteps);
-        await prefs.setInt('lastRawSteps', steps);
-
-        service.invoke("steps_updated", {"steps": newSteps});
-
-        // Update notification PASSIVELY
+      if (stepDifference > 0) {
+        await prefs.setInt("total_steps_so_far", newTotalSteps);
+        
+        // Passive notification update
         if (service is AndroidServiceInstance) {
           final isSleeping = prefs.getBool("is_sleeping") ?? false;
-
-          if (isSleeping) {
-            final goalMinutes = prefs.getInt("sleep_goal_minutes") ?? 480;
-            final totalSleepMinutes =
-                await _sleepNoticingService.getTotalSleepMinutes();
-            final progress =
-                ((totalSleepMinutes / goalMinutes) * 100).clamp(0, 100).toInt();
-
+          if (!isSleeping) {
             service.setForegroundNotificationInfo(
-              title: "Sleep Tracking 😴 ($progress%)",
-              content:
-                  "${_formatDuration(totalSleepMinutes)} / ${_formatDuration(goalMinutes)}",
-            );
-          } else {
-            service.setForegroundNotificationInfo(
-              title: "Health Tracking",
-              content: "$newSteps steps tracked",
+              title: "Snevva Active",
+              content: "Steps today: $newTotalSteps",
             );
           }
         }
-      } else if (call.method == 'onAlarmWakeup') {
-        // Run watchdog / sleep progress logic passively here on occasional wakeups
-        await _ensureCurrentDayStepState(
-          service: service,
-          prefs: prefs,
-          stepBox: stepBox,
-        );
+      }
+    });
 
-        await _restoreOrAutoStartSleepTracking(
-          service: service,
-          prefs: prefs,
-          sleepBox: sleepBox,
-        );
+    service.on('onAlarmWakeup').listen((_) async {
+      // Run watchdog / sleep progress logic passively here on occasional wakeups
+      await _ensureCurrentDayStepState(
+        service: service,
+        prefs: prefs,
+        stepBox: stepBox,
+      );
 
-        final isSleeping = prefs.getBool("is_sleeping") ?? false;
-        if (isSleeping) {
-          final goalMinutes = prefs.getInt("sleep_goal_minutes") ?? 480;
-          final totalSleepMinutes =
-              await _sleepNoticingService.getTotalSleepMinutes();
-          final windowKey = prefs.getString("current_sleep_window_key");
-          final startTime = prefs.getString("sleep_start_time");
+      await _restoreOrAutoStartSleepTracking(
+        service: service,
+        prefs: prefs,
+        sleepBox: sleepBox,
+      );
 
-          service.invoke("sleep_update", {
-            "elapsed_minutes": totalSleepMinutes,
-            "goal_minutes": goalMinutes,
-            "is_sleeping": true,
-            "current_sleep_window_key": windowKey,
-            "start_time": startTime,
-          });
+      final isSleeping = prefs.getBool("is_sleeping") ?? false;
+      if (isSleeping) {
+        final goalMinutes = prefs.getInt("sleep_goal_minutes") ?? 480;
+        final totalSleepMinutes =
+            await _sleepNoticingService.getTotalSleepMinutes();
+        final windowKey = prefs.getString("current_sleep_window_key");
+        final startTime = prefs.getString("sleep_start_time");
 
-          if (service is AndroidServiceInstance) {
-            final progress =
-                ((totalSleepMinutes / goalMinutes) * 100).clamp(0, 100).toInt();
-            service.setForegroundNotificationInfo(
-              title: "Sleep Tracking 😴 ($progress%)",
-              content:
-                  "${_formatDuration(totalSleepMinutes)} / ${_formatDuration(goalMinutes)} - Auto-tracking",
-            );
-          }
+        service.invoke("sleep_update", {
+          "elapsed_minutes": totalSleepMinutes,
+          "goal_minutes": goalMinutes,
+          "is_sleeping": true,
+          "current_sleep_window_key": windowKey,
+          "start_time": startTime,
+        });
 
-          final windowEndStr = prefs.getString("current_sleep_window_end");
-          if (windowEndStr != null) {
-            final windowEnd = DateTime.parse(windowEndStr);
-            if (DateTime.now().isAfter(windowEnd)) {
-              await _stopSleepAndSave(service, prefs, sleepBox);
-            }
+        if (service is AndroidServiceInstance) {
+          final progress =
+              ((totalSleepMinutes / goalMinutes) * 100).clamp(0, 100).toInt();
+          service.setForegroundNotificationInfo(
+            title: "Sleep Tracking 😴 ($progress%)",
+            content:
+                "${_formatDuration(totalSleepMinutes)} / ${_formatDuration(goalMinutes)} - Auto-tracking",
+          );
+        }
+
+        final windowEndStr = prefs.getString("current_sleep_window_end");
+        if (windowEndStr != null) {
+          final windowEnd = DateTime.parse(windowEndStr);
+          if (DateTime.now().isAfter(windowEnd)) {
+            await _stopSleepAndSave(service, prefs, sleepBox);
           }
         }
       }
