@@ -182,12 +182,9 @@ Future<void> initBackgroundService() async {
   await service.configure(
     androidConfiguration: AndroidConfiguration(
       onStart: unifiedBackgroundEntry,
-      isForegroundMode: true,
+      isForegroundMode: false, // StepCounterService.kt owns the foreground notification
       autoStart: true,
       autoStartOnBoot: true,
-      notificationChannelId: "flutter_background_service",
-      initialNotificationTitle: "Health Tracking",
-      initialNotificationContent: "Monitoring steps & sleep...",
     ),
     iosConfiguration: IosConfiguration(
       autoStart: false,
