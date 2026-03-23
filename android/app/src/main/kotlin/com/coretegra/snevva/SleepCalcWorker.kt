@@ -52,6 +52,7 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
             // Chain to API Sync
             val syncRequest = OneTimeWorkRequestBuilder<ApiSyncWorker>()
                 .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
                 .build()
                 
             WorkManager.getInstance(applicationContext).enqueue(syncRequest)
@@ -94,6 +95,7 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
 
             val calcWork = OneTimeWorkRequestBuilder<SleepCalcWorker>()
                 .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
+                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                 .build()
                 
             WorkManager.getInstance(context).enqueueUniqueWork(

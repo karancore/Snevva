@@ -12,6 +12,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     private val sleepServiceChannelName = "com.coretegra.snevva/sleep_service"
     private val displayConfigChannelName = "com.coretegra.snevva/display_config"
+    private val oemChannelName = "com.coretegra.snevva/oem_settings"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,6 +26,18 @@ class MainActivity : FlutterActivity() {
 
         // Register existing StepCounterService (if any)
         // StepCounterService.registerWith(this)  // Uncomment if you have this
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, oemChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "getManufacturer" -> result.success(Build.MANUFACTURER)
+                    "openAutostartSettings" -> {
+                        openAutostartSettings()
+                        result.success(true)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
 
         // Existing channel for SleepNoticingService.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, sleepServiceChannelName)
@@ -138,6 +151,41 @@ class MainActivity : FlutterActivity() {
             display
         } else {
             windowManager.defaultDisplay
+        }
+    }
+
+    private fun openAutostartSettings() {
+        val manufacturer = Build.MANUFACTURER.lowercase(java.util.Locale.getDefault())
+        val intent = Intent()
+        try {
+            when {
+                manufacturer.contains("xiaomi") || manufacturer.contains("redmi") || manufacturer.contains("poco") -> {
+                    intent.component = android.content.ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")
+                }
+                manufacturer.contains("oppo") || manufacturer.contains("realme") || manufacturer.contains("oneplus") -> {
+                    intent.component = android.content.ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity")
+                }
+                manufacturer.contains("vivo") || manufacturer.contains("iqoo") -> {
+                    intent.component = android.content.ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity")
+                }
+                manufacturer.contains("huawei") || manufacturer.contains("honor") -> {
+                    intent.component = android.content.ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity")
+                }
+                manufacturer.contains("samsung") -> {
+                    intent.component = android.content.ComponentName("com.samsung.android.lool", "com.samsung.android.sm.ui.battery.BatteryActivity")
+                }
+                else -> {
+                    intent.action = android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
+                }
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            intent.action = android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
+            try {
+                startActivity(intent)
+            } catch (ex: Exception) {
+                // Ignore
+            }
         }
     }
 }
