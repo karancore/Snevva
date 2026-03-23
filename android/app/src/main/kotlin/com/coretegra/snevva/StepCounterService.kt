@@ -10,8 +10,6 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.embedding.engine.FlutterEngineCache
-import io.flutter.embedding.engine.dart.DartExecutor
 import io.flutter.plugin.common.MethodChannel
 import android.content.pm.ServiceInfo
 import android.os.SystemClock
@@ -29,7 +27,6 @@ class StepCounterService : Service(), SensorEventListener {
     private val PREFS_NAME = "steps_prefs"
     private val KEY_TODAY_STEPS = "today_steps"
     private val KEY_DATE = "lastDate"
-    private val KEY_IS_HEADLESS = "is_headless"
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -101,26 +98,16 @@ class StepCounterService : Service(), SensorEventListener {
             .build()
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(888, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+            // HEALTH type is required on Android 14+ for motion/step sensor access
+            startForeground(888, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH)
         } else {
             startForeground(888, notification)
         }
-        
-        // Setup Headless Flutter Router Engine if null
-        if (flutterEngine == null) {
-            prefs.edit().putBoolean(KEY_IS_HEADLESS, true).apply()
-            val engine = FlutterEngine(applicationContext)
-            engine.dartExecutor.executeDartEntrypoint(
-                DartExecutor.DartEntrypoint.createDefault()
-            )
-            io.flutter.embedding.engine.FlutterEngineCache.getInstance().put("step_engine", engine)
-            flutterEngine = engine
-        }
-        
+
         registerStepListener()
         scheduleSparseWakeup()
 
-        Log.d("StepService", "🚀 StepCounterService started with Headless Router.")
+        Log.d("StepService", "🚀 StepCounterService started.")
     }
 
     /** Registers the step counter sensor listener, if available. */
@@ -154,11 +141,37 @@ class StepCounterService : Service(), SensorEventListener {
             .putString(KEY_DATE, currentDate)
             .apply()
 
+        // Also write to Flutter's SharedPreferences so Dart poller can read directly
+        val flutterPrefs = applicationContext.getSharedPreferences(
+            "FlutterSharedPreferences", android.content.Context.MODE_PRIVATE
+        )
+        flutterPrefs.edit()
+            .putLong("flutter.today_steps", stepsToday.toLong())
+            .apply()
+
         Log.d("StepService", "👣 Steps today: $stepsToday")
-        
-        flutterEngine?.let { engine ->
-            val channel = MethodChannel(engine.dartExecutor.binaryMessenger, "com.coretegra.snevva/step_detector")
-            channel.invokeMethod("onStepDetected", stepsToday)
+
+        // Update the foreground notification with the live step count
+        val notifManager = getSystemService(NotificationManager::class.java)
+        val updatedNotification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Snevva Active")
+            .setContentText("$stepsToday steps today")
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setOngoing(true)
+            .build()
+        notifManager.notify(888, updatedNotification)
+
+        // Send to Flutter UI engine only if it is still alive
+        val engine = flutterEngine
+        if (engine != null) {
+            if (engine.dartExecutor.isExecutingDart) {
+                val channel = MethodChannel(engine.dartExecutor.binaryMessenger, "com.coretegra.snevva/step_detector")
+                channel.invokeMethod("onStepDetected", stepsToday)
+            } else {
+                // Engine is detached — clear reference to avoid repeated FlutterJNI errors
+                flutterEngine = null
+                Log.w("StepService", "Flutter engine detached, cleared reference")
+            }
         }
     }
 
@@ -185,7 +198,7 @@ class StepCounterService : Service(), SensorEventListener {
 
     companion object {
         private const val TAG = "StepService"
-        private const val CHANNEL_NAME = "step_counter_service"
+        // Set by MainActivity so steps can be sent to the live UI engine
         var flutterEngine: FlutterEngine? = null
     }
 }

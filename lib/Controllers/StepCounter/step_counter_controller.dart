@@ -300,6 +300,7 @@ class StepCounterController extends GetxController {
   // =======================
   Future<void> _pollHiveToday() async {
     try {
+      await _prefs.reload();
       final todayKey = _dayKey(DateTime.now());
       final steps = _safeGetSteps(todayKey);
 

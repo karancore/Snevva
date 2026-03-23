@@ -1,10 +1,13 @@
 package com.coretegra.snevva
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.Display
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -20,22 +23,55 @@ class MainActivity : FlutterActivity() {
         // Reset headless flag for pure UI run
         getSharedPreferences("steps_prefs", android.content.Context.MODE_PRIVATE)
             .edit().putBoolean("is_headless", false).apply()
+        
+        // Request ACTIVITY_RECOGNITION permission (required since Android 10 for step sensor)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACTIVITY_RECOGNITION)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(android.Manifest.permission.ACTIVITY_RECOGNITION),
+                    1001
+                )
+            } else {
+                startStepCounterService()
+            }
+        } else {
+            startStepCounterService()
+        }
             
-        // Start StepCounterService 
+        AlarmHelper.cancelSleepAlarms(this)
+        requestHighestRefreshRate()
+        Log.d("Lifecycle", "onCreate called")
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1001) {
+            // Start service regardless — sensor may still work, and we log if sensor is missing
+            startStepCounterService()
+        }
+    }
+
+    private fun startStepCounterService() {
         val stepIntent = Intent(this, StepCounterService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(stepIntent)
         } else {
             startService(stepIntent)
         }
-        
-        AlarmHelper.cancelSleepAlarms(this)
-        requestHighestRefreshRate()
-        Log.d("Lifecycle", "onCreate called")
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        // Give StepCounterService a reference to the live UI engine so sensor
+        // events can be delivered via MethodChannel to the running Flutter app.
+        StepCounterService.flutterEngine = flutterEngine
 
         // MethodChannels setup
 
@@ -122,6 +158,9 @@ class MainActivity : FlutterActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        // Clear the engine reference so StepCounterService stops trying to
+        // send MethodChannel messages to the now-detached Flutter engine.
+        StepCounterService.flutterEngine = null
         Log.d("Lifecycle", "onDestroy called")
     }
 
