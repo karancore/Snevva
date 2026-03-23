@@ -1,12 +1,12 @@
 import 'dart:convert';
 
+import 'package:alarm/alarm.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
-import 'package:alarm/alarm.dart';
-import 'package:alarm/model/alarm_settings.dart';
-import 'package:flutter/material.dart';
 import 'package:snevva/Controllers/Reminder/water_controller.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
+
 import '../../common/custom_snackbar.dart';
 import '../../common/global_variables.dart';
 import '../../consts/colors.dart';
@@ -28,18 +28,13 @@ class EventController extends GetxController {
     DateTime scheduledTime,
     BuildContext context,
   ) async {
-    final reminderGroupId = alarmsId();
-    final alarmId = buildAlarmId(
-      groupId: reminderGroupId,
-      time: scheduledTime,
-      salt: 'event',
-    );
+    final id = alarmsId();
     final title = reminderController.titleController.text.trim();
     final notes = reminderController.notesController.text.trim();
     RemindBefore? remindBefore;
 
     debugPrint('🚀 Starting addEventAlarm');
-    debugPrint('🆔 Generated Alarm ID: $alarmId (groupId=$reminderGroupId)');
+    debugPrint('🆔 Generated Alarm ID: $id');
     debugPrint('⏰ Scheduled Time: $scheduledTime');
     debugPrint('🔔 Title: $title');
     debugPrint('🟡 RemindMeBefore value: ${eventRemindMeBefore.value}');
@@ -89,6 +84,11 @@ class EventController extends GetxController {
       );
       debugPrint('📦 RemindBefore Object created: ${remindBefore.toJson()}');
 
+      final timeOfDay = TimeOfDay(
+        hour: scheduledTime.hour,
+        minute: scheduledTime.minute,
+      );
+
       // debugPrint('🔄 Calling add event alarm handleRemindMeBefore...');
       // await reminderController.handleRemindMeBefore(
       //   option: eventRemindMeBefore,
@@ -110,9 +110,6 @@ class EventController extends GetxController {
     debugPrint('📅 Payload startDate value: "$startDateValue"');
 
     final payloadData = {
-      "groupId": reminderGroupId.toString(),
-      "category": "event",
-      "type": "times",
       "startDate": startDateValue,
       "remindBefore": remindBefore?.toJson(),
     };
@@ -120,7 +117,7 @@ class EventController extends GetxController {
     debugPrint('📤 Encoded Payload: $encodedPayload');
 
     final alarmSettings = AlarmSettings(
-      id: alarmId,
+      id: id,
       dateTime: scheduledTime,
       assetAudioPath: alarmSound,
       loopAudio: true,
@@ -157,12 +154,11 @@ class EventController extends GetxController {
 
       await reminderController.loadAllReminderLists();
 
-    final eventData = ReminderPayloadModel(
-        id: reminderGroupId,
-        category: "event",
+      final eventData = ReminderPayloadModel(
+        id: id,
+        category: "Event",
         title: title,
         notes: notes,
-        reminderFrequencyType: Option.times.name,
         customReminder: CustomReminder(
           type: Option.times,
           timesPerDay: TimesPerDay(

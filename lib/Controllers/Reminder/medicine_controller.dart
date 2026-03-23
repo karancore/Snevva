@@ -1,10 +1,8 @@
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
-import 'package:alarm/model/alarm_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 import 'package:pinput/pinput.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/models/mappers/medicine_to_reminder_mapper.dart';
@@ -279,7 +277,7 @@ class MedicineController extends GetxController {
       id: reminderGroupId,
       alarmIds: alarmIds,
       title: title,
-      category: ReminderCategory.medicine.toString(),
+      category: "Medicine",
       medicineName: medicineName,
       medicineType: medicineType,
       whenToTake: selectedWhenToTake.value,
@@ -426,7 +424,7 @@ class MedicineController extends GetxController {
       id: id,
       alarmIds: alarms.map((e) => e.id).toList(),
       title: title,
-      category: "medicine",
+      category: "Medicine",
       medicineName: medicineName,
       medicineType: medicineType,
       whenToTake: selectedWhenToTake.value,
@@ -637,7 +635,7 @@ class MedicineController extends GetxController {
       id: id,
       alarmIds: [alarmId],
       title: title,
-      category: ReminderCategory.medicine.toString(),
+      category: "Medicine",
       medicineName: medicineName,
       medicineType: medicineType,
       whenToTake: selectedWhenToTake.value,

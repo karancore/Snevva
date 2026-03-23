@@ -1,7 +1,4 @@
-import 'dart:convert';
-
 import 'package:alarm/alarm.dart';
-import 'package:alarm/model/alarm_settings.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Controllers/Reminder/water_controller.dart';
 import 'package:snevva/consts/consts.dart';
@@ -23,12 +20,7 @@ class MealController extends GetxController {
     DateTime scheduledTime,
     BuildContext context,
   ) async {
-    final reminderGroupId = alarmsId();
-    final alarmId = buildAlarmId(
-      groupId: reminderGroupId,
-      time: scheduledTime,
-      salt: 'meal',
-    );
+    final id = alarmsId();
     final title = reminderController.titleController.text.trim();
     final notes = reminderController.notesController.text.trim();
     // Map<String, dynamic> mealData = {
@@ -39,22 +31,18 @@ class MealController extends GetxController {
     //   "scheduledTime": scheduledTime.toIso8601String(),
     // };
     final mealData = ReminderPayloadModel(
-      id: reminderGroupId,
-      category: "meal",
+      id: id,
+      category: "Meal",
       title: title,
       notes: notes.isNotEmpty ? notes : "",
-      reminderFrequencyType: Option.times.name,
       customReminder: CustomReminder(
         type: Option.times,
-        timesPerDay: TimesPerDay(
-          count: '1',
-          list: [scheduledTime.toIso8601String()],
-        ),
+        timesPerDay: TimesPerDay(count: '1', list: [scheduledTime.toString()]),
       ),
     );
     print("Meal Data: $mealData");
     final alarmSettings = AlarmSettings(
-      id: alarmId,
+      id: id,
       dateTime: scheduledTime,
       assetAudioPath: alarmSound,
       loopAudio: true,
@@ -64,11 +52,7 @@ class MealController extends GetxController {
         fadeDuration: Duration(seconds: 5),
         volumeEnforced: true,
       ),
-      payload: jsonEncode({
-        "groupId": reminderGroupId.toString(),
-        "category": "meal",
-        "type": "times",
-      }),
+
       notificationSettings: NotificationSettings(
         title:
             title.isNotEmpty
@@ -86,6 +70,7 @@ class MealController extends GetxController {
       // Reload list from Hive to ensure we have the latest data and don't override
       mealsList.value = await reminderController.loadReminderList("meals_list");
 
+      final reminderId = DateTime.now().millisecondsSinceEpoch;
       final displayTitle = title.isNotEmpty ? title : 'MEAL REMINDER';
 
       mealsList.add({displayTitle: alarmSettings});
@@ -95,7 +80,7 @@ class MealController extends GetxController {
       // Reload the combined list
       await reminderController.loadAllReminderLists();
       print("Meal data before API call: ${mealData.toJson()}");
-      await reminderController.addRemindertoAPI(mealData, context);
+      reminderController.addRemindertoAPI(mealData, context);
 
       // CustomSnackbar.showSuccess(
       //   context: context,

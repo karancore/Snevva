@@ -1,11 +1,10 @@
 import 'dart:async';
-import 'package:flutter/widgets.dart';
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
-import 'package:alarm/model/alarm_settings.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:snevva/Controllers/Reminder/event_controller.dart';
@@ -152,6 +151,14 @@ class ReminderController extends GetxController {
 
     super.onClose();
   }
+
+  // BoxShadow(
+  // color: Colors.grey.withOpacity(0.4), // Shadow color
+  // spreadRadius: 2, // How widely the shadow spreads
+  // blurRadius: 6, // How blurry the shadow is
+
+  // offset: Offset(0, 0), // Horizontal and vertical offset
+  // ),
 
   Future<void> handleRemindMeBefore({
     required RxnInt option,
@@ -1105,7 +1112,8 @@ class ReminderController extends GetxController {
     }
   }
 
-  Future<List<reminder_payload.ReminderPayloadModel>> getReminderFromAPI(BuildContext context) async {
+  Future<List<reminder_payload.ReminderPayloadModel>> getReminderFromAPI(
+      BuildContext context,) async {
     try {
       final response = await ApiService.post(
         getreminderApi,
@@ -1867,14 +1875,32 @@ class ReminderController extends GetxController {
 
   Future<void> addRemindertoAPI(
       reminder_payload.ReminderPayloadModel reminderData,
-      BuildContext context,
-      ) async {
+      BuildContext context,) async {
     try {
-      if (kDebugMode) {
-        debugPrint("🚀 addRemindertoAPI called");
-        debugPrint("📦 Payload: ${reminderData.toJson()}");
-        debugPrint("🌐 Hitting API: $addreminderApi");
+      debugPrint("🚀 addRemindertoAPI called");
+
+      Map<String, dynamic> payload = reminderData.toJson();
+
+      // ✅ Capitalize Category
+      if (payload['Category'] != null && payload['Category'] is String) {
+        String category = payload['Category'];
+        if (category.isNotEmpty) {
+          payload['Category'] =
+              category[0].toUpperCase() + category.substring(1);
+        }
       }
+
+      payload.removeWhere((key, value) => value == null);
+
+      // Fix date format
+      //       if (payload['CustomReminder']?['TimesPerDay']?['List'] != null) {
+      //         List list = payload['CustomReminder']['TimesPerDay']['List'];
+      //         payload['CustomReminder']['TimesPerDay']['List'] =
+      //             list.map((e) => DateTime.parse(e).toIso8601String()).toList();
+      //       }asdadasd
+
+      debugPrint("📦 Modified Payload: $payload");
+      debugPrint("🌐 Hitting API: $addreminderApi");
 
       final response = await ApiService.post(
         addreminderApi,
@@ -2020,72 +2046,102 @@ class ReminderController extends GetxController {
     required BuildContext context,
     num? dosage,
   }) async {
-    if (_isSaving) {
-      if (kDebugMode) {
-        debugPrint('⏳ validateAndSave() ignored: already saving');
-      }
-      return false;
-    }
-    _isSaving = true;
     final category = selectedCategory.value.trim().toLowerCase();
     if (selectedCategory.value != category) {
       selectedCategory.value = category;
     }
 
-    try {
-      debugPrint("🟢 validateAndSave() called");
-      debugPrint("📂 Selected category: $category");
-      debugPrint("✏️ Title: '${titleController.text}'");
-      debugPrint("🧪 Dosage: $dosage");
+    debugPrint("🟢 validateAndSave() called");
+    debugPrint("📂 Selected category: $category");
+    debugPrint("✏️ Title: '${titleController.text}'");
+    debugPrint("🧪 Dosage: $dosage");
 
-      final isSelected =
-          medicineGetxController.medicineRemindMeBeforeOption.value == 0;
+    final isSelected =
+        medicineGetxController.medicineRemindMeBeforeOption.value == 0;
 
-      debugPrint("⏳ Medicine remind-before selected: $isSelected");
+    debugPrint("⏳ Medicine remind-before selected: $isSelected");
 
-      if (isSelected) {
-        debugPrint("➡️ Handling medicine remind-before");
-        await handleRemindMeBefore(
-          option: medicineGetxController.medicineRemindMeBeforeOption,
-          timeBefore: medicineGetxController.medicineTimeBeforeController.text,
-          timeOfDay: pickedTime.value,
-          timeController: xTimeUnitController,
-          unitController: selectedValue,
-          category: "medicine",
-          title: "Upcoming Medicine Reminder",
-          body: "It’s almost time to take your medicine in ",
-        );
-      }
+    if (isSelected) {
+      debugPrint("➡️ Handling medicine remind-before");
+      await handleRemindMeBefore(
+        option: medicineGetxController.medicineRemindMeBeforeOption,
+        timeBefore: medicineGetxController.medicineTimeBeforeController.text,
+        timeOfDay: pickedTime.value,
+        timeController: xTimeUnitController,
+        unitController: selectedValue,
+        category: "medicine",
+        title: "Upcoming Medicine Reminder",
+        body: "It’s almost time to take your medicine in ",
+      );
+    }
 
-      final isSelectedEvent =
-          eventGetxController.eventRemindMeBefore.value == 0;
+    final isSelectedEvent = eventGetxController.eventRemindMeBefore.value == 0;
 
-      debugPrint("⏳ Event remind-before selected: $isSelectedEvent");
+    debugPrint("⏳ Event remind-before selected: $isSelectedEvent");
 
-      if (isSelectedEvent) {
-        debugPrint("➡️ Handling event validate and save remind-before");
-        await handleRemindMeBefore(
-          option: eventGetxController.eventRemindMeBefore,
-          timeOfDay: pickedTime.value,
-          timeBefore: eventGetxController.eventTimeBeforeController.text,
-          timeController: eventGetxController.eventTimeBeforeController,
-          unitController: selectedValue,
-          title: "Upcoming Event Reminder",
-          body: "Your scheduled event will start in ",
-          category: "event",
-        );
-      }
+    if (isSelectedEvent) {
+      debugPrint("➡️ Handling event validate and save remind-before");
+      await handleRemindMeBefore(
+        option: eventGetxController.eventRemindMeBefore,
+        timeOfDay: pickedTime.value,
+        timeBefore: eventGetxController.eventTimeBeforeController.text,
+        timeController: eventGetxController.eventTimeBeforeController,
+        unitController: selectedValue,
+        title: "Upcoming Event Reminder",
+        body: "Your scheduled event will start in ",
+        category: "event",
+      );
+    }
 
-      // ---------------------------------------------------------------------------
-      // Basic validation
-      // ---------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------
+    // Basic validation
+    // ---------------------------------------------------------------------------
 
-      if (titleController.text.trim().isEmpty) {
-        debugPrint("❌ Validation failed: title is empty");
+    if (titleController.text
+        .trim()
+        .isEmpty) {
+      debugPrint("❌ Validation failed: title is empty");
 
+      Get.snackbar(
+        "Almost there",
+        "Add a title for your ${selectedCategory.value} reminder",
+        snackPosition: SnackPosition.TOP,
+        colorText: white,
+        backgroundColor: AppColors.primaryColor,
+        duration: const Duration(seconds: 2),
+      );
+      return false;
+    }
+
+    if (titleController.text
+        .trim()
+        .length >= maxTitleLength) {
+      debugPrint("❌ Validation failed: title too long");
+
+      Get.snackbar(
+        "Title too long",
+        "You can keep the title short and add extra details in Notes",
+        snackPosition: SnackPosition.TOP,
+        colorText: white,
+        backgroundColor: AppColors.primaryColor,
+        duration: const Duration(seconds: 2),
+      );
+      return false;
+    }
+
+    // ---------------------------------------------------------------------------
+    // Edit mode
+    // ---------------------------------------------------------------------------
+
+    if (editingId.value != null) {
+      debugPrint("✏️ Editing existing reminder → id=${editingId.value}");
+
+      final resolvedTime =
+          pickedTime.value ?? _resolveTimeForCategory(category);
+      if ((category == 'meal' || category == 'event') && resolvedTime == null) {
         Get.snackbar(
           "Almost there",
-          "Add a title for your ${selectedCategory.value} reminder",
+          "Pick a time for your ${selectedCategory.value} reminder",
           snackPosition: SnackPosition.TOP,
           colorText: white,
           backgroundColor: AppColors.primaryColor,
@@ -2094,12 +2150,26 @@ class ReminderController extends GetxController {
         return false;
       }
 
-      if (titleController.text.trim().length >= maxTitleLength) {
-        debugPrint("❌ Validation failed: title too long");
+      await updateReminderFromLocal(
+        context,
+        id: editingId.value.toString(),
+        category: category,
+        timeOfDay: resolvedTime,
+      );
+      return true;
+    }
+
+    // ---------------------------------------------------------------------------
+    // Category-specific validation
+    // ---------------------------------------------------------------------------
+
+    if (category == "medicine") {
+      if (dosage == null || dosage <= 0) {
+        debugPrint("❌ Validation failed: invalid dosage");
 
         Get.snackbar(
-          "Title too long",
-          "You can keep the title short and add extra details in Notes",
+          "Oops!",
+          "That dosage doesn’t look right. Please enter a valid one.",
           snackPosition: SnackPosition.TOP,
           colorText: white,
           backgroundColor: AppColors.primaryColor,
@@ -2107,18 +2177,101 @@ class ReminderController extends GetxController {
         );
         return false;
       }
+    }
 
-      // ---------------------------------------------------------------------------
-      // Edit mode
-      // ---------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------
+    // Category switch
+    // ---------------------------------------------------------------------------
 
-      if (editingId.value != null) {
-        debugPrint("✏️ Editing existing reminder → id=${editingId.value}");
+    debugPrint("🚦 Processing category: $category");
 
+    switch (category) {
+      case "medicine":
+        final isInterval =
+            medicineGetxController.medicineReminderOption.value ==
+                Option.interval;
+
+        debugPrint("💊 Medicine reminder | Interval=$isInterval");
+
+        if (!isInterval) {
+          final expectedTimes =
+          medicineGetxController.getEffectiveTimesPerDay();
+
+          final filledTimes =
+              medicineGetxController.timeControllers
+                  .where((ctrl) =>
+              ctrl.text
+                  .trim()
+                  .isNotEmpty)
+                  .length;
+
+          debugPrint(
+            "⏰ Medicine times filled=$filledTimes expected=$expectedTimes",
+          );
+
+          if (filledTimes < expectedTimes) {
+            final missing = expectedTimes - filledTimes;
+
+            debugPrint("❌ Missing $missing medicine time(s)");
+
+            Get.snackbar(
+              "Missing time${missing > 1 ? 's' : ''}",
+              "You selected '${medicineGetxController.selectedFrequency
+                  .value}'. "
+                  "Please add $missing more time${missing > 1 ? 's' : ''}.",
+              snackPosition: SnackPosition.TOP,
+              colorText: white,
+              backgroundColor: AppColors.primaryColor,
+              duration: const Duration(seconds: 3),
+            );
+
+            return false;
+          }
+          debugPrint("✅ Adding medicine times-based alarm");
+          final ok = await medicineGetxController.addMedicineAlarm(
+            context: context,
+            dosage: dosage,
+          );
+          if (!ok) {
+            return false;
+          }
+        } else {
+          debugPrint("⏱ Processing medicine interval alarm");
+
+          if (medicineGetxController.startMedicineTimeController.text
+              .trim()
+              .isEmpty ||
+              medicineGetxController.endMedicineTimeController.text
+                  .trim()
+                  .isEmpty) {
+            debugPrint("❌ Missing start/end time for interval");
+
+            Get.snackbar(
+              "Missing time",
+              "Please select both start and end time for interval reminders.",
+              snackPosition: SnackPosition.TOP,
+              colorText: white,
+              backgroundColor: AppColors.primaryColor,
+              duration: const Duration(seconds: 3),
+            );
+            return false;
+          }
+
+          final ok = await medicineGetxController.addMedicineIntervalAlarm(
+            context: context,
+            dosage: dosage,
+          );
+          if (!ok) {
+            return false;
+          }
+        }
+        break;
+
+      case "meal":
+      case "event":
         final resolvedTime =
             pickedTime.value ?? _resolveTimeForCategory(category);
-        if ((category == 'meal' || category == 'event') &&
-            resolvedTime == null) {
+        if (resolvedTime == null) {
           Get.snackbar(
             "Almost there",
             "Pick a time for your ${selectedCategory.value} reminder",
@@ -2130,158 +2283,25 @@ class ReminderController extends GetxController {
           return false;
         }
 
-        await updateReminderFromLocal(
-          context,
-          id: editingId.value.toString(),
-          category: category,
-          timeOfDay: resolvedTime,
-        );
-        return true;
-      }
+        debugPrint("🍽️ / 📅 Adding $category alarm");
 
-      // ---------------------------------------------------------------------------
-      // Category-specific validation
-      // ---------------------------------------------------------------------------
+        await addAlarm(context, timeOfDay: resolvedTime, category: category);
+        break;
 
-      if (category == "medicine") {
-        if (dosage == null || dosage <= 0) {
-          debugPrint("❌ Validation failed: invalid dosage");
-
-          Get.snackbar(
-            "Oops!",
-            "That dosage doesn’t look right. Please enter a valid one.",
-            snackPosition: SnackPosition.TOP,
-            colorText: white,
-            backgroundColor: AppColors.primaryColor,
-            duration: const Duration(seconds: 2),
-          );
+      case "water":
+        debugPrint("💧 Delegating to WaterController");
+        final ok = await waterController.validateAndSaveWaterReminder(context);
+        if (!ok) {
           return false;
         }
-      }
+        break;
 
-      // ---------------------------------------------------------------------------
-      // Category switch
-      // ---------------------------------------------------------------------------
-
-      debugPrint("🚦 Processing category: $category");
-
-      switch (category) {
-        case "medicine":
-          final isInterval =
-              medicineGetxController.medicineReminderOption.value ==
-              Option.interval;
-
-          debugPrint("💊 Medicine reminder | Interval=$isInterval");
-
-          if (!isInterval) {
-            final expectedTimes =
-                medicineGetxController.getEffectiveTimesPerDay();
-
-            final filledTimes =
-                medicineGetxController.timeControllers
-                    .where((ctrl) => ctrl.text.trim().isNotEmpty)
-                    .length;
-
-            debugPrint(
-              "⏰ Medicine times filled=$filledTimes expected=$expectedTimes",
-            );
-
-            if (filledTimes < expectedTimes) {
-              final missing = expectedTimes - filledTimes;
-
-              debugPrint("❌ Missing $missing medicine time(s)");
-
-              Get.snackbar(
-                "Missing time${missing > 1 ? 's' : ''}",
-                "You selected '${medicineGetxController.selectedFrequency.value}'. "
-                    "Please add $missing more time${missing > 1 ? 's' : ''}.",
-                snackPosition: SnackPosition.TOP,
-                colorText: white,
-                backgroundColor: AppColors.primaryColor,
-                duration: const Duration(seconds: 3),
-              );
-
-              return false;
-            }
-            debugPrint("✅ Adding medicine times-based alarm");
-            final ok = await medicineGetxController.addMedicineAlarm(
-              context: context,
-              dosage: dosage,
-            );
-            if (!ok) {
-              return false;
-            }
-          } else {
-            debugPrint("⏱ Processing medicine interval alarm");
-
-            if (medicineGetxController.startMedicineTimeController.text
-                    .trim()
-                    .isEmpty ||
-                medicineGetxController.endMedicineTimeController.text
-                    .trim()
-                    .isEmpty) {
-              debugPrint("❌ Missing start/end time for interval");
-
-              Get.snackbar(
-                "Missing time",
-                "Please select both start and end time for interval reminders.",
-                snackPosition: SnackPosition.TOP,
-                colorText: white,
-                backgroundColor: AppColors.primaryColor,
-                duration: const Duration(seconds: 3),
-              );
-              return false;
-            }
-
-            final ok = await medicineGetxController.addMedicineIntervalAlarm(
-              context: context,
-              dosage: dosage,
-            );
-            if (!ok) {
-              return false;
-            }
-          }
-          break;
-
-        case "meal":
-        case "event":
-          final resolvedTime =
-              pickedTime.value ?? _resolveTimeForCategory(category);
-          if (resolvedTime == null) {
-            Get.snackbar(
-              "Almost there",
-              "Pick a time for your ${selectedCategory.value} reminder",
-              snackPosition: SnackPosition.TOP,
-              colorText: white,
-              backgroundColor: AppColors.primaryColor,
-              duration: const Duration(seconds: 2),
-            );
-            return false;
-          }
-
-          debugPrint("🍽️ / 📅 Adding $category alarm");
-
-          await addAlarm(context, timeOfDay: resolvedTime, category: category);
-          break;
-
-        case "water":
-          debugPrint("💧 Delegating to WaterController");
-          final ok =
-              await waterController.validateAndSaveWaterReminder(context);
-          if (!ok) {
-            return false;
-          }
-          break;
-
-        default:
-          debugPrint("⚠️ Unknown category: ${selectedCategory.value}");
-      }
-
-      debugPrint("✅ validateAndSave() completed successfully");
-      return true;
-    } finally {
-      _isSaving = false;
+      default:
+        debugPrint("⚠️ Unknown category: ${selectedCategory.value}");
     }
+
+    debugPrint("✅ validateAndSave() completed successfully");
+    return true;
   }
 
   Future<bool> validateAndUpdate({

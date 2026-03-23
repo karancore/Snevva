@@ -1,12 +1,6 @@
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
-import 'package:alarm/model/alarm_settings.dart';
-import 'package:alarm/model/notification_settings.dart';
-import 'package:alarm/model/volume_settings.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/common/global_variables.dart';
@@ -289,7 +283,7 @@ class WaterController extends GetxController {
         payload: jsonEncode({
           "groupId": reminderGroupId.toString(),
           "type": "times",
-          "category": ReminderCategory.water.name,
+          "category": ReminderCategory.water.toString(),
         }),
         notificationSettings: NotificationSettings(
           title:
@@ -322,7 +316,7 @@ class WaterController extends GetxController {
       notes: reminderController.notesController.text.trim(),
       type: Option.times,
       timesPerDay: times.toString(),
-      category: ReminderCategory.water.name,
+      category: ReminderCategory.water.toString(),
     );
 
     // Reload list from Hive to ensure we have the latest data and don't override
@@ -335,15 +329,15 @@ class WaterController extends GetxController {
     await reminderController.saveReminderList(waterList, "water_list");
     await reminderController.loadAllReminderLists();
 
-    final List<String> list =
-        createdAlarms.map((e) => e.dateTime.toIso8601String()).toList();
+    List<String> list =
+        createdAlarms.map((e) => e.toJson().toString()).toList();
 
     final waterData = ReminderPayloadModel(
       id: reminderGroupId,
-      category: ReminderCategory.water.name,
+      category: "Water",
       title: model.title,
       notes: reminderController.notesController.text,
-      reminderFrequencyType: Option.times.name,
+      reminderFrequencyType: Option.times.toString(),
       customReminder: CustomReminder(
         type: Option.times,
         timesPerDay: TimesPerDay(count: times.toString(), list: list),
@@ -559,7 +553,7 @@ class WaterController extends GetxController {
         payload: jsonEncode({
           "groupId": reminderGroupId.toString(),
           "type": "interval",
-          "category": ReminderCategory.water.name,
+          "category": ReminderCategory.water.toString(),
         }),
 
         assetAudioPath: audioPath,
@@ -587,7 +581,7 @@ class WaterController extends GetxController {
       waterReminderEndTime: endWaterTimeController.text.trim(),
       type: Option.interval,
       interval: '$intervalHours',
-      category: ReminderCategory.water.name,
+      category: ReminderCategory.water.toString(),
     );
 
     // Reload list from Hive to ensure we have the latest data and don't override
@@ -600,12 +594,11 @@ class WaterController extends GetxController {
 
     final waterData = ReminderPayloadModel(
       id: reminderGroupId,
-      category: ReminderCategory.water.name,
+      category: "Water",
       title: model.title,
       notes: reminderController.notesController.text,
-      reminderFrequencyType: Option.interval.name,
+      reminderFrequencyType: Option.interval.toString(),
       customReminder: CustomReminder(
-        type: Option.interval,
         everyXHours: EveryXHours(
           hours: intervalHours,
           startTime: startWaterTimeController.text,
