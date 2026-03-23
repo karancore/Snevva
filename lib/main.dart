@@ -145,6 +145,20 @@ void main() {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
       
+      final globalPrefs = await SharedPreferences.getInstance();
+      if (globalPrefs.getBool('is_headless') == true) {
+        const stepChannel = MethodChannel('com.coretegra.snevva/step_detector');
+        stepChannel.setMethodCallHandler((call) async {
+          if (call.method == 'onStepDetected') {
+            FlutterBackgroundService().invoke('onStepDetected', {'steps': call.arguments});
+          } else if (call.method == 'onAlarmWakeup') {
+            FlutterBackgroundService().invoke('onAlarmWakeup');
+          }
+        });
+        print("🚀 Dart Headless Engine ready. Proxying Kotlin sensors...");
+        return; // EXIT EARLY to save RAM! No UI widgets will be mounted!
+      }
+      
       const stepChannel = MethodChannel('com.coretegra.snevva/step_detector');
       stepChannel.setMethodCallHandler((call) async {
         if (call.method == 'onStepDetected') {

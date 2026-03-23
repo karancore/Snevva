@@ -16,6 +16,19 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Reset headless flag for pure UI run
+        getSharedPreferences("steps_prefs", android.content.Context.MODE_PRIVATE)
+            .edit().putBoolean("is_headless", false).apply()
+            
+        // Start StepCounterService 
+        val stepIntent = Intent(this, StepCounterService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(stepIntent)
+        } else {
+            startService(stepIntent)
+        }
+        
         AlarmHelper.cancelSleepAlarms(this)
         requestHighestRefreshRate()
         Log.d("Lifecycle", "onCreate called")
@@ -24,8 +37,7 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        // Register existing StepCounterService (if any)
-        // StepCounterService.registerWith(this)  // Uncomment if you have this
+        // MethodChannels setup
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, oemChannelName)
             .setMethodCallHandler { call, result ->

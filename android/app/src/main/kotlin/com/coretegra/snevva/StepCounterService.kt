@@ -25,10 +25,11 @@ class StepCounterService : Service(), SensorEventListener {
     private lateinit var prefs: SharedPreferences
     private var initialSteps = -1f
 
-    private val CHANNEL_ID = "steps_channel"
+    private val CHANNEL_ID = "snevva_foreground"
     private val PREFS_NAME = "steps_prefs"
     private val KEY_TODAY_STEPS = "todaySteps"
     private val KEY_DATE = "lastDate"
+    private val KEY_IS_HEADLESS = "is_headless"
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -93,21 +94,33 @@ class StepCounterService : Service(), SensorEventListener {
 
         createNotificationChannel()
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Snevva Step Tracker")
-            .setContentText("Counting your steps in background")
+            .setContentTitle("Snevva Active")
+            .setContentText("Step tracking running...")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setOngoing(true)
             .build()
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH)
+            startForeground(888, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH)
         } else {
-            startForeground(1, notification)
+            startForeground(888, notification)
         }
+        
+        // Setup Headless Flutter Router Engine if null
+        if (flutterEngine == null) {
+            prefs.edit().putBoolean(KEY_IS_HEADLESS, true).apply()
+            val engine = FlutterEngine(applicationContext)
+            engine.dartExecutor.executeDartEntrypoint(
+                DartExecutor.DartEntrypoint.createDefault()
+            )
+            io.flutter.embedding.engine.FlutterEngineCache.getInstance().put("step_engine", engine)
+            flutterEngine = engine
+        }
+        
         registerStepListener()
         scheduleSparseWakeup()
 
-        Log.d("StepService", "🚀 StepCounterService started.")
+        Log.d("StepService", "🚀 StepCounterService started with Headless Router.")
     }
 
     /** Registers the step counter sensor listener, if available. */
@@ -174,37 +187,5 @@ class StepCounterService : Service(), SensorEventListener {
         private const val TAG = "StepService"
         private const val CHANNEL_NAME = "step_counter_service"
         var flutterEngine: FlutterEngine? = null
-
-        /** Allows Flutter to start the service via MethodChannel */
-        fun registerWith(context: Context) {
-            val engine = FlutterEngine(context.applicationContext)
-            engine.dartExecutor.executeDartEntrypoint(
-                DartExecutor.DartEntrypoint.createDefault()
-            )
-            FlutterEngineCache.getInstance().put("step_engine", engine)
-            flutterEngine = engine
-
-            val channel = MethodChannel(engine.dartExecutor.binaryMessenger, "step_counter_service")
-            channel.setMethodCallHandler { call, result ->
-                when (call.method) {
-                    "startService" -> {
-                        val intent = Intent(context, StepCounterService::class.java)
-                        context.startForegroundService(intent)
-                        result.success(true)
-                    }
-                    "stopService" -> {
-                        val intent = Intent(context, StepCounterService::class.java)
-                        context.stopService(intent)
-                        result.success(true)
-                    }
-                    "getSteps" -> {
-                        val prefs = context.getSharedPreferences("steps_prefs", Context.MODE_PRIVATE)
-                        val steps = prefs.getInt("todaySteps", 0)
-                        result.success(steps)
-                    }
-                    else -> result.notImplemented()
-                }
-            }
-        }
     }
 }
