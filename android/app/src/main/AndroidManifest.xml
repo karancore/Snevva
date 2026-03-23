@@ -151,7 +151,7 @@
         <service
             android:name=".StepCounterService"
             android:exported="false"
-            android:foregroundServiceType="health" />
+            android:foregroundServiceType="dataSync" />
 
         <!-- 🛌 Flutter Background Service (Sleep Tracking + others) -->
         <meta-data

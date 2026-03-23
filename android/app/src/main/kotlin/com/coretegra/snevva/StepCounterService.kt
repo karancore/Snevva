@@ -101,7 +101,7 @@ class StepCounterService : Service(), SensorEventListener {
             .build()
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(888, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH)
+            startForeground(888, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
         } else {
             startForeground(888, notification)
         }
