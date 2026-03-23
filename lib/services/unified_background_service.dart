@@ -192,13 +192,24 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
       final int newTotalSteps = event['steps'] as int;
 
       await prefs.reload();
-      final savedSteps = prefs.getInt("total_steps_so_far") ?? 0;
-      final stepDifference = (newTotalSteps - savedSteps).clamp(0, 9999);
+      final savedSteps = prefs.getInt("today_steps") ?? 0;
 
-      if (stepDifference > 0) {
-        await prefs.setInt("total_steps_so_far", newTotalSteps);
-        
-        // Passive notification update
+      if (newTotalSteps > savedSteps) {
+        // Write to the key Dart controller polls every second
+        await prefs.setInt("today_steps", newTotalSteps);
+
+        // Persist to Hive
+        final now = DateTime.now();
+        final todayKey = "${now.year}-${now.month}-${now.day}";
+        final currentHive = stepBox.get(todayKey)?.steps ?? 0;
+        if (newTotalSteps > currentHive) {
+          await stepBox.put(todayKey, StepEntry(date: DateTime(now.year, now.month, now.day), steps: newTotalSteps));
+        }
+
+        // Fire event so StepCounterController._listenToBackgroundSteps() reacts immediately
+        service.invoke("steps_updated", {"steps": newTotalSteps});
+
+        // Update notification only when not sleeping
         if (service is AndroidServiceInstance) {
           final isSleeping = prefs.getBool("is_sleeping") ?? false;
           if (!isSleeping) {

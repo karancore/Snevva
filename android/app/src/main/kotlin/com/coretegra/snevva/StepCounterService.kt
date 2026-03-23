@@ -27,7 +27,7 @@ class StepCounterService : Service(), SensorEventListener {
 
     private val CHANNEL_ID = "snevva_foreground"
     private val PREFS_NAME = "steps_prefs"
-    private val KEY_TODAY_STEPS = "todaySteps"
+    private val KEY_TODAY_STEPS = "today_steps"
     private val KEY_DATE = "lastDate"
     private val KEY_IS_HEADLESS = "is_headless"
 
