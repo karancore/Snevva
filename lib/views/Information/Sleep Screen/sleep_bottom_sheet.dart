@@ -454,7 +454,20 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
                             ? "Update & Start Tracking"
                             : "Start Sleep Tracking",
                     onTap: () async {
-                      await _startSleepTracking();
+                      final bedHour = bedHourController.selected;
+                      final bedMinute = bedMinuteController.selected * 15;
+
+                      final wakeHour = wakeHourController.selected;
+                      final wakeMinute = wakeMinuteController.selected * 15;
+
+                      final bedTime = TimeOfDay(hour: bedHour, minute: bedMinute);
+                      final wakeTime = TimeOfDay(hour: wakeHour, minute: wakeMinute);
+
+                      await Future.wait([
+                        _startSleepTracking(),
+                        Get.find<SleepController>()
+                            .updateSleepTimestoServer(bedTime, wakeTime),
+                      ]);
                     },
                   ),
                   const SizedBox(height: 12),
@@ -489,6 +502,7 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
                             initialIndex: 0,
                           );
                         });
+
 
                         Get.snackbar(
                           'Schedule Cleared',

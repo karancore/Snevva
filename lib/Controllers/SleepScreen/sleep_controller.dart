@@ -671,6 +671,7 @@ class SleepController extends GetxService {
       debugPrint("📥 Raw API Response: $response");
 
       if (response is http.Response) {
+
         debugPrint("❌ Response is http.Response (failure case)");
         debugPrint("StatusCode: ${response.statusCode}");
         debugPrint("Body: ${response.body}");
@@ -680,6 +681,7 @@ class SleepController extends GetxService {
           title: 'Error',
           message: 'Failed to update sleep times to server.',
         );
+
       } else {
         debugPrint("✅ Sleep times updated to server successfully");
       }

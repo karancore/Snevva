@@ -93,9 +93,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
   void _setupSleepListeners() {
     // Listen to sleep progress updates
-    _sleepUpdateSubscription = _service.on("sleep_update").listen((
-      event,
-    ) async {
+    _sleepUpdateSubscription = _service.on("sleep_update").listen((event) async {
       if (event != null && mounted) {
         final prefs = await SharedPreferences.getInstance();
         final manuallyStopped = prefs.getBool('manually_stopped') ?? false;
