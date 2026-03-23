@@ -17,7 +17,6 @@ class MainActivity : FlutterActivity() {
         super.onCreate(savedInstanceState)
         AlarmHelper.cancelSleepAlarms(this)
         requestHighestRefreshRate()
-        WatchdogWorker.start(this)
         Log.d("Lifecycle", "onCreate called")
     }
 

@@ -18,7 +18,6 @@ class BootReceiver : BroadcastReceiver() {
             
             // 2. Schedule SleepCalcWorker to calculate sleep gracefully
             SleepCalcWorker.scheduleNext(context)
-            WatchdogWorker.start(context)
             
             // 3. Keep old AlarmHelper behavior for reminders
             AlarmHelper.scheduleSleepAlarms(context)
