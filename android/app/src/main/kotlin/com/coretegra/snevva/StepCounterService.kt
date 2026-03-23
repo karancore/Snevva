@@ -111,8 +111,7 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     /** Registers the step counter sensor listener, if available. */
-    private fun registerStepListener()
-        scheduleSparseWakeup() {
+    private fun registerStepListener() {
         stepSensor?.also { sensor ->
             sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
             Log.d("StepService", "✅ Step sensor registered successfully.")
@@ -174,7 +173,7 @@ class StepCounterService : Service(), SensorEventListener {
     companion object {
         private const val TAG = "StepService"
         private const val CHANNEL_NAME = "step_counter_service"
-        private var flutterEngine: FlutterEngine? = null
+        var flutterEngine: FlutterEngine? = null
 
         /** Allows Flutter to start the service via MethodChannel */
         fun registerWith(context: Context) {
