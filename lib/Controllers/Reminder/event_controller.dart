@@ -156,7 +156,7 @@ class EventController extends GetxController {
 
       final eventData = ReminderPayloadModel(
         id: id,
-        category: "event",
+        category: "Event",
         title: title,
         notes: notes,
         customReminder: CustomReminder(

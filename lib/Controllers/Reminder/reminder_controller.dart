@@ -1018,7 +1018,9 @@ class ReminderController extends GetxController {
     }
   }
 
-  Future<List<reminder_payload.ReminderPayloadModel>> getReminderFromAPI(BuildContext context) async {
+  Future<List<reminder_payload.ReminderPayloadModel>> getReminderFromAPI(
+    BuildContext context,
+  ) async {
     try {
       final response = await ApiService.post(
         getreminderApi,
@@ -1040,11 +1042,14 @@ class ReminderController extends GetxController {
       final decodedBody = jsonDecode(enc);
       final List remindersList = decodedBody['data']['Reminders'] as List;
 
-      final List<reminder_payload.ReminderPayloadModel> reminders = remindersList
-          .map((e) => reminder_payload.ReminderPayloadModel.fromJson(
-                e as Map<String, dynamic>,
-              ))
-          .toList();
+      final List<reminder_payload.ReminderPayloadModel> reminders =
+          remindersList
+              .map(
+                (e) => reminder_payload.ReminderPayloadModel.fromJson(
+                  e as Map<String, dynamic>,
+                ),
+              )
+              .toList();
       ReminderScheduler().scheduleAll(reminders);
       return reminders;
     } catch (e) {
@@ -1053,13 +1058,33 @@ class ReminderController extends GetxController {
   }
 
   Future<void> addRemindertoAPI(
-      reminder_payload.ReminderPayloadModel reminderData,
-      BuildContext context,
-      ) async {
+    reminder_payload.ReminderPayloadModel reminderData,
+    BuildContext context,
+  ) async {
     try {
       debugPrint("🚀 addRemindertoAPI called");
-      debugPrint("📦 Payload: ${reminderData.toJson()}");
 
+      Map<String, dynamic> payload = reminderData.toJson();
+
+      // ✅ Capitalize Category
+      if (payload['Category'] != null && payload['Category'] is String) {
+        String category = payload['Category'];
+        if (category.isNotEmpty) {
+          payload['Category'] =
+              category[0].toUpperCase() + category.substring(1);
+        }
+      }
+
+      payload.removeWhere((key, value) => value == null);
+
+      // Fix date format
+      //       if (payload['CustomReminder']?['TimesPerDay']?['List'] != null) {
+      //         List list = payload['CustomReminder']['TimesPerDay']['List'];
+      //         payload['CustomReminder']['TimesPerDay']['List'] =
+      //             list.map((e) => DateTime.parse(e).toIso8601String()).toList();
+      //       }asdadasd
+
+      debugPrint("📦 Modified Payload: $payload");
       debugPrint("🌐 Hitting API: $addreminderApi");
 
       final response = await ApiService.post(
@@ -1085,7 +1110,9 @@ class ReminderController extends GetxController {
           message: 'Failed to save Reminder record: ${response.statusCode}',
         );
       } else {
-        debugPrint("✅ Reminder saved successfully, fetching updated reminders...");
+        debugPrint(
+          "✅ Reminder saved successfully, fetching updated reminders...",
+        );
         await getReminders(context);
         debugPrint("🔄 getReminders completed");
       }
@@ -1094,6 +1121,7 @@ class ReminderController extends GetxController {
       debugPrint("📍 StackTrace: $stackTrace");
     }
   }
+
   Future<void> updateReminder(
     reminder_payload.ReminderPayloadModel reminderData,
     BuildContext context,
@@ -1120,7 +1148,6 @@ class ReminderController extends GetxController {
       debugPrint("Exception while updating Reminder record: $e");
     }
   }
-
 
   Future<void> deleteReminderFromAPI(
     String reminderId,

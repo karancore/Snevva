@@ -337,7 +337,7 @@ class WaterController extends GetxController {
 
     final waterData = ReminderPayloadModel(
       id: reminderGroupId,
-      category: ReminderCategory.water.toString(),
+      category: "Water",
       title: model.title,
       notes: reminderController.notesController.text,
       reminderFrequencyType: Option.times.toString(),
@@ -591,7 +591,7 @@ class WaterController extends GetxController {
 
     final waterData = ReminderPayloadModel(
       id: reminderGroupId,
-      category: "water",
+      category: "Water",
       title: model.title,
       notes: reminderController.notesController.text,
       reminderFrequencyType: Option.interval.toString(),

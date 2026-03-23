@@ -33,7 +33,7 @@ class MealController extends GetxController {
     // };
     final mealData = ReminderPayloadModel(
       id: id,
-      category: "meal",
+      category: "Meal",
       title: title,
       notes: notes.isNotEmpty ? notes : "",
       customReminder: CustomReminder(
