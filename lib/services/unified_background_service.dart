@@ -635,7 +635,9 @@ Future<void> _ensureCurrentDayStepState({
   if (lastDate == todayKey && !forceNotify) return;
 
   await prefs.setString("last_step_date", todayKey);
-  await prefs.remove('lastRawSteps');
+  // 🔥 FIX: DO NOT remove 'lastRawSteps'. We must keep the hardware tally so the pedometer stream 
+  // diff correctly evaluates the steps carried over precisely at midnight!
+  // await prefs.remove('lastRawSteps'); 
 
   final existingToday = stepBox.get(todayKey);
   if (existingToday == null) {

@@ -42,16 +42,12 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
             }
             if (!end.after(start)) end.add(Calendar.DAY_OF_MONTH, 1)
 
-            // Save interval in ISO format
-            val windowKey = "${start.get(Calendar.YEAR)}-${(start.get(Calendar.MONTH) + 1).toString().padStart(2, '0')}-${start.get(Calendar.DAY_OF_MONTH).toString().padStart(2, '0')}"
-            val intervalsKey = "flutter.sleep_intervals_$windowKey"
+            // [REMOVED CONFLICT] 
+            // We NO LONGER overwrite "flutter.sleep_intervals" directly from native code.
+            // Dart's `unified_background_service.dart` handles the precise sleep calculation via Screen ON/OFF tracking.
+            // This Worker serves solely to launch the ApiSyncWorker periodically at wake time!
             
-            val intervalStr = "${start.time.toInstant()}|${end.time.toInstant()}"
-            val existing = prefs.getString(intervalsKey, "") ?: ""
-            val updated = if (existing.isEmpty()) intervalStr else "$existing,$intervalStr"
-            
-            prefs.edit().putString(intervalsKey, updated).apply()
-            Log.d("SleepCalcWorker", "Sleep calculated and saved: $intervalStr for window $windowKey")
+            Log.d("SleepCalcWorker", "Wake Time Reached. Launching API Sync for the new day.")
 
             // Chain to API Sync
             val syncRequest = OneTimeWorkRequestBuilder<ApiSyncWorker>()

@@ -150,6 +150,15 @@
             android:foregroundServiceType="health" />
 
         <!-- 🛌 Flutter Background Service (Sleep Tracking + others) -->
+        <meta-data
+            android:name="id.flutter.flutter_background_service.notification_channel_id"
+            android:value="flutter_background_service"/>
+        <meta-data
+            android:name="id.flutter.flutter_background_service.notification_channel_name"
+            android:value="Background Service"/>
+        <meta-data
+            android:name="id.flutter.flutter_background_service.notification_channel_desc"
+            android:value="Health tracking service"/>
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"
             android:foregroundServiceType="dataSync|health"
