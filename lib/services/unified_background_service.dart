@@ -511,7 +511,6 @@ Future<void> _startSleepTrackingSession({
     );
   }
 
-  _startSleepIntervalAggregator(service, prefs);
 }
 
 _SleepWindow? _resolveSleepWindow({
