@@ -84,7 +84,16 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
       sleepBox: sleepBox,
     );
 
-    // ═══════════════════════════════════════════════════════════════
+    // ── Always-on 1-min heartbeat ─────────────────────────────────
+    // Drives sleep notification ticks, auto-close at window end, AND
+    // nightly auto-start of sleep sessions when the window opens.
+    _startHeartbeatTimer(
+      service: service,
+      prefs: prefs,
+      sleepBox: sleepBox,
+      stepBox: stepBox,
+    );
+
     // 🌙 SLEEP TRACKING — start_sleep event
     // ═══════════════════════════════════════════════════════════════
 
@@ -320,60 +329,90 @@ void _updateSleepNotification({
 }
 
 // ───────────────────────────────────────────────────────────────────
-// ⏱️ 1-MIN SLEEP PROGRESS TIMER
+// ⏱️ ALWAYS-ON 1-MIN HEARTBEAT TIMER
 // ───────────────────────────────────────────────────────────────────
 
-/// Starts a periodic 1-minute timer that updates the sleep notification
-/// and sends [sleep_update] events to the UI while a sleep session is active.
-/// Auto-cancels and saves when the sleep window ends.
+/// Starts a timer that fires every 60 seconds for the lifetime of the
+/// background service. On each tick it:
+///  • If sleeping  → updates the sleep notification + auto-closes when the
+///                   window ends.
+///  • If not sleeping → checks whether the sleep window just opened and
+///                      auto-starts the session.  This is what makes the
+///                      whole week / month of sleep data accumulate without
+///                      the user doing anything after setting bedtime once.
+void _startHeartbeatTimer({
+  required ServiceInstance service,
+  required SharedPreferences prefs,
+  required Box<SleepLog> sleepBox,
+  required Box<StepEntry> stepBox,
+}) {
+  _sleepProgressTimer?.cancel();
+  _sleepProgressTimer = Timer.periodic(const Duration(minutes: 1), (_) async {
+    await prefs.reload();
+    final isSleeping = prefs.getBool('is_sleeping') ?? false;
+
+    if (isSleeping) {
+      // ── Active sleep: update notification + check window end ──────
+      final goalMinutes = prefs.getInt('sleep_goal_minutes') ?? 480;
+      final totalSleepMinutes = await _sleepNoticingService.getTotalSleepMinutes();
+      final windowKey = prefs.getString('current_sleep_window_key');
+      final startTime = prefs.getString('sleep_start_time');
+
+      service.invoke('sleep_update', {
+        'elapsed_minutes': totalSleepMinutes,
+        'goal_minutes': goalMinutes,
+        'is_sleeping': true,
+        'current_sleep_window_key': windowKey,
+        'start_time': startTime,
+      });
+
+      _updateSleepNotification(
+        service: service,
+        elapsedMinutes: totalSleepMinutes,
+        goalMinutes: goalMinutes,
+      );
+
+      // Auto-close when window has passed
+      final windowEndStr = prefs.getString('current_sleep_window_end');
+      if (windowEndStr != null) {
+        try {
+          final windowEnd = DateTime.parse(windowEndStr);
+          if (DateTime.now().isAfter(windowEnd)) {
+            _sleepNoticingService.stopMonitoring();
+            await _stopSleepAndSave(service, prefs, sleepBox);
+          }
+        } catch (_) {}
+      }
+    } else {
+      // ── Not sleeping: check if the window just opened (nightly auto-start) ──
+      // This is the key to automatic multi-night/week/month data collection:
+      // every minute the service re-checks whether now falls inside the user's
+      // sleep window and auto-starts if so.
+      await _restoreOrAutoStartSleepTracking(
+        service: service,
+        prefs: prefs,
+        sleepBox: sleepBox,
+      );
+    }
+  });
+}
+
+// Keep the old name as a thin wrapper so all existing call-sites compile.
 void _startSleepProgressTimer({
   required ServiceInstance service,
   required SharedPreferences prefs,
   required int goalMinutes,
   required Box<SleepLog> sleepBox,
 }) {
-  _sleepProgressTimer?.cancel();
-  _sleepProgressTimer = Timer.periodic(const Duration(minutes: 1), (_) async {
-    await prefs.reload();
-    final isSleeping = prefs.getBool("is_sleeping") ?? false;
-    if (!isSleeping) {
-      _sleepProgressTimer?.cancel();
-      _sleepProgressTimer = null;
-      return;
-    }
-
-    final totalSleepMinutes = await _sleepNoticingService.getTotalSleepMinutes();
-    final windowKey = prefs.getString("current_sleep_window_key");
-    final startTime = prefs.getString("sleep_start_time");
-
-    service.invoke("sleep_update", {
-      "elapsed_minutes": totalSleepMinutes,
-      "goal_minutes": goalMinutes,
-      "is_sleeping": true,
-      "current_sleep_window_key": windowKey,
-      "start_time": startTime,
-    });
-
-    _updateSleepNotification(
-      service: service,
-      elapsedMinutes: totalSleepMinutes,
-      goalMinutes: goalMinutes,
-    );
-
-    // Auto-close if sleep window has ended
-    final windowEndStr = prefs.getString("current_sleep_window_end");
-    if (windowEndStr != null) {
-      try {
-        final windowEnd = DateTime.parse(windowEndStr);
-        if (DateTime.now().isAfter(windowEnd)) {
-          _sleepProgressTimer?.cancel();
-          _sleepProgressTimer = null;
-          _sleepNoticingService.stopMonitoring();
-          await _stopSleepAndSave(service, prefs, sleepBox);
-        }
-      } catch (_) {}
-    }
-  });
+  // goalMinutes is now read fresh inside the timer — no need to pass it.
+  // Delegate to the always-on heartbeat (no-op if already running because
+  // the timer is replaced each call).
+  _startHeartbeatTimer(
+    service: service,
+    prefs: prefs,
+    sleepBox: sleepBox,
+    stepBox: Hive.box<StepEntry>('step_history'), // already open at this point
+  );
 }
 
 // ───────────────────────────────────────────────────────────────────

@@ -3,10 +3,9 @@ package com.coretegra.snevva
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
-import io.flutter.app.FlutterApplication
 import androidx.multidex.MultiDexApplication
 
-// This is the simplest way to ensure MultiDex is enabled
+// Ensures MultiDex is enabled for the application.
 class MyApplication : MultiDexApplication() {
     override fun onCreate() {
         super.onCreate()
@@ -15,12 +14,14 @@ class MyApplication : MultiDexApplication() {
 
     private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Single unified tracker channel used by StepCounterService AND
+            // the flutter_background_service isolate.
             val channel = NotificationChannel(
-                "flutter_background_service",
-                "Background Service",
+                "tracker_channel",
+                "Health Tracking",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Channel for background service notifications"
+                description = "Step & sleep tracking"
             }
 
             val manager = getSystemService(NotificationManager::class.java)
