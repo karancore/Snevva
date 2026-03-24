@@ -1945,10 +1945,13 @@ class ReminderController extends GetxController {
     );
   }
   Future<void> updateReminder(
-    reminder_payload.ReminderPayloadModel reminderData,
-    BuildContext context,
-  ) async {
+      reminder_payload.ReminderPayloadModel reminderData,
+      BuildContext context,
+      ) async {
     try {
+      debugPrint("➡️ updateReminder called");
+      debugPrint("📦 Payload: ${reminderData.toJson()}");
+
       final response = await ApiService.post(
         editreminderApi,
         reminderData.toJson(),
@@ -1956,18 +1959,32 @@ class ReminderController extends GetxController {
         encryptionRequired: true,
       );
 
-      if (response is http.Response && response.statusCode >= 400) {
-        CustomSnackbar.showError(
-          context: context,
-          title: 'Error',
-          message: 'Failed to update Reminder record: ${response.statusCode}',
-        );
+      debugPrint("📡 API Response received");
+
+      if (response is http.Response) {
+        debugPrint("🔢 Status Code: ${response.statusCode}");
+        debugPrint("📄 Response Body: ${response.body}");
+
+        if (response.statusCode >= 400) {
+          debugPrint("❌ Error in updateReminder");
+
+          CustomSnackbar.showError(
+            context: context,
+            title: 'Error',
+            message: 'Failed to update Reminder record: ${response.statusCode}',
+          );
+        } else {
+          debugPrint("✅ Reminder updated successfully");
+
+          // Optional:
+          // await getReminders(context);
+        }
+      } else {
+        debugPrint("⚠️ Unexpected response type: ${response.runtimeType}");
       }
-      // else {
-      //   await getReminders(context);
-      // }
-    } catch (e) {
-      debugPrint("Exception while updating Reminder record: $e");
+    } catch (e, stackTrace) {
+      debugPrint("💥 Exception while updating Reminder record: $e");
+      debugPrint("🧵 StackTrace: $stackTrace");
     }
   }
 
