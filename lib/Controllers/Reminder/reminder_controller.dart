@@ -1889,6 +1889,20 @@ class ReminderController extends GetxController {
               category[0].toUpperCase() + category.substring(1);
         }
       }
+      if (payload['CustomReminder'] != null &&
+          payload['CustomReminder'] is Map &&
+          payload['CustomReminder']['TimesPerDay'] != null &&
+          payload['CustomReminder']['TimesPerDay'] is Map) {
+
+        var timesPerDay = payload['CustomReminder']['TimesPerDay'];
+
+        if (timesPerDay['Count'] != null) {
+          // Convert Count to String safely
+          timesPerDay['Count'] = timesPerDay['Count'].toString();
+        }
+      }
+
+
 
       payload.removeWhere((key, value) => value == null);
 
@@ -1904,7 +1918,7 @@ class ReminderController extends GetxController {
 
       final response = await ApiService.post(
         addreminderApi,
-        reminderData.toJson(),
+        payload,
         withAuth: true,
         encryptionRequired: true,
       );
@@ -1978,9 +1992,33 @@ class ReminderController extends GetxController {
       debugPrint("➡️ updateReminder called");
       debugPrint("📦 Payload: ${reminderData.toJson()}");
 
+      Map<String, dynamic> payload = reminderData.toJson();
+
+
+
+      if (payload['Category'] != null && payload['Category'] is String) {
+        String category = payload['Category'];
+        if (category.isNotEmpty) {
+          payload['Category'] =
+              category[0].toUpperCase() + category.substring(1);
+        }
+      }
+      if (payload['CustomReminder'] != null &&
+          payload['CustomReminder'] is Map &&
+          payload['CustomReminder']['TimesPerDay'] != null &&
+          payload['CustomReminder']['TimesPerDay'] is Map) {
+
+        var timesPerDay = payload['CustomReminder']['TimesPerDay'];
+
+        if (timesPerDay['Count'] != null) {
+          // Convert Count to String safely
+          timesPerDay['Count'] = timesPerDay['Count'].toString();
+        }
+      }
+
       final response = await ApiService.post(
         editreminderApi,
-        reminderData.toJson(),
+        payload,
         withAuth: true,
         encryptionRequired: true,
       );
@@ -2092,11 +2130,6 @@ class ReminderController extends GetxController {
         category: "event",
       );
     }
-
-    // ---------------------------------------------------------------------------
-    // Basic validation
-    // ---------------------------------------------------------------------------
-
     if (titleController.text
         .trim()
         .isEmpty) {
@@ -2159,10 +2192,6 @@ class ReminderController extends GetxController {
       return true;
     }
 
-    // ---------------------------------------------------------------------------
-    // Category-specific validation
-    // ---------------------------------------------------------------------------
-
     if (category == "medicine") {
       if (dosage == null || dosage <= 0) {
         debugPrint("❌ Validation failed: invalid dosage");
@@ -2178,11 +2207,6 @@ class ReminderController extends GetxController {
         return false;
       }
     }
-
-    // ---------------------------------------------------------------------------
-    // Category switch
-    // ---------------------------------------------------------------------------
-
     debugPrint("🚦 Processing category: $category");
 
     switch (category) {

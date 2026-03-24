@@ -282,8 +282,7 @@ class TimesPerDay {
   const TimesPerDay({required this.count, required this.list});
 
   Map<String, dynamic> toJson() => {
-    // API expects Int32; keep Hive field as String for backward compatibility.
-    'Count': int.tryParse(count) ?? 0,
+    'Count': count,
     'List': list,
   };
 

@@ -71,7 +71,7 @@ class ApiService {
           await DeviceTokenService().buildDeviceInfoHeader();
       headers['X-Device-Info'] = deviceInfoHeader;
       if (kDebugMode) {
-        logLong("headers", _redactHeaders(headers).toString());
+        logLong("headers", headers.toString());
       }
 
       final encryptedRequestBody = jsonEncode({
@@ -149,7 +149,7 @@ class ApiService {
       headers['X-Device-Info'] = deviceInfoHeader;
 
       if (kDebugMode) {
-        debugPrint("headers ${_redactHeaders(headers)}");
+        debugPrint("headers ${headers.toString()}");
       }
 
       final response = await http.post(
