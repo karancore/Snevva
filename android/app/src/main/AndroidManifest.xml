@@ -153,16 +153,16 @@
             android:exported="false"
             android:foregroundServiceType="health" />
 
-        <!-- 🛌 Flutter Background Service (Sleep Tracking + others) -->
+        <!-- 🛌 Flutter Background Service (Sleep Tracking + Step Event Relay) -->
         <meta-data
             android:name="id.flutter.flutter_background_service.notification_channel_id"
-            android:value="flutter_background_service"/>
+            android:value="tracker_channel"/>
         <meta-data
             android:name="id.flutter.flutter_background_service.notification_channel_name"
-            android:value="Background Service"/>
+            android:value="Health Tracking"/>
         <meta-data
             android:name="id.flutter.flutter_background_service.notification_channel_desc"
-            android:value="Health tracking service"/>
+            android:value="Step &amp; sleep tracking"/>
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"
             android:foregroundServiceType="dataSync|health"

@@ -17,9 +17,6 @@ class SleepNoticingService {
   StreamSubscription<ScreenStateEvent>? _subscription;
   final Screen _screen = Screen();
 
-  // Add this: Track current screen state (assume 'on' initially; first event will correct it)
-  bool _screenIsOn = true;
-
   // ─────────────────────────────────────────────
   // PUBLIC API
   // ─────────────────────────────────────────────
@@ -55,19 +52,34 @@ class SleepNoticingService {
     _subscription = null;
   }
 
-  // Add this new method: Call this when sleep starts (after window is set in the background service)
+  // Called when sleep starts (or when service restarts mid-sleep session).
+  // Seeds the open-interval anchor so we never lose sleep time due to an
+  // unknown screen state after a service restart.
   Future<void> initializeForSleepWindow() async {
     final prefs = await SharedPreferences.getInstance();
     final window = await _computeActiveSleepWindow(prefs);
     if (window == null) return;
 
     final now = DateTime.now();
-    if (_isWithinWindow(now, window.start, window.end) && !_screenIsOn) {
-      final lastOffKey = 'last_screen_off_${window.dateKey}';
-      // Initialize open interval from window start
+    if (!_isWithinWindow(now, window.start, window.end)) return;
+
+    final lastOffKey = 'last_screen_off_${window.dateKey}';
+
+    // Only seed the anchor if there is no existing open-interval key.
+    // If one already exists from before the restart, we honour it (preserves
+    // any sleep that happened before the service went down).
+    final existing = prefs.getString(lastOffKey);
+    if (existing == null) {
+      // We don't know the real screen state after a restart — assume screen is
+      // off (conservative). If it's actually on, the next SCREEN_ON event will
+      // close this interval correctly. If it's off, we continue accumulating.
       await prefs.setString(lastOffKey, window.start.toIso8601String());
       debugPrint(
-        '🔒 Initialized open interval from window start: ${window.start}',
+        '🔒 initializeForSleepWindow: seeded open interval from window.start (${window.start})',
+      );
+    } else {
+      debugPrint(
+        'ℹ️ initializeForSleepWindow: existing open interval found ($existing), keeping it.',
       );
     }
   }
@@ -78,7 +90,6 @@ class SleepNoticingService {
 
   Future<void> _onScreenTurnedOff() async {
     debugPrint('🌙 SCREEN_OFF detected');
-    _screenIsOn = false; // Add this: Update state
 
     final prefs = await SharedPreferences.getInstance();
 
@@ -117,7 +128,6 @@ class SleepNoticingService {
 
   Future<void> _onScreenTurnedOn() async {
     debugPrint('🌞 SCREEN_ON detected');
-    _screenIsOn = true; // Add this: Update state
 
     final prefs = await SharedPreferences.getInstance();
 

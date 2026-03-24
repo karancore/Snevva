@@ -29,10 +29,13 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
 Future<void> createServiceNotificationChannel() async {
+  // Single unified channel used by BOTH the native StepCounterService and the
+  // Dart flutter_background_service isolate. Creating it here ensures it exists
+  // before either service tries to post notifications.
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
-    'flutter_background_service',
-    'Background Service',
-    description: 'Health tracking service (steps & sleep)',
+    'tracker_channel',
+    'Health Tracking',
+    description: 'Step & sleep tracking',
     importance: Importance.low,
   );
 
@@ -42,7 +45,7 @@ Future<void> createServiceNotificationChannel() async {
       >()
       ?.createNotificationChannel(channel);
 
-  print("✅ Notification channel created for foreground service");
+  print("✅ tracker_channel created for foreground service");
 }
 
 // ====================================================================
@@ -182,9 +185,15 @@ Future<void> initBackgroundService() async {
   await service.configure(
     androidConfiguration: AndroidConfiguration(
       onStart: unifiedBackgroundEntry,
-      isForegroundMode: false, // StepCounterService.kt owns the foreground notification
+      // ✅ FIX: foreground mode so the Dart isolate holds a foreground lock and
+      // cannot be silently killed by OEM battery savers. This is required for
+      // reliable sleep tracking via the screen_state stream.
+      isForegroundMode: true,
       autoStart: true,
       autoStartOnBoot: true,
+      notificationChannelId: 'tracker_channel',
+      initialNotificationTitle: 'Snevva Active',
+      initialNotificationContent: '👟 Steps: 0',
     ),
     iosConfiguration: IosConfiguration(
       autoStart: false,

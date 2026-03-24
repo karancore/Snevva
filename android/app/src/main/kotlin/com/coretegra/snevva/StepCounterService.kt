@@ -21,9 +21,11 @@ class StepCounterService : Service(), SensorEventListener {
     private lateinit var sensorManager: SensorManager
     private var stepSensor: Sensor? = null
     private lateinit var prefs: SharedPreferences
-    private var initialSteps = -1f
 
-    private val CHANNEL_ID = "snevva_foreground"
+    // Single unified channel — same ID used by the Dart foreground service
+    private val CHANNEL_ID = "tracker_channel"
+    private val NOTIFICATION_ID = 1
+
     private val PREFS_NAME = "steps_prefs"
     private val KEY_TODAY_STEPS = "today_steps"
     private val KEY_DATE = "lastDate"
@@ -33,7 +35,7 @@ class StepCounterService : Service(), SensorEventListener {
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
         Log.e("StepService", "Swipe-to-kill detected. Trying to resurrect via AlarmManager & WorkManager.")
-        
+
         // Resurrection mechanism via AlarmManager
         val restartIntent = Intent(applicationContext, StepCounterService::class.java)
         val pendingIntent = PendingIntent.getService(
@@ -52,7 +54,7 @@ class StepCounterService : Service(), SensorEventListener {
         } catch (e: Exception) {
             Log.e("StepService", "Alarm setup failed", e)
         }
-        
+
         // Fallback resurrection via WorkManager
         val workRequest = OneTimeWorkRequestBuilder<ResurrectionWorker>().build()
         WorkManager.getInstance(applicationContext).enqueue(workRequest)
@@ -73,11 +75,10 @@ class StepCounterService : Service(), SensorEventListener {
                 System.currentTimeMillis() + 15 * 60 * 1000,
                 pendingIntent
             )
-        } catch(e: Exception) {
-             Log.e("StepService", "Alarm setup failed", e)
+        } catch (e: Exception) {
+            Log.e("StepService", "Alarm setup failed", e)
         }
     }
-
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         return START_STICKY
@@ -89,19 +90,18 @@ class StepCounterService : Service(), SensorEventListener {
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
 
-        createNotificationChannel()
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Snevva Active")
-            .setContentText("Step tracking running...")
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setOngoing(true)
-            .build()
+        // Note: tracker_channel is created by the Dart side (app_initializer.dart) before this
+        // service starts. We create it here as a safety fallback for boot scenarios where
+        // Dart hasn't run yet.
+        ensureNotificationChannel()
+
+        val stepsToday = prefs.getInt(KEY_TODAY_STEPS, 0)
+        val notification = buildNotification(stepsToday)
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            // HEALTH type is required on Android 14+ for motion/step sensor access
-            startForeground(888, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH)
+            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH)
         } else {
-            startForeground(888, notification)
+            startForeground(NOTIFICATION_ID, notification)
         }
 
         registerStepListener()
@@ -110,7 +110,6 @@ class StepCounterService : Service(), SensorEventListener {
         Log.d("StepService", "🚀 StepCounterService started.")
     }
 
-    /** Registers the step counter sensor listener, if available. */
     private fun registerStepListener() {
         stepSensor?.also { sensor ->
             sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
@@ -120,7 +119,6 @@ class StepCounterService : Service(), SensorEventListener {
         }
     }
 
-    /** Handles sensor updates from the step counter. */
     override fun onSensorChanged(event: SensorEvent?) {
         if (event?.sensor?.type != Sensor.TYPE_STEP_DETECTOR) return
 
@@ -134,14 +132,13 @@ class StepCounterService : Service(), SensorEventListener {
         }
 
         var stepsToday = prefs.getInt(KEY_TODAY_STEPS, 0)
-        stepsToday += 1 // 1 physically detected step
-        
+        stepsToday += 1
         prefs.edit()
             .putInt(KEY_TODAY_STEPS, stepsToday)
             .putString(KEY_DATE, currentDate)
             .apply()
 
-        // Also write to Flutter's SharedPreferences so Dart poller can read directly
+        // Write to Flutter's SharedPreferences so the Dart poller can read directly
         val flutterPrefs = applicationContext.getSharedPreferences(
             "FlutterSharedPreferences", android.content.Context.MODE_PRIVATE
         )
@@ -151,27 +148,26 @@ class StepCounterService : Service(), SensorEventListener {
 
         Log.d("StepService", "👣 Steps today: $stepsToday")
 
-        // Update the foreground notification with the live step count
-        val notifManager = getSystemService(NotificationManager::class.java)
-        val updatedNotification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Snevva Active")
-            .setContentText("$stepsToday steps today")
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setOngoing(true)
-            .build()
-        notifManager.notify(888, updatedNotification)
+        // Update notification only when the Dart isolate is NOT sleeping
+        // (Dart isolate will overwrite the notification text during sleep mode)
+        val isSleeping = flutterPrefs.getBoolean("flutter.is_sleeping", false)
+        if (!isSleeping) {
+            val notifManager = getSystemService(NotificationManager::class.java)
+            notifManager.notify(NOTIFICATION_ID, buildNotification(stepsToday))
+        }
 
-        // Send to Flutter UI engine only if it is still alive
+        // Relay to Flutter UI engine only if alive — fire-and-forget, never block
         val engine = flutterEngine
-        if (engine != null) {
-            if (engine.dartExecutor.isExecutingDart) {
+        if (engine != null && engine.dartExecutor.isExecutingDart) {
+            try {
                 val channel = MethodChannel(engine.dartExecutor.binaryMessenger, "com.coretegra.snevva/step_detector")
                 channel.invokeMethod("onStepDetected", stepsToday)
-            } else {
-                // Engine is detached — clear reference to avoid repeated FlutterJNI errors
-                flutterEngine = null
-                Log.w("StepService", "Flutter engine detached, cleared reference")
+            } catch (e: Exception) {
+                Log.w("StepService", "MethodChannel send failed (engine may be detaching): ${e.message}")
             }
+        } else if (engine != null && !engine.dartExecutor.isExecutingDart) {
+            flutterEngine = null
+            Log.w("StepService", "Flutter engine detached, cleared reference")
         }
     }
 
@@ -185,15 +181,29 @@ class StepCounterService : Service(), SensorEventListener {
         Log.d("StepService", "🛑 StepCounterService destroyed.")
     }
 
-    /** Creates the foreground notification channel required for Android 8+. */
-    private fun createNotificationChannel() {
+    private fun buildNotification(stepsToday: Int): Notification {
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Snevva Active")
+            .setContentText("👟 Steps: $stepsToday")
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setOngoing(true)
+            .build()
+    }
+
+    /** Creates tracker_channel as a safety fallback (e.g. boot before Dart has run). */
+    private fun ensureNotificationChannel() {
+        val existing = (getSystemService(NOTIFICATION_SERVICE) as NotificationManager)
+            .getNotificationChannel(CHANNEL_ID)
+        if (existing != null) return // Already created by Dart side — skip
+
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "Step Counter Service",
+            "Health Tracking",
             NotificationManager.IMPORTANCE_LOW
         )
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(channel)
+        channel.description = "Step & sleep tracking"
+        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(channel)
+        Log.d("StepService", "✅ tracker_channel created (fallback)")
     }
 
     companion object {
