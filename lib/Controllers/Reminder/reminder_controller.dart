@@ -1011,8 +1011,11 @@ class ReminderController extends GetxController {
 
             if (data['remindBefore'] != null) {
               Map<String, dynamic> remindData = data['remindBefore'];
-              int time = remindData['time'] ?? 0;
-              String unit = remindData['unit'] ?? 'minutes';
+              final rawTime = remindData['Time'] ?? remindData['time'];
+              final rawUnit = remindData['Unit'] ?? remindData['unit'];
+              final int time =
+              rawTime is int ? rawTime : int.tryParse(rawTime.toString()) ?? 0;
+              final String unit = (rawUnit ?? 'minutes').toString();
               remindBefore = reminder_payload.RemindBefore(
                 time: time,
                 unit: unit,
