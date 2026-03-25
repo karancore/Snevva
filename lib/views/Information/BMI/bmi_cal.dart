@@ -457,7 +457,7 @@ class _BmiCalState extends State<BmiCal> {
             backgroundColor: AppColors.primaryColor,
             onTap: () {
               double bmi = weight / pow(height / 100, 2);
-              Get.to(BmiResultPage(bmi: bmi, age: age));
+              Get.to(() => BmiResultPage(bmi: bmi, age: age));
             },
           ),
         ),

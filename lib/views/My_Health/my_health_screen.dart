@@ -15,6 +15,7 @@ import 'package:snevva/views/Information/vitals.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
 import 'package:snevva/views/WomenHealth/women_health_screen.dart';
 import 'package:snevva/views/information/bmi/bmi_update_result.dart';
+
 import '../../Controllers/Hydration/hydration_stat_controller.dart';
 import '../../Controllers/StepCounter/step_counter_controller.dart';
 import '../../Controllers/signupAndSignIn/sign_in_controller.dart';
@@ -177,7 +178,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
         ),
 
         buttonText: 'Track mood',
-        onPressed: () => Get.to(MoodTrackerScreen()),
+        onPressed: () => Get.to(() => MoodTrackerScreen()),
       ),
 
       // Health Cards
@@ -253,7 +254,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
           style: TextStyle(fontSize: 14, color: Colors.grey),
         ),
         buttonText: 'Add Data',
-        onPressed: () => Get.to(WomenHealthScreen()),
+        onPressed: () => Get.to(() => WomenHealthScreen()),
       ),
     ];
 

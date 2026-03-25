@@ -407,7 +407,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
           dietController.dietTagsDataResponse.value = item;
           final daysList = item.mealPlan;
 
-          Get.to(DietDetailsScreen(diet: item, daysList: daysList));
+          Get.to(() => DietDetailsScreen(diet: item, daysList: daysList));
         },
         child: Container(
           width: cardWidth,
@@ -489,7 +489,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
             tags: [],
           );
 
-          Get.to(DietDetailsScreen(diet: diet, daysList: []));
+          Get.to(() => DietDetailsScreen(diet: diet, daysList: []));
         },
         child: Container(
           width: width * 0.43,

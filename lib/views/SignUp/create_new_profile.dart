@@ -1,9 +1,9 @@
 import 'package:flutter/gestures.dart';
-import 'package:snevva/Widgets/SignInScreens/sign_in_footer_widget.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import 'package:snevva/views/SignUp/verify_with_otp.dart';
+
 import '../../Controllers/signupAndSignIn/otp_verification_controller.dart';
 import '../../Controllers/signupAndSignIn/sign_up_controller.dart';
 import '../../Widgets/SignInScreens/create_profile_header_widget.dart';
@@ -52,7 +52,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
         if (result != null && result != false) {
           Get.to(
-            VerifyWithOtpScreen(
+            () => VerifyWithOtpScreen(
               emailOrPasswordText: input,
               appBarText: AppLocalizations.of(context)!.verifyEmailAddress,
               responseOtp: result,
@@ -67,7 +67,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
         if (result != null && result != false) {
           Get.to(
-            VerifyWithOtpScreen(
+            () => VerifyWithOtpScreen(
               emailOrPasswordText: input,
               appBarText: AppLocalizations.of(context)!.verifyPhoneNumber,
               responseOtp: result,

@@ -4,6 +4,7 @@ import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/views/SignUp/forgot_password.dart';
+
 import '../../widgets/SignInScreens/sign_in_footer_widget.dart';
 import 'create_new_profile.dart';
 
@@ -293,7 +294,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                       isLoading: isLoading,
                                       // Pass here
                                       onBottomTextPressed: () {
-                                        Get.to(SignUpScreen());
+                                        Get.to(() => SignUpScreen());
                                       },
                                     ),
                                   ),

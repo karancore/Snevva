@@ -7,6 +7,7 @@ import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
 import 'package:snevva/views/Reminder/add_reminder_screen.dart';
 import 'package:snevva/views/Reminder/reminder_details_card.dart';
+
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../common/custom_snackbar.dart';
 import '../../common/global_variables.dart';
@@ -73,8 +74,7 @@ class _ReminderScreenState extends State<ReminderScreen>
 
   Future<void> _loadData() async {
     await controller.loadAllReminderLists();
-    final remindersApi = await controller.getReminderFromAPI(context);
-    controller.reminders.assignAll(remindersApi);
+    await controller.getReminderFromAPI(context);
   }
 
   @override
@@ -259,7 +259,7 @@ class _ReminderScreenState extends State<ReminderScreen>
               //   duration: const Duration(seconds: 3),
               // );
               // return;
-              final result = await Get.to(AddReminderScreen());
+              final result = await Get.to(() => AddReminderScreen());
               // Always reload data when returning, regardless of result
               // The controller already handles the update, but this ensures consistency
               if (result == true) {
@@ -336,7 +336,10 @@ class _ReminderScreenState extends State<ReminderScreen>
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () async {
-                    await controller.deleteReminder(reminder);
+                    await Future.wait([
+                      controller.deleteReminder(reminder),
+                      controller.deleteReminderFromAPI(reminder.id, context)
+                    ]);
                     Get.back();
                   },
                   style: ElevatedButton.styleFrom(
@@ -420,7 +423,7 @@ class _ReminderScreenState extends State<ReminderScreen>
                     //   duration: const Duration(seconds: 3),
                     // );
                     // return;
-                    Get.to(AddReminderScreen(reminder: reminder));
+                    Get.to(() => AddReminderScreen(reminder: reminder));
                   },
                   child: SvgPicture.asset(
                     pen,
@@ -491,7 +494,7 @@ class _ReminderScreenState extends State<ReminderScreen>
                 //   duration: const Duration(seconds: 3),
                 // );
                 // return;
-                Get.to(AddReminderScreen(reminder: reminder));
+                Get.to(() => AddReminderScreen(reminder: reminder));
               },
               child: SvgPicture.asset(
                 pen,
@@ -544,7 +547,7 @@ class _ReminderScreenState extends State<ReminderScreen>
                 //   duration: const Duration(seconds: 3),
                 // );
                 // return;
-                Get.to(AddReminderScreen(reminder: reminder));
+                Get.to(() => AddReminderScreen(reminder: reminder));
               },
               child: SvgPicture.asset(
                 pen,
@@ -606,7 +609,7 @@ class _ReminderScreenState extends State<ReminderScreen>
                     //   duration: const Duration(seconds: 3),
                     // );
                     // return;
-                    Get.to(AddReminderScreen(reminder: reminder));
+                    Get.to(() => AddReminderScreen(reminder: reminder));
                   },
                   child: SvgPicture.asset(
                     pen,

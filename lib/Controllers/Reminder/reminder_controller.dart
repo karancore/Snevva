@@ -1133,9 +1133,29 @@ class ReminderController extends GetxController {
 
       final enc = jsonEncode(response);
       final decodedBody = jsonDecode(enc);
-      final List remindersList = decodedBody['data']['Reminders'] as List;
+      final rawReminders = decodedBody['data']?['Reminders'];
 
-      final List<reminder_payload.ReminderPayloadModel> reminders = remindersList
+      if (rawReminders == null) {
+        debugPrint(
+          '⚠️ Reminder API returned null Reminders. Preserving local reminder list.',
+        );
+        await loadAllReminderLists();
+        return List<reminder_payload.ReminderPayloadModel>.from(reminders);
+      }
+
+      if (rawReminders is! List) {
+        debugPrint(
+          '⚠️ Reminder API returned unexpected Reminders payload: ${rawReminders
+              .runtimeType}',
+        );
+        await loadAllReminderLists();
+        return List<reminder_payload.ReminderPayloadModel>.from(reminders);
+      }
+
+      final List remindersList = rawReminders;
+
+      final List<
+          reminder_payload.ReminderPayloadModel> remoteReminders = remindersList
           .map((e) {
         final map = e as Map<String, dynamic>;
 
@@ -1152,11 +1172,10 @@ class ReminderController extends GetxController {
       final deletedGroupIds = await _readIntSet(box, _deletedReminderGroupIdsKey);
       final deletedAlarmIds = await _readIntSet(box, _deletedReminderAlarmIdsKey);
 
-      await clearAllReminderBoxes();
-
-      // 🔥 STEP 2: SAVE INTO CORRECT CATEGORY LISTS
+      // Merge remote reminders into local persisted reminders so on-device
+      // reminders remain visible even when backend state is incomplete.
       await _saveToCategoryWiseLists(
-        reminders,
+        remoteReminders,
         deletedGroupIds: deletedGroupIds,
         deletedAlarmIds: deletedAlarmIds,
       );
@@ -1164,19 +1183,21 @@ class ReminderController extends GetxController {
       // Ensure UI reflects persisted (and filtered) state, not raw API payload.
       await loadAllReminderLists();
 
-      logLong("getRemindersFromAPI", reminders.toString());
+      logLong("getRemindersFromAPI", remoteReminders.toString());
       // Scheduling many alarms can take time and shouldn't block the caller
       // (e.g. post-login flow), otherwise UI loaders may appear "stuck".
       unawaited(
         ReminderScheduler().scheduleAll(
-          reminders,
+          remoteReminders,
           deletedGroupIds: deletedGroupIds,
           deletedAlarmIds: deletedAlarmIds,
         ),
       );
-      return reminders;
+      return remoteReminders;
     } catch (e) {
-      return [];
+      debugPrint('❌ getReminderFromAPI failed: $e');
+      await loadAllReminderLists();
+      return List<reminder_payload.ReminderPayloadModel>.from(reminders);
     }
   }
 
@@ -1196,11 +1217,19 @@ class ReminderController extends GetxController {
     Set<int> deletedGroupIds = const {},
     Set<int> deletedAlarmIds = const {},
   }) async {
+    final meals = await loadReminderList("meals_list");
+    final events = await loadReminderList("event_list");
+    final medicine = await medicineGetxController.loadMedicineReminderList(
+      "medicine_list",
+    );
+    final water = await waterController.loadWaterReminderList("water_list");
 
-    final meals = <Map<String, AlarmSettings>>[];
-    final events = <Map<String, AlarmSettings>>[];
-    final medicine = <medicine_payload.MedicineReminderModel>[];
-    final water = <WaterReminderModel>[];
+    final mealSignatures =
+    meals.map((item) => _alarmEntrySignature('meal', item)).toSet();
+    final eventSignatures =
+    events.map((item) => _alarmEntrySignature('event', item)).toSet();
+    final medicineIds = medicine.map((item) => item.id).toSet();
+    final waterIds = water.map((item) => item.id).toSet();
 
     for (final reminder in reminders) {
       final category = _normalizeCategory(reminder.category);
@@ -1224,6 +1253,13 @@ class ReminderController extends GetxController {
               if (deletedAlarmIds.contains(alarmId)) {
                 _logConversion(
                   'Skip deleted meal occurrence (alarmId=$alarmId, groupId=${reminder.id}).',
+                );
+                continue;
+              }
+              if (!mealSignatures.add(_alarmEntrySignature('meal', entry))) {
+                _logConversion(
+                  'Skip duplicate local/remote meal occurrence for reminder ${reminder
+                      .id}.',
                 );
                 continue;
               }
@@ -1251,6 +1287,13 @@ class ReminderController extends GetxController {
                 );
                 continue;
               }
+              if (!eventSignatures.add(_alarmEntrySignature('event', entry))) {
+                _logConversion(
+                  'Skip duplicate local/remote event occurrence for reminder ${reminder
+                      .id}.',
+                );
+                continue;
+              }
               events.add(entry);
             }
             break;
@@ -1262,7 +1305,14 @@ class ReminderController extends GetxController {
               );
               break;
             }
-            medicine.add(_convertToMedicineModel(reminder));
+            final model = _convertToMedicineModel(reminder);
+            if (!medicineIds.add(model.id)) {
+              _logConversion(
+                'Skip duplicate local/remote medicine reminder ${reminder.id}.',
+              );
+              break;
+            }
+            medicine.add(model);
             break;
 
           case 'water':
@@ -1272,7 +1322,14 @@ class ReminderController extends GetxController {
               );
               break;
             }
-            water.add(_convertToWaterModel(reminder));
+            final model = _convertToWaterModel(reminder);
+            if (!waterIds.add(model.id)) {
+              _logConversion(
+                'Skip duplicate local/remote water reminder ${reminder.id}.',
+              );
+              break;
+            }
+            water.add(model);
             break;
 
           default:
@@ -1292,6 +1349,15 @@ class ReminderController extends GetxController {
     await saveReminderList(events.obs, "event_list");
     await saveReminderList(medicine.obs, "medicine_list");
     await saveReminderList(water.obs, "water_list");
+  }
+
+  String _alarmEntrySignature(String category,
+      Map<String, AlarmSettings> entry,) {
+    final title = entry.keys.first.trim().toLowerCase();
+    final alarm = entry.values.first;
+    final body = alarm.notificationSettings.body.trim().toLowerCase();
+    final when = alarm.dateTime.toUtc().toIso8601String();
+    return '$category|$title|$body|$when';
   }
 
   // ---------------------------------------------------------------------------
@@ -2053,30 +2119,48 @@ class ReminderController extends GetxController {
   }
 
 
-  Future<void> deleteReminderFromAPI(
-    String reminderId,
-    BuildContext context,
-  ) async {
+  Future<void> deleteReminderFromAPI(int reminderId,
+      BuildContext context,) async {
     try {
+      debugPrint("🟡 [DELETE API] Called");
+      debugPrint("🆔 Reminder ID: $reminderId");
+
+      final payload = {"Id": reminderId};
+      debugPrint("📦 Payload: $payload");
+
       final response = await ApiService.post(
         deletereminderApi,
-        {"id": reminderId},
+        payload,
         withAuth: true,
         encryptionRequired: true,
       );
 
+      debugPrint("📡 API Response received");
+      debugPrint("🔍 Response Type: ${response.runtimeType}");
+
+      if (response is http.Response) {
+        debugPrint("📊 Status Code: ${response.statusCode}");
+        debugPrint("📄 Response Body: ${response.body}");
+      }
+
       if (response is http.Response && response.statusCode >= 400) {
+        debugPrint("❌ Delete failed with status: ${response.statusCode}");
+
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
           message: 'Failed to delete Reminder record: ${response.statusCode}',
         );
+      } else {
+        debugPrint("✅ Delete successful, refreshing reminders...");
+
+        await getReminders(context);
+
+        debugPrint("🔄 Reminders refreshed");
       }
-      // else {
-      //   await getReminders(context);
-      // }
-    } catch (e) {
-      debugPrint("Exception while deleting Reminder record: $e");
+    } catch (e, stackTrace) {
+      debugPrint("🔥 Exception while deleting Reminder record: $e");
+      debugPrint("📍 StackTrace: $stackTrace");
     }
   }
 

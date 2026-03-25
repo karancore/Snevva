@@ -75,7 +75,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
       if (result != false) {
         // notify.showOtpNotification(result);
         Get.to(
-          VerifyWithOtpScreen(
+          () => VerifyWithOtpScreen(
             emailOrPasswordText: input,
             appBarText: AppLocalizations.of(context)!.verifyEmailAddress,
             responseOtp: result,

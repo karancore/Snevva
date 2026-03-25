@@ -1,7 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
-import 'package:wheel_picker/wheel_picker.dart';
 import 'package:snevva/Controllers/Reminder/event_controller.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
@@ -14,6 +13,8 @@ import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
 import 'package:snevva/views/Reminder/time_wheel_picker.dart';
 import 'package:snevva/widgets/reminder/horizontal_selectable_card_row.dart';
+import 'package:wheel_picker/wheel_picker.dart';
+
 import '../../Controllers/Reminder/meal_controller.dart';
 import '../../Controllers/Reminder/medicine_controller.dart';
 import '../../Controllers/Reminder/water_controller.dart';
@@ -1916,6 +1917,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         TextField(
           controller: reminderController.notesController,
           maxLines: 1,
+          inputFormatters: [FirstLetterUpperCaseFormatter()],
           decoration: InputDecoration(
             isDense: true,
 
@@ -1926,6 +1928,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               borderSide: BorderSide(color: AppColors.primaryColor, width: 1.5),
             ),
             hintText: 'Optional',
+
             hintStyle: TextStyle(color: grey, fontWeight: FontWeight.w400),
           ),
         ),

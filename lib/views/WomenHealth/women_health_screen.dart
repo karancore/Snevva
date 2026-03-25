@@ -253,7 +253,7 @@ class _WomenHealthScreenState extends State<WomenHealthScreen> {
                 child: FloatingButtonBar(
                   onStatBtnTap: () => Get.to(() => WomenHealthHistory()),
                   onReminderBtnTap: () {
-                    Get.to(ReminderScreenWrapper());
+                    Get.to(() => ReminderScreenWrapper());
                   },
                   onAddBtnTap: () async {
                     DateTime now = DateTime.now();
