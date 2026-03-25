@@ -1,21 +1,18 @@
 import 'dart:async';
 import 'dart:math';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
-
-import 'package:snevva/consts/consts.dart';
-
 import 'package:geolocator/geolocator.dart';
-import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
+import 'package:snevva/consts/consts.dart';
+import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.dart';
 import 'package:snevva/widgets/semi_circular_progress.dart';
 
-import '../../../Widgets/CommonWidgets/common_stat_graph_widget.dart';
 import '../../../common/global_variables.dart';
-import '../../../models/hive_models/steps_model.dart';
 import '../../../widgets/CommonWidgets/custom_appbar.dart';
 import '../../../widgets/CommonWidgets/step_stat_graph_widget.dart';
 import '../../../widgets/Drawer/drawer_menu_wigdet.dart';
@@ -66,35 +63,6 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
     // Keep initial load without forcing full-screen rebuilds.
     stepController.loadTodayStepsFromHive();
   }
-
-  // Future<void> _startAndAttachService() async {
-  //   final isRunning = await service.isRunning();
-
-  //   if (!isRunning) {
-  //     await service.startService();
-  //   }
-
-  //   /// Wait for service to be ready
-  //   await Future.delayed(const Duration(milliseconds: 300));
-
-  //   // Load data - controller will handle the streaming
-  //   stepController.loadGoal();
-  //   stepController.loadTodayStepsFromHive(); // Ensure steps are loaded from Hive
-
-  //   _loadWeeklyData();
-  // }
-
-  // void _onStepsUpdated(dynamic event) {
-  //   if (event == null) return;
-  //
-  //   final newSteps = event["steps"] as int;
-  //   final oldSteps = stepController.todaySteps.value;
-  //
-  //   if (newSteps > oldSteps) {
-  //     stepController.incrementSteps(newSteps - oldSteps);
-  //   }
-  // }
-
   @override
   void dispose() {
     _locationSub?.cancel();

@@ -1,7 +1,6 @@
 import 'package:hive/hive.dart';
 
 import '../../common/global_variables.dart';
-import '../../consts/consts.dart';
 
 part 'reminder_payload_model.g.dart';
 
@@ -231,14 +230,15 @@ class CustomReminder {
   const CustomReminder({this.type, this.timesPerDay, this.everyXHours});
 
   factory CustomReminder.fromJson(Map<String, dynamic> json) {
-    final type = Option.values.firstWhere(
-      (e) => e.name == json['Type'],
-
-      orElse: () {
-        debugPrint("Unknown reminder type:  ${json['Type']}");
-        return Option.times;
-      },
-    );
+    final rawType = json['Type'];
+    final type =
+        Option.values.cast<Option?>().firstWhere(
+              (e) => e?.name == rawType,
+          orElse:
+              () =>
+          json['EveryXHours'] != null ? Option.interval : Option.times,
+        ) ??
+            Option.times;
 
     switch (type) {
       case Option.times:

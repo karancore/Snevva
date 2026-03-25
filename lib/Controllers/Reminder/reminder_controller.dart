@@ -758,6 +758,14 @@ class ReminderController extends GetxController {
     return <int>{};
   }
 
+  Future<void> _writeIntSet(Box box, String key, Set<int> values) async {
+    if (values.isEmpty) {
+      await box.delete(key);
+      return;
+    }
+    await box.put(key, values.toList(growable: false));
+  }
+
   Future<void> _deleteFromListById(
     RxList<dynamic> list,
     int id,
@@ -921,6 +929,11 @@ class ReminderController extends GetxController {
 
       waterController.waterList.value = await waterController
           .loadWaterReminderList("water_list");
+      final dedupedWater = _dedupeWaterReminders(waterController.waterList);
+      if (dedupedWater.length != waterController.waterList.length) {
+        waterController.waterList.value = dedupedWater;
+        await saveReminderList(waterController.waterList, "water_list");
+      }
       print('💧 Water loaded: ${waterController.waterList.length}');
 
       final List<reminder_payload.ReminderPayloadModel> combined = [];
@@ -1172,8 +1185,22 @@ class ReminderController extends GetxController {
           .toList();
 
       final box = await HiveService().remindersBox();
-      final deletedGroupIds = await _readIntSet(box, _deletedReminderGroupIdsKey);
-      final deletedAlarmIds = await _readIntSet(box, _deletedReminderAlarmIdsKey);
+      var deletedGroupIds = await _readIntSet(
+        box,
+        _deletedReminderGroupIdsKey,
+      );
+      var deletedAlarmIds = await _readIntSet(
+        box,
+        _deletedReminderAlarmIdsKey,
+      );
+      final reconciledTombstones = await _reconcileDeletedReminderTombstones(
+        box,
+        remoteReminders,
+        deletedGroupIds: deletedGroupIds,
+        deletedAlarmIds: deletedAlarmIds,
+      );
+      deletedGroupIds = reconciledTombstones.groupIds;
+      deletedAlarmIds = reconciledTombstones.alarmIds;
 
       // Merge remote reminders into local persisted reminders so on-device
       // reminders remain visible even when backend state is incomplete.
@@ -1326,6 +1353,20 @@ class ReminderController extends GetxController {
               break;
             }
             final model = _convertToWaterModel(reminder);
+            final existingWaterIndex = water.indexWhere(
+                  (item) => _isEquivalentWaterReminder(item, model),
+            );
+            if (existingWaterIndex != -1) {
+              water[existingWaterIndex] = _mergeWaterReminderForSync(
+                water[existingWaterIndex],
+                model,
+              );
+              waterIds.add(water[existingWaterIndex].id);
+              _logConversion(
+                'Merged duplicate local/remote water reminder ${reminder.id}.',
+              );
+              break;
+            }
             if (!waterIds.add(model.id)) {
               _logConversion(
                 'Skip duplicate local/remote water reminder ${reminder.id}.',
@@ -1351,7 +1392,72 @@ class ReminderController extends GetxController {
     await saveReminderList(meals.obs, "meals_list");
     await saveReminderList(events.obs, "event_list");
     await saveReminderList(medicine.obs, "medicine_list");
-    await saveReminderList(water.obs, "water_list");
+    await saveReminderList(_dedupeWaterReminders(water).obs, "water_list");
+  }
+
+  Future<({Set<int> groupIds, Set<int> alarmIds})>
+  _reconcileDeletedReminderTombstones(Box box,
+      List<reminder_payload.ReminderPayloadModel> remoteReminders, {
+        required Set<int> deletedGroupIds,
+        required Set<int> deletedAlarmIds,
+      }) async {
+    final nextGroupIds = Set<int>.from(deletedGroupIds);
+    final nextAlarmIds = Set<int>.from(deletedAlarmIds);
+    var changed = false;
+
+    for (final reminder in remoteReminders) {
+      final category = _normalizeCategory(reminder.category);
+      switch (category) {
+        case 'medicine':
+        case 'water':
+          if (nextGroupIds.remove(reminder.id)) {
+            changed = true;
+            _logConversion(
+              'Cleared stale deleted $category reminder tombstone '
+                  '(groupId=${reminder.id}).',
+            );
+          }
+          break;
+
+        case 'meal':
+        case 'event':
+          if (nextAlarmIds.remove(reminder.id)) {
+            changed = true;
+            _logConversion(
+              'Cleared stale deleted $category reminder tombstone '
+                  '(id=${reminder.id}).',
+            );
+          }
+
+          final times = _parseScheduledTimes(
+            reminder.customReminder.timesPerDay?.list,
+            dateHint: reminder.startDate,
+          );
+
+          for (final scheduledTime in times) {
+            final scheduledAlarmId = ReminderScheduler.scheduledReminderId(
+              reminderId: reminder.id,
+              time: scheduledTime,
+            );
+            if (nextAlarmIds.remove(scheduledAlarmId)) {
+              changed = true;
+              _logConversion(
+                'Cleared stale deleted $category occurrence tombstone '
+                    '(alarmId=$scheduledAlarmId, groupId=${reminder.id}).',
+              );
+            }
+          }
+          break;
+      }
+    }
+
+    if (!changed) {
+      return (groupIds: deletedGroupIds, alarmIds: deletedAlarmIds);
+    }
+
+    await _writeIntSet(box, _deletedReminderGroupIdsKey, nextGroupIds);
+    await _writeIntSet(box, _deletedReminderAlarmIdsKey, nextAlarmIds);
+    return (groupIds: nextGroupIds, alarmIds: nextAlarmIds);
   }
 
   String _alarmEntrySignature(String category,
@@ -1621,6 +1727,114 @@ class ReminderController extends GetxController {
     final trimmed = rawTitle.trim();
     return trimmed.isEmpty ? fallback : trimmed;
   }
+
+  List<WaterReminderModel> _dedupeWaterReminders(
+      List<WaterReminderModel> items) {
+    final deduped = <WaterReminderModel>[];
+    for (final item in items) {
+      final index = deduped.indexWhere(
+            (existing) => _isEquivalentWaterReminder(existing, item),
+      );
+      if (index == -1) {
+        deduped.add(item);
+      } else {
+        deduped[index] = _mergeWaterReminderForSync(deduped[index], item);
+      }
+    }
+    return deduped;
+  }
+
+  WaterReminderModel _mergeWaterReminderForSync(WaterReminderModel existing,
+      WaterReminderModel incoming,) {
+    final useIncomingInterval =
+        (int.tryParse(incoming.interval ?? '') ?? 0) >
+            (int.tryParse(existing.interval ?? '') ?? 0);
+    final useIncomingTimes =
+        (int.tryParse(incoming.timesPerDay) ?? 0) >
+            (int.tryParse(existing.timesPerDay) ?? 0);
+
+    return WaterReminderModel(
+      id: incoming.id != 0 ? incoming.id : existing.id,
+      title: incoming.title
+          .trim()
+          .isNotEmpty ? incoming.title : existing.title,
+      category:
+      incoming.category
+          .trim()
+          .isNotEmpty
+          ? incoming.category
+          : existing.category,
+      type: incoming.type,
+      alarms: incoming.alarms.isNotEmpty ? incoming.alarms : existing.alarms,
+      timesPerDay: useIncomingTimes ? incoming.timesPerDay : existing
+          .timesPerDay,
+      waterReminderStartTime:
+      incoming.waterReminderStartTime
+          .trim()
+          .isNotEmpty
+          ? incoming.waterReminderStartTime
+          : existing.waterReminderStartTime,
+      waterReminderEndTime:
+      incoming.waterReminderEndTime
+          .trim()
+          .isNotEmpty
+          ? incoming.waterReminderEndTime
+          : existing.waterReminderEndTime,
+      interval:
+      incoming.type == Option.interval
+          ? (useIncomingInterval ? incoming.interval : existing.interval)
+          : null,
+      notes:
+      (incoming.notes ?? '')
+          .trim()
+          .isNotEmpty
+          ? incoming.notes
+          : existing.notes,
+    );
+  }
+
+  bool _isEquivalentWaterReminder(WaterReminderModel first,
+      WaterReminderModel second,) {
+    if (first.id == second.id) return true;
+    if (first.type != second.type) return false;
+    if (_normalizeWaterText(first.title) != _normalizeWaterText(second.title)) {
+      return false;
+    }
+    if (!_waterFieldsCompatible(
+      first.waterReminderStartTime,
+      second.waterReminderStartTime,
+    )) {
+      return false;
+    }
+    if (!_waterFieldsCompatible(
+      first.waterReminderEndTime,
+      second.waterReminderEndTime,
+    )) {
+      return false;
+    }
+    if (!_waterFieldsCompatible(first.notes, second.notes)) {
+      return false;
+    }
+
+    if (first.type == Option.interval) {
+      final firstHours = int.tryParse(first.interval ?? '') ?? 0;
+      final secondHours = int.tryParse(second.interval ?? '') ?? 0;
+      return firstHours == 0 || secondHours == 0 || firstHours == secondHours;
+    }
+
+    final firstTimes = int.tryParse(first.timesPerDay) ?? 0;
+    final secondTimes = int.tryParse(second.timesPerDay) ?? 0;
+    return firstTimes == 0 || secondTimes == 0 || firstTimes == secondTimes;
+  }
+
+  bool _waterFieldsCompatible(String? first, String? second) {
+    final left = _normalizeWaterText(first);
+    final right = _normalizeWaterText(second);
+    return left.isEmpty || right.isEmpty || left == right;
+  }
+
+  String _normalizeWaterText(String? value) =>
+      (value ?? '').trim().toLowerCase();
 
   AlarmSettings _buildAlarmSettings({
     required int reminderGroupId,
@@ -2517,10 +2731,12 @@ class ReminderController extends GetxController {
         if (!waterController.validateWaterInput(context)) {
           return false;
         }
-        waterController.waterList.value = await waterController
-            .loadWaterReminderList("water_list");
-        await waterController.deleteWaterReminder(reminder.id);
-        return waterController.validateAndSaveWaterReminder(context);
+        await waterController.updateWaterReminderFromLocal(
+          context,
+          reminder.id.toString(),
+          int.tryParse(waterController.timesPerDayController.text),
+        );
+        return true;
 
       case "meal":
       case "event":

@@ -181,9 +181,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       waterGetxController.waterReminderOption.value = type;
 
       if (type == Option.interval) {
-        waterGetxController.everyXhours.value = 0;
+        waterGetxController.timesPerDayController.clear();
+        waterGetxController.savedTimes.value = 0;
         waterGetxController.everyHourController.text =
             reminder.customReminder?.everyXHours?.hours?.toString() ?? '';
+        waterGetxController.everyXhours.value =
+            reminder.customReminder?.everyXHours?.hours ?? 0;
 
         waterGetxController.startWaterTimeController.text =
             reminder.startWaterTime ?? '';
@@ -191,9 +194,15 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             reminder.endWaterTime ?? '';
       }
       if (type == Option.times) {
-        waterGetxController.savedTimes.value = 0;
+        waterGetxController.everyHourController.clear();
+        waterGetxController.everyXhours.value = 1;
         waterGetxController.timesPerDayController.text =
             reminder.customReminder?.timesPerDay?.count?.toString() ?? '';
+        waterGetxController.savedTimes.value =
+            int.tryParse(
+              reminder.customReminder?.timesPerDay?.count?.toString() ?? '0',
+            ) ??
+            0;
 
         waterGetxController.startWaterTimeController.text =
             reminder.startWaterTime ?? '';
@@ -1101,6 +1110,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       onChanged: (value) {
                         if (value != null) {
                           waterGetxController.waterReminderOption.value = value;
+                          waterGetxController.everyHourController.clear();
+                          waterGetxController.everyXhours.value = 1;
                         }
                       },
                     ),
@@ -1165,6 +1176,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       onChanged: (value) {
                         if (value != null) {
                           waterGetxController.waterReminderOption.value = value;
+                          waterGetxController.timesPerDayController.clear();
+                          waterGetxController.savedTimes.value = 0;
                         }
                       },
                     ),
