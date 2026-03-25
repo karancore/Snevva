@@ -1,18 +1,20 @@
 import 'dart:async';
+
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/common/agent_debug_logger.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/models/awake_interval.dart';
 import 'package:snevva/services/api_service.dart';
-import 'package:snevva/common/agent_debug_logger.dart';
 import 'package:snevva/services/hive_service.dart';
+
 import '../../common/global_variables.dart';
 import '../../models/hive_models/sleep_log.dart';
 
@@ -138,7 +140,7 @@ class SleepController extends GetxService {
           updateDeepSleepSpots(); // Refresh the graph spots
         }
 
-        print(
+        debugPrint(
           "💤 Sleep update: ${elapsedMinutes}m / ${goalMinutes}m (${(sleepProgress.value * 100).toInt()}%)",
         );
       }
@@ -152,7 +154,7 @@ class SleepController extends GetxService {
         final startTime = event['start_time'] as String?;
         final endTime = event['end_time'] as String?;
 
-        print("✅ Sleep saved: ${duration}m (goal: ${goalMinutes}m)");
+        debugPrint("✅ Sleep saved: ${duration}m (goal: ${goalMinutes}m)");
 
         // Reset state
         isSleeping.value = false;
@@ -181,7 +183,8 @@ class SleepController extends GetxService {
         final elapsedMinutes = event['elapsed_minutes'] as int? ?? 0;
         final goalMinutes = event['goal_minutes'] as int? ?? 480;
 
-        print("🎉 Sleep goal reached! ${elapsedMinutes}m / ${goalMinutes}m");
+        debugPrint(
+            "🎉 Sleep goal reached! ${elapsedMinutes}m / ${goalMinutes}m");
 
         // Show celebration message
         Get.snackbar(
@@ -203,7 +206,7 @@ class SleepController extends GetxService {
   /// Start sleep tracking with a goal
   Future<void> startSleep({Duration? goal}) async {
     if (isSleeping.value) {
-      print("⚠️ Sleep tracking already active");
+      debugPrint("⚠️ Sleep tracking already active");
       return;
     }
 
@@ -220,20 +223,20 @@ class SleepController extends GetxService {
     // Start background tracking
     _service.invoke("start_sleep", {"goal_minutes": goalMinutes});
 
-    print("🌙 Sleep tracking started with goal: ${goalMinutes}m");
+    debugPrint("🌙 Sleep tracking started with goal: ${goalMinutes}m");
   }
 
   /// Stop sleep tracking
   Future<void> stopSleep() async {
     if (!isSleeping.value) {
-      print("⚠️ No active sleep tracking");
+      debugPrint("⚠️ No active sleep tracking");
       return;
     }
 
     // Stop background tracking (will trigger save)
     _service.invoke("stop_sleep");
 
-    print("☀️ Sleep tracking stopped");
+    debugPrint("☀️ Sleep tracking stopped");
   }
 
   /// Set sleep goal
@@ -255,9 +258,9 @@ class SleepController extends GetxService {
   void _updateNativeSleepAlarms() {
     try {
       _nativeSleepChannel.invokeMethod('updateSleepAlarms');
-      print('🔔 Native sleep alarms updated');
+      debugPrint('🔔 Native sleep alarms updated');
     } catch (e) {
-      print('❌ Failed to update native sleep alarms: $e');
+      debugPrint('❌ Failed to update native sleep alarms: $e');
     }
   }
 
@@ -271,7 +274,7 @@ class SleepController extends GetxService {
       _updateNativeSleepAlarms();
     });
 
-    print('🛏️ Bedtime set → $time');
+    debugPrint('🛏️ Bedtime set → $time');
   }
 
   void setWakeTime(TimeOfDay time) {
@@ -284,7 +287,7 @@ class SleepController extends GetxService {
       _updateNativeSleepAlarms();
     });
 
-    print('⏰ Waketime set → $time');
+    debugPrint('⏰ Waketime set → $time');
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -322,11 +325,11 @@ class SleepController extends GetxService {
         }
       }
 
-      print(
+      debugPrint(
         "📊 Weekly sleep data loaded: ${weeklySleepHistory.length} entries",
       );
     } catch (e) {
-      print("❌ Error loading weekly sleep data: $e");
+      debugPrint("❌ Error loading weekly sleep data: $e");
     }
   }
 
@@ -350,13 +353,13 @@ class SleepController extends GetxService {
           sleepGoal.value = Duration(minutes: goalMinutes);
           sleepProgress.value = 0.0;
 
-          print(
+          debugPrint(
             "🔄 Restored active sleep session (waiting for background sleep_update)",
           );
         }
       }
     } catch (e) {
-      print("❌ Error checking sleep state: $e");
+      debugPrint("❌ Error checking sleep state: $e");
     }
   }
 
@@ -777,7 +780,7 @@ class SleepController extends GetxService {
 
       weeklyDeepSleepHistory[key] = duration;
 
-      print("loadDeepSleepData ${deepSleepDuration.value}");
+      debugPrint("loadDeepSleepData ${deepSleepDuration.value}");
 
       debugPrint("   💤 Weekly ← Hive: $key → ${duration.inMinutes} min");
     }
@@ -812,7 +815,7 @@ class SleepController extends GetxService {
     );
     // #endregion
 
-    print(
+    debugPrint(
       "loadDeepSleepData deepSleepDuration.value ${deepSleepDuration.value}",
     );
 
@@ -825,7 +828,8 @@ class SleepController extends GetxService {
   }
 
   List<FlSpot> getMonthlyDeepSleepSpots(DateTime month) {
-    print("📅 [MonthlyGraph] Requested month: ${month.year}-${month.month}");
+    debugPrint(
+        "📅 [MonthlyGraph] Requested month: ${month.year}-${month.month}");
 
     final int totalDays =
         (month.year == DateTime.now().year &&
@@ -834,9 +838,9 @@ class SleepController extends GetxService {
                 .day // 🔥 only till today
             : daysInMonth(month.year, month.month);
 
-    print("📆 [MonthlyGraph] Total days to plot: $totalDays");
-    print("🗂️ [MonthlyGraph] monthlyDeepSleepHistory keys:");
-    monthlyDeepSleepHistory.keys.forEach((k) => print("   • $k"));
+    debugPrint("📆 [MonthlyGraph] Total days to plot: $totalDays");
+    debugPrint("🗂️ [MonthlyGraph] monthlyDeepSleepHistory keys:");
+    monthlyDeepSleepHistory.keys.forEach((k) => debugPrint("   • $k"));
 
     // Prefer API-fetched values when present, but fall back to local (Hive-loaded)
     // history so monthly view still works offline.
@@ -850,29 +854,29 @@ class SleepController extends GetxService {
       final date = DateTime(month.year, month.month, day);
       final key = dateKey(date);
 
-      print("➡️ [Day $day] Checking key: $key");
+      debugPrint("➡️ [Day $day] Checking key: $key");
 
       if (merged.containsKey(key)) {
         final duration = merged[key]!;
         final hours = duration.inMinutes / 60.0;
 
-        print(
+        debugPrint(
           "   ✅ FOUND → Duration: $duration | Minutes: ${duration.inMinutes} | Hours: $hours",
         );
 
         spots.add(FlSpot((day - 1).toDouble(), hours));
       } else {
-        print("   ❌ NOT FOUND → Using 0.0 hours");
+        debugPrint("   ❌ NOT FOUND → Using 0.0 hours");
         spots.add(FlSpot((day - 1).toDouble(), 0.0));
       }
     }
 
-    print("📈 [MonthlyGraph] Generated FlSpots:");
+    debugPrint("📈 [MonthlyGraph] Generated FlSpots:");
     for (final s in spots) {
-      print("   • x=${s.x}, y=${s.y}");
+      debugPrint("   • x=${s.x}, y=${s.y}");
     }
 
-    print("✅ [MonthlyGraph] Total spots generated: ${spots.length}");
+    debugPrint("✅ [MonthlyGraph] Total spots generated: ${spots.length}");
 
     return spots;
   }
@@ -902,11 +906,11 @@ class SleepController extends GetxService {
       }
 
       final decoded = response as Map<String, dynamic>;
-      print('decoded response: $decoded');
+      debugPrint('decoded response: $decoded');
 
       final sleepData = decoded['data']?['SleepData'] ?? [];
 
-      print("🛌 Fetched sleep data for $month/$year: $sleepData");
+      debugPrint("🛌 Fetched sleep data for $month/$year: $sleepData");
       monthlyDeepSleepHistory.clear();
 
       for (final item in sleepData) {
@@ -1021,11 +1025,11 @@ class SleepController extends GetxService {
           spots.add(FlSpot((day - 1).toDouble(), 0.0));
         }
       }
-      print("✅ Sleep history loaded: $weeklyDeepSleepHistory");
+      debugPrint("✅ Sleep history loaded: $weeklyDeepSleepHistory");
 
       return spots;
     } catch (e) {
-      print("❌ Error loading sleep data: $e");
+      debugPrint("❌ Error loading sleep data: $e");
       return [];
     }
   }
@@ -1084,7 +1088,7 @@ class SleepController extends GetxService {
       ),
     );
 
-    print("✅ HIVE SAVED: $key → ${duration.inMinutes} min");
+    debugPrint("✅ HIVE SAVED: $key → ${duration.inMinutes} min");
 
     // Persist corrected minutes in SharedPreferences for quick UI access.
     final prefs = await SharedPreferences.getInstance();

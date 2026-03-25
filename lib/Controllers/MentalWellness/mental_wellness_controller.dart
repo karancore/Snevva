@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
@@ -7,8 +8,8 @@ import 'package:snevva/common/global_variables.dart';
 
 import '../../common/custom_snackbar.dart';
 import '../../env/env.dart';
-import '../../services/api_service.dart';
 import '../../models/music/music_response.dart';
+import '../../services/api_service.dart';
 
 class MentalWellnessController extends GetxController {
   static const int _pageSize = 8;
@@ -216,8 +217,8 @@ class MentalWellnessController extends GetxController {
             .toList(),
       );
 
-      print("General music urls ${generalUrls.length}");
-      print("General music first ${generalUrls.first}");
+      debugPrint("General music urls ${generalUrls.length}");
+      debugPrint("General music first ${generalUrls.first}");
 
       extractAndShuffleCdnUrls(generalMusic, take: 2);
 
@@ -308,7 +309,7 @@ class MentalWellnessController extends GetxController {
             )
             .toList(),
       );
-      print("Meditation music urls ${meditationUrls.length}");
+      debugPrint("Meditation music urls ${meditationUrls.length}");
 
       debugPrint("📥 Meditation Music Count: ${meditationMusic.length}");
 
@@ -402,7 +403,7 @@ class MentalWellnessController extends GetxController {
             )
             .toList(),
       );
-      print("Nature music urls ${natureUrls.length}");
+      debugPrint("Nature music urls ${natureUrls.length}");
 
       extractAndShuffleCdnUrls(natureMusic, take: 4);
       debugPrint("📥 Nature Music Count: ${natureMusic.length}");

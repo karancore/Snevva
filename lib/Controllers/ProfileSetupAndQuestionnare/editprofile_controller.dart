@@ -1,20 +1,22 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:dropdown_flutter/custom_dropdown.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:pinput/pinput.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
+import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
-import 'package:http/http.dart' as http;
 import 'package:snevva/services/notification_service.dart';
+
 import '../local_storage_manager.dart';
 import '../signupAndSignIn/otp_verification_controller.dart';
 import '../signupAndSignIn/sign_up_controller.dart';
-import 'package:snevva/common/custom_snackbar.dart';
 
 class EditprofileController extends GetxService {
   final localStorageManager = Get.find<LocalStorageManager>();
@@ -1163,7 +1165,7 @@ class EditprofileController extends GetxService {
         'MonthOfBirth': date.month,
         'YearOfBirth': date.year,
       };
-      print('🚀 [Save DOB] Payload: $payload');
+      debugPrint('🚀 [Save DOB] Payload: $payload');
 
       final response = await ApiService.post(
         userDobApi,

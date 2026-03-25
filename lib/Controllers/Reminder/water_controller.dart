@@ -346,7 +346,7 @@ class WaterController extends GetxController {
       endWaterTime: endWaterTimeController.text.trim(),
     );
 
-    print("Water Data setWaterAlarm: $waterData");
+    debugPrint("Water Data setWaterAlarm: $waterData");
 
     await reminderController.addRemindertoAPI(waterData, context);
 
@@ -609,7 +609,7 @@ class WaterController extends GetxController {
       startWaterTime: startWaterTimeController.text.trim(),
       endWaterTime: endWaterTimeController.text.trim(),
     );
-    print("Water Data setIntervalReminders: $waterData");
+    debugPrint("Water Data setIntervalReminders: $waterData");
 
     await reminderController.addRemindertoAPI(waterData, context!);
 
@@ -908,8 +908,8 @@ class WaterController extends GetxController {
           loadedList.add(fallbackModel);
         }
       } catch (e, stack) {
-        print(' Error parsing water reminder: $e');
-        print(stack);
+        debugPrint(' Error parsing water reminder: $e');
+        debugPrint(stack.toString());
       }
     }
     return loadedList;

@@ -76,7 +76,7 @@ class ReminderController extends GetxController {
       'deleted_reminder_group_ids_v1';
   static const String _deletedReminderAlarmIdsKey =
       'deleted_reminder_alarm_ids_v1';
-  bool _isSaving = false;
+  final _isSaving = false;
   final titleController = TextEditingController();
   final timeController = TextEditingController();
   final notesController = TextEditingController();
@@ -235,12 +235,14 @@ class ReminderController extends GetxController {
   Future<void> checkAndroidNotificationPermission() async {
     final status = await Permission.notification.status;
     if (status.isDenied) {
-      print('Requesting notification permission...');
+      debugPrint('Requesting notification permission...');
       final res = await Permission.notification.request();
-      print('Notification permission ${res.isGranted ? '' : 'not '}granted');
+      debugPrint(
+          'Notification permission ${res.isGranted ? '' : 'not '}granted');
     }
     if (status.isGranted) {
-      print("Enabled notifications permission ${enableNotifications.value}");
+      debugPrint(
+          "Enabled notifications permission ${enableNotifications.value}");
       enableNotifications.value = true;
     }
   }
@@ -439,9 +441,9 @@ class ReminderController extends GetxController {
 
     if (scheduledTime.isBefore(now) || scheduledTime.isAtSameMomentAs(now)) {
       scheduledTime = scheduledTime.add(Duration(days: 1));
-      print('⚠️ Time was in past/now, moved to tomorrow: $scheduledTime');
+      debugPrint('⚠️ Time was in past/now, moved to tomorrow: $scheduledTime');
     }
-    print("Add Alarm category $category");
+    debugPrint("Add Alarm category $category");
 
     switch (category) {
       // case "Medicine":
@@ -488,11 +490,11 @@ class ReminderController extends GetxController {
     TimeOfDay? timeOfDay,
     int? times,
   }) async {
-    print("🚀 updateReminderFromLocal called");
-    print("➡️ id: $id (${id.runtimeType})");
-    print("➡️ category: $category");
-    print("➡️ timeOfDay: $timeOfDay");
-    print("➡️ times: $times (${times.runtimeType})");
+    debugPrint("🚀 updateReminderFromLocal called");
+    debugPrint("➡️ id: $id (${id.runtimeType})");
+    debugPrint("➡️ category: $category");
+    debugPrint("➡️ timeOfDay: $timeOfDay");
+    debugPrint("➡️ times: $times (${times.runtimeType})");
 
     final normalizedCategory = category.trim().toLowerCase();
     final resolvedTime =
@@ -506,17 +508,17 @@ class ReminderController extends GetxController {
       resolvedTime?.minute ?? now.minute,
     );
 
-    print("🕒 initial scheduledTime → $scheduledTime");
+    debugPrint("🕒 initial scheduledTime → $scheduledTime");
 
     if (scheduledTime.isBefore(now) || scheduledTime.isAtSameMomentAs(now)) {
       scheduledTime = scheduledTime.add(const Duration(days: 1));
-      print("⏭️ time was past → moved to $scheduledTime");
+      debugPrint("⏭️ time was past → moved to $scheduledTime");
     }
 
     if (normalizedCategory == 'water') {
       await waterController.updateWaterReminderFromLocal(context, id, times);
     } else {
-      print("🔁 Updating single alarm → $category with id=$id");
+      debugPrint("🔁 Updating single alarm → $category with id=$id");
 
       switch (normalizedCategory) {
         case 'medicine':
@@ -541,11 +543,11 @@ class ReminderController extends GetxController {
           );
           break;
         default:
-          print("⚠️ Unknown category: $category");
+          debugPrint("⚠️ Unknown category: $category");
       }
     }
 
-    print("✅ updateReminderFromLocal completed");
+    debugPrint("✅ updateReminderFromLocal completed");
   }
 
   Future<void> finalizeUpdate(
@@ -832,18 +834,18 @@ class ReminderController extends GetxController {
   Future<List<Map<String, AlarmSettings>>> loadReminderList(
     String keyName,
   ) async {
-    print('📦 loadReminderList() → key: $keyName');
+    debugPrint('📦 loadReminderList() → key: $keyName');
 
     // final box = Hive.box('reminders_box');
     final box = await HiveService().remindersBox();
     final List<dynamic>? storedList = box.get(keyName);
 
     if (storedList == null) {
-      print('⚠️ No data found for $keyName');
+      debugPrint('⚠️ No data found for $keyName');
       return [];
     }
 
-    print('📄 Raw list length [$keyName]: ${storedList.length}');
+    debugPrint('📄 Raw list length [$keyName]: ${storedList.length}');
 
     final List<String> stringList = storedList.cast<String>();
     final decodedEntries =
@@ -864,13 +866,13 @@ class ReminderController extends GetxController {
       result.add(mapped);
     }
 
-    print('✅ Loaded ${result.length} alarms for $keyName');
+    debugPrint('✅ Loaded ${result.length} alarms for $keyName');
     return result;
   }
 
   Future<void> saveReminderList(RxList<dynamic> list, String keyName) async {
-    print('💾 Saving reminders → key: $keyName');
-    print('📦 Total items to save: ${list.length}');
+    debugPrint('💾 Saving reminders → key: $keyName');
+    debugPrint('📦 Total items to save: ${list.length}');
 
     // final box = Hive.box('reminders_box');
     final box = await HiveService().remindersBox();
@@ -878,17 +880,17 @@ class ReminderController extends GetxController {
     List<String> stringList =
         list.map((item) {
           if (item is Map<String, AlarmSettings>) {
-            print('🗂 Saving Map<String, AlarmSettings>');
+            debugPrint('🗂 Saving Map<String, AlarmSettings>');
             final jsonMap = item.map((key, value) {
-              print('   ➜ Alarm: $key | id=${value.id}');
+              debugPrint('   ➜ Alarm: $key | id=${value.id}');
               return MapEntry(key, value.toJson());
             });
             return jsonEncode(jsonMap);
           } else if (item is medicine_payload.MedicineReminderModel) {
-            print('💊 Saving MedicineReminderModel → ${item.title}');
+            debugPrint('💊 Saving MedicineReminderModel → ${item.title}');
             return jsonEncode(item.toJson());
           } else if (item is WaterReminderModel) {
-            print(
+            debugPrint(
               '💧 Saving WaterReminderModel → '
               'id=${item.id}, '
               'title=${item.title}, '
@@ -900,32 +902,32 @@ class ReminderController extends GetxController {
             return jsonEncode(item.toJson());
           }
 
-          print('⚠️ Unknown item type: ${item.runtimeType}');
+          debugPrint('⚠️ Unknown item type: ${item.runtimeType}');
           return jsonEncode({});
         }).toList();
 
     await box.put(keyName, stringList);
-    print('✅ Saved ${stringList.length} items to Hive → $keyName');
+    debugPrint('✅ Saved ${stringList.length} items to Hive → $keyName');
   }
 
   Future<void> loadAllReminderLists() async {
     try {
-      print('🔄 loadAllReminderLists() START');
+      debugPrint('🔄 loadAllReminderLists() START');
       isLoading(true);
 
       medicineGetxController.medicineList.value = await medicineGetxController
           .loadMedicineReminderList("medicine_list");
-      print(
+      debugPrint(
         '💊 Medicine loaded: ${medicineGetxController.medicineList.length}',
       );
 
       mealController.mealsList.value = await loadReminderList("meals_list");
-      print('🍽 Meals loaded: ${mealController.mealsList.length}');
+      debugPrint('🍽 Meals loaded: ${mealController.mealsList.length}');
 
       eventGetxController.eventList.value = await loadReminderList(
         "event_list",
       );
-      print('📅 Events loaded: ${eventGetxController.eventList.length}');
+      debugPrint('📅 Events loaded: ${eventGetxController.eventList.length}');
 
       waterController.waterList.value = await waterController
           .loadWaterReminderList("water_list");
@@ -934,15 +936,15 @@ class ReminderController extends GetxController {
         waterController.waterList.value = dedupedWater;
         await saveReminderList(waterController.waterList, "water_list");
       }
-      print('💧 Water loaded: ${waterController.waterList.length}');
+      debugPrint('💧 Water loaded: ${waterController.waterList.length}');
 
       final List<reminder_payload.ReminderPayloadModel> combined = [];
 
-      print('🧩 Building combined reminder list');
+      debugPrint('🧩 Building combined reminder list');
 
       for (var item in medicineGetxController.medicineList) {
-        print('➕ Add Medicine → ${item.title}');
-        print('Description Med: ${item.notes ?? ""}');
+        debugPrint('➕ Add Medicine → ${item.title}');
+        debugPrint('Description Med: ${item.notes ?? ""}');
         final isTimesBased = item.customReminder.type == Option.times;
         final isIntervalBased = item.customReminder.type == Option.interval;
         combined.add(
@@ -1053,12 +1055,12 @@ class ReminderController extends GetxController {
               notes: alarm.notificationSettings.body,
             ),
           );
-          print(("event combined ${combined.last}"));
+          debugPrint(("event combined ${combined.last}"));
         });
       }
 
       for (var item in waterController.waterList) {
-        print(
+        debugPrint(
           '➕ Add Water → '
           'id=${item.id}, '
           'title=${item.title}, '
@@ -1105,13 +1107,13 @@ class ReminderController extends GetxController {
       }
 
       reminders.value = combined;
-      print('Combined reminders count: ${combined.length}');
+      debugPrint('Combined reminders count: ${combined.length}');
     } catch (e, stack) {
-      print('❌ Error loading reminder lists: $e');
-      print(stack);
+      debugPrint('❌ Error loading reminder lists: $e');
+      debugPrint(stack.toString());
     } finally {
       isLoading(false);
-      print('loadAllReminderLists() END');
+      debugPrint('loadAllReminderLists() END');
     }
   }
 
@@ -1122,7 +1124,7 @@ class ReminderController extends GetxController {
       isLoading(true);
       await getReminderFromAPI(context);
     } catch (e) {
-      print("Error fetching reminders");
+      debugPrint("Error fetching reminders");
     } finally {
       isLoading(false);
     }

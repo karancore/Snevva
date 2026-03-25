@@ -1,8 +1,9 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
+
+import 'package:http/http.dart' as http;
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import 'package:snevva/consts/consts.dart';
-import 'package:http/http.dart' as http;
+
 import '../../common/custom_snackbar.dart';
 import '../../env/env.dart';
 import '../../services/api_service.dart';
@@ -83,7 +84,7 @@ class BmiUpdateController extends GetxService {
     this.height.value = height;
     this.weight.value = weight;
 
-    debugPrint('Set Age: $age, Height: $height cm, Weight: ${weight} kg');
+    debugPrint('Set Age: $age, Height: $height cm, Weight: $weight kg');
     updateBmiValues();
     return true;
   }

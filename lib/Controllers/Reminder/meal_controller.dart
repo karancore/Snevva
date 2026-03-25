@@ -33,7 +33,7 @@ class MealController extends GetxController {
         timesPerDay: TimesPerDay(count: 1.toString() , list: [scheduledTime.toString()]),
       ),
     );
-    print("Meal Data: $mealData");
+    debugPrint("Meal Data: $mealData");
     final alarmSettings = AlarmSettings(
       id: id,
       dateTime: scheduledTime,
@@ -72,7 +72,7 @@ class MealController extends GetxController {
 
       // Reload the combined list
       await reminderController.loadAllReminderLists();
-      print("Meal data before API call: ${mealData.toJson()}");
+      debugPrint("Meal data before API call: ${mealData.toJson()}");
       reminderController.addRemindertoAPI(mealData, context);
 
       // CustomSnackbar.showSuccess(
