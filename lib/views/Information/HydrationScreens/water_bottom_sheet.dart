@@ -1,6 +1,6 @@
+import 'package:snevva/Widgets/CommonWidgets/common_question_bottom_sheet.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:wheel_picker/wheel_picker.dart';
-import 'package:snevva/Widgets/CommonWidgets/common_question_bottom_sheet.dart';
 
 import '../../../Controllers/Hydration/hydration_stat_controller.dart';
 
@@ -42,8 +42,8 @@ class _WaterBottomSheetState extends State<WaterBottomSheet> {
     final currentGoal = controller.waterGoal.value;
     final calculatedIndex = (currentGoal ~/ widget.multiplier) - 1;
 
-    print("Current water goal: $currentGoal");
-    print("Calculated wheel index: $calculatedIndex");
+    debugPrint("Current water goal: $currentGoal");
+    debugPrint("Calculated wheel index: $calculatedIndex");
 
     wheel = WheelPickerController(
       itemCount: 20,
@@ -75,16 +75,16 @@ class _WaterBottomSheetState extends State<WaterBottomSheet> {
       questionSubHeading: widget.subHeading,
       onNext: () async {
         // Try different ways to get the selected value
-        print("wheel.selected: ${wheel.selected}");
-        print("wheel.initialIndex: ${wheel.initialIndex}");
+        debugPrint("wheel.selected: ${wheel.selected}");
+        debugPrint("wheel.initialIndex: ${wheel.initialIndex}");
 
         // Check if wheel has any other properties
-        print("Wheel controller type: ${wheel.runtimeType}");
-        print("Wheel toString: ${wheel.toString()}");
+        debugPrint("Wheel controller type: ${wheel.runtimeType}");
+        debugPrint("Wheel toString: ${wheel.toString()}");
 
         final value = ((wheel.selected + 1) * widget.multiplier) * 4;
 
-        print("Calculated value: $value");
+        debugPrint("Calculated value: $value");
 
         // Call the onConfirm callback if provided
         if (widget.onConfirm != null) {

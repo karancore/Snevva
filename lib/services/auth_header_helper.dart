@@ -13,9 +13,9 @@ class AuthHeaderHelper {
 
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
-        // print("👉 Using Bearer Token: $token"); // Debug
+        // debugPrint("👉 Using Bearer Token: $token"); // Debug
       } else {
-        // print("❌ No token found in SharedPreferences");
+        // debugPrint("❌ No token found in SharedPreferences");
       }
     }
 

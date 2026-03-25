@@ -63,7 +63,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
       } else if (phoneRegex.hasMatch(input)) {
         final result = await signupController.signUpUsingPhone(input, context);
-        print("result ${result.toString()}");
+        debugPrint("result ${result.toString()}");
 
         if (result != null && result != false) {
           Get.to(
@@ -84,8 +84,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         );
       }
     } catch (e, s) {
-      print("❌ Caught error: $e");
-      print("📌 Stack: $s");
+      debugPrint("❌ Caught error: $e");
+      debugPrint("📌 Stack: $s");
       CustomSnackbar.showError(
         title: 'Error',
         message: 'Failed to create profile $e',

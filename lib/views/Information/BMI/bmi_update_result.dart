@@ -5,6 +5,7 @@ import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/consts/colors.dart';
 import 'package:snevva/consts/images.dart';
 import 'package:snevva/views/Information/BMI/bmi_updateCal.dart';
+
 import '../../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../Health Tips/Nutrition_tips.dart/nutrition_tips.dart';
 
@@ -218,14 +219,16 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
                   return const Text("No suggestions found.");
                 }
 
-                print("Image URL: ${tips[0]['ThumbnailMedia']?['CdnUrl']}");
+                debugPrint(
+                    "Image URL: ${tips[0]['ThumbnailMedia']?['CdnUrl']}");
 
                 return Wrap(
                   spacing: 16,
                   runSpacing: 16,
                   children:
                       tips.map((tip) {
-                        print("Image URL: ${tip['ThumbnailMedia']?['CdnUrl']}");
+                        debugPrint(
+                            "Image URL: ${tip['ThumbnailMedia']?['CdnUrl']}");
 
                         return SizedBox(
                           width: (width - 56) / 2,

@@ -1,12 +1,9 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_instance/src/extension_instance.dart';
 import 'package:intl/intl.dart';
 
 import '../Controllers/signupAndSignIn/sign_in_controller.dart';
 import '../consts/consts.dart';
-import '../models/reminders/medicine_reminder_model.dart';
 
 //Interval - hours
 enum Option { times, interval }
@@ -295,7 +292,7 @@ String formatReminderTime(List remindTimes) {
         formattedTimes.add(DateFormat('hh:mm a').format(time));
       }
     } catch (e) {
-      print('Error formatting time: $e');
+      debugPrint('Error formatting time: $e');
       formattedTimes.add(time.toString());
     }
   }

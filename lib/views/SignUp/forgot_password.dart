@@ -35,7 +35,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
   }
 
   Future<void> onButtonClick(String input) async {
-    print("onButtonClick $input");
+    debugPrint("onButtonClick $input");
     if (textFieldController.text.isEmpty) {
       CustomSnackbar.showError(
         context: context,

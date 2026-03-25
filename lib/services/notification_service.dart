@@ -1,5 +1,4 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:get/get.dart';
 import 'package:timezone/data/latest.dart' as tzd;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -110,7 +109,7 @@ class NotificationService {
 
     hasNewNotification.value = true;
 
-    print("✅ Scheduled -> $title at $hour:$minute");
+    debugPrint("✅ Scheduled -> $title at $hour:$minute");
   }
 
 
@@ -196,8 +195,8 @@ class NotificationService {
     );
     hasNewNotification.value = true;
 
-    print('Morning scheduled: $morningTime');
-    print('Night scheduled: $nightTime');
+    debugPrint('Morning scheduled: $morningTime');
+    debugPrint('Night scheduled: $nightTime');
   }
 
   // -------------------------------------------------

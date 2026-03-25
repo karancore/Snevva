@@ -81,7 +81,7 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
 
     if (state == AppLifecycleState.resumed) {
       // Force reload from Hive and prefs when app returns to foreground
-      print('🔁 App resumed - reloading steps from Hive');
+      debugPrint('🔁 App resumed - reloading steps from Hive');
       stepController.loadTodayStepsFromHive();
     }
   }
@@ -115,7 +115,7 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
   //     _graphMaxY = maxSteps * 1.1; // add 10% padding
   //   });
 
-  //   print("📈 Weekly data loaded: $_points");
+  //   debugPrint("📈 Weekly data loaded: $_points");
   // }
 
   //   Future<void> _loadMonthlyData(DateTime month) async {
@@ -305,7 +305,7 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
                           );
 
                           if (_secretTapCount == 7) {
-                            print("🕵️ Secret API push activated");
+                            debugPrint("🕵️ Secret API push activated");
                             stepController.saveStepRecordToServer();
                             _secretTapCount = 0;
                           }

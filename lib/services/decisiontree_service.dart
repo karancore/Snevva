@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:snevva/views/Chat/snevva_ai_chat_screen.dart';
 
+import '../consts/consts.dart';
+
 class DecisionTreeService {
   static final DecisionTreeService _instance = DecisionTreeService._internal();
 
@@ -16,7 +18,7 @@ class DecisionTreeService {
   /// 🔥 USED BY CHAT SCREEN
   Future<Map<String, DecisionNode>> getDecisionTree() async {
     if (_cachedTree != null) {
-      print("🧠 Decision tree served from MEMORY");
+      debugPrint("🧠 Decision tree served from MEMORY");
       return _cachedTree!;
     }
 
@@ -30,11 +32,11 @@ class DecisionTreeService {
     _isLoading = true;
     try {
       final tree = await loadDecisionTree();
-      print("🌳 Tree size after load: ${tree.length}");
-      print("🌳 Tree keys: ${tree.keys.toList()}");
+      debugPrint("🌳 Tree size after load: ${tree.length}");
+      debugPrint("🌳 Tree keys: ${tree.keys.toList()}");
 
       _cachedTree = tree;
-      print("🌐 Decision tree loaded");
+      debugPrint("🌐 Decision tree loaded");
       return tree;
     } finally {
       _isLoading = false;
@@ -46,7 +48,7 @@ class DecisionTreeService {
   // ==========================================================
   void clearMemory() {
     _cachedTree = null;
-    print("🧹 Decision tree memory cache cleared");
+    debugPrint("🧹 Decision tree memory cache cleared");
   }
 
   // ==========================================================
@@ -59,12 +61,12 @@ class DecisionTreeService {
 
       if (await file.exists()) {
         await file.delete();
-        print("🗑️ decision.json deleted");
+        debugPrint("🗑️ decision.json deleted");
       } else {
-        print("ℹ️ decision.json not found");
+        debugPrint("ℹ️ decision.json not found");
       }
     } catch (e) {
-      print("❌ Failed to delete decision.json: $e");
+      debugPrint("❌ Failed to delete decision.json: $e");
     }
   }
 

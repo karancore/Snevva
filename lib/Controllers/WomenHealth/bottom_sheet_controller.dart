@@ -1,11 +1,13 @@
 import 'dart:convert';
-import 'package:get/get.dart';
+
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/models/day_symptoms.dart';
 import 'package:snevva/services/api_service.dart';
-import 'package:http/http.dart' as http;
+
+import '../../consts/consts.dart';
 
 class BottomSheetController extends GetxController {
   var pageIndex = 0.obs;
@@ -32,8 +34,8 @@ class BottomSheetController extends GetxController {
 
     final dayData = symptomsByDate[key];
 
-    print("Selected date: $key, Data: $dayData");
-    print("Available keys in map: ${symptomsByDate.keys.toList()}");
+    debugPrint("Selected date: $key, Data: $dayData");
+    debugPrint("Available keys in map: ${symptomsByDate.keys.toList()}");
 
     if (dayData != null) {
       symptoms.value = List.from(dayData.symptoms);
@@ -82,7 +84,7 @@ class BottomSheetController extends GetxController {
     }
 
     symptomsByDate.value = map;
-    print("🔹 Loaded ${map.length} symptom dates from prefs");
+    debugPrint("🔹 Loaded ${map.length} symptom dates from prefs");
   }
 
   /// 🔹 Load Women Health data from API
@@ -109,8 +111,8 @@ class BottomSheetController extends GetxController {
       final List<dynamic> apiSymptoms =
           data['WomenHealthData']?['SymptomsData'] ?? [];
 
-      print("✅ Women Health Data loaded successfully: $data");
-      print("✅ Symptoms Data loaded successfully: $apiSymptoms");
+      debugPrint("✅ Women Health Data loaded successfully: $data");
+      debugPrint("✅ Symptoms Data loaded successfully: $apiSymptoms");
 
       final Map<DateTime, DaySymptoms> tempMap = {};
 
@@ -136,25 +138,26 @@ class BottomSheetController extends GetxController {
             note: mergedNote,
           );
 
-          print("Merging symptoms for date $date: ${tempMap[date]!.symptoms}");
+          debugPrint(
+              "Merging symptoms for date $date: ${tempMap[date]!.symptoms}");
         } else {
           tempMap[date] = DaySymptoms(
             date: date,
             symptoms: daySymptoms,
             note: dayNote,
           );
-          print("Added symptoms for date $date: $daySymptoms");
+          debugPrint("Added symptoms for date $date: $daySymptoms");
         }
       }
 
       symptomsByDate.value = tempMap;
-      print("✅ Symptom map updated with ${tempMap.length} dates");
-      print(
+      debugPrint("✅ Symptom map updated with ${tempMap.length} dates");
+      debugPrint(
         "🔍 Symptom dates in map: ${tempMap.keys.map((d) => '${d.day}-${d.month}-${d.year}').toList()}",
       );
       await saveSymptomsToPrefs();
     } catch (e) {
-      print("❌ Error loading symptoms: $e");
+      debugPrint("❌ Error loading symptoms: $e");
       CustomSnackbar.showError(
         context: Get.context!,
         title: 'Error',
@@ -201,7 +204,7 @@ class BottomSheetController extends GetxController {
         'Note': note,
       };
 
-      print("Payload: $payload");
+      debugPrint("Payload: $payload");
 
       final response = await ApiService.post(
         periodsymptomps,

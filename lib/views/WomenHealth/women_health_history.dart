@@ -3,6 +3,7 @@ import 'package:intl/intl.dart' show DateFormat;
 import 'package:snevva/Controllers/WomenHealth/bottom_sheet_controller.dart';
 import 'package:snevva/Widgets/WomenHealth/calender.dart';
 import 'package:snevva/views/WomenHealth/symptoms_bottom_sheet.dart';
+
 import '../../Widgets/CommonWidgets/custom_appbar.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../consts/consts.dart';
@@ -162,7 +163,7 @@ class _WomenHealthHistoryState extends State<WomenHealthHistory> {
   }
 
   Column getSymptoms(String heading, String subheading) {
-    print("Displaying $heading: $subheading");
+    debugPrint("Displaying $heading: $subheading");
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

@@ -126,7 +126,8 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
           _progress = (elapsedMinutes / goalMinutes).clamp(0.0, 1.0);
         });
 
-        print("💤 Sleep update in UI: ${elapsedMinutes}m / ${goalMinutes}m");
+        debugPrint(
+            "💤 Sleep update in UI: ${elapsedMinutes}m / ${goalMinutes}m");
       }
     });
 
@@ -260,7 +261,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
       return;
     }
 
-    print("🕵️ Secret API push activated");
+    debugPrint("🕵️ Secret API push activated");
     sleepController.updateSleepTimestoServer(bedTime, wakeTime);
     _secretTapCount = 0;
   }

@@ -1,10 +1,11 @@
 import 'dart:convert';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
-import 'dart:math';
+
 import 'consts/consts.dart';
 
 Future<AccessCredentials> _getAccessToken() async {
@@ -33,7 +34,7 @@ Future<bool> sendPushNotification({
   final accessToken = credentials.accessToken.data;
   final projectId = dotenv.env['PROJECT_ID'];
 
-  print("accessToken: $dotenv.env['PROJECT_ID']");
+  debugPrint("accessToken: $dotenv.env['PROJECT_ID']");
 
   final url = Uri.parse(
     'https://fcm.googleapis.com/v1/projects/$projectId/messages:send',
@@ -57,10 +58,10 @@ Future<bool> sendPushNotification({
   );
 
   if (response.statusCode == 200) {
-    print('Notification sent successfully.');
+    debugPrint('Notification sent successfully.');
     return true;
   } else {
-    print('Failed to send notification: ${response.body}');
+    debugPrint('Failed to send notification: ${response.body}');
     return false;
   }
 }

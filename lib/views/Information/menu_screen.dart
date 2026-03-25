@@ -1,18 +1,16 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Chat/snevva_ai_chat_screen.dart';
 import 'package:snevva/views/DietPlan/diet_plan_screen.dart';
-
-import 'package:snevva/views/Information/HydrationScreens/hydration_screen.dart';
 import 'package:snevva/views/Information/Health%20Tips/health_tips.dart';
+import 'package:snevva/views/Information/HydrationScreens/hydration_screen.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_bottom_sheet.dart';
 import 'package:snevva/views/Information/StepCounter/step_counter.dart';
 import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.dart';
+import 'package:snevva/views/Information/mental_wellness_screen.dart';
 import 'package:snevva/views/Information/vitals.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
-import 'package:snevva/views/Reminder/reminder_screen.dart';
-import 'package:snevva/views/Information/mental_wellness_screen.dart';
-import 'package:get/get.dart';
 import 'package:snevva/views/Reminder/reminder_wrapper.dart';
 import 'package:snevva/views/WomenHealth/women_health_screen.dart';
 
@@ -23,8 +21,6 @@ import '../../Widgets/menu_item_widget.dart';
 import '../../common/statement_of_use_bottom_sheet.dart';
 import '../Information/BMI/bmi_cal.dart';
 import '../WomenHealth/women_bottom_sheets.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'Sleep Screen/sleep_tracker_screen.dart';
 
 class MenuScreen extends StatefulWidget {
@@ -338,7 +334,7 @@ Widget _buildMenuGrid(
             imagePath: item.imagePath,
             isDarkMode: isDarkMode,
             onTap: () async {
-              print("Tapped on: ${item.title}");
+              debugPrint("Tapped on: ${item.title}");
 
               // Handle Vital Monitor
               if (item.title == "Vital Monitor") {
@@ -396,7 +392,7 @@ Widget _buildMenuGrid(
                       final stepController = Get.find<StepCounterController>();
                       await stepController.updateStepGoal(goal);
                     } catch (e) {
-                      print("StepCounterController not found: $e");
+                      debugPrint("StepCounterController not found: $e");
                     }
 
                     Get.to(() => StepCounter(customGoal: goal));
@@ -434,7 +430,7 @@ Widget _buildMenuGrid(
               }
               // Handle Calorie Counter
               else if (item.title == "Calorie Counter") {
-                print("Calorie Counter tapped - implement navigation");
+                debugPrint("Calorie Counter tapped - implement navigation");
                 // TODO: Add calorie counter navigation
               }
               // Handle items with navigateTo

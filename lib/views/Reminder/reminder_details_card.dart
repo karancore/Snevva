@@ -198,7 +198,7 @@ class _ReminderDetailsCardState extends State<ReminderDetailsCard>
   Widget _buildMealDetails() {
     final timesList = widget.reminder.customReminder?.timesPerDay?.list ?? [];
     final notes = widget.reminder.notes;
-    print("notes $notes");
+    debugPrint("notes $notes");
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

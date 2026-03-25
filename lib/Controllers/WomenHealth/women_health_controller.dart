@@ -3,12 +3,12 @@ import 'dart:convert';
 
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/models/tips_response.dart';
 import 'package:snevva/services/api_service.dart';
-import 'package:http/http.dart' as http;
 
 import '../../common/custom_snackbar.dart';
 
@@ -189,9 +189,9 @@ class WomenHealthController extends GetxService {
       await prefs.setInt('periodDataStartMonth', periodDataStartMonth.value);
       await prefs.setInt('periodDataStartYear', periodDataStartYear.value);
 
-      print('✅ Women Health Data saved successfully!');
+      debugPrint('✅ Women Health Data saved successfully!');
     } catch (e) {
-      print('❌ Error saving Women Health Data: $e');
+      debugPrint('❌ Error saving Women Health Data: $e');
     }
   }
 
@@ -222,10 +222,10 @@ class WomenHealthController extends GetxService {
         _calculateNextDates();
       }
 
-      print('🟢 isFirstTimeWomen = ${isFirstTimeWomen.value}');
-      print('🟢 hasPeriodData = ${hasPeriodData.value}');
+      debugPrint('🟢 isFirstTimeWomen = ${isFirstTimeWomen.value}');
+      debugPrint('🟢 hasPeriodData = ${hasPeriodData.value}');
     } catch (e) {
-      print('❌ Error loading Women Health Data: $e');
+      debugPrint('❌ Error loading Women Health Data: $e');
     }
   }
 
@@ -246,10 +246,10 @@ class WomenHealthController extends GetxService {
   //       return;
   //     }
   //     final parsedData = jsonDecode(jsonEncode(response));
-  //     print("women health data from api : $parsedData");
+  //     debugPrint("women health data from api : $parsedData");
   //     final data = parsedData['data'];
   //     final womenHealthData = data['WomenHealthData'];
-  //     print("women health data extracted : $womenHealthData");
+  //     debugPrint("women health data extracted : $womenHealthData");
   //     if (womenHealthData != null) {
   //       isFirstTimeWomen.value = false;
   //       final prefs = await SharedPreferences.getInstance();
@@ -270,9 +270,9 @@ class WomenHealthController extends GetxService {
   //     } else {
   //       isFirstTimeWomen.value = true;
   //     }
-  //     print("✅ Women Health Data loaded successfully: $response");
+  //     debugPrint("✅ Women Health Data loaded successfully: $response");
   //   } catch (e) {
-  //     print(e);
+  //     debugPrint(e);
   //     CustomSnackbar.showError(
   //       context: Get.context!,
   //       title: 'Error',
@@ -450,9 +450,9 @@ class WomenHealthController extends GetxService {
       await prefs.setBool('is_first_time_women', false);
       isFirstTimeWomen.value = false;
 
-      print("✅ Women Health Data saved successfully: $response");
+      debugPrint("✅ Women Health Data saved successfully: $response");
     } catch (e) {
-      print(e);
+      debugPrint(e.toString());
       CustomSnackbar.showError(
         context: context,
         title: 'Error',
@@ -515,7 +515,7 @@ class WomenHealthController extends GetxService {
       if (!loadMore) {
         womenHealthTips.value = [];
       }
-      print(e);
+      debugPrint(e.toString());
       CustomSnackbar.showError(
         context: context,
         title: 'Error',

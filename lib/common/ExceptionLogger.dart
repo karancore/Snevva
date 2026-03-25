@@ -1,8 +1,8 @@
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:snevva/env/env.dart';
 import 'package:snevva/models/exception_Log.dart';
-import 'package:snevva/services/api_service.dart';
 import 'package:snevva/services/auth_service.dart';
+
+import '../consts/consts.dart';
 
 class ExceptionLogger {
   static Future<void> log({
@@ -15,8 +15,8 @@ class ExceptionLogger {
     try {
       final extracted = stackTrace != null ? _extractFromStack(stackTrace) : {};
 
-      print("Logging exception: ${exception.toString()}");
-      print(
+      debugPrint("Logging exception: ${exception.toString()}");
+      debugPrint(
         "extracted methodName: ${extracted['methodName']}, className: ${extracted['className']}",
       );
 

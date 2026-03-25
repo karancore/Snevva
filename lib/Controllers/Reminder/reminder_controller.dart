@@ -250,15 +250,15 @@ class ReminderController extends GetxController {
   Future<void> checkAndroidScheduleExactAlarmPermission() async {
     final status = await Permission.scheduleExactAlarm.status;
     if (kDebugMode) {
-      print('Schedule exact alarm permission: $status.');
+      debugPrint('Schedule exact alarm permission: $status.');
     }
     if (status.isDenied) {
       if (kDebugMode) {
-        print('Requesting schedule exact alarm permission...');
+        debugPrint('Requesting schedule exact alarm permission...');
       }
       final res = await Permission.scheduleExactAlarm.request();
       if (kDebugMode) {
-        print(
+        debugPrint(
           'Schedule exact alarm permission ${res.isGranted ? '' : 'not'} granted.',
         );
       }

@@ -233,7 +233,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     final int frequency =
         int.tryParse(reminder.medicineFrequencyPerDay ?? '') ?? 0;
 
-    print("integer frequency is $frequency");
+    debugPrint("integer frequency is $frequency");
 
     final entry = medicineGetxController.frequencyNum.entries.firstWhere(
           (e) => e.value == frequency,
@@ -244,7 +244,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
     medicineGetxController.selectedType.value = reminder.medicineType ?? '';
     dosage = asDouble(reminder.dosage?.value);
-    print(
+    debugPrint(
       "medicineGetxController.dosageMed.value ${medicineGetxController.dosageMed
           .value}",
     );
@@ -486,9 +486,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     required TextEditingController textController,
     String? category,
   }) async {
-    print("Selecting time... ${textController.toString()} ");
+    debugPrint("Selecting time... ${textController.toString()} ");
     TimeOfDay? picked = await _showTimeWheelPicker();
-    print("Picked time: $picked");
+    debugPrint("Picked time: $picked");
     reminderController.pickedTime.value = picked;
 
     if (picked != null) {

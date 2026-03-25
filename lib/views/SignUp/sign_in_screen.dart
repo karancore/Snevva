@@ -90,7 +90,7 @@ class _SignInScreenState extends State<SignInScreen> {
           context,
         );
       } else {
-        print("Invalid input format");
+        debugPrint("Invalid input format");
         // 🔹 Invalid input
         // _handleSignInError();
         return;
@@ -104,13 +104,13 @@ class _SignInScreenState extends State<SignInScreen> {
           context: context,
           rememberMe: rememberMe,
         );
-        print("Sign-in successful");
+        debugPrint("Sign-in successful");
       } else {
-        print("Sign-in failed");
+        debugPrint("Sign-in failed");
         // _handleSignInError();
       }
     } catch (e) {
-      print("Exception $e");
+      debugPrint("Exception $e");
       _handleSignInError("We couldn’t sign you in. Please try again.");
     } finally {
       setState(() => isLoading = false);

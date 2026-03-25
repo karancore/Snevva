@@ -4,23 +4,18 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import 'package:get/get.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
 import 'package:snevva/models/hive_models/sleep_log_g.dart';
-import 'package:snevva/models/reminders/medicine_reminder_model.dart';
-import 'package:snevva/models/reminders/water_reminder_model.dart';
+import 'package:snevva/services/notification_service.dart';
+import 'package:snevva/services/unified_background_service.dart';
 import 'package:timezone/data/latest.dart';
 import 'package:timezone/timezone.dart';
 
-import 'package:snevva/services/unified_background_service.dart';
-import 'package:snevva/services/notification_service.dart';
-
-import '../models/hive_models/sleep_log.dart';
-import '../models/hive_models/sleep_log_g.dart';
-import '../models/hive_models/steps_model.dart';
 import '../common/agent_debug_logger.dart';
+import '../consts/consts.dart';
+import '../models/hive_models/sleep_log.dart';
+import '../models/hive_models/steps_model.dart';
 
 // ====================================================================
 // 0️⃣ NOTIFICATION CHANNEL SETUP (CRITICAL FOR ANDROID 12+)
@@ -42,7 +37,7 @@ Future<void> createServiceNotificationChannel() async {
       >()
       ?.createNotificationChannel(channel);
 
-  print("✅ Notification channel created for foreground service");
+  debugPrint("✅ Notification channel created for foreground service");
 }
 
 // ====================================================================
@@ -62,7 +57,7 @@ Future<void> requestAllPermissions() async {
 
   // Only show settings if user permanently denied
   if (statuses.values.any((p) => p.isPermanentlyDenied)) {
-    print(
+    debugPrint(
       "⚠️ Some permissions permanently denied - user should enable in settings",
     );
     // Don't force open settings immediately - let user use app
@@ -79,7 +74,7 @@ Future<void> setupHive() async {
         Hive.isBoxOpen('sleep_log') &&
         Hive.isBoxOpen('medicine_list') &&
         Hive.isBoxOpen('reminders_box')) {
-      print("✅ Hive already initialized, skipping setup");
+      debugPrint("✅ Hive already initialized, skipping setup");
       return;
     }
 
@@ -88,7 +83,7 @@ Future<void> setupHive() async {
       directory.path,
     ); // This must be called once per isolate
 
-    print("🧪 Initializing Hive at: ${directory.path}");
+    debugPrint("🧪 Initializing Hive at: ${directory.path}");
 
     // Register adapters (only if not already registered)
     if (!Hive.isAdapterRegistered(StepEntryAdapter().typeId)) {
@@ -134,7 +129,7 @@ Future<void> setupHive() async {
       await Hive.openBox<StepEntry>('step_history');
     }
 
-    print("✅ Hive setup complete - boxes opened");
+    debugPrint("✅ Hive setup complete - boxes opened");
 
     if (!Hive.isBoxOpen('sleep_log')) {
       await Hive.openBox<SleepLog>('sleep_log');
@@ -146,10 +141,10 @@ Future<void> setupHive() async {
       await Hive.openBox('medicine_list');
     }
 
-    print("✅ Hive setup complete - boxes opened");
+    debugPrint("✅ Hive setup complete - boxes opened");
   } catch (e, stackTrace) {
-    print("❌ Hive setup failed: $e");
-    print(stackTrace);
+    debugPrint("❌ Hive setup failed: $e");
+    debugPrint(stackTrace as String?);
     // Optionally rethrow or handle (e.g., show error UI)
     rethrow; // Let main.dart handle it
   }
@@ -164,11 +159,11 @@ Future<void> initBackgroundService() async {
   // ✅ Check if service is already running
   final isRunning = await service.isRunning();
   if (isRunning) {
-    print("✅ Background service already running");
+    debugPrint("✅ Background service already running");
     return;
   }
 
-  print("🔄 Configuring background service...");
+  debugPrint("🔄 Configuring background service...");
 
   await service.configure(
     androidConfiguration: AndroidConfiguration(
@@ -191,10 +186,10 @@ Future<void> initBackgroundService() async {
     // ✅ Double-check before starting
     if (!await service.isRunning()) {
       await service.startService();
-      print("✅ Background service started successfully");
+      debugPrint("✅ Background service started successfully");
     }
   } catch (e) {
-    print("❌ Failed to start background service: $e");
+    debugPrint("❌ Failed to start background service: $e");
     // Don't throw - let app continue without background service
   }
 }
@@ -246,7 +241,7 @@ Future<bool> initializeApp() async {
     return prefs.getBool('remember_me') ?? false;
   }
 
-  print("🔄 Starting app initialization...");
+  debugPrint("🔄 Starting app initialization...");
 
   try {
     // 🌍 Timezone
@@ -268,12 +263,12 @@ Future<bool> initializeApp() async {
     }
 
     _isInitialized = true;
-    print("✅ App initialization complete");
+    debugPrint("✅ App initialization complete");
 
     return prefs.getBool('remember_me') ?? false;
   } catch (e, stackTrace) {
-    print("❌ App initialization failed: $e");
-    print(stackTrace);
+    debugPrint("❌ App initialization failed: $e");
+    debugPrint(stackTrace as String?);
     return false;
   }
 }
@@ -281,12 +276,12 @@ Future<bool> initializeApp() async {
 // Future<bool> initializeApp() async {
 //   // ✅ Prevent double initialization
 //   if (_isInitialized) {
-//     print("✅ App already initialized");
+//     debugPrint("✅ App already initialized");
 //     final prefs = await SharedPreferences.getInstance();
 //     return prefs.getBool('remember_me') ?? false;
 //   }
 //
-//   print("🔄 Starting app initialization...");
+//   debugPrint("🔄 Starting app initialization...");
 //
 //   try {
 //     // Timezone setup (lightweight)
@@ -341,12 +336,12 @@ Future<bool> initializeApp() async {
 //     }
 //
 //     _isInitialized = true;
-//     print("✅ App initialization complete");
+//     debugPrint("✅ App initialization complete");
 //
 //     return prefs.getBool('remember_me') ?? false;
 //   } catch (e, stackTrace) {
-//     print("❌ App initialization failed: $e");
-//     print("Stack trace: $stackTrace");
+//     debugPrint("❌ App initialization failed: $e");
+//     debugPrint("Stack trace: $stackTrace");
 //
 //     // Don't block the app - return false to show login screen
 //     return false;

@@ -1,5 +1,6 @@
 import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
 import 'package:wheel_picker/wheel_picker.dart';
+
 import '../../../consts/consts.dart';
 
 class HydrationBottomSheet extends StatefulWidget {
@@ -201,7 +202,7 @@ class _HydrationBottomSheetState extends State<HydrationBottomSheet> {
                               100 + index * 50,
                             );
                             controller.addWaterValue.value = value;
-                            print(value);
+                            debugPrint(value as String?);
                           },
                           builder: (context, index) {
                             int value = 100 + index * 50;
