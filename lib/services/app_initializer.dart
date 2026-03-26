@@ -24,10 +24,13 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
 Future<void> createServiceNotificationChannel() async {
+  // Single unified channel used by BOTH the native StepCounterService and the
+  // Dart flutter_background_service isolate. Creating it here ensures it exists
+  // before either service tries to post notifications.
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
-    'flutter_background_service',
-    'Background Service',
-    description: 'Health tracking service (steps & sleep)',
+    'tracker_channel',
+    'Health Tracking',
+    description: 'Step & sleep tracking',
     importance: Importance.low,
   );
 
@@ -54,6 +57,15 @@ Future<void> requestAllPermissions() async {
 
   // ✅ Request permissions without blocking
   final statuses = await req.request();
+
+  // For reliable background step counting, battery optimization must be ignored.
+  if (statuses[Permission.ignoreBatteryOptimizations]?.isDenied ?? true) {
+    print(
+      "⚠️ Ignoring battery optimizations is NOT granted, background isolate might drop.",
+    );
+     // Note: If you want 100% 24/7 reliability, you must prompt the user 
+     // to disable battery optimizations for Snevva in Android Settings.
+  }
 
   // Only show settings if user permanently denied
   if (statuses.values.any((p) => p.isPermanentlyDenied)) {
@@ -168,12 +180,18 @@ Future<void> initBackgroundService() async {
   await service.configure(
     androidConfiguration: AndroidConfiguration(
       onStart: unifiedBackgroundEntry,
+      // ✅ FIX: foreground mode so the Dart isolate holds a foreground lock and
+      // cannot be silently killed by OEM battery savers. This is required for
+      // reliable sleep tracking via the screen_state stream.
       isForegroundMode: true,
       autoStart: true,
       autoStartOnBoot: true,
-      notificationChannelId: "flutter_background_service",
-      initialNotificationTitle: "Health Tracking",
-      initialNotificationContent: "Monitoring steps & sleep...",
+      notificationChannelId: 'tracker_channel',
+      initialNotificationTitle: 'Snevva Active',
+      initialNotificationContent: '👟 Steps: 0',
+      // ✅ FIX: Same notification ID as StepCounterService.kt (ID = 1)
+      // so Android shows only ONE notification for both services.
+      foregroundServiceNotificationId: 1,
     ),
     iosConfiguration: IosConfiguration(
       autoStart: false,

@@ -1,10 +1,13 @@
 package com.coretegra.snevva
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.Display
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -12,19 +15,77 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     private val sleepServiceChannelName = "com.coretegra.snevva/sleep_service"
     private val displayConfigChannelName = "com.coretegra.snevva/display_config"
+    private val oemChannelName = "com.coretegra.snevva/oem_settings"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Reset headless flag for pure UI run
+        getSharedPreferences("steps_prefs", android.content.Context.MODE_PRIVATE)
+            .edit().putBoolean("is_headless", false).apply()
+        
+        // Request ACTIVITY_RECOGNITION permission (required since Android 10 for step sensor)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACTIVITY_RECOGNITION)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(android.Manifest.permission.ACTIVITY_RECOGNITION),
+                    1001
+                )
+            } else {
+                startStepCounterService()
+            }
+        } else {
+            startStepCounterService()
+        }
+            
         AlarmHelper.cancelSleepAlarms(this)
         requestHighestRefreshRate()
         Log.d("Lifecycle", "onCreate called")
     }
 
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1001) {
+            // Start service regardless — sensor may still work, and we log if sensor is missing
+            startStepCounterService()
+        }
+    }
+
+    private fun startStepCounterService() {
+        val stepIntent = Intent(this, StepCounterService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(stepIntent)
+        } else {
+            startService(stepIntent)
+        }
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        // Register existing StepCounterService (if any)
-        // StepCounterService.registerWith(this)  // Uncomment if you have this
+        // Give StepCounterService a reference to the live UI engine so sensor
+        // events can be delivered via MethodChannel to the running Flutter app.
+        StepCounterService.flutterEngine = flutterEngine
+
+        // MethodChannels setup
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, oemChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "getManufacturer" -> result.success(Build.MANUFACTURER)
+                    "openAutostartSettings" -> {
+                        openAutostartSettings()
+                        result.success(true)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
 
         // Existing channel for SleepNoticingService.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, sleepServiceChannelName)
@@ -32,20 +93,21 @@ class MainActivity : FlutterActivity() {
                 when (call.method) {
                     "startSleepService" -> {
                         AlarmHelper.cancelSleepAlarms(this@MainActivity)
-                        Log.d("MainActivity", "Native sleep service disabled; using unified background service")
-                        result.success("Native sleep service disabled")
+                        SleepCalcWorker.scheduleNext(this@MainActivity)
+                        Log.d("MainActivity", "Native sleep service disabled; scheduled WorkManager instead")
+                        result.success("WorkManager scheduled")
                     }
 
                     "stopSleepService" -> {
-                        val intent = Intent(this, SleepNoticingService::class.java)
-                        stopService(intent)
-                        Log.d("MainActivity", "SleepNoticingService stopped")
-                        result.success("SleepNoticingService stopped")
+                        androidx.work.WorkManager.getInstance(this@MainActivity).cancelUniqueWork("SLEEP_CALC_WORK")
+                        Log.d("MainActivity", "Sleep tracking work cancelled")
+                        result.success("SleepCalcWorker stopped")
                     }
 
                     "updateSleepAlarms" -> {
                         AlarmHelper.scheduleSleepAlarms(this@MainActivity)
-                        Log.d("MainActivity", "Sleep alarms updated via Flutter")
+                        SleepCalcWorker.scheduleNext(this@MainActivity)
+                        Log.d("MainActivity", "Sleep alarms updated and WorkManager scheduled via Flutter")
                         result.success("Sleep alarms scheduled")
                     }
 
@@ -96,6 +158,9 @@ class MainActivity : FlutterActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        // Clear the engine reference so StepCounterService stops trying to
+        // send MethodChannel messages to the now-detached Flutter engine.
+        StepCounterService.flutterEngine = null
         Log.d("Lifecycle", "onDestroy called")
     }
 
@@ -137,6 +202,41 @@ class MainActivity : FlutterActivity() {
             display
         } else {
             windowManager.defaultDisplay
+        }
+    }
+
+    private fun openAutostartSettings() {
+        val manufacturer = Build.MANUFACTURER.lowercase(java.util.Locale.getDefault())
+        val intent = Intent()
+        try {
+            when {
+                manufacturer.contains("xiaomi") || manufacturer.contains("redmi") || manufacturer.contains("poco") -> {
+                    intent.component = android.content.ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")
+                }
+                manufacturer.contains("oppo") || manufacturer.contains("realme") || manufacturer.contains("oneplus") -> {
+                    intent.component = android.content.ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity")
+                }
+                manufacturer.contains("vivo") || manufacturer.contains("iqoo") -> {
+                    intent.component = android.content.ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity")
+                }
+                manufacturer.contains("huawei") || manufacturer.contains("honor") -> {
+                    intent.component = android.content.ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity")
+                }
+                manufacturer.contains("samsung") -> {
+                    intent.component = android.content.ComponentName("com.samsung.android.lool", "com.samsung.android.sm.ui.battery.BatteryActivity")
+                }
+                else -> {
+                    intent.action = android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
+                }
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            intent.action = android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
+            try {
+                startActivity(intent)
+            } catch (ex: Exception) {
+                // Ignore
+            }
         }
     }
 }

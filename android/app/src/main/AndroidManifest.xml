@@ -118,11 +118,18 @@
             </intent-filter>
         </receiver>
 
-        <!-- <receiver android:name=".ScreenReceiver" android:exported="false">
+        <!-- Boot Receiver for rescheduling alarms and workers -->
+        <receiver android:name=".BootReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
             </intent-filter>
-        </receiver> -->
+        </receiver>
+
+        <!-- Sparse wakeup receiver for step counter -->
+        <receiver android:name=".SparseWakeupReceiver" android:exported="false" />
 
 
 
@@ -141,14 +148,23 @@
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="high_importance_channel" />
 
-        <!-- 🦶 Step Tracking Background Service -->
+        <!-- 🦶 Step Tracking Background Service (Native) -->
         <service
-            android:name="id.flutter.flutter_background_service.BackgroundService"
+            android:name=".StepCounterService"
             android:exported="false"
             android:foregroundServiceType="dataSync|health"
             tools:replace="android:exported,android:foregroundServiceType" />
 
-        <!-- 🌙 Sleep NoticingService (Native) -->
+        <!-- 🛌 Flutter Background Service (Sleep Tracking + Step Event Relay) -->
+        <meta-data
+            android:name="id.flutter.flutter_background_service.notification_channel_id"
+            android:value="tracker_channel"/>
+        <meta-data
+            android:name="id.flutter.flutter_background_service.notification_channel_name"
+            android:value="Health Tracking"/>
+        <meta-data
+            android:name="id.flutter.flutter_background_service.notification_channel_desc"
+            android:value="Step &amp; sleep tracking"/>
         <service
             android:name=".SleepNoticingService"
             android:exported="false"
@@ -157,6 +173,7 @@
         <receiver android:name=".StartSleepReceiver" android:exported="false" />
         <receiver android:name=".StopSleepReceiver" android:exported="false" />
 
+        <!-- Worker Initialization (if needed, usually auto-inits) -->
     </application>
 
     <!-- 🧭 Queries (text processing support) -->

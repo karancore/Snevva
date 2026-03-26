@@ -24,14 +24,14 @@ object AlarmHelper {
         val bedPendingIntent = PendingIntent.getBroadcast(
             context,
             START_SLEEP_REQUEST_CODE,
-            Intent(context, StartSleepReceiver::class.java),
+            Intent().setComponent(android.content.ComponentName(context, "com.coretegra.snevva.StartSleepReceiver")),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         val wakePendingIntent = PendingIntent.getBroadcast(
             context,
             STOP_SLEEP_REQUEST_CODE,
-            Intent(context, StopSleepReceiver::class.java),
+            Intent().setComponent(android.content.ComponentName(context, "com.coretegra.snevva.StopSleepReceiver")),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
