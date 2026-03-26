@@ -230,7 +230,7 @@ class AuthService {
     final userInfo = await signInController.userInfo();
     final userData = userInfo['data'];
     loginLog("User info received");
-    debugPrint(userData);
+    debugPrint('User data: ${jsonEncode(userData)}');
 
     await prefs.setString('userdata', jsonEncode(userData));
     localStorageManager.userMap.value = userData ?? {};
@@ -259,7 +259,7 @@ class AuthService {
       final userActiveDataResponse = signInController.userGoalData;
       final userActiveData = userActiveDataResponse['data'];
 
-      debugPrint(userActiveData);
+      debugPrint('User active data: ${jsonEncode(userActiveData)}');
       localStorageManager.userGoalDataMap.value = userActiveData ?? {};
       prefs.setString('userGoalDataMap', jsonEncode(userActiveData));
 
