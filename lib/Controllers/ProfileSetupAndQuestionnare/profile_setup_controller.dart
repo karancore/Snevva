@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:io';
+
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,10 +11,8 @@ import 'package:snevva/models/queryParamViewModels/date_of_birth.dart';
 import 'package:snevva/models/queryParamViewModels/occupation_vm.dart';
 import 'package:snevva/models/queryParamViewModels/string_value_vm.dart';
 import 'package:snevva/services/api_service.dart';
-import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
-import '../../consts/consts.dart';
 
-import 'dart:convert';
+import '../../consts/consts.dart';
 
 class ProfileSetupController extends GetxService {
   // ================= TEXT + ERRORS =================
@@ -27,7 +27,7 @@ class ProfileSetupController extends GetxService {
   var selectedOccupation = ''.obs;
   RxBool hasAttemptedSubmit = false.obs;
 
-  DateTime _selectedDate = DateTime.now();
+  final _selectedDate = DateTime.now();
 
   final localStorageManager = Get.find<LocalStorageManager>();
 
@@ -115,18 +115,15 @@ class ProfileSetupController extends GetxService {
 
     final response = await http.put(
       Uri.parse(uploadUrl),
-      headers: {
-        "Content-Type": contentType,
-        "x-ms-blob-type": "BlockBlob",
-      },
+      headers: {"Content-Type": contentType, "x-ms-blob-type": "BlockBlob"},
       body: bytes,
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      print("✅ File uploaded to storage");
+      debugPrint("✅ File uploaded to storage");
     } else {
-      print("❌ Storage upload failed: ${response.statusCode}");
-      print(response.body);
+      debugPrint("❌ Storage upload failed: ${response.statusCode}");
+      debugPrint(response.body);
     }
   }
 
@@ -143,12 +140,12 @@ class ProfileSetupController extends GetxService {
 
       // STEP 1️⃣ — Call API to get UploadUrl
       final payload = {
-       "Title" : filename ,
-        "Description" : filename ,
-        "isExternalLink" : false ,
-        "OriginalFilename" : filename ,
-        "ContentType" : type ,
-        "IsProfilePicture" : true
+        "Title": filename,
+        "Description": filename,
+        "isExternalLink": false,
+        "OriginalFilename": filename,
+        "ContentType": type,
+        "IsProfilePicture": true,
       };
 
       final response = await ApiService.post(
@@ -158,11 +155,11 @@ class ProfileSetupController extends GetxService {
         encryptionRequired: true,
       );
 
-      print("🔄 Initial upload response: $response");
+      debugPrint("🔄 Initial upload response: $response");
 
       if (response is http.Response) {
-        print("❌ Failed to get upload URL: ${response.statusCode}");
-        print(response.body);
+        debugPrint("❌ Failed to get upload URL: ${response.statusCode}");
+        debugPrint(response.body);
         return;
       }
 
@@ -181,9 +178,9 @@ class ProfileSetupController extends GetxService {
         contentType: contentType ?? "image/jpeg",
       );
 
-      print("✅ Upload completed successfully");
+      debugPrint("✅ Upload completed successfully");
     } catch (e) {
-      print("❌ Upload failed: $e");
+      debugPrint("❌ Upload failed: $e");
     }
   }
 
@@ -293,7 +290,7 @@ class ProfileSetupController extends GetxService {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       prefs.setString('user_gender', gender.value);
 
-      print(
+      debugPrint(
         "🔄 Updating local storage with profile data: ${localStorageManager.userMap}",
       );
 
@@ -312,7 +309,7 @@ class ProfileSetupController extends GetxService {
 
         if (response is http.Response) {
           allSuccessful = false;
-          print(
+          debugPrint(
             "❌ Failed to save ${payload.keys.first}: ${response.statusCode}",
           );
           CustomSnackbar.showError(
@@ -337,8 +334,8 @@ class ProfileSetupController extends GetxService {
       }
       return true;
     } catch (e, stack) {
-      print("Exception during profile save: $e");
-      print(stack);
+      debugPrint("Exception during profile save: $e");
+      debugPrint(stack.toString());
       CustomSnackbar.showError(
         context: context,
         title: 'Error',

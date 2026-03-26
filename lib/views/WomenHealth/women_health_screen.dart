@@ -134,7 +134,7 @@ class _WomenHealthScreenState extends State<WomenHealthScreen> {
                 // FIX: Wrap in Obx to make it reactive
                 Obx(() {
                   // FIX: Add debug print to check list length
-                  print(
+                  debugPrint(
                     "Tips count: ${womenController.womenHealthTips.length}",
                   );
 
@@ -211,7 +211,7 @@ class _WomenHealthScreenState extends State<WomenHealthScreen> {
                         },
                         itemBuilder: (context, index) {
                           final tip = womenController.womenHealthTips[index];
-                          print("Rendering tip $index: ${tip.title}");
+                          debugPrint("Rendering tip $index: ${tip.title}");
 
                           // FIX: Add null check for thumbnailMedia
                           return WomenHealthQuotesWidget(

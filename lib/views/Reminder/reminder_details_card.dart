@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
 
+import '../../common/global_variables.dart';
 import '../../consts/colors.dart';
 
 class ReminderDetailsCard extends StatefulWidget {
@@ -150,8 +151,10 @@ class _ReminderDetailsCardState extends State<ReminderDetailsCard>
 
   Widget _buildWaterDetails() {
     final custom = widget.reminder.customReminder;
-    final isInterval = custom?.everyXHours != null;
+    final isInterval =
+        custom?.type == Option.interval || custom?.everyXHours != null;
     final isTimes =
+        custom?.type == Option.times &&
         custom?.timesPerDay != null &&
         (custom!.timesPerDay!.count?.toString().isNotEmpty ?? false);
 
@@ -195,7 +198,7 @@ class _ReminderDetailsCardState extends State<ReminderDetailsCard>
   Widget _buildMealDetails() {
     final timesList = widget.reminder.customReminder?.timesPerDay?.list ?? [];
     final notes = widget.reminder.notes;
-    print("notes $notes");
+    debugPrint("notes $notes");
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

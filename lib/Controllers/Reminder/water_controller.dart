@@ -346,7 +346,7 @@ class WaterController extends GetxController {
       endWaterTime: endWaterTimeController.text.trim(),
     );
 
-    print("Water Data setWaterAlarm: $waterData");
+    debugPrint("Water Data setWaterAlarm: $waterData");
 
     await reminderController.addRemindertoAPI(waterData, context);
 
@@ -599,6 +599,7 @@ class WaterController extends GetxController {
       notes: reminderController.notesController.text,
       reminderFrequencyType: Option.interval.toString(),
       customReminder: CustomReminder(
+        type: Option.interval,
         everyXHours: EveryXHours(
           hours: intervalHours,
           startTime: startWaterTimeController.text,
@@ -608,7 +609,7 @@ class WaterController extends GetxController {
       startWaterTime: startWaterTimeController.text.trim(),
       endWaterTime: endWaterTimeController.text.trim(),
     );
-    print("Water Data setIntervalReminders: $waterData");
+    debugPrint("Water Data setIntervalReminders: $waterData");
 
     await reminderController.addRemindertoAPI(waterData, context!);
 
@@ -660,24 +661,211 @@ class WaterController extends GetxController {
     try {
       final parsedId = int.tryParse(id);
       if (parsedId == null) return;
+      waterList.value = await loadWaterReminderList("water_list");
+
       final index = waterList.indexWhere((e) => e.id == parsedId);
+      if (index == -1) return;
 
-      if (index != -1) {
-        final oldModel = waterList[index];
+      final oldModel = waterList[index];
+      final title =
+          reminderController.titleController.text.trim().isNotEmpty
+              ? reminderController.titleController.text.trim()
+              : oldModel.title;
+      final notes = reminderController.notesController.text.trim();
+      final startTime = startWaterTimeController.text.trim();
+      final endTime = endWaterTimeController.text.trim();
 
-        for (var alarm in oldModel.alarms) {
+      List<AlarmSettings> createdAlarms = [];
+      ReminderPayloadModel waterData;
+      final isIntervalMode = waterReminderOption.value == Option.interval;
+
+      if (isIntervalMode) {
+        final intervalHours = int.tryParse(everyHourController.text) ?? 0;
+        final reminders = generateEveryXHours(
+          start: stringToTimeOfDay(startTime),
+          end: stringToTimeOfDay(endTime),
+          intervalHours: intervalHours,
+        );
+
+        if (reminders.isEmpty) {
+          CustomSnackbar.showError(
+            context: context,
+            title: 'Error',
+            message: 'No reminders generated for this interval',
+          );
+          return;
+        }
+
+        for (final alarm in oldModel.alarms) {
           await Alarm.stop(alarm.id);
         }
 
-        waterList.removeAt(index);
-        await reminderController.saveReminderList(waterList, "water_list");
+        for (final reminderTime in reminders) {
+          final alarmId = buildAlarmId(
+            groupId: parsedId,
+            time: reminderTime,
+            salt: 'water-interval',
+          );
+          final alarmSettings = AlarmSettings(
+            id: alarmId,
+            dateTime: reminderTime,
+            notificationSettings: NotificationSettings(
+              title: title,
+              body: notes,
+              stopButton: 'Stop',
+              icon: 'alarm',
+              iconColor: AppColors.primaryColor,
+            ),
+            androidFullScreenIntent: true,
+            payload: jsonEncode({
+              "groupId": parsedId.toString(),
+              "type": "interval",
+              "category": ReminderCategory.water.toString(),
+            }),
+            assetAudioPath: waterSound,
+            volumeSettings: VolumeSettings.fade(
+              volume: 0.8,
+              fadeDuration: Duration(seconds: 5),
+              volumeEnforced: true,
+            ),
+          );
+          await Alarm.set(alarmSettings: alarmSettings);
+          createdAlarms.add(alarmSettings);
+        }
+
+        final updatedModel = WaterReminderModel(
+          id: parsedId,
+          title: title,
+          alarms: createdAlarms,
+          timesPerDay: '',
+          notes: notes,
+          waterReminderStartTime: startTime,
+          waterReminderEndTime: endTime,
+          type: Option.interval,
+          interval: '$intervalHours',
+          category: ReminderCategory.water.toString(),
+        );
+
+        waterList[index] = updatedModel;
+        waterData = ReminderPayloadModel(
+          id: parsedId,
+          category: "Water",
+          title: title,
+          notes: notes,
+          reminderFrequencyType: Option.interval.toString(),
+          customReminder: CustomReminder(
+            type: Option.interval,
+            everyXHours: EveryXHours(
+              hours: intervalHours,
+              startTime: startTime,
+              endTime: endTime,
+            ),
+          ),
+          startWaterTime: startTime,
+          endWaterTime: endTime,
+        );
+      } else {
+        final effectiveTimes =
+            times ?? int.tryParse(timesPerDayController.text) ?? 0;
+        final alarmTimes = generateTimesBetween(
+          startTime: startTime,
+          endTime: endTime,
+          times: effectiveTimes,
+        );
+
+        if (alarmTimes.isEmpty) {
+          CustomSnackbar.showError(
+            context: context,
+            title: 'Error',
+            message: 'No reminders generated for these times',
+          );
+          return;
+        }
+
+        for (final alarm in oldModel.alarms) {
+          await Alarm.stop(alarm.id);
+        }
+
+        for (final time in alarmTimes) {
+          final scheduledTime =
+              time.isBefore(DateTime.now())
+                  ? time.add(Duration(days: 1))
+                  : time;
+          final alarmId = buildAlarmId(
+            groupId: parsedId,
+            time: scheduledTime,
+            salt: 'water-times',
+          );
+          final alarmSettings = AlarmSettings(
+            id: alarmId,
+            dateTime: scheduledTime,
+            assetAudioPath: waterSound,
+            loopAudio: false,
+            androidFullScreenIntent: true,
+            volumeSettings: VolumeSettings.fade(
+              volume: 0.8,
+              fadeDuration: Duration(seconds: 5),
+              volumeEnforced: true,
+            ),
+            payload: jsonEncode({
+              "groupId": parsedId.toString(),
+              "type": "times",
+              "category": ReminderCategory.water.toString(),
+            }),
+            notificationSettings: NotificationSettings(
+              title: title,
+              body: notes.isNotEmpty ? notes : 'Time to drink water!',
+              stopButton: 'Stop',
+              icon: 'alarm',
+              iconColor: AppColors.primaryColor,
+            ),
+          );
+
+          await Alarm.set(alarmSettings: alarmSettings);
+          createdAlarms.add(alarmSettings);
+        }
+
+        final updatedModel = WaterReminderModel(
+          id: parsedId,
+          title: title,
+          alarms: createdAlarms,
+          waterReminderStartTime: startTime,
+          waterReminderEndTime: endTime,
+          notes: notes,
+          type: Option.times,
+          timesPerDay: effectiveTimes.toString(),
+          category: ReminderCategory.water.toString(),
+        );
+
+        waterList[index] = updatedModel;
+        savedTimes.value = effectiveTimes;
+        final alarmJsonList =
+            createdAlarms.map((e) => e.toJson().toString()).toList();
+
+        waterData = ReminderPayloadModel(
+          id: parsedId,
+          category: "Water",
+          title: title,
+          notes: notes,
+          reminderFrequencyType: Option.times.toString(),
+          customReminder: CustomReminder(
+            type: Option.times,
+            timesPerDay: TimesPerDay(
+              count: effectiveTimes.toString(),
+              list: alarmJsonList,
+            ),
+          ),
+          startWaterTime: startTime,
+          endWaterTime: endTime,
+        );
       }
 
-      await setWaterAlarm(
-        times: times,
-        context: context,
-        audioPath: waterSound,
-      );
+      await reminderController.updateReminder(waterData, context);
+      await reminderController.saveReminderList(waterList, "water_list");
+      await reminderController.loadAllReminderLists();
+
+      CustomSnackbar().showReminderBar(context);
+      Get.back(result: true);
     } catch (e) {
       throw Exception("Error updating WATER reminder: $e");
     }
@@ -720,8 +908,8 @@ class WaterController extends GetxController {
           loadedList.add(fallbackModel);
         }
       } catch (e, stack) {
-        print(' Error parsing water reminder: $e');
-        print(stack);
+        debugPrint(' Error parsing water reminder: $e');
+        debugPrint(stack.toString());
       }
     }
     return loadedList;

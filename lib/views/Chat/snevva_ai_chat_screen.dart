@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_navigation/src/extension_navigation.dart';
@@ -48,16 +49,16 @@ Future<Map<String, DecisionNode>> loadDecisionTree() async {
       encryptionRequired: true,
     );
 
-    print(response);
+    debugPrint(response.toString());
 
     // Convert to Map
     if (response is Map && response['data'] != null) {
       final res = Map<String, dynamic>.from(response['data']);
-      print("API decision tree fetched.");
+      debugPrint("API decision tree fetched.");
 
       // Save JSON
       // await _saveDecisionJsonLocally(res);
-      // print("Decision tree saved locally.");
+      // debugPrint("Decision tree saved locally.");
       // Parse
       final nodes = <String, DecisionNode>{};
 
@@ -69,20 +70,20 @@ Future<Map<String, DecisionNode>> loadDecisionTree() async {
 
           nodes[key] = DecisionNode.fromJson(normalized);
         } catch (e) {
-          print('Error parsing decision node for key $key: $e');
+          debugPrint('Error parsing decision node for key $key: $e');
         }
       });
 
-      // print("Decision tree parsed from API.");
+      // debugPrint("Decision tree parsed from API.");
 
       return nodes;
     } else {
       throw FormatException("Response does not contain 'data'");
     }
   } catch (e, stack) {
-    print("❌ API FAILED in loadDecisionTree");
-    print(e);
-    print(stack);
+    debugPrint("❌ API FAILED in loadDecisionTree");
+    debugPrint(e.toString());
+    debugPrint(stack.toString());
     rethrow; // TEMP: let it crash so you see the real issue
   }
 }
@@ -127,12 +128,12 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
     decisionTree = await DecisionTreeService().getDecisionTree();
 
     if (decisionTree.isEmpty) {
-      print("❌ decisionTree is EMPTY. Chat cannot load.");
+      debugPrint("❌ decisionTree is EMPTY. Chat cannot load.");
       return;
     }
 
     if (!decisionTree.containsKey("welcome")) {
-      print("❌ 'welcome' node is missing. Using first key.");
+      debugPrint("❌ 'welcome' node is missing. Using first key.");
       currentNodeKey = decisionTree.keys.first;
     }
 

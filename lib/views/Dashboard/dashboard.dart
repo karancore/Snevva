@@ -211,7 +211,7 @@ class _DashboardState extends State<Dashboard>
                       //         hasEmptyValue(
                       //           localStorageManager.userGoalDataMap,
                       //         );
-                      //     print(anyEmpty);
+                      //     debugPrint(anyEmpty);
                       //
                       //     return anyEmpty
                       //         ? SizedBox.shrink()

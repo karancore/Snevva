@@ -132,7 +132,7 @@ class _ReminderScreenState extends State<ReminderScreen>
                         decoration: BoxDecoration(
                           color: isDarkMode ? darkGray : white,
                           borderRadius: BorderRadius.circular(8.0),
-                          boxShadow: [
+                          boxShadow: isDarkMode ? null : [
                             BoxShadow(
                               color: Colors.grey.withOpacity(0.4),
                               spreadRadius: 2,
@@ -450,6 +450,8 @@ class _ReminderScreenState extends State<ReminderScreen>
         );
 
       case 'water':
+        final isTimesBased = reminder.customReminder.type == Option.times;
+        final isIntervalBased = reminder.customReminder.type == Option.interval;
         return Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -457,7 +459,7 @@ class _ReminderScreenState extends State<ReminderScreen>
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (reminder.customReminder.timesPerDay?.count != null)
+                if (isTimesBased && timesPerDay > 0)
                   Text(
                     "Times per day: $timesPerDay",
                     maxLines: 1,
@@ -467,7 +469,7 @@ class _ReminderScreenState extends State<ReminderScreen>
                       color: Color(0xff878787),
                     ),
                   ),
-                if (frequencyHour >= 1)
+                if (isIntervalBased && frequencyHour >= 1)
                   Text(
                     "Reminder will ring after every $frequencyHour ${pluralizeHour(frequencyHour)}",
                     maxLines: 1,

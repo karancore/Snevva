@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:developer' as AgentDebugLogger;
+
 import 'package:alarm/alarm.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
@@ -94,10 +94,10 @@ class AuthService {
         throw Exception('API Error: ${response.statusCode}');
       }
 
-      print('✅ Successfully logged out from server');
+      debugPrint('✅ Successfully logged out from server');
       CustomSnackbar.showOtherDeviceLogoutSuccess(context: Get.context!);
     } catch (e) {
-      print('❌ Error during logout API call: $e');
+      debugPrint('❌ Error during logout API call: $e');
     }
   }
 
@@ -147,7 +147,8 @@ class AuthService {
   Future<bool> ensurePostLoginPermissionsAndStartTracking({
     bool ignoreSessionGuard = false,
   }) async {
-    print("Ensuring post-login permissions and starting tracking if granted...");
+    debugPrint(
+        "Ensuring post-login permissions and starting tracking if granted...");
     return _ensurePostLoginPermissionsAndStartTracking(
       ignoreSessionGuard: ignoreSessionGuard,
     );
@@ -229,7 +230,7 @@ class AuthService {
     final userInfo = await signInController.userInfo();
     final userData = userInfo['data'];
     loginLog("User info received");
-    print(userData);
+    debugPrint('User data: ${jsonEncode(userData)}');
 
     await prefs.setString('userdata', jsonEncode(userData));
     localStorageManager.userMap.value = userData ?? {};
@@ -258,7 +259,7 @@ class AuthService {
       final userActiveDataResponse = signInController.userGoalData;
       final userActiveData = userActiveDataResponse['data'];
 
-      print(userActiveData);
+      debugPrint('User active data: ${jsonEncode(userActiveData)}');
       localStorageManager.userGoalDataMap.value = userActiveData ?? {};
       prefs.setString('userGoalDataMap', jsonEncode(userActiveData));
 
@@ -342,9 +343,9 @@ class AuthService {
         throw Exception('API Error: ${response.statusCode}');
       }
 
-      print('Successfully logged exception to server');
+      debugPrint('Successfully logged exception to server');
     } catch (e) {
-      print('Error during log exception API call: $e');
+      debugPrint('Error during log exception API call: $e');
     }
   }
 
@@ -373,11 +374,11 @@ class AuthService {
       try {
         await Hive.box<StepEntry>('step_history').clear();
       } catch (e) {
-        print('❌ Failed to clear step_history on logout: $e');
+        debugPrint('❌ Failed to clear step_history on logout: $e');
         try {
           await Hive.box<StepEntry>('step_history').clear();
         } catch (e2) {
-          print('❌ Second attempt to clear step_history failed: $e2');
+          debugPrint('❌ Second attempt to clear step_history failed: $e2');
         }
       }
 

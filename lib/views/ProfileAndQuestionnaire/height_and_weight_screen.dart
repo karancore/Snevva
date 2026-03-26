@@ -1,11 +1,10 @@
 import 'package:flutter_svg/svg.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:snevva/Widgets/HeightAndWeight/weight_scale.dart';
 import 'package:snevva/models/queryParamViewModels/height_vm.dart';
 import 'package:snevva/models/queryParamViewModels/weight_vm.dart';
-import 'package:snevva/views/ProfileAndQuestionnaire/questionnaire_screen.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
+
 import '../../Controllers/ProfileSetupAndQuestionnare/height_and_weight_controller.dart';
 import '../../Widgets/HeightAndWeight/input_bottom_sheet.dart';
 import '../../consts/consts.dart';
@@ -256,8 +255,8 @@ class _HeightWeightScreenState extends State<HeightWeightScreen> {
                                 // e.g., "14:30"
                                 value: controller.weightInKg.value,
                               );
-                              print(heightModel);
-                              print(weightModel);
+                              debugPrint(heightModel as String?);
+                              debugPrint(weightModel as String?);
 
                               await controller.saveData(
                                 heightModel,

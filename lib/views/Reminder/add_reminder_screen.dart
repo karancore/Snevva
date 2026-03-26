@@ -181,9 +181,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       waterGetxController.waterReminderOption.value = type;
 
       if (type == Option.interval) {
-        waterGetxController.everyXhours.value = 0;
+        waterGetxController.timesPerDayController.clear();
+        waterGetxController.savedTimes.value = 0;
         waterGetxController.everyHourController.text =
             reminder.customReminder?.everyXHours?.hours?.toString() ?? '';
+        waterGetxController.everyXhours.value =
+            reminder.customReminder?.everyXHours?.hours ?? 0;
 
         waterGetxController.startWaterTimeController.text =
             reminder.startWaterTime ?? '';
@@ -191,9 +194,15 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             reminder.endWaterTime ?? '';
       }
       if (type == Option.times) {
-        waterGetxController.savedTimes.value = 0;
+        waterGetxController.everyHourController.clear();
+        waterGetxController.everyXhours.value = 1;
         waterGetxController.timesPerDayController.text =
             reminder.customReminder?.timesPerDay?.count?.toString() ?? '';
+        waterGetxController.savedTimes.value =
+            int.tryParse(
+              reminder.customReminder?.timesPerDay?.count?.toString() ?? '0',
+            ) ??
+            0;
 
         waterGetxController.startWaterTimeController.text =
             reminder.startWaterTime ?? '';
@@ -224,7 +233,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     final int frequency =
         int.tryParse(reminder.medicineFrequencyPerDay ?? '') ?? 0;
 
-    print("integer frequency is $frequency");
+    debugPrint("integer frequency is $frequency");
 
     final entry = medicineGetxController.frequencyNum.entries.firstWhere(
           (e) => e.value == frequency,
@@ -235,7 +244,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
     medicineGetxController.selectedType.value = reminder.medicineType ?? '';
     dosage = asDouble(reminder.dosage?.value);
-    print(
+    debugPrint(
       "medicineGetxController.dosageMed.value ${medicineGetxController.dosageMed
           .value}",
     );
@@ -477,9 +486,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     required TextEditingController textController,
     String? category,
   }) async {
-    print("Selecting time... ${textController.toString()} ");
+    debugPrint("Selecting time... ${textController.toString()} ");
     TimeOfDay? picked = await _showTimeWheelPicker();
-    print("Picked time: $picked");
+    debugPrint("Picked time: $picked");
     reminderController.pickedTime.value = picked;
 
     if (picked != null) {
@@ -1046,8 +1055,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   )
                       .toList(),
                   onChanged: (newValue) {
-                    if (newValue != null)
+                    if (newValue != null) {
                       reminderController.selectedValue.value = newValue;
+                    }
                   },
                 ),
               ),
@@ -1096,18 +1106,26 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     ).copyWith(unselectedWidgetColor: grey),
                     child: Radio<Option>(
                       value: Option.times,
-                      activeColor: black,
+                      activeColor: (Theme
+                          .of(context)
+                          .brightness == Brightness.dark) ? white : black,
                       groupValue: selected,
                       onChanged: (value) {
                         if (value != null) {
                           waterGetxController.waterReminderOption.value = value;
+                          waterGetxController.everyHourController.clear();
+                          waterGetxController.everyXhours.value = 1;
                         }
                       },
                     ),
                   ),
                   Text(
                     "Remind me",
-                    style: TextStyle(color: timesSelected ? black : grey),
+                    style: TextStyle(color: timesSelected
+                        ? ((Theme
+                        .of(context)
+                        .brightness == Brightness.dark) ? white : black)
+                        : grey),
                   ),
                   SizedBox(
                     width: 50,
@@ -1115,7 +1133,11 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       controller: waterGetxController.timesPerDayController,
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      style: TextStyle(color: timesSelected ? black : grey),
+                      style: TextStyle(color: timesSelected
+                          ? ((Theme
+                          .of(context)
+                          .brightness == Brightness.dark) ? white : black)
+                          : grey),
                       enabled: timesSelected,
                       decoration: InputDecoration(
                         isDense: true,
@@ -1134,17 +1156,29 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     final t = waterGetxController.savedTimes.value;
                     return Text(
                       "time${t > 1 ? 's' : ''}",
-                      style: TextStyle(color: timesSelected ? black : grey),
+                      style: TextStyle(color: timesSelected
+                          ? ((Theme
+                          .of(context)
+                          .brightness == Brightness.dark) ? white : black)
+                          : grey),
                     );
                   }),
 
                   Text(
                     "a",
-                    style: TextStyle(color: timesSelected ? black : grey),
+                    style: TextStyle(color: timesSelected
+                        ? ((Theme
+                        .of(context)
+                        .brightness == Brightness.dark) ? white : black)
+                        : grey),
                   ),
                   Text(
                     "day",
-                    style: TextStyle(color: timesSelected ? black : grey),
+                    style: TextStyle(color: timesSelected
+                        ? ((Theme
+                        .of(context)
+                        .brightness == Brightness.dark) ? white : black)
+                        : grey),
                   ),
                 ],
               ),
@@ -1160,26 +1194,42 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     ).copyWith(unselectedWidgetColor: grey),
                     child: Radio<Option>(
                       value: Option.interval,
-                      activeColor: black,
+                      activeColor: ((Theme
+                          .of(context)
+                          .brightness == Brightness.dark) ? white : black),
                       groupValue: waterGetxController.waterReminderOption.value,
                       onChanged: (value) {
                         if (value != null) {
                           waterGetxController.waterReminderOption.value = value;
+                          waterGetxController.timesPerDayController.clear();
+                          waterGetxController.savedTimes.value = 0;
                         }
                       },
                     ),
                   ),
                   Text(
                     "Remind",
-                    style: TextStyle(color: intervalSelected ? black : grey),
+                    style: TextStyle(color: intervalSelected
+                        ? ((Theme
+                        .of(context)
+                        .brightness == Brightness.dark) ? white : black)
+                        : grey),
                   ),
                   Text(
                     "me",
-                    style: TextStyle(color: intervalSelected ? black : grey),
+                    style: TextStyle(color: intervalSelected
+                        ? ((Theme
+                        .of(context)
+                        .brightness == Brightness.dark) ? white : black)
+                        : grey),
                   ),
                   Text(
                     "every",
-                    style: TextStyle(color: intervalSelected ? black : grey),
+                    style: TextStyle(color: intervalSelected
+                        ? ((Theme
+                        .of(context)
+                        .brightness == Brightness.dark) ? white : black)
+                        : grey),
                   ),
                   SizedBox(
                     width: 50,
@@ -1187,7 +1237,11 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       controller: waterGetxController.everyHourController,
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      style: TextStyle(color: intervalSelected ? black : grey),
+                      style: TextStyle(color: intervalSelected
+                          ? ((Theme
+                          .of(context)
+                          .brightness == Brightness.dark) ? white : black)
+                          : grey),
                       enabled:
                       waterGetxController.waterReminderOption.value ==
                           Option.interval,
@@ -1213,17 +1267,29 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     final t = waterGetxController.everyXhours.value;
                     return Text(
                       "hour${t > 1 ? 's' : ''}",
-                      style: TextStyle(color: intervalSelected ? black : grey),
+                      style: TextStyle(color: intervalSelected
+                          ? ((Theme
+                          .of(context)
+                          .brightness == Brightness.dark) ? white : black)
+                          : grey),
                     );
                   }),
 
                   Text(
                     "a",
-                    style: TextStyle(color: intervalSelected ? black : grey),
+                    style: TextStyle(color: intervalSelected
+                        ? ((Theme
+                        .of(context)
+                        .brightness == Brightness.dark) ? white : black)
+                        : grey),
                   ),
                   Text(
                     "day",
-                    style: TextStyle(color: intervalSelected ? black : grey),
+                    style: TextStyle(color: intervalSelected
+                        ? ((Theme
+                        .of(context)
+                        .brightness == Brightness.dark) ? white : black)
+                        : grey),
                   ),
                   // Text("between"),
                   // SizedBox(

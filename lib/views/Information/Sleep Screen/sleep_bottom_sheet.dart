@@ -1,11 +1,12 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
 import 'package:wheel_picker/wheel_picker.dart';
+
 import '../../../../consts/consts.dart';
 import '../../../services/app_initializer.dart';
 import '../../../services/notification_service.dart';
@@ -192,7 +193,7 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
       });
     }
 
-    print("🌙 Auto-started sleep tracking (window active)");
+    debugPrint("🌙 Auto-started sleep tracking (window active)");
   }
 
   void _setupSleepListeners() {

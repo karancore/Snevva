@@ -50,9 +50,9 @@ class StepCounterController extends GetxController {
     try {
       _stepBox = await HiveService().stepHistoryBox();
 
-      print('🔁 Reopened step_history box');
+      debugPrint('🔁 Reopened step_history box');
     } catch (e) {
-      print('❌ Failed to reopen step_history box: $e');
+      debugPrint('❌ Failed to reopen step_history box: $e');
     }
   }
 
@@ -61,7 +61,7 @@ class StepCounterController extends GetxController {
     try {
       _stepBox = await HiveService().stepHistoryBox();
     } catch (e) {
-      print('❌ _ensureStepBox failed: $e');
+      debugPrint('❌ _ensureStepBox failed: $e');
       // Try reopen fallback
       await _reopenStepBox();
     }
@@ -91,7 +91,7 @@ class StepCounterController extends GetxController {
         try {
           await _stepBox.put(key, entry);
         } catch (e2) {
-          print('❌ Failed to put after reopen: $e2');
+          debugPrint('❌ Failed to put after reopen: $e2');
         }
       } else {
         // Attempt to ensure box and retry once for any other error
@@ -99,7 +99,7 @@ class StepCounterController extends GetxController {
         try {
           await _stepBox.put(key, entry);
         } catch (e2) {
-          print('❌ Failed to put after ensure: $e2');
+          debugPrint('❌ Failed to put after ensure: $e2');
         }
       }
     }
@@ -161,7 +161,7 @@ class StepCounterController extends GetxController {
     }
 
     if (lastDate != todayKey) {
-      print("🌅 New day detected → resetting steps");
+      debugPrint("🌅 New day detected → resetting steps");
 
       todaySteps.value = 0;
       lastSteps = 0;
@@ -196,7 +196,7 @@ class StepCounterController extends GetxController {
     final alreadySynced = _prefs.getString(_lastSyncedDateKey);
 
     if (alreadySynced == dayKey) {
-      print("⏭️ Yesterday already synced");
+      debugPrint("⏭️ Yesterday already synced");
       return;
     }
 
@@ -225,9 +225,9 @@ class StepCounterController extends GetxController {
       );
 
       await _prefs.setString(_lastSyncedDateKey, dayKey);
-      print("✅ Yesterday steps force-synced: $steps");
+      debugPrint("✅ Yesterday steps force-synced: $steps");
     } catch (e) {
-      print("❌ Failed to force sync yesterday: $e");
+      debugPrint("❌ Failed to force sync yesterday: $e");
     }
   }
 
@@ -370,17 +370,14 @@ class StepCounterController extends GetxController {
       lastPercent = (stepGoal.value == 0) ? 0.0 : lastSteps / stepGoal.value;
 
       todaySteps.value = steps;
-      todaySteps.refresh();
+      todaySteps.refresh();ebugPrint("📊 Loaded from Hive (changed): $steps steps (prev=$prev)");
 
-      print("📊 Loaded from Hive (changed): $steps steps (prev=$prev)");
-
-      // Refresh graph with loaded data and notify observers
+      /// Refresh graph with loaded data and notify observers
       await updateStepSpots();
       stepSpots.refresh();
     } else {
-      // No change; just ensure graph is in sync
-      print("📊 Loaded from Hive: $steps steps (no change)");
-      await updateStepSpots();
+      // No change; just ensure graph is in syncebugPrint("📊 Loaded from Hive: $steps steps (no change)");
+      aawait updateStepSpots();
     }
   }
 
@@ -395,7 +392,7 @@ class StepCounterController extends GetxController {
       }
     }
 
-    print("🔢 Calculated today steps from list: $todayTotal");
+    debugPrint("🔢 Calculated today steps from list: $todayTotal");
 
     // Only update if API data is greater than Hive data
     if (todayTotal > todaySteps.value) {
@@ -442,7 +439,7 @@ class StepCounterController extends GetxController {
 
       final List<dynamic> stepData = decoded['data']?['StepData'] ?? [];
 
-      print("🔄 Fetched step data from API: $stepData");
+      debugPrint("🔄 Fetched step data from API: $stepData");
 
       stepsHistoryList.clear();
 
@@ -482,7 +479,7 @@ class StepCounterController extends GetxController {
       _invalidateMonthlySpotsCache(month: DateTime(year, month));
       _debugLog("✅ Loaded steps from API: ${stepsHistoryList.length}");
     } catch (e) {
-      print("❌ Error loading steps from API: $e");
+      debugPrint("❌ Error loading steps from API: $e");
     }
   }
 
@@ -581,9 +578,9 @@ class StepCounterController extends GetxController {
         encryptionRequired: true,
       );
 
-      print("✅ Step goal synced");
+      debugPrint("✅ Step goal synced");
     } catch (_) {
-      print("❌ Step goal sync failed");
+      debugPrint("❌ Step goal sync failed");
     }
   }
 
@@ -636,9 +633,9 @@ class StepCounterController extends GetxController {
         encryptionRequired: true,
       );
 
-      print("✅ Daily step record synced");
+      debugPrint("✅ Daily step record synced");
     } catch (_) {
-      print("❌ Step record sync failed");
+      debugPrint("❌ Step record sync failed");
     }
   }
 

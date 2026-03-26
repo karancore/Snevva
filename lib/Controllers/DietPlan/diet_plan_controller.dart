@@ -1,10 +1,9 @@
+import 'package:http/http.dart' as http;
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/models/diet_tags_response.dart';
 import 'package:snevva/services/api_service.dart';
 
 import '../../consts/consts.dart';
-import 'package:http/http.dart' as http;
-
 import '../../env/env.dart';
 import '../BMI/bmi_controller.dart';
 import '../local_storage_manager.dart';
@@ -152,7 +151,7 @@ class DietPlanController extends GetxController {
         "Count": _pageSize,
         "Index": targetPage,
       };
-      print("🚀 [API - getAllDiets] Payload: $payload");
+      debugPrint("🚀 [API - getAllDiets] Payload: $payload");
 
       final response = await ApiService.post(
         getDietByTags,
@@ -256,7 +255,7 @@ class DietPlanController extends GetxController {
         "Count": _pageSize,
         "Index": targetPage,
       };
-      print("🚀 [API - getCelebrity] Payload: $payload");
+      debugPrint("🚀 [API - getCelebrity] Payload: $payload");
 
       final response = await ApiService.post(
         getDietByTags,
@@ -376,7 +375,7 @@ class DietPlanController extends GetxController {
         "Count": _pageSize,
         "Index": targetPage,
       };
-      print("🚀 [Suggestions] Payload: $payload");
+      debugPrint("🚀 [Suggestions] Payload: $payload");
 
       final response = await ApiService.post(
         getDietByTags,

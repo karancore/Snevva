@@ -1,7 +1,10 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:screen_state/screen_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 
 /// SleepNoticingService
 ///
@@ -135,6 +138,23 @@ class SleepNoticingService {
     }
 
     final now = DateTime.now();
+    if (!now.isBefore(window.end) &&
+        Get.context != null &&
+        Get.isRegistered<SleepController>()) {
+      final bedMin = prefs.getInt(_bedtimeKey);
+      final wakeMin = prefs.getInt(_waketimeKey);
+
+      if (bedMin != null && wakeMin != null) {
+        final bedTime = TimeOfDay(hour: bedMin ~/ 60, minute: bedMin % 60);
+        final wakeTime = TimeOfDay(hour: wakeMin ~/ 60, minute: wakeMin % 60);
+
+        await Get.find<SleepController>().updateSleepTimestoServer(
+          bedTime,
+          wakeTime,
+        );
+      }
+    }
+
     final lastOffKey = 'last_screen_off_${window.dateKey}';
     final intervalsKey = 'sleep_intervals_${window.dateKey}';
 

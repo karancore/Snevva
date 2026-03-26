@@ -1,3 +1,4 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
@@ -9,9 +10,8 @@ import 'package:snevva/views/Information/BMI/bmi_cal.dart';
 import 'package:snevva/views/Information/Health%20Tips/health_tips.dart';
 import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.dart';
 import 'package:snevva/views/Information/mental_wellness_screen.dart';
-import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
-import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import 'package:snevva/views/WomenHealth/women_health_screen.dart';
+
 import '../../Controllers/WomenHealth/women_health_controller.dart';
 import '../../consts/consts.dart';
 import '../../views/Information/HydrationScreens/hydration_screen.dart';
@@ -19,7 +19,6 @@ import '../../views/Information/Sleep Screen/sleep_bottom_sheet.dart';
 import '../../views/Information/Sleep Screen/sleep_tracker_screen.dart';
 import '../../views/Information/StepCounter/step_counter.dart';
 import '../../views/WomenHealth/women_bottom_sheets.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class DashboardServicesWidget extends StatefulWidget {
   const DashboardServicesWidget({super.key});
@@ -51,7 +50,7 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
       final userInfo = signInController.userProfData ?? {};
       final userData = userInfo['data'];
       gender = (localGender != null) ? localGender : userData['Gender'];
-      print("Gender $gender");
+      debugPrint("Gender $gender");
       isLoading = false;
     });
   }
@@ -84,8 +83,8 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
     // final gender = selectedGender ?? localgender ?? 'Unknown';
     // gender = (localGender != null) ? localGender : userData['Gender'];
 
-    print('User Gender: $gender');
-    // print(userInfo);
+    debugPrint('User Gender: $gender');
+    // debugPrint(userInfo);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

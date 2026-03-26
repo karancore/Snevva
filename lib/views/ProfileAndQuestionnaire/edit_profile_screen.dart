@@ -1,17 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:dropdown_flutter/custom_dropdown.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
-import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
+
 import '../../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
-import '../../Controllers/local_storage_manager.dart';
 import '../../Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
-import '../../Widgets/CommonWidgets/custom_appbar.dart';
-import '../../Widgets/CommonWidgets/custom_outlined_button.dart';
+import '../../Controllers/local_storage_manager.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
-import '../../Widgets/CommonWidgets/common_date_widget.dart';
-import '../../Widgets/ProfileSetupAndQuestionnaire/height_and_weight_field.dart';
 import '../../consts/consts.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -35,8 +30,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void initState() {
     super.initState();
 
-    print(localStorageManager.userMap);
-    print(localStorageManager.userGoalDataMap);
+    debugPrint(localStorageManager.userMap as String?);
+    debugPrint(localStorageManager.userGoalDataMap as String?);
 
     /// Initialize values from localStorageManager
     controller.name = localStorageManager.userMap['Name']?.toString() ?? '';
@@ -44,7 +39,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     controller.phoneNumber =
         localStorageManager.userMap['PhoneNumber']?.toString() ?? '';
 
-    print('Edit Profile Screen phone : ${controller.phoneNumber}');
+    debugPrint('Edit Profile Screen phone : ${controller.phoneNumber}');
 
     final heightValue =
         localStorageManager.userGoalDataMap['HeightData']?['Value'];
@@ -52,8 +47,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     controller.heightValue =
         (heightValue is num) ? heightValue.toStringAsFixed(2) : '';
 
-    print(localStorageManager.userGoalDataMap['HeightData']?['Value']);
-    print(controller.heightValue);
+    debugPrint(localStorageManager.userGoalDataMap['HeightData']?['Value']);
+    debugPrint(controller.heightValue);
 
     final weightValue =
         localStorageManager.userGoalDataMap['WeightData']?['Value'];
@@ -543,7 +538,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     //     localStorageManager.userMap['MonthOfBirth'] = newDate.month;
                     //     localStorageManager.userMap['YearOfBirth'] = newDate.year;
                     //
-                    //     print("Date updated: ${DateFormat('dd/MM/yyyy').format(newDate)}");
+                    //     debugPrint("Date updated: ${DateFormat('dd/MM/yyyy').format(newDate)}");
                     //   },
                     // ),
                     AutoSizeText(

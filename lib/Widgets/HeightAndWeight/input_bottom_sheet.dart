@@ -1,5 +1,5 @@
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
-import 'package:snevva/common/custom_snackbar.dart';
+
 import '../../Controllers/ProfileSetupAndQuestionnare/height_and_weight_controller.dart';
 import '../../Controllers/local_storage_manager.dart';
 import '../../consts/consts.dart';
@@ -26,15 +26,15 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
   }
 
   void _validateAndSave(BuildContext context) {
-    print('🟢 InputBottomSheet: _validateAndSave CALLED');
+    debugPrint('🟢 InputBottomSheet: _validateAndSave CALLED');
 
     final heightText = _heightController.text.trim();
     final weightText = _weightController.text.trim();
 
-    print('✏️ Raw Input → height="$heightText", weight="$weightText"');
+    debugPrint('✏️ Raw Input → height="$heightText", weight="$weightText"');
 
     if (heightText.isEmpty || weightText.isEmpty) {
-      print('❌ One or both fields empty');
+      debugPrint('❌ One or both fields empty');
 
       Get.snackbar(
         'Empty Values',
@@ -50,10 +50,10 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
     final height = double.tryParse(heightText);
     final weight = double.tryParse(weightText);
 
-    print('🔢 Parsed → height=$height, weight=$weight');
+    debugPrint('🔢 Parsed → height=$height, weight=$weight');
 
     if (height == null || weight == null) {
-      print('❌ Parsing failed');
+      debugPrint('❌ Parsing failed');
 
       Get.snackbar(
         'Invalid Values',
@@ -67,7 +67,7 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
     }
 
     if (height < 50 || height > 250) {
-      print('❌ Height out of range: $height');
+      debugPrint('❌ Height out of range: $height');
       Get.snackbar(
         'Invalid Height',
         'Height must be between 50 cm and 250 cm',
@@ -80,7 +80,7 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
     }
 
     if (weight < 20 || weight > 300) {
-      print('❌ Weight out of range: $weight');
+      debugPrint('❌ Weight out of range: $weight');
       Get.snackbar(
         'Invalid Weight',
         'Weight must be between 20 kg and 300 kg',
@@ -95,23 +95,23 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
     /// -------------------------------
     /// LOCAL STORAGE DEBUG + FIX
     /// -------------------------------
-    print('🗂 userMap BEFORE save: ${localStorageManager.userMap}');
+    debugPrint('🗂 userMap BEFORE save: ${localStorageManager.userMap}');
 
     // Ensure maps exist
     localStorageManager.userMap.value ??= {};
     localStorageManager.userMap['Height'] ??= {};
     localStorageManager.userMap['Weight'] ??= {};
 
-    print('✅ Maps initialized');
+    debugPrint('✅ Maps initialized');
 
     // Save values
     controller.updateFromCm(height);
     controller.setWeight(weight);
 
-    print('💾 Saved Height = $height');
-    print('💾 Saved Weight = $weight');
+    debugPrint('💾 Saved Height = $height');
+    debugPrint('💾 Saved Weight = $weight');
 
-    print('🗂 userMap AFTER save: ${localStorageManager.userMap}');
+    debugPrint('🗂 userMap AFTER save: ${localStorageManager.userMap}');
 
     Navigator.pop(context);
   }

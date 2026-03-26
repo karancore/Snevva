@@ -1,8 +1,6 @@
 import 'dart:io' show Platform;
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get.dart';
 import 'package:pinput/pinput.dart';
 import 'package:smart_auth/smart_auth.dart';
 
@@ -39,7 +37,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
   @override
   void initState() {
     super.initState();
-    print("emailOrPasswordText ${widget.emailOrPasswordText}");
+    debugPrint("emailOrPasswordText ${widget.emailOrPasswordText}");
 
     otpController = Get.put(OTPVerificationController());
     otpController.emailOrPasswordText.value = widget.emailOrPasswordText;

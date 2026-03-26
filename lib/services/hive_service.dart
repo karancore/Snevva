@@ -1,9 +1,11 @@
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
+
+import '../consts/consts.dart';
+import '../models/hive_models/reminder_payload_model.dart';
 import '../models/hive_models/sleep_log.dart';
 import '../models/hive_models/sleep_log_g.dart';
 import '../models/hive_models/steps_model.dart';
-import '../models/hive_models/reminder_payload_model.dart';
 
 class HiveService {
   HiveService._internal();
@@ -34,7 +36,7 @@ class HiveService {
       Hive.init(dir.path);
       _registerAdapters();
       _initialized = true;
-      print("✅ Hive initialized ($label) - adapters registered");
+      debugPrint("✅ Hive initialized ($label) - adapters registered");
     }();
 
     await _initFuture;
@@ -116,9 +118,9 @@ class HiveService {
       await reminders.clear();
       await medicine.clear();
 
-      print("🔥 All Hive data cleared (Logout Reset)");
+      debugPrint("🔥 All Hive data cleared (Logout Reset)");
     } catch (e) {
-      print("❌ App reset failed: $e");
+      debugPrint("❌ App reset failed: $e");
       rethrow;
     }
   }

@@ -1,15 +1,17 @@
 import 'dart:convert';
+
 import 'package:fl_chart/fl_chart.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/models/queryParamViewModels/water_goal_vm.dart';
 import 'package:snevva/services/api_service.dart';
+
 import '../../common/custom_snackbar.dart';
 import '../../common/global_variables.dart';
 import '../../models/water_history_model.dart';
-import 'package:http/http.dart' as http;
 
 class HydrationStatController extends GetxService {
   RxBool checkVisibility = false.obs;
@@ -44,30 +46,30 @@ class HydrationStatController extends GetxService {
   Future<void> saveWaterIntakeLocally() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setDouble('waterIntake', waterIntake.value);
-    print('💾 Water intake saved locally: ${waterIntake.value}');
+    debugPrint('💾 Water intake saved locally: ${waterIntake.value}');
     prefs.setString(
       'lastUpdatedDate',
       DateFormat('yyyy-MM-dd').format(DateTime.now()),
     );
-    print('💾 Water intake saved locally: ${waterIntake.value}');
+    debugPrint('💾 Water intake saved locally: ${waterIntake.value}');
   }
 
   Future<void> loadWaterIntake() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
     double savedIntake = prefs.getDouble('waterIntake') ?? 0;
-    print(savedIntake);
+    debugPrint(savedIntake.toString());
     String? lastUpdated = prefs.getString('lastUpdatedDate');
     String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
     if (lastUpdated == today) {
       waterIntake.value = savedIntake;
-      print("Restored today's water intake: ${waterIntake.value}");
+      debugPrint("Restored today's water intake: ${waterIntake.value}");
     } else {
       waterIntake.value = 0;
       prefs.setDouble('waterIntake', 0.0);
       prefs.setString('lastUpdatedDate', today);
-      print("🔄 New day detected, resetting water intake.");
+      debugPrint("🔄 New day detected, resetting water intake.");
     }
   }
 
@@ -106,8 +108,8 @@ class HydrationStatController extends GetxService {
 
   Future<void> updateWaterGoal(int value, BuildContext context) async {
     waterGoal.value = value;
-    print("UPDATED GOAL = $value");
-    print("RX VALUE = ${waterGoal.value}"); // Update water goal
+    debugPrint("UPDATED GOAL = $value");
+    debugPrint("RX VALUE = ${waterGoal.value}"); // Update water goal
     await saveWatergoal(
       WaterGoalVM(
         day: DateTime.now().day,
@@ -121,7 +123,7 @@ class HydrationStatController extends GetxService {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setInt('waterGoal', waterGoal.value);
     prefs.setBool('isWaterGoalSet', true);
-    print('💾 Water goal saved locally: ${waterGoal.value} ml');
+    debugPrint('💾 Water goal saved locally: ${waterGoal.value} ml');
   }
 
   List<FlSpot> getMonthlyWaterSpots(DateTime month) {
@@ -174,7 +176,7 @@ class HydrationStatController extends GetxService {
         message: 'Water goal saved successfully!',
       );
 
-      print("Water goal saved successfully");
+      debugPrint("Water goal saved successfully");
     } catch (e) {
       CustomSnackbar.showError(
         context: context,
@@ -247,7 +249,7 @@ class HydrationStatController extends GetxService {
 
     waterIntake.value = todayTotal.toDouble();
 
-    print("Calculated today's water intake: ${waterIntake.value} ml");
+    debugPrint("Calculated today's water intake: ${waterIntake.value} ml");
   }
 
   Future<void> loadWaterIntakefromAPI({
@@ -276,7 +278,7 @@ class HydrationStatController extends GetxService {
       }
 
       final resbody = jsonDecode(jsonEncode(response));
-      print("Water records fetched: $resbody");
+      debugPrint("Water records fetched: $resbody");
 
       // Safely access WaterGoalData
       final waterGoalData = resbody['data']['WaterGoalData'];
@@ -298,17 +300,17 @@ class HydrationStatController extends GetxService {
         waterHistoryList.add(WaterHistoryModel.fromJson(item));
       }
       for (var water in waterHistoryList) {
-        print(water.value);
+        debugPrint(water.value?.toString());
       }
 
       calculateTodayIntakeFromList(intakeList);
 
       await saveWaterIntakeLocally();
 
-      print("Fetched ${waterHistoryList.length} Water records");
+      debugPrint("Fetched ${waterHistoryList.length} Water records");
       buildWaterHistoryMap();
     } catch (e) {
-      print("Error fetching water records: $e");
+      debugPrint("Error fetching water records: $e");
     } finally {
       isLoading.value = false;
     }

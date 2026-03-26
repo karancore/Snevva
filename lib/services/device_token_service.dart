@@ -1,10 +1,12 @@
 import 'dart:convert';
+
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/api_service.dart';
+
 import '../env/env.dart';
+import '../services/api_service.dart';
 
 class DeviceTokenService {
   static String? _cachedHeader;
@@ -149,7 +151,7 @@ class DeviceTokenService {
     final fcmToken = await FirebaseMessaging.instance.getToken();
     if (fcmToken == null || fcmToken.isEmpty) return;
 
-    print('FCM Token: $fcmToken');
+    debugPrint('FCM Token: $fcmToken');
 
     // First login
     // if (storedDeviceId == null) {
