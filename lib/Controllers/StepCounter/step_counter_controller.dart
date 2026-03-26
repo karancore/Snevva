@@ -369,16 +369,16 @@ class StepCounterController extends GetxController {
       lastStepsRx.value = lastSteps;
       lastPercent = (stepGoal.value == 0) ? 0.0 : lastSteps / stepGoal.value;
 
-      todaySteps.value = steps;odaySteps.refresh();
-      debugPrint("📊 Loaded from Hive (changed): $steps steps (prev=$prev)");
+      todaySteps.value = steps;
+      todaySteps.refresh();ebugPrint("📊 Loaded from Hive (changed): $steps steps (prev=$prev)");
 
-      //// Refresh graph with loaded data and notify observers
+      /// Refresh graph with loaded data and notify observers
       await updateStepSpots();
       stepSpots.refresh();
     } else {
-      // No change; just ensure graph is in syncebugPrint("📊 Loaded from Hive: $steps steps (no change)");wait updateStepSpots();
+      // No change; just ensure graph is in syncebugPrint("📊 Loaded from Hive: $steps steps (no change)");
+      aawait updateStepSpots();
     }
-  }
   }
 
   Future<void> calculateTodayStepsFromList(List stepsList) async {

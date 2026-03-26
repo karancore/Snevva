@@ -262,32 +262,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     }
 
     debugPrint("🕵️ Secret API push activated");
-    final bedtimeDT = DateTime(
-      DateTime
-          .now()
-          .year,
-      DateTime
-          .now()
-          .month,
-      DateTime
-          .now()
-          .day,
-      bedTime.hour,
-      bedTime.minute,
-    );
-    final wakeDT = DateTime(
-      DateTime
-          .now()
-          .year,
-      DateTime
-          .now()
-          .month, DateTime
-        .now()
-        .day,
-      wakeTime.hour,
-      wakeTime.minute,
-    );
-    sleepController.uploadsleepdatatoServer(bedtimeDT, wakeDT);
+    sleepController.updateSleepTimestoServer(bedTime, wakeTime);
     _secretTapCount = 0;
   }
 
