@@ -723,15 +723,16 @@ class SleepController extends GetxService {
       final bedKey = dateKey(bedDateTime);
       final lastUploaded = prefs.getString(_lastUploadedSleepDateKey);
 
-      if (lastUploaded == bedKey) {
-        debugPrint("⏭️ Sleep already uploaded for $bedKey");
-        return;
-      }
+      // if (lastUploaded == bedKey) {
+      //   debugPrint("⏭️ Sleep already uploaded for $bedKey");
+      //   return;
+      // }
 
       final payload = {
         "Day": bedDateTime.day,
         "Month": bedDateTime.month,
         "Year": bedDateTime.year,
+        "Count": duration.inMinutes.toString(),
         "Time": TimeOfDay.fromDateTime(wake).format(Get.context!),
         "SleepingFrom": timeOfDayToString(TimeOfDay.fromDateTime(bedDateTime)),
         "SleepingTo": timeOfDayToString(TimeOfDay.fromDateTime(wake)),
@@ -740,7 +741,7 @@ class SleepController extends GetxService {
       debugPrint("🛰️ Uploading sleep payload: $payload");
 
       final response = await ApiService.post(
-        sleepGoalAPI,
+        sleepRecord,
         payload,
         withAuth: true,
         encryptionRequired: true,
