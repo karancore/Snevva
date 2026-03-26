@@ -16,10 +16,7 @@ class StepEntryAdapter extends TypeAdapter<StepEntry> {
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return StepEntry(
-      date: fields[0] as DateTime,
-      steps: fields[1] as int,
-    );
+    return StepEntry(date: fields[0] as DateTime, steps: fields[1] as int);
   }
 
   @override

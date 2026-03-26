@@ -1,8 +1,6 @@
-
 const doc1 = "assets/Images/Doc1.webp";
 const doc2 = "assets/Images/Doc2.webp";
 const doc3 = "assets/Images/Doc3.webp";
-
 
 const forgotpass = "assets/Images/forgotPassword.webp";
 const newPass = "assets/Images/newPassword.webp";
@@ -66,7 +64,6 @@ const hydrationDashboardEle = "assets/Dashboard/elle-drink-water 1.webp";
 const waterBottomSheet = "assets/Images/hydrationEle.svg";
 const hydrationEleBottom = "assets/Dashboard/Rectangle 31.webp";
 
-
 //Icons
 // Dashboard_containers
 const ecgDashboardLottie = 'assets/Dashboard/lhWa8wKgs5.json';
@@ -107,7 +104,8 @@ const clockRemIcon = "assets/Icons/reminder/clock.svg";
 const heartVitalIcon = "assets/Icons/vitals/heart.webp";
 const bloodDropsIcon = "assets/Icons/vitals/blood_drops.webp";
 //Mental Wellness
-const wellnessContainerImg1 = "assets/Images/MentalWellness/person_Sitting.webp";
+const wellnessContainerImg1 =
+    "assets/Images/MentalWellness/person_Sitting.webp";
 const wellnessContainerImg2 = "assets/Images/MentalWellness/meditation1.webp";
 const wellnessContainerImg3 = "assets/Images/MentalWellness/lake1.webp";
 const wellnessContainerImg4 = "assets/Images/MentalWellness/lake2.webp";

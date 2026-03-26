@@ -140,7 +140,8 @@ class SignInController extends GetxService {
         final userProfileData = userdata['data'];
         debugPrint('👤 userProfileData: $userProfileData');
         debugPrint(
-            '👤 userProfileData runtimeType: ${userProfileData.runtimeType}');
+          '👤 userProfileData runtimeType: ${userProfileData.runtimeType}',
+        );
 
         final gender = userdata['data']?['Gender'];
         debugPrint('🚻 Gender from API: $gender (type: ${gender.runtimeType})');
@@ -163,7 +164,8 @@ class SignInController extends GetxService {
           debugPrint('💾 userdata saved to SharedPreferences');
         } else {
           debugPrint(
-              '❌ userProfileData is NOT a Map — skipped saving userdata');
+            '❌ userProfileData is NOT a Map — skipped saving userdata',
+          );
         }
 
         // ================== USER GOAL DATA ==================
@@ -428,7 +430,8 @@ class SignInController extends GetxService {
         final userProfileData = userdata['data'];
         debugPrint('👤 userProfileData: $userProfileData');
         debugPrint(
-            '👤 userProfileData runtimeType: ${userProfileData.runtimeType}');
+          '👤 userProfileData runtimeType: ${userProfileData.runtimeType}',
+        );
 
         final gender = userdata['data']?['Gender'];
         debugPrint('🚻 Gender from API: $gender (type: ${gender.runtimeType})');
@@ -451,7 +454,8 @@ class SignInController extends GetxService {
           debugPrint('💾 userdata saved to SharedPreferences');
         } else {
           debugPrint(
-              '❌ userProfileData is NOT a Map — skipped saving userdata');
+            '❌ userProfileData is NOT a Map — skipped saving userdata',
+          );
         }
 
         // ================== USER GOAL DATA ==================

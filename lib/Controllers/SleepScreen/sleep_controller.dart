@@ -184,7 +184,8 @@ class SleepController extends GetxService {
         final goalMinutes = event['goal_minutes'] as int? ?? 480;
 
         debugPrint(
-            "🎉 Sleep goal reached! ${elapsedMinutes}m / ${goalMinutes}m");
+          "🎉 Sleep goal reached! ${elapsedMinutes}m / ${goalMinutes}m",
+        );
 
         // Show celebration message
         Get.snackbar(
@@ -253,7 +254,9 @@ class SleepController extends GetxService {
   // ═══════════════════════════════════════════════════════════════
   // SLEEP SCHEDULE METHODS
   // ═══════════════════════════════════════════════════════════════
-  static const MethodChannel _nativeSleepChannel = MethodChannel('com.coretegra.snevva/sleep_service');
+  static const MethodChannel _nativeSleepChannel = MethodChannel(
+    'com.coretegra.snevva/sleep_service',
+  );
 
   void _updateNativeSleepAlarms() {
     try {
@@ -612,7 +615,10 @@ class SleepController extends GetxService {
     return DateTime(year, month, day);
   }
 
-  List<FlSpot> _buildMonthlySpots(DateTime monthRef, Map<String, Duration> data) {
+  List<FlSpot> _buildMonthlySpots(
+    DateTime monthRef,
+    Map<String, Duration> data,
+  ) {
     final int totalDays =
         (monthRef.year == DateTime.now().year &&
                 monthRef.month == DateTime.now().month)
@@ -674,7 +680,6 @@ class SleepController extends GetxService {
       debugPrint("📥 Raw API Response: $response");
 
       if (response is http.Response) {
-
         debugPrint("❌ Response is http.Response (failure case)");
         debugPrint("StatusCode: ${response.statusCode}");
         debugPrint("Body: ${response.body}");
@@ -684,7 +689,6 @@ class SleepController extends GetxService {
           title: 'Error',
           message: 'Failed to update sleep times to server.',
         );
-
       } else {
         debugPrint("✅ Sleep times updated to server successfully");
       }
@@ -829,7 +833,8 @@ class SleepController extends GetxService {
 
   List<FlSpot> getMonthlyDeepSleepSpots(DateTime month) {
     debugPrint(
-        "📅 [MonthlyGraph] Requested month: ${month.year}-${month.month}");
+      "📅 [MonthlyGraph] Requested month: ${month.year}-${month.month}",
+    );
 
     final int totalDays =
         (month.year == DateTime.now().year &&
@@ -844,9 +849,10 @@ class SleepController extends GetxService {
 
     // Prefer API-fetched values when present, but fall back to local (Hive-loaded)
     // history so monthly view still works offline.
-    final merged = <String, Duration>{}
-      ..addAll(Map<String, Duration>.from(weeklyDeepSleepHistory))
-      ..addAll(Map<String, Duration>.from(monthlyDeepSleepHistory));
+    final merged =
+        <String, Duration>{}
+          ..addAll(Map<String, Duration>.from(weeklyDeepSleepHistory))
+          ..addAll(Map<String, Duration>.from(monthlyDeepSleepHistory));
 
     List<FlSpot> spots = [];
 
@@ -1039,9 +1045,10 @@ class SleepController extends GetxService {
 
     try {
       final monthRef = DateTime(year, month, 1);
-      final merged = <String, Duration>{}
-        ..addAll(Map<String, Duration>.from(weeklyDeepSleepHistory))
-        ..addAll(Map<String, Duration>.from(monthlyDeepSleepHistory));
+      final merged =
+          <String, Duration>{}
+            ..addAll(Map<String, Duration>.from(weeklyDeepSleepHistory))
+            ..addAll(Map<String, Duration>.from(monthlyDeepSleepHistory));
 
       // Immediate local fallback so the chart has data even if API fetch fails.
       monthlySleepSpots

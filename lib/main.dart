@@ -6,6 +6,8 @@ import 'package:alarm/alarm.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/BMI/bmi_controller.dart';
@@ -56,7 +58,6 @@ import 'views/SignUp/sign_in_screen.dart';
 import 'views/debug/high_fps_demo_screen.dart';
 import 'widgets/home_wrapper.dart';
 
-
 //Test User - 6284781425
 //Admin@1234
 const bool _kShowPerformanceOverlay = bool.fromEnvironment(
@@ -101,7 +102,6 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 /// ------------------------------------------------------------
 void main() {
   ErrorWidget.builder = (FlutterErrorDetails details) {
-
     ExceptionLogger.log(
       exception: details.exception,
       stackTrace: details.stack,
@@ -157,7 +157,9 @@ void main() {
           final p = await SharedPreferences.getInstance();
           final steps = call.arguments as int;
           await p.setInt('today_steps', steps);
-          FlutterBackgroundService().invoke('onStepDetected', {'steps': call.arguments});
+          FlutterBackgroundService().invoke('onStepDetected', {
+            'steps': call.arguments,
+          });
         } else if (call.method == 'onAlarmWakeup') {
           FlutterBackgroundService().invoke('onAlarmWakeup');
         }
@@ -591,8 +593,7 @@ class _MyAppState extends State<MyApp> {
                   duration: const Duration(milliseconds: 300),
                   child: const InitializationSplash(),
                 )
-                :
-            _initState == AppInitState.success
+                : _initState == AppInitState.success
                 ? HomeWrapper()
                 : ErrorPlaceholder(
                   onRetry: () {
@@ -613,8 +614,7 @@ class InitializationSplash extends StatelessWidget {
   Widget build(BuildContext context) {
     const double splashContentWidth = 220;
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final Color splashBackground =
-        isDarkMode ? black : white;
+    final Color splashBackground = isDarkMode ? black : white;
     final Color subtitleColor = isDarkMode ? Colors.white70 : Colors.black54;
 
     return Scaffold(

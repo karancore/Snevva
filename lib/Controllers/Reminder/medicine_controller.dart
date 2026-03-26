@@ -98,7 +98,7 @@ class MedicineController extends GetxController {
 
       if (savedTimes.value != value) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          savedTimes.value = value; 
+          savedTimes.value = value;
         });
       }
     });

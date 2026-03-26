@@ -147,9 +147,10 @@ class RefreshRateBootstrap {
     Duration targetDuration, {
     double? refreshRateHz,
   }) {
-    final hz = (refreshRateHz ?? _profile.targetFrameRateHz)
-        .clamp(30.0, 240.0)
-        .toDouble();
+    final hz =
+        (refreshRateHz ?? _profile.targetFrameRateHz)
+            .clamp(30.0, 240.0)
+            .toDouble();
     final microsPerFrame = Duration.microsecondsPerSecond / hz;
     final frameCount = math.max(
       1,

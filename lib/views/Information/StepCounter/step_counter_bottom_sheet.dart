@@ -15,7 +15,8 @@ class StepCounterBottomSheet extends StatelessWidget {
     this.unit = "Steps",
     this.image = "assets/Images/Steps/walk-ele.svg",
     this.heading = "Set your daily walking goal",
-    this.subHeading = "Choose how many steps you want to walk each day to stay active. ",
+    this.subHeading =
+        "Choose how many steps you want to walk each day to stay active. ",
     this.multiplier = 1000,
     this.initialIndex = 8,
     this.onConfirm,

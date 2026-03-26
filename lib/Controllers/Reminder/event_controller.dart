@@ -151,7 +151,6 @@ class EventController extends GetxController {
       await reminderController.saveReminderList(eventList, "event_list");
       debugPrint('💾 Event list saved to storage');
 
-
       await reminderController.loadAllReminderLists();
 
       final eventData = ReminderPayloadModel(
@@ -169,7 +168,9 @@ class EventController extends GetxController {
         remindBefore: remindBefore,
         startDate: startDateValue,
       );
-      debugPrint('📦 Event ReminderPayloadModel created: ${eventData.toJson()}');
+      debugPrint(
+        '📦 Event ReminderPayloadModel created: ${eventData.toJson()}',
+      );
       await reminderController.addRemindertoAPI(eventData, context);
 
       // Cleaning up
@@ -203,8 +204,7 @@ class EventController extends GetxController {
   ) async {
     final startDateValue = reminderController.startDateString.value;
 
-    if (eventRemindMeBefore.value != null &&
-        eventRemindMeBefore.value == 0) {
+    if (eventRemindMeBefore.value != null && eventRemindMeBefore.value == 0) {
       debugPrint('🟢 Entered remindBefore block');
 
       final rawTime = eventTimeBeforeController.text.trim();
@@ -286,7 +286,6 @@ class EventController extends GetxController {
 
     eventList.value = await reminderController.loadReminderList("event_list");
 
-
     final id = alarmId;
     final title = reminderController.titleController.text.trim();
     final notes = reminderController.notesController.text.trim();
@@ -299,16 +298,15 @@ class EventController extends GetxController {
       customReminder: CustomReminder(
         type: Option.times,
         timesPerDay: TimesPerDay(
-            count: 1.toString(), list: [scheduledTime.toString()]),
+          count: 1.toString(),
+          list: [scheduledTime.toString()],
+        ),
       ),
       remindBefore: buildRemindBefore(),
       startDate: startDateValue,
     );
 
-    await reminderController.updateReminder(
-      newModel,
-      context,
-    );
+    await reminderController.updateReminder(newModel, context);
 
     int index = -1;
     for (int i = 0; i < eventList.length; i++) {

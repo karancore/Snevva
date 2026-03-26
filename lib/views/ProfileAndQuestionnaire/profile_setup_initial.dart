@@ -54,7 +54,8 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
     final day = localStorageManager.userMap['DayOfBirth'];
     final month = localStorageManager.userMap['MonthOfBirth'];
     final year = localStorageManager.userMap['YearOfBirth'];
-    final bool needsDobPersist = day == null ||
+    final bool needsDobPersist =
+        day == null ||
         month == null ||
         year == null ||
         day == 0 ||
@@ -75,9 +76,7 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
-      if (storedName != null &&
-          storedName is String &&
-          storedName.isNotEmpty) {
+      if (storedName != null && storedName is String && storedName.isNotEmpty) {
         initialProfileController.userNameText.value = storedName;
       }
 
@@ -209,7 +208,9 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                 controller:
                                     initialProfileController.userNameController,
                                 style: const TextStyle(color: Colors.white),
-                                inputFormatters: [FirstLetterUpperCaseFormatter()],
+                                inputFormatters: [
+                                  FirstLetterUpperCaseFormatter(),
+                                ],
                                 decoration: InputDecoration(
                                   filled: true,
                                   fillColor: Colors.transparent,

@@ -220,7 +220,8 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
                 }
 
                 debugPrint(
-                    "Image URL: ${tips[0]['ThumbnailMedia']?['CdnUrl']}");
+                  "Image URL: ${tips[0]['ThumbnailMedia']?['CdnUrl']}",
+                );
 
                 return Wrap(
                   spacing: 16,
@@ -228,7 +229,8 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
                   children:
                       tips.map((tip) {
                         debugPrint(
-                            "Image URL: ${tip['ThumbnailMedia']?['CdnUrl']}");
+                          "Image URL: ${tip['ThumbnailMedia']?['CdnUrl']}",
+                        );
 
                         return SizedBox(
                           width: (width - 56) / 2,
@@ -236,7 +238,7 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
                             heading: tip['Heading'] ?? '',
                             title: tip['Title'] ?? '',
                             image:
-                                "https://${tip['ThumbnailMedia']?['CdnUrl']}" ,
+                                "https://${tip['ThumbnailMedia']?['CdnUrl']}",
                             isDarkMode: isDarkMode,
                             onButtonTap:
                                 () => Get.to(

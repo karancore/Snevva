@@ -74,7 +74,7 @@ class EmergencyContact extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.location_on_rounded , color: Colors.red,),
+                            Icon(Icons.location_on_rounded, color: Colors.red),
                             SizedBox(width: 5),
 
                             Text(
@@ -95,17 +95,18 @@ class EmergencyContact extends StatelessWidget {
                       InkWell(
                         onTap: () {},
                         child: Container(
-
                           height: height / 7,
                           decoration: BoxDecoration(
-                            color: AppColors.primaryColor, // The color of the circle
-                            shape: BoxShape.circle, // Makes the container a circle
+                            color:
+                                AppColors
+                                    .primaryColor, // The color of the circle
+                            shape:
+                                BoxShape.circle, // Makes the container a circle
                           ),
                           child: Center(
-                            child: Icon(Icons.arrow_forward , color: white,),
+                            child: Icon(Icons.arrow_forward, color: white),
                           ),
-                        )
-                        ,
+                        ),
                       ),
                     ],
                   ),
@@ -123,9 +124,12 @@ class EmergencyContact extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(3.0),
                     child: CircleAvatar(
-                      radius: 50.0, // Defines the size of the circle (radius, not width/height)
-                      backgroundColor: AppColors.primaryColor, // Background color
-                      child: Icon( // Optional: Add a child
+                      radius:
+                          50.0, // Defines the size of the circle (radius, not width/height)
+                      backgroundColor:
+                          AppColors.primaryColor, // Background color
+                      child: Icon(
+                        // Optional: Add a child
                         Icons.add,
                         color: Colors.white,
                         size: 40.0,

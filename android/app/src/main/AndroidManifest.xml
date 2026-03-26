@@ -165,6 +165,14 @@
         <meta-data
             android:name="id.flutter.flutter_background_service.notification_channel_desc"
             android:value="Step &amp; sleep tracking"/>
+
+        <!-- ⚙️ Override flutter_background_service's BackgroundService to add foregroundServiceType
+             Required on Android 14+ (targetSdk 34+) — MissingForegroundServiceTypeException -->
+        <service
+            android:name="id.flutter.flutter_background_service.BackgroundService"
+            android:foregroundServiceType="dataSync"
+            tools:replace="android:foregroundServiceType" />
+
         <service
             android:name=".SleepNoticingService"
             android:exported="false"

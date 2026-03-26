@@ -139,7 +139,8 @@ class BottomSheetController extends GetxController {
           );
 
           debugPrint(
-              "Merging symptoms for date $date: ${tempMap[date]!.symptoms}");
+            "Merging symptoms for date $date: ${tempMap[date]!.symptoms}",
+          );
         } else {
           tempMap[date] = DaySymptoms(
             date: date,

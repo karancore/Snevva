@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
+import 'package:snevva/common/global_variables.dart';
 
 import '../../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import '../../Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
@@ -30,8 +31,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void initState() {
     super.initState();
 
-    debugPrint(localStorageManager.userMap as String?);
-    debugPrint(localStorageManager.userGoalDataMap as String?);
+    // logLong("User Map", ${localStorageManager.userMap.values.toString()});
+    // logLong("User Goal Data Map", ${localStorageManager.userGoalDataMap});
 
     /// Initialize values from localStorageManager
     controller.name = localStorageManager.userMap['Name']?.toString() ?? '';
@@ -39,7 +40,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     controller.phoneNumber =
         localStorageManager.userMap['PhoneNumber']?.toString() ?? '';
 
-    debugPrint('Edit Profile Screen phone : ${controller.phoneNumber}');
+    // debugPrint('Edit Profile Screen phone : ${controller.phoneNumber}');
 
     final heightValue =
         localStorageManager.userGoalDataMap['HeightData']?['Value'];
@@ -47,8 +48,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     controller.heightValue =
         (heightValue is num) ? heightValue.toStringAsFixed(2) : '';
 
-    debugPrint(localStorageManager.userGoalDataMap['HeightData']?['Value']);
-    debugPrint(controller.heightValue);
+    // debugPrint(localStorageManager.userGoalDataMap['HeightData']?['Value']);
+    // debugPrint(controller.heightValue);
 
     final weightValue =
         localStorageManager.userGoalDataMap['WeightData']?['Value'];
@@ -73,7 +74,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
 
     final String? cdnUrl =
-    localStorageManager.userMap['ProfilePicture']?['CdnUrl'];
+        localStorageManager.userMap['ProfilePicture']?['CdnUrl'];
 
     profilePictureUrl = 'https://$cdnUrl';
 
@@ -102,9 +103,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
-
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -136,14 +135,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   fontWeight: FontWeight.w500,
                   color: white,
                 ),
-
               ),
               flexibleSpace: Container(
-                decoration: BoxDecoration(
-
-                  color: Colors.transparent
-
-                ),
+                decoration: BoxDecoration(color: Colors.transparent),
               ),
 
               // Conditionally show leading drawer icon
@@ -214,35 +208,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   initialProfileController.pickedImage.value;
 
                               final String? cdnUrl =
-                              localStorageManager.userMap['ProfilePicture']?['CdnUrl'];
+                                  localStorageManager
+                                      .userMap['ProfilePicture']?['CdnUrl'];
 
-                              ImageProvider ? imageProvider;
+                              ImageProvider? imageProvider;
 
                               // 1️⃣ Highest Priority → User picked image
                               if (pickedFile != null) {
                                 imageProvider = FileImage(pickedFile);
                               }
-
                               // 2️⃣ Second Priority → API image
                               else if (cdnUrl != null && cdnUrl.isNotEmpty) {
-                                imageProvider =
-                                    CachedNetworkImageProvider("https://$cdnUrl");
+                                imageProvider = CachedNetworkImageProvider(
+                                  "https://$cdnUrl",
+                                );
                               }
 
                               // 3️⃣ Fallback → Default asset
-
 
                               return CircleAvatar(
                                 radius: 60,
                                 backgroundColor: grey,
                                 backgroundImage: imageProvider,
-                                child: imageProvider == null
-                                    ? Icon(
-                                  Icons.person,
-                                  size: 200 * 0.75,
-                                  color: white,
-                                )
-                                    : null,
+                                child:
+                                    imageProvider == null
+                                        ? Icon(
+                                          Icons.person,
+                                          size: 200 * 0.75,
+                                          color: white,
+                                        )
+                                        : null,
                               );
                             }),
                           ),

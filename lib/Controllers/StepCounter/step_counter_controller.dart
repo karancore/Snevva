@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
@@ -110,8 +111,11 @@ class StepCounterController extends GetxController {
   StreamSubscription? _stepsUpdatedSubscription;
   bool _isRealtimeTrackingActive = false;
   DateTime _lastServiceEventAt = DateTime.fromMillisecondsSinceEpoch(0);
-  final Map<String, List<FlSpot>> _monthlySpotsCache =
-      <String, List<FlSpot>>{};
+  final Map<String, List<FlSpot>> _monthlySpotsCache = <String, List<FlSpot>>{};
+
+  // MethodChannel for receiving live steps from the native StepCounterService
+  static const _stepChannel =
+      MethodChannel('com.coretegra.snevva/step_detector');
 
   static const Duration _syncInterval = Duration(hours: 4);
   static const Duration _hiveFallbackPollInterval = Duration(seconds: 30);
@@ -133,6 +137,7 @@ class StepCounterController extends GetxController {
 
   @override
   void onClose() {
+    _stepChannel.setMethodCallHandler(null); // remove native listener
     deactivateRealtimeTracking();
     super.onClose();
   }
@@ -146,7 +151,43 @@ class StepCounterController extends GetxController {
     scheduleMidnightReset();
 
     await loadGoal();
-    // Removed duplicate call to loadTodayStepsFromHive
+
+    // Set up the MethodChannel handler so the native StepCounterService can
+    // push live step counts directly into the Dart UI without relying on
+    // the flutter_background_service `steps_updated` event (which is never
+    // sent by the native service).
+    _stepChannel.setMethodCallHandler((call) async {
+      if (call.method == 'onStepDetected') {
+        final int newSteps = (call.arguments as int?) ?? 0;
+        _lastServiceEventAt = DateTime.now();
+
+        if (newSteps > todaySteps.value) {
+          lastSteps = todaySteps.value;
+          lastStepsRx.value = lastSteps;
+          lastPercent = _currentPercent;
+          todaySteps.value = newSteps;
+          todaySteps.refresh();
+          await _saveToHive(newSteps);
+          await _maybeSyncSteps();
+        }
+      }
+    });
+
+    // Always run the hive poller so the UI has a live fallback even when
+    // the screen is not open (e.g. on app resume).
+    _startHivePoller();
+  }
+
+  // Starts (or restarts) the periodic Hive poller.
+  void _startHivePoller() {
+    _hivePoller?.cancel();
+    _hivePoller = Timer.periodic(_hiveFallbackPollInterval, (_) {
+      // Only poll Hive when we haven't received a recent MethodChannel event.
+      if (DateTime.now().difference(_lastServiceEventAt) >=
+          _hiveFallbackPollInterval) {
+        _pollHiveToday();
+      }
+    });
   }
 
   // =======================
@@ -264,27 +305,17 @@ class StepCounterController extends GetxController {
     if (_isRealtimeTrackingActive) return;
 
     _isRealtimeTrackingActive = true;
-    _listenToBackgroundSteps();
-    _lastServiceEventAt = DateTime.now();
-    _hivePoller?.cancel();
-    _hivePoller = Timer.periodic(
-      _hiveFallbackPollInterval,
-      (_) {
-        // Fallback path: poll Hive only when we haven't seen recent service events.
-        if (DateTime.now().difference(_lastServiceEventAt) >=
-            _hiveFallbackPollInterval) {
-          _pollHiveToday();
-        }
-      },
-    );
+    // MethodChannel handler is already set up in _init(); no need to re-register.
+    // Ensure the hive poller is running (it may have been cancelled by deactivate).
+    _startHivePoller();
   }
 
   void deactivateRealtimeTracking() {
-    _hivePoller?.cancel();
-    _hivePoller = null;
-    _stepsUpdatedSubscription?.cancel();
-    _stepsUpdatedSubscription = null;
+    // Keep the hive poller running so the UI still refreshes in background,
+    // but mark tracking as inactive so activateRealtimeTracking can restart it.
     _isRealtimeTrackingActive = false;
+    // The MethodChannel handler remains active (registered in _init) so native
+    // steps are always received regardless of UI screen lifecycle.
   }
 
   // =======================
@@ -371,14 +402,15 @@ class StepCounterController extends GetxController {
       lastPercent = (stepGoal.value == 0) ? 0.0 : lastSteps / stepGoal.value;
 
       todaySteps.value = steps;
-      todaySteps.refresh();ebugPrint("📊 Loaded from Hive (changed): $steps steps (prev=$prev)");
+      todaySteps.refresh();
+      debugPrint("📊 Loaded from Hive (changed): $steps steps (prev=$prev)");
 
       /// Refresh graph with loaded data and notify observers
       await updateStepSpots();
       stepSpots.refresh();
     } else {
       // No change; just ensure graph is in syncebugPrint("📊 Loaded from Hive: $steps steps (no change)");
-      aawait updateStepSpots();
+      await updateStepSpots();
     }
   }
 
@@ -743,7 +775,9 @@ class StepCounterController extends GetxController {
       _monthlySpotsCache.clear();
       return;
     }
-    _monthlySpotsCache.remove(_monthCacheKey(DateTime(month.year, month.month)));
+    _monthlySpotsCache.remove(
+      _monthCacheKey(DateTime(month.year, month.month)),
+    );
   }
 
   void _debugLog(String message) {

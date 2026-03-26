@@ -68,17 +68,17 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
 
     final localstorage = Get.find<LocalStorageManager>();
     final userInfo = localstorage.userMap;
-    logLong('userInfo: ' , userInfo.toString());
+    logLong('userInfo: ', userInfo.toString());
 
     // final userActiveData = signInController.userGoalData ?? {};
 
     final userActiveData = localstorage.userGoalDataMap;
-    logLong('userActiveData: ' , userActiveData.toString());
+    logLong('userActiveData: ', userActiveData.toString());
     final womentracking = userActiveData['TrackWomenData'];
     final stepgoal = userActiveData['StepGoalData']?['Count'];
     final SleepGoalData = userActiveData['SleepGoalData'];
 
-    logLong('userActiveData:  ' , userActiveData.toString());
+    logLong('userActiveData:  ', userActiveData.toString());
     // Safe check for userData and gender
     // final gender = selectedGender ?? localgender ?? 'Unknown';
     // gender = (localGender != null) ? localGender : userData['Gender'];

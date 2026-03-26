@@ -44,7 +44,8 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
 
   DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  late final StreamSubscription<BoxEvent> _hiveSub;
+
+
 
   // final service = FlutterBackgroundService();
   // StreamSubscription? _serviceSub;
@@ -60,18 +61,24 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
     // Ensure we observe app lifecycle to refresh on resume
     WidgetsBinding.instance.addObserver(this);
 
-    // Keep initial load without forcing full-screen rebuilds.
+    // Start the MethodChannel listener + hive poller so this screen receives
+    // live step updates from the native StepCounterService immediately.
+    stepController.activateRealtimeTracking();
+
+    // Load whatever is already in Hive so the UI shows steps right away.
     stepController.loadTodayStepsFromHive();
   }
+
   @override
   void dispose() {
     _locationSub?.cancel();
     _uiRefreshTimer?.cancel();
     _debounce?.cancel();
     _secretResetTimer?.cancel();
-    // Remove lifecycle observer
     WidgetsBinding.instance.removeObserver(this);
-    // No need to cancel _serviceSub anymore
+    // Signal controller that this screen is no longer the active consumer.
+    // (MethodChannel handler stays alive in the controller for background updates.)
+    stepController.deactivateRealtimeTracking();
     super.dispose();
   }
 

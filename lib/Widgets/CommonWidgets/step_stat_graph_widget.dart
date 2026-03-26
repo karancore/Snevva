@@ -166,134 +166,134 @@ class StepStatGraphWidget extends StatelessWidget {
       child: RepaintBoundary(
         child: LineChart(
           LineChartData(
-          minX: 0,
-          maxX: safeMaxx,
-          minY: 0,
-          maxY: maxY,
-          titlesData: FlTitlesData(
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                interval: 1,
-                reservedSize: 24,
-                getTitlesWidget: (value, _) {
-                  final int index = value.toInt();
+            minX: 0,
+            maxX: safeMaxx,
+            minY: 0,
+            maxY: maxY,
+            titlesData: FlTitlesData(
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  interval: 1,
+                  reservedSize: 24,
+                  getTitlesWidget: (value, _) {
+                    final int index = value.toInt();
 
-                  if (index >= 0 && index < labels.length) {
-                    final bool isToday =
-                        isMonthly
-                            ? index == getCurrentDateIndex()
-                            : index == maxXForWeek;
+                    if (index >= 0 && index < labels.length) {
+                      final bool isToday =
+                          isMonthly
+                              ? index == getCurrentDateIndex()
+                              : index == maxXForWeek;
 
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text(
-                        labels[index],
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight:
-                              isToday ? FontWeight.bold : FontWeight.normal,
-                          color:
-                              isToday
-                                  ? AppColors.primaryColor
-                                  : Colors.grey.shade600,
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          labels[index],
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight:
+                                isToday ? FontWeight.bold : FontWeight.normal,
+                            color:
+                                isToday
+                                    ? AppColors.primaryColor
+                                    : Colors.grey.shade600,
+                          ),
                         ),
-                      ),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-            ),
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                interval: interval,
-                getTitlesWidget:
-                    (value, _) => Text(
-                      NumberFormat.compact().format(value.toInt()),
-                      style: const TextStyle(fontSize: 9),
-                    ),
-              ),
-            ),
-            rightTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            topTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-          ),
-          gridData: FlGridData(
-            show: true,
-            horizontalInterval: interval,
-            drawVerticalLine: false,
-            getDrawingHorizontalLine:
-                (_) => const FlLine(color: mediumGrey, strokeWidth: 0.8),
-          ),
-          borderData: FlBorderData(
-            show: true,
-            border: const Border(
-              bottom: BorderSide(color: mediumGrey, width: 0.6),
-              left: BorderSide(color: Colors.transparent),
-              right: BorderSide(color: Colors.transparent),
-              top: BorderSide(color: Colors.transparent),
-            ),
-          ),
-          lineBarsData: [
-            LineChartBarData(
-              spots: points,
-              isCurved: true,
-              preventCurveOverShooting: true,
-              color: AppColors.primaryColor,
-              barWidth: 2,
-              dotData: FlDotData(
-                show: true,
-                getDotPainter: (spot, _, __, ___) {
-                  if (spot.y == 0) {
-                    return FlDotCirclePainter(radius: 0);
-                  }
-                  return FlDotCirclePainter(
-                    radius: 4,
-                    color: white,
-                    strokeWidth: 2,
-                    strokeColor: AppColors.primaryColor,
-                  );
-                },
-              ),
-              belowBarData: BarAreaData(
-                show: true,
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primaryColor.withOpacity(0.3),
-                    Colors.transparent,
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
                 ),
               ),
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  interval: interval,
+                  getTitlesWidget:
+                      (value, _) => Text(
+                        NumberFormat.compact().format(value.toInt()),
+                        style: const TextStyle(fontSize: 9),
+                      ),
+                ),
+              ),
+              rightTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              topTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
             ),
-          ],
-          lineTouchData: LineTouchData(
-            enabled: true,
-            touchTooltipData: LineTouchTooltipData(
-              getTooltipColor: (touchedSpot) => AppColors.primaryColor,
-              tooltipPadding: EdgeInsets.all(8),
-              tooltipBorderRadius: BorderRadius.circular(24),
-
-              getTooltipItems: (touchedSpots) {
-                return touchedSpots.map((spot) {
-                  return LineTooltipItem(
-                    '${(spot.y).round()} Steps',
-                    const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+            gridData: FlGridData(
+              show: true,
+              horizontalInterval: interval,
+              drawVerticalLine: false,
+              getDrawingHorizontalLine:
+                  (_) => const FlLine(color: mediumGrey, strokeWidth: 0.8),
+            ),
+            borderData: FlBorderData(
+              show: true,
+              border: const Border(
+                bottom: BorderSide(color: mediumGrey, width: 0.6),
+                left: BorderSide(color: Colors.transparent),
+                right: BorderSide(color: Colors.transparent),
+                top: BorderSide(color: Colors.transparent),
+              ),
+            ),
+            lineBarsData: [
+              LineChartBarData(
+                spots: points,
+                isCurved: true,
+                preventCurveOverShooting: true,
+                color: AppColors.primaryColor,
+                barWidth: 2,
+                dotData: FlDotData(
+                  show: true,
+                  getDotPainter: (spot, _, __, ___) {
+                    if (spot.y == 0) {
+                      return FlDotCirclePainter(radius: 0);
+                    }
+                    return FlDotCirclePainter(
+                      radius: 4,
                       color: white,
-                    ),
-                  );
-                }).toList();
-              },
+                      strokeWidth: 2,
+                      strokeColor: AppColors.primaryColor,
+                    );
+                  },
+                ),
+                belowBarData: BarAreaData(
+                  show: true,
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primaryColor.withOpacity(0.3),
+                      Colors.transparent,
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+              ),
+            ],
+            lineTouchData: LineTouchData(
+              enabled: true,
+              touchTooltipData: LineTouchTooltipData(
+                getTooltipColor: (touchedSpot) => AppColors.primaryColor,
+                tooltipPadding: EdgeInsets.all(8),
+                tooltipBorderRadius: BorderRadius.circular(24),
+
+                getTooltipItems: (touchedSpots) {
+                  return touchedSpots.map((spot) {
+                    return LineTooltipItem(
+                      '${(spot.y).round()} Steps',
+                      const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: white,
+                      ),
+                    );
+                  }).toList();
+                },
+              ),
             ),
-          ),
           ),
         ),
       ),

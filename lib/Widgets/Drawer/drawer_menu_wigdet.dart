@@ -249,23 +249,21 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                       height: 120,
                       fit: BoxFit.cover,
                       placeholder:
-                          (_, __) =>
-                              CircleAvatar(
-                                radius: 60,
-                                backgroundColor: Colors.grey,
-                                child:  SizedBox(),
-                              ),
+                          (_, __) => CircleAvatar(
+                            radius: 60,
+                            backgroundColor: Colors.grey,
+                            child: SizedBox(),
+                          ),
                       errorWidget:
-                          (_, __, ___) =>
-                              CircleAvatar(
-                                radius: 60,
-                                backgroundColor: Colors.grey,
-                                child:  Icon(
-                                  Icons.person,
-                                  size: 200 * 0.75,
-                                  color: Colors.white,
-                                ),
-                              )
+                          (_, __, ___) => CircleAvatar(
+                            radius: 60,
+                            backgroundColor: Colors.grey,
+                            child: Icon(
+                              Icons.person,
+                              size: 200 * 0.75,
+                              color: Colors.white,
+                            ),
+                          ),
                     );
                   }
                   // 3️⃣ Default asset

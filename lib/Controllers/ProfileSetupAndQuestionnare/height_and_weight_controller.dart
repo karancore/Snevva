@@ -51,7 +51,6 @@ class HeightWeightController extends GetxController {
     heightInCm.value = cm;
   }
 
-
   var weightInKg = 0.0.obs;
 
   void setWeight(double weightValue) {
@@ -65,7 +64,7 @@ class HeightWeightController extends GetxController {
   ) async {
     debugPrint('🟢 saveData() CALLED');
 
-    if(height.value == null || weight.value == null) {
+    if (height.value == null || weight.value == null) {
       debugPrint('⚠️ Height or Weight value is null. Aborting save.');
       CustomSnackbar.showError(
         context: context,
@@ -74,7 +73,7 @@ class HeightWeightController extends GetxController {
       );
       return;
     }
-    if(height.value! <= 0 || weight.value! <= 0) {
+    if (height.value! <= 0 || weight.value! <= 0) {
       debugPrint('⚠️ Height or Weight value is non-positive. Aborting save.');
       CustomSnackbar.showError(
         context: context,

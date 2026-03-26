@@ -436,8 +436,7 @@ class SleepNoticingService {
   List<_TimeInterval> _mergeIntervals(List<_TimeInterval> intervals) {
     if (intervals.isEmpty) return <_TimeInterval>[];
 
-    final sorted = [...intervals]
-      ..sort((a, b) => a.start.compareTo(b.start));
+    final sorted = [...intervals]..sort((a, b) => a.start.compareTo(b.start));
 
     final merged = <_TimeInterval>[sorted.first];
     for (var i = 1; i < sorted.length; i++) {

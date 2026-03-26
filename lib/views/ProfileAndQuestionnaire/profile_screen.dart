@@ -105,7 +105,7 @@ class ProfileScreen extends StatelessWidget {
                 SizedBox(height: 10),
                 Row(
                   children: [
-                    Icon(Icons.phone_outlined , color: AppColors.primaryColor,),
+                    Icon(Icons.phone_outlined, color: AppColors.primaryColor),
                     SizedBox(width: 8),
                     Text('Phone'),
                     Spacer(),

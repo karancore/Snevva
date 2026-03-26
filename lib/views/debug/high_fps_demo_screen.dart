@@ -12,7 +12,9 @@ class HighFpsDemoScreen extends StatefulWidget {
 
 class _HighFpsDemoScreenState extends State<HighFpsDemoScreen>
     with SingleTickerProviderStateMixin {
-  static const AssetImage _avatarAsset = AssetImage('assets/Images/avatar1.webp');
+  static const AssetImage _avatarAsset = AssetImage(
+    'assets/Images/avatar1.webp',
+  );
 
   late final AnimationController _controller;
   late final ValueNotifier<double> _progress;
@@ -32,11 +34,12 @@ class _HighFpsDemoScreenState extends State<HighFpsDemoScreen>
     // ValueNotifier keeps updates scoped to listening widgets only.
     _progress = ValueNotifier<double>(0.0);
 
-    _controller = AnimationController(vsync: this, duration: duration)
-      ..addListener(() {
-        _progress.value = _controller.value;
-      })
-      ..repeat(reverse: true);
+    _controller =
+        AnimationController(vsync: this, duration: duration)
+          ..addListener(() {
+            _progress.value = _controller.value;
+          })
+          ..repeat(reverse: true);
 
     // Defer heavy UI to avoid competing with first frame rasterization.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -138,7 +141,9 @@ class _HighFpsDemoScreenState extends State<HighFpsDemoScreen>
             const SizedBox(
               height: 140,
               child: Center(
-                child: Text('Deferring heavy section until after first frame...'),
+                child: Text(
+                  'Deferring heavy section until after first frame...',
+                ),
               ),
             ),
         ],
@@ -202,7 +207,10 @@ class _StaticTips extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Low-jank checklist', style: TextStyle(fontWeight: FontWeight.w700)),
+            Text(
+              'Low-jank checklist',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
             SizedBox(height: 6),
             Text('1. Keep per-frame work under ~8.33 ms on 120 Hz screens.'),
             Text('2. Use RepaintBoundary to isolate expensive repaints.'),

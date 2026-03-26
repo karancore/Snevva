@@ -1,4 +1,3 @@
-
 import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
@@ -34,7 +33,6 @@ class _DashboardState extends State<Dashboard>
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final notificationController = NotificationService();
 
-
   final scrollController = ScrollController();
   bool _showAppBar = true;
 
@@ -60,23 +58,23 @@ class _DashboardState extends State<Dashboard>
     );
 
     _animationController.forward();
-      scrollController.addListener(() {
-        if (scrollController.position.userScrollDirection ==
-            ScrollDirection.reverse) {
-          if (_showAppBar) {
-            setState(() {
-              _showAppBar = false;
-            });
-          }
-        } else if (scrollController.position.userScrollDirection ==
-            ScrollDirection.forward) {
-          if (!_showAppBar) {
-            setState(() {
-              _showAppBar = true;
-            });
-          }
+    scrollController.addListener(() {
+      if (scrollController.position.userScrollDirection ==
+          ScrollDirection.reverse) {
+        if (_showAppBar) {
+          setState(() {
+            _showAppBar = false;
+          });
         }
-      });
+      } else if (scrollController.position.userScrollDirection ==
+          ScrollDirection.forward) {
+        if (!_showAppBar) {
+          setState(() {
+            _showAppBar = true;
+          });
+        }
+      }
+    });
   }
 
   @override
@@ -93,7 +91,6 @@ class _DashboardState extends State<Dashboard>
     final width = mediaQuery.size.width;
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-
       key: _scaffoldKey,
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: PreferredSize(
@@ -111,10 +108,14 @@ class _DashboardState extends State<Dashboard>
                     () => Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('🖐🏻 Hello', style: TextStyle(fontSize: 16)),
+                        const Text(
+                          '🖐🏻 Hello',
+                          style: TextStyle(fontSize: 16),
+                        ),
 
                         Text(
-                          localStorageManager.userMap['Name']?.toString() ?? 'User',
+                          localStorageManager.userMap['Name']?.toString() ??
+                              'User',
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -137,7 +138,8 @@ class _DashboardState extends State<Dashboard>
                           ),
                           onPressed: () {
                             Get.to(() => AlertsScreen());
-                            notificationController.hasNewNotification.value = false;
+                            notificationController.hasNewNotification.value =
+                                false;
                           },
                         ),
                         if (hasNewNotif)
@@ -180,9 +182,7 @@ class _DashboardState extends State<Dashboard>
           }
         },
         child: SafeArea(
-
           child: ScrollConfiguration(
-
             behavior: ScrollBehavior().copyWith(
               scrollbars: false,
               overscroll: false,

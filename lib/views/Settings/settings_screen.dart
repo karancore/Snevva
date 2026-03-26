@@ -52,7 +52,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         centerTitle: true,
         scrolledUnderElevation: 0.0,
 
-
         title: Text(
           "Settings",
           style: TextStyle(

@@ -76,17 +76,12 @@ class _HomeWrapperState extends State<HomeWrapper> {
       if (_redirectToProfileSetupIfNeeded()) return;
       await _ensureStartupSequence();
     });
-
   }
 
-
   Future<void> _startupSequence() async {
-
     await FirebaseMessaging.instance.requestPermission();
     await setupNotificationChannel();
     await Alarm.init();
-
-
   }
 
   Future<void> _ensureStartupSequence() async {
@@ -96,7 +91,8 @@ class _HomeWrapperState extends State<HomeWrapper> {
 
   bool _redirectToProfileSetupIfNeeded() {
     if (_hasRedirectedToProfileSetup) return true;
-    if (isProfileSetupInitialComplete(localStorageManager.userMap)) return false;
+    if (isProfileSetupInitialComplete(localStorageManager.userMap))
+      return false;
 
     _hasRedirectedToProfileSetup = true;
     Get.offAll(() => const ProfileSetupInitial());
@@ -112,7 +108,6 @@ class _HomeWrapperState extends State<HomeWrapper> {
       stepController.deactivateRealtimeTracking();
     }
   }
-
 
   @override
   void dispose() {

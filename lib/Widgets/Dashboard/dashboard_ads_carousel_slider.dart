@@ -20,9 +20,10 @@ class DashboardAdsCarouselSlider extends StatefulWidget {
       _DashboardAdsCarouselSliderState();
 }
 
-final items = [adImg5 , adImg1, adImg2, adImg3, adImg4];
-final List<AssetImage> _adImages =
-    items.map((path) => AssetImage(path)).toList(growable: false);
+final items = [adImg5, adImg1, adImg2, adImg3, adImg4];
+final List<AssetImage> _adImages = items
+    .map((path) => AssetImage(path))
+    .toList(growable: false);
 
 class _DashboardAdsCarouselSliderState
     extends State<DashboardAdsCarouselSlider> {
@@ -61,23 +62,24 @@ class _DashboardAdsCarouselSliderState
       );
     }
   }
+
   @override
   Widget build(BuildContext context) {
     final bool isTabActive = TickerMode.of(context);
     final media = MediaQuery.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double width = constraints.maxWidth.isFinite
-            ? constraints.maxWidth
-            : media.size.width;
+        final double width =
+            constraints.maxWidth.isFinite
+                ? constraints.maxWidth
+                : media.size.width;
         final double height = math.min(_maxHeight, media.size.height * 0.2);
         final double idealWidth = height * _adAspectRatio;
         final double displayWidth =
             (width.isFinite ? width : idealWidth) - (_horizontalInset * 2);
         final int cacheWidthPx =
             (displayWidth * media.devicePixelRatio).round();
-        final int cacheHeightPx =
-            (height * media.devicePixelRatio).round();
+        final int cacheHeightPx = (height * media.devicePixelRatio).round();
         final double indicatorBottom = (height * 0.12).clamp(8.0, 18.0);
 
         return Stack(
@@ -102,11 +104,12 @@ class _DashboardAdsCarouselSliderState
                   builder: (BuildContext context) {
                     return GestureDetector(
                       onTap: () {
-                         handleTap(index);
+                        handleTap(index);
                       },
                       child: Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: _horizontalInset),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: _horizontalInset,
+                        ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(_cornerRadius),
                           child: SizedBox(

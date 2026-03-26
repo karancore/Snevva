@@ -37,22 +37,22 @@ class _AlertsScreenState extends State<AlertsScreen>
       dataCode: "N001",
       heading: "Fitness Motivation",
       title: "Workout Reminder",
-      times: ["12:20" , "08:00"],
-      isActive: true
+      times: ["12:20", "08:00"],
+      isActive: true,
     ),
     Alerts(
       dataCode: "N002",
       heading: "General Info",
       title: "Stay Safe!",
-      times: ["08:30" , "08:15"],
-      isActive: true
+      times: ["08:30", "08:15"],
+      isActive: true,
     ),
     Alerts(
       dataCode: "N003",
       heading: "Fitness Motivation",
       title: "Workout Reminder",
-      times: ["07:30" , "08:30"],
-      isActive: true
+      times: ["07:30", "08:30"],
+      isActive: true,
     ),
   ];
 
@@ -136,7 +136,7 @@ class _AlertsScreenState extends State<AlertsScreen>
             Theme.of(context).brightness == Brightness.dark
                 ? Colors.grey.shade900
                 : Colors.white,
-       borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16),
 
         boxShadow: [
           BoxShadow(
@@ -331,6 +331,6 @@ class _AlertsScreenState extends State<AlertsScreen>
   }
 
   Widget _noNotificationsWidget(bool isDarkMode) {
-    return Center(child: Image.asset(noNotif, scale: 3.5,));
+    return Center(child: Image.asset(noNotif, scale: 3.5));
   }
 }

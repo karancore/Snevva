@@ -237,7 +237,6 @@ class _HeightWeightScreenState extends State<HeightWeightScreen> {
                             borderRadius: BorderRadius.circular(50),
                             focusColor: mediumGrey,
                             onTap: () async {
-
                               final heightModel = HeightVM(
                                 day: DateTime.now().day,
                                 month: DateTime.now().month,
@@ -263,8 +262,6 @@ class _HeightWeightScreenState extends State<HeightWeightScreen> {
                                 weightModel,
                                 context,
                               );
-
-
                             },
 
                             child: Padding(

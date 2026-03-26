@@ -450,8 +450,6 @@ class SignUpController extends GetxService {
         body: encryptedBody,
       );
 
-
-
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         final encryptedBody = responseBody['data'];

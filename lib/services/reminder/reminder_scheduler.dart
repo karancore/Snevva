@@ -3,7 +3,7 @@ import 'package:alarm/alarm.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Controllers/Reminder/water_controller.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart'
-as reminder_payload;
+    as reminder_payload;
 import 'package:snevva/models/reminders/water_reminder_model.dart';
 
 import '../../common/global_variables.dart';
@@ -32,7 +32,8 @@ class ReminderScheduler {
     for (final reminder in reminders) {
       try {
         debugPrint(
-            "➡️ Processing reminder ID:${reminder.id} | Category:${reminder.category}");
+          "➡️ Processing reminder ID:${reminder.id} | Category:${reminder.category}",
+        );
 
         reminder.validate();
 
@@ -158,9 +159,10 @@ class ReminderScheduler {
 
     final date = reminder.startDate;
 
-    List<DateTime> scheduledTimes = timesList
-        .map((e) => buildDateTimeFromTimeString(time: e, date: date))
-        .toList();
+    List<DateTime> scheduledTimes =
+        timesList
+            .map((e) => buildDateTimeFromTimeString(time: e, date: date))
+            .toList();
 
     debugPrint("Generated scheduledTimes: $scheduledTimes");
 
@@ -315,8 +317,7 @@ class ReminderScheduler {
     if (customReminder.timesPerDay != null) {
       final times = reminder.waterTimesCountSafe;
       debugPrint("Water times per day: $times");
-      final alarmTimes =
-      waterController.generateTimesBetween(
+      final alarmTimes = waterController.generateTimesBetween(
         startTime: reminder.waterStartSafe,
         endTime: reminder.waterEndSafe,
         times: times,
@@ -326,7 +327,7 @@ class ReminderScheduler {
 
       for (var time in alarmTimes) {
         final scheduledTime =
-        time.isBefore(DateTime.now()) ? time.add(Duration(days: 1)) : time;
+            time.isBefore(DateTime.now()) ? time.add(Duration(days: 1)) : time;
 
         debugPrint("⏰ Scheduling water alarm at $scheduledTime");
 
@@ -360,7 +361,9 @@ class ReminderScheduler {
       return;
     }
 
-    debugPrint("⚠️ Water reminder has no schedule data, skipping (id=${reminder.id})");
+    debugPrint(
+      "⚠️ Water reminder has no schedule data, skipping (id=${reminder.id})",
+    );
   }
 
   /// ==============================
@@ -379,7 +382,7 @@ class ReminderScheduler {
     final unit = before.unit;
 
     final offset =
-    unit == 'minutes' ? Duration(minutes: amount) : Duration(hours: amount);
+        unit == 'minutes' ? Duration(minutes: amount) : Duration(hours: amount);
 
     DateTime beforeTime = mainTime.subtract(offset);
 
@@ -443,15 +446,17 @@ class ReminderScheduler {
     }
 
     for (final time in times) {
-      final dateTime =
-      buildDateTimeFromTimeString(time: time, date: date);
+      final dateTime = buildDateTimeFromTimeString(time: time, date: date);
 
       if (dateTime.isBefore(DateTime.now())) {
         debugPrint("⛔ Skipping past $category reminder at $dateTime");
         continue;
       }
 
-      final alarmId = scheduledReminderId(reminderId: reminder.id, time: dateTime);
+      final alarmId = scheduledReminderId(
+        reminderId: reminder.id,
+        time: dateTime,
+      );
       if (deletedAlarmIds.contains(alarmId)) {
         debugPrint("🧹 Skip deleted $category occurrence (alarmId=$alarmId)");
         continue;

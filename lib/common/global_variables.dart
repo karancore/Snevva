@@ -27,6 +27,7 @@ bool startsWithCapital(String value) {
   if (value.isEmpty) return false;
   return value[0] == value[0].toUpperCase();
 }
+
 class ParsedTime {
   final int hour;
   final int minute;
@@ -37,15 +38,13 @@ class ParsedTime {
 /// "23:59" -> 23 , 59
 ParsedTime parse24Hour(String time) {
   final parts = time.split(':');
-  return ParsedTime(
-    int.parse(parts[0]),
-    int.parse(parts[1]),
-  );
+  return ParsedTime(int.parse(parts[0]), int.parse(parts[1]));
 }
 
 int generateNotificationId(String dataCode, String time) {
   return (dataCode + time).hashCode.abs();
 }
+
 class MaxValueTextInputFormatter extends TextInputFormatter {
   final int max;
 
@@ -226,11 +225,7 @@ int _fnv1a32(String input) {
   return hash;
 }
 
-int buildAlarmId({
-  required int groupId,
-  required DateTime time,
-  String? salt,
-}) {
+int buildAlarmId({required int groupId, required DateTime time, String? salt}) {
   final normalizedSalt = (salt ?? '').trim();
 
   // Backward-compatible deterministic IDs for older schedules (only when safe).
@@ -486,9 +481,10 @@ DateTime buildDateTimeFromTimeString({required String time, String? date}) {
   final dateHint = (date ?? '').trim();
   if (dateHint.isNotEmpty) {
     final parsedDate = DateTime.tryParse(dateHint);
-    final localDate = parsedDate != null
-        ? (parsedDate.isUtc ? parsedDate.toLocal() : parsedDate)
-        : null;
+    final localDate =
+        parsedDate != null
+            ? (parsedDate.isUtc ? parsedDate.toLocal() : parsedDate)
+            : null;
 
     if (localDate != null) {
       scheduled = DateTime(

@@ -9,11 +9,10 @@ extension WaterToMedicineMapper on WaterReminderModel {
       category: category,
       customReminder: CustomReminder(
         type: type,
-        timesPerDay:
-            TimesPerDay(
-              count: timesPerDay,
-              list: alarms.map((e) => e.dateTime.toIso8601String()).toList(),
-            ),
+        timesPerDay: TimesPerDay(
+          count: timesPerDay,
+          list: alarms.map((e) => e.dateTime.toIso8601String()).toList(),
+        ),
         everyXHours:
             interval != null
                 ? EveryXHours(

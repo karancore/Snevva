@@ -204,10 +204,13 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
         elevation: 0,
         automaticallyImplyLeading: false,
         backgroundColor: isDarkMode ? black : white,
-        leading: IconButton(onPressed: (){
-          Get.back();
-        }, icon: const Icon(Icons.arrow_back_ios_new)),
-        iconTheme: IconThemeData(color: isDarkMode ? white : black ),
+        leading: IconButton(
+          onPressed: () {
+            Get.back();
+          },
+          icon: const Icon(Icons.arrow_back_ios_new),
+        ),
+        iconTheme: IconThemeData(color: isDarkMode ? white : black),
         title: Text(
           "Chat with Elly",
           style: TextStyle(

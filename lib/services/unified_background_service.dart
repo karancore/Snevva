@@ -1,17 +1,14 @@
 import 'dart:async';
 import 'dart:ui';
-
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:pedometer/pedometer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/models/hive_models/sleep_log_g.dart';
 import 'package:snevva/services/hive_service.dart';
-
-import '../common/agent_debug_logger.dart';
 import '../consts/consts.dart';
 import '../models/hive_models/sleep_log.dart';
 import '../models/hive_models/steps_model.dart';
+import '../common/agent_debug_logger.dart';
 import '../services/sleep/sleep_noticing_service.dart';
 
 // ───────────────────────────────────────────────────────────────────
@@ -67,7 +64,7 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
       );
     }
 
-    debugPrint("🚀 Unified background service started at ${DateTime.now()}");
+    print("🚀 Unified background service started at ${DateTime.now()}");
 
     final sleepBox = await HiveService().sleepLogBox();
     final stepBox = await HiveService().stepHistoryBox();
@@ -102,7 +99,7 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
 
     service.on("start_sleep").listen((event) async {
       if (prefs.getBool("is_sleeping") ?? false) {
-        debugPrint("⚠️ start_sleep ignored (already active)");
+        print("⚠️ start_sleep ignored (already active)");
         return;
       }
 
@@ -154,7 +151,6 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
 
       await _sleepNoticingService.initializeForSleepWindow();
       _sleepNoticingService.startMonitoring();
-      debugPrint("✅ SleepNoticingService (Dart) started at ${DateTime.now()}");
 
       service.invoke("sleep_update", {
         "elapsed_minutes": 0,
@@ -162,12 +158,21 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
         "is_sleeping": true,
       });
 
-      debugPrint("🌙 Sleep tracking started at ${DateTime.now()}");
-      debugPrint("   Goal: $goalMinutes mins");
-      debugPrint("   Window: ${sleepWindow?.start} → ${sleepWindow?.end}");
+      print("🌙 Sleep tracking started at ${DateTime.now()}");
+      print("   Goal: $goalMinutes mins");
+      print("   Window: ${sleepWindow?.start} → ${sleepWindow?.end}");
 
-      _updateSleepNotification(service: service, elapsedMinutes: 0, goalMinutes: goalMinutes);
-      _startSleepProgressTimer(service: service, prefs: prefs, goalMinutes: goalMinutes, sleepBox: sleepBox);
+      _updateSleepNotification(
+        service: service,
+        elapsedMinutes: 0,
+        goalMinutes: goalMinutes,
+      );
+      _startSleepProgressTimer(
+        service: service,
+        prefs: prefs,
+        goalMinutes: goalMinutes,
+        sleepBox: sleepBox,
+      );
     });
 
     // ═══════════════════════════════════════════════════════════════
@@ -178,8 +183,7 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
       _sleepProgressTimer?.cancel();
       _sleepProgressTimer = null;
       _sleepNoticingService.stopMonitoring();
-      debugPrint("✅ SleepNoticingService (Dart) stopped at ${DateTime.now()}");
-
+      print("✅ SleepNoticingService stopped at ${DateTime.now()}");
       await _stopSleepAndSave(service, prefs, sleepBox);
     });
 
@@ -206,23 +210,19 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
         if (newTotalSteps > currentHive) {
           await stepBox.put(
             todayKey,
-            StepEntry(date: DateTime(now.year, now.month, now.day), steps: newTotalSteps),
+            StepEntry(
+              date: DateTime(now.year, now.month, now.day),
+              steps: newTotalSteps,
+            ),
           );
         }
 
-      debugPrint(
-        "💤 Sleep progress at ${DateTime.now()}: $totalSleepMinutes / $goalMinutes mins",
-      );
+        service.invoke("steps_updated", {"steps": newTotalSteps});
 
-      // Check if sleep window has ended
-      final windowEndStr = prefs.getString("current_sleep_window_end");
-      if (windowEndStr != null) {
-        final windowEnd = DateTime.parse(windowEndStr);
-        if (DateTime.now().isAfter(windowEnd)) {
-          debugPrint(
-            "⏰ Sleep window ended at ${DateTime.now()}, auto-saving sleep data",
-          );
-          await _stopSleepAndSave(service, prefs, sleepBox);
+        // Update notification only when NOT in sleep mode
+        final isSleeping = prefs.getBool("is_sleeping") ?? false;
+        if (!isSleeping) {
+          _updateStepNotification(service: service, steps: newTotalSteps);
         }
       }
     });
@@ -230,7 +230,6 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
     // ═══════════════════════════════════════════════════════════════
     // ⏰ ALARM WAKEUP — sparse 15-min heartbeat
     // ═══════════════════════════════════════════════════════════════
-    debugPrint("👣 Initializing step counter at ${DateTime.now()}...");
 
     service.on('onAlarmWakeup').listen((_) async {
       await prefs.reload();
@@ -250,7 +249,8 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
       final isSleeping = prefs.getBool("is_sleeping") ?? false;
       if (isSleeping) {
         final goalMinutes = prefs.getInt("sleep_goal_minutes") ?? 480;
-        final totalSleepMinutes = await _sleepNoticingService.getTotalSleepMinutes();
+        final totalSleepMinutes =
+            await _sleepNoticingService.getTotalSleepMinutes();
         final windowKey = prefs.getString("current_sleep_window_key");
         final startTime = prefs.getString("sleep_start_time");
 
@@ -278,28 +278,17 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
             await _stopSleepAndSave(service, prefs, sleepBox);
           }
         }
-      },
-      onError: (error) {
-        debugPrint("❌ Pedometer error: $error at ${DateTime.now()}");
-      },
-    );
-
-    _startSleepWindowWatchdog(
-      service: service,
-      prefs: prefs,
-      sleepBox: sleepBox,
-      stepBox: stepBox,
-    );
+      }
+    });
 
     // ═══════════════════════════════════════════════════════════════
     // 🛑 SERVICE STOP
     // ═══════════════════════════════════════════════════════════════
 
     service.on('stopService').listen((_) {
-      debugPrint(
-          "🛑 Stopping unified background service at ${DateTime.now()}...");
-
-      // Updated: Stop the Dart service
+      print("🛑 Stopping unified background service at ${DateTime.now()}...");
+      _sleepProgressTimer?.cancel();
+      _sleepProgressTimer = null;
       _sleepNoticingService.stopMonitoring();
 
       AgentDebugLogger.log(
@@ -313,13 +302,12 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
       service.stopSelf();
     });
 
-    debugPrint(
+    print(
       "✅ Unified background service fully initialized at ${DateTime.now()}",
     );
-
     return true;
   } catch (e) {
-    debugPrint("❌ Unified background service failed: $e at ${DateTime.now()}");
+    print("❌ Unified background service failed: $e at ${DateTime.now()}");
     return false;
   }
 }
@@ -381,7 +369,8 @@ void _startHeartbeatTimer({
     if (isSleeping) {
       // ── Active sleep: update notification + check window end ──────
       final goalMinutes = prefs.getInt('sleep_goal_minutes') ?? 480;
-      final totalSleepMinutes = await _sleepNoticingService.getTotalSleepMinutes();
+      final totalSleepMinutes =
+          await _sleepNoticingService.getTotalSleepMinutes();
       final windowKey = prefs.getString('current_sleep_window_key');
       final startTime = prefs.getString('sleep_start_time');
 
@@ -468,8 +457,9 @@ Future<void> _restoreOrAutoStartSleepTracking({
   if (isSleeping) {
     // Past window end → auto-save and exit sleep mode
     if (sleepWindow != null && nowTime.isAfter(sleepWindow.end)) {
-      debugPrint(
-          "⏰ Service recovery detected window end. Auto-saving sleep...");
+      print("⏰ Service recovery detected window end. Auto-saving sleep...");
+      _sleepProgressTimer?.cancel();
+      _sleepProgressTimer = null;
       await _stopSleepAndSave(service, prefs, sleepBox);
       return;
     }
@@ -479,7 +469,8 @@ Future<void> _restoreOrAutoStartSleepTracking({
     _sleepNoticingService.startMonitoring();
 
     final goalMinutes = prefs.getInt("sleep_goal_minutes") ?? 480;
-    final totalSleepMinutes = await _sleepNoticingService.getTotalSleepMinutes();
+    final totalSleepMinutes =
+        await _sleepNoticingService.getTotalSleepMinutes();
 
     service.invoke("sleep_update", {
       "elapsed_minutes": totalSleepMinutes,
@@ -591,7 +582,8 @@ Future<void> _startSleepTrackingSession({
   _sleepNoticingService.startMonitoring();
 
   final totalSleepMinutes = await _sleepNoticingService.getTotalSleepMinutes();
-  final startTime = prefs.getString("sleep_start_time") ?? nowTime.toIso8601String();
+  final startTime =
+      prefs.getString("sleep_start_time") ?? nowTime.toIso8601String();
 
   service.invoke("sleep_update", {
     "elapsed_minutes": totalSleepMinutes,
@@ -601,9 +593,9 @@ Future<void> _startSleepTrackingSession({
     "start_time": startTime,
   });
 
-  debugPrint("🌙 Sleep tracking started at ${DateTime.now()}");
-  debugPrint("   Goal: $goalMinutes mins");
-  debugPrint("   Window: ${sleepWindow?.start} → ${sleepWindow?.end}");
+  print("🌙 Sleep tracking started at ${DateTime.now()}");
+  print("   Goal: $goalMinutes mins");
+  print("   Window: ${sleepWindow?.start} → ${sleepWindow?.end}");
 
   _updateSleepNotification(
     service: service,
@@ -679,48 +671,7 @@ Future<void> _ensureCurrentDayStepState({
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// 📊 SLEEP INTERVAL AGGREGATION
-// ═══════════════════════════════════════════════════════════════
-
-void _startSleepIntervalAggregator(
-  ServiceInstance service,
-  SharedPreferences prefs,
-) {
-  _sleepIntervalAggregatorTimer?.cancel();
-
-  // Aggregate intervals every 30 seconds for real-time updates
-  _sleepIntervalAggregatorTimer = Timer.periodic(const Duration(seconds: 30), (
-    timer,
-  ) async {
-    final isSleeping = prefs.getBool("is_sleeping") ?? false;
-    if (!isSleeping) {
-      timer.cancel();
-      return;
-    }
-
-    final totalSleepMinutes =
-        await _sleepNoticingService.getTotalSleepMinutes();
-    final goalMinutes = prefs.getInt("sleep_goal_minutes") ?? 480;
-    final windowKey = prefs.getString("current_sleep_window_key"); // Add this
-    final startTime = prefs.getString("sleep_start_time"); // Add this
-
-    // Update UI
-    service.invoke("sleep_update", {
-      "elapsed_minutes": totalSleepMinutes,
-      "goal_minutes": goalMinutes,
-      "is_sleeping": true,
-      "current_sleep_window_key": windowKey, // Add this
-      "start_time": startTime, // Add this
-    });
-
-    debugPrint(
-      "📊 Aggregated sleep at ${DateTime.now()}: $totalSleepMinutes mins (goal: $goalMinutes)",
-    );
-  });
-}
-
-// ═══════════════════════════════════════════════════════════════
+// ───────────────────────────────────────────────────────────────────
 // 💾 STOP SLEEP AND SAVE
 // ───────────────────────────────────────────────────────────────────
 
@@ -733,7 +684,7 @@ Future<void> _stopSleepAndSave(
   final startString = prefs.getString("sleep_start_time");
 
   if (startString == null) {
-    debugPrint("⚠️ No sleep start time found");
+    print("⚠️ No sleep start time found");
     await prefs.setBool("is_sleeping", false);
     await prefs.remove("current_sleep_window_start");
     await prefs.remove("current_sleep_window_end");
@@ -768,11 +719,11 @@ Future<void> _stopSleepAndSave(
 
   final totalSleepMinutes = await _sleepNoticingService.getTotalSleepMinutes();
 
-  debugPrint("💾 Saving sleep data:");
-  debugPrint("   Start: $effectiveStart");
-  debugPrint("   End: $effectiveEnd");
-  debugPrint("   Total sleep: $totalSleepMinutes mins");
-  debugPrint("   Goal: $goalMinutes mins");
+  print("💾 Saving sleep data:");
+  print("   Start: $effectiveStart");
+  print("   End: $effectiveEnd");
+  print("   Total sleep: $totalSleepMinutes mins");
+  print("   Goal: $goalMinutes mins");
 
   // Save to Hive
   if (windowKey != null) {
@@ -803,7 +754,7 @@ Future<void> _stopSleepAndSave(
     await prefs.remove('last_screen_off_$windowKey');
   }
 
-  debugPrint("✅ Sleep data saved successfully");
+  print("✅ Sleep data saved successfully");
 
   // Notify UI
   service.invoke("sleep_saved", {
@@ -857,7 +808,8 @@ int _calculateSleepGoalMinutes({
   required int waketimeMinutes,
 }) {
   if (!_isValidMinutesOfDay(bedtimeMinutes) ||
-      !_isValidMinutesOfDay(waketimeMinutes)) return 480;
+      !_isValidMinutesOfDay(waketimeMinutes))
+    return 480;
 
   var wake = waketimeMinutes;
   if (wake <= bedtimeMinutes) wake += 24 * 60;
@@ -887,7 +839,11 @@ _SleepWindow? _computeActiveSleepWindow(
   }
 
   DateTime end = DateTime(
-    start.year, start.month, start.day, wakeHour, wakeMinute,
+    start.year,
+    start.month,
+    start.day,
+    wakeHour,
+    wakeMinute,
   );
 
   // If wake time is before or equal to bedtime, it's next calendar day

@@ -104,9 +104,7 @@ class _ReminderScreenState extends State<ReminderScreen>
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(noReminders, scale: 2),
-              ],
+              children: [Image.asset(noReminders, scale: 2)],
             ),
           );
         }
@@ -132,14 +130,17 @@ class _ReminderScreenState extends State<ReminderScreen>
                         decoration: BoxDecoration(
                           color: isDarkMode ? darkGray : white,
                           borderRadius: BorderRadius.circular(8.0),
-                          boxShadow: isDarkMode ? null : [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.4),
-                              spreadRadius: 2,
-                              blurRadius: 6,
-                              offset: Offset(0, 0),
-                            ),
-                          ],
+                          boxShadow:
+                              isDarkMode
+                                  ? null
+                                  : [
+                                    BoxShadow(
+                                      color: Colors.grey.withOpacity(0.4),
+                                      spreadRadius: 2,
+                                      blurRadius: 6,
+                                      offset: Offset(0, 0),
+                                    ),
+                                  ],
                         ),
                         child: Padding(
                           padding: const EdgeInsets.only(
@@ -166,9 +167,7 @@ class _ReminderScreenState extends State<ReminderScreen>
                                   onToggle: () {
                                     setState(() {
                                       expandedIndex =
-                                          expandedIndex == index
-                                              ? null
-                                              : index;
+                                          expandedIndex == index ? null : index;
                                     });
                                   },
                                   onEdit:
@@ -180,9 +179,7 @@ class _ReminderScreenState extends State<ReminderScreen>
                                 ),
                                 const SizedBox(height: 6),
                                 Padding(
-                                  padding: const EdgeInsets.only(
-                                    bottom: 12.0,
-                                  ),
+                                  padding: const EdgeInsets.only(bottom: 12.0),
                                   child: _buildCategoryContent(
                                     reminder,
                                     category,
@@ -202,9 +199,7 @@ class _ReminderScreenState extends State<ReminderScreen>
                                   onToggle: () {
                                     setState(() {
                                       expandedIndex =
-                                          expandedIndex == index
-                                              ? null
-                                              : index;
+                                          expandedIndex == index ? null : index;
                                     });
                                   },
                                   onEdit:
@@ -220,9 +215,7 @@ class _ReminderScreenState extends State<ReminderScreen>
                                   index: index,
                                 ),
                                 Padding(
-                                  padding: const EdgeInsets.only(
-                                    bottom: 12.0,
-                                  ),
+                                  padding: const EdgeInsets.only(bottom: 12.0),
                                   child: _buildCategoryContent(
                                     reminder,
                                     category,
@@ -303,9 +296,9 @@ class _ReminderScreenState extends State<ReminderScreen>
               Text(
                 "Delete Reminder",
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
               Text(
@@ -338,7 +331,7 @@ class _ReminderScreenState extends State<ReminderScreen>
                   onPressed: () async {
                     await Future.wait([
                       controller.deleteReminder(reminder),
-                      controller.deleteReminderFromAPI(reminder.id, context)
+                      controller.deleteReminderFromAPI(reminder.id, context),
                     ]);
                     Get.back();
                   },
@@ -360,7 +353,6 @@ class _ReminderScreenState extends State<ReminderScreen>
       ),
       barrierDismissible: false,
     );
-
   }
 
   Widget _buildCategoryContent(ReminderPayloadModel reminder, String category) {

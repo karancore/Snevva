@@ -30,7 +30,10 @@ class MealController extends GetxController {
       notes: notes.isNotEmpty ? notes : "",
       customReminder: CustomReminder(
         type: Option.times,
-        timesPerDay: TimesPerDay(count: 1.toString() , list: [scheduledTime.toString()]),
+        timesPerDay: TimesPerDay(
+          count: 1.toString(),
+          list: [scheduledTime.toString()],
+        ),
       ),
     );
     debugPrint("Meal Data: $mealData");
@@ -135,14 +138,14 @@ class MealController extends GetxController {
       notes: notes.isNotEmpty ? notes : "",
       customReminder: CustomReminder(
         type: Option.times,
-        timesPerDay: TimesPerDay(count: 1.toString() , list: [scheduledTime.toString()]),
+        timesPerDay: TimesPerDay(
+          count: 1.toString(),
+          list: [scheduledTime.toString()],
+        ),
       ),
     );
 
-    await reminderController.updateReminder(
-      newModel,
-      context,
-    );
+    await reminderController.updateReminder(newModel, context);
 
     int index = -1;
     for (int i = 0; i < mealsList.length; i++) {

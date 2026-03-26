@@ -76,7 +76,6 @@ class NotificationService {
     return scheduledDate;
   }
 
-
   Future<void> scheduleAlertNotification({
     required int id,
     required String title,
@@ -84,7 +83,6 @@ class NotificationService {
     required int hour,
     required int minute,
   }) async {
-
     final scheduledDate = nextInstanceOfTime(hour, minute);
 
     await notificationsPlugin.zonedSchedule(
@@ -111,7 +109,6 @@ class NotificationService {
 
     debugPrint("✅ Scheduled -> $title at $hour:$minute");
   }
-
 
   // -------------------------------------------------
   // Daily reminders at 10 AM and 10 PM

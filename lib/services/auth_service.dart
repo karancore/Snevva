@@ -148,7 +148,8 @@ class AuthService {
     bool ignoreSessionGuard = false,
   }) async {
     debugPrint(
-        "Ensuring post-login permissions and starting tracking if granted...");
+      "Ensuring post-login permissions and starting tracking if granted...",
+    );
     return _ensurePostLoginPermissionsAndStartTracking(
       ignoreSessionGuard: ignoreSessionGuard,
     );
@@ -215,7 +216,7 @@ class AuthService {
     localStorageManager.registerDeviceFCMIfNeeded();
 
     loginLog("Fetching reminders...");
-     await reminderController.getReminderFromAPI(context);
+    await reminderController.getReminderFromAPI(context);
     loginLog("Reminders loaded");
 
     loginLog("Loading mood...");

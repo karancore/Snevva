@@ -118,10 +118,8 @@ class ReminderPayloadModel {
             : const CustomReminder();
 
     final interval = custom.everyXHours;
-    final startWaterTime =
-        json['StartWaterTime'] ?? interval?.startTime;
-    final endWaterTime =
-        json['EndWaterTime'] ?? interval?.endTime;
+    final startWaterTime = json['StartWaterTime'] ?? interval?.startTime;
+    final endWaterTime = json['EndWaterTime'] ?? interval?.endTime;
 
     return ReminderPayloadModel(
       id: json['Id'] ?? 0,
@@ -233,12 +231,12 @@ class CustomReminder {
     final rawType = json['Type'];
     final type =
         Option.values.cast<Option?>().firstWhere(
-              (e) => e?.name == rawType,
+          (e) => e?.name == rawType,
           orElse:
               () =>
-          json['EveryXHours'] != null ? Option.interval : Option.times,
+                  json['EveryXHours'] != null ? Option.interval : Option.times,
         ) ??
-            Option.times;
+        Option.times;
 
     switch (type) {
       case Option.times:
@@ -255,9 +253,7 @@ class CustomReminder {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = {
-      'Type': type?.name,
-    };
+    final Map<String, dynamic> data = {'Type': type?.name};
 
     if (timesPerDay != null) {
       data['TimesPerDay'] = timesPerDay!.toJson();
@@ -281,10 +277,7 @@ class TimesPerDay {
 
   const TimesPerDay({required this.count, required this.list});
 
-  Map<String, dynamic> toJson() => {
-    'Count': count,
-    'List': list,
-  };
+  Map<String, dynamic> toJson() => {'Count': count, 'List': list};
 
   factory TimesPerDay.fromJson(Map<String, dynamic> json) => TimesPerDay(
     count: (json['Count'] ?? '').toString(),
@@ -370,7 +363,8 @@ extension ReminderPayloadSafeAccess on ReminderPayloadModel {
 
   String get waterStartSafe {
     _ensure('water');
-    final start = (startWaterTime ?? customReminder.everyXHours?.startTime)?.trim();
+    final start =
+        (startWaterTime ?? customReminder.everyXHours?.startTime)?.trim();
     if (start == null || start.isEmpty) {
       throw Exception("Water reminder $id missing startWaterTime");
     }

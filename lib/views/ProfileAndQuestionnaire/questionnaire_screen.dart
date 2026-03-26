@@ -292,13 +292,12 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                         curve: Curves.ease,
                       );
 
-
                       final result = await authService
                           .ensurePostLoginPermissionsAndStartTracking(
                             ignoreSessionGuard: true,
                           );
 
-                      if(result == true) {
+                      if (result == true) {
                         Get.offAll(() => HomeWrapper());
                       } else {
                         CustomSnackbar.showError(
@@ -308,10 +307,15 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                               'Please grant the necessary permissions to continue.',
                         );
                         final permissionManager = PermissionManager();
-                        final requirements = await permissionManager.getRequiredPermissions();
-                        Get.offAll(() => PermissionGateScreen(permissionManager: permissionManager, requirements:requirements,));
+                        final requirements =
+                            await permissionManager.getRequiredPermissions();
+                        Get.offAll(
+                          () => PermissionGateScreen(
+                            permissionManager: permissionManager,
+                            requirements: requirements,
+                          ),
+                        );
                       }
-
                     } else {
                       await questionScreenController.saveAnswer(
                         _currentIndex,

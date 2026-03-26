@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../common/global_variables.dart';
 
 class ReminderNotificationsScreen extends StatefulWidget {
-
   final AlarmSettings alarmSettings;
   const ReminderNotificationsScreen({super.key, required this.alarmSettings});
 

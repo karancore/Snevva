@@ -73,23 +73,26 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     if (!status.isGranted && mounted) {
       showDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text("Keep Tracking Alive"),
-          content: const Text("To ensure sleep is tracked automatically overnight, please disable battery optimizations for Snevva."),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context), 
-              child: const Text("Later")
+        builder:
+            (context) => AlertDialog(
+              title: const Text("Keep Tracking Alive"),
+              content: const Text(
+                "To ensure sleep is tracked automatically overnight, please disable battery optimizations for Snevva.",
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Later"),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    await Permission.ignoreBatteryOptimizations.request();
+                  },
+                  child: const Text("Allow"),
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                await Permission.ignoreBatteryOptimizations.request();
-              }, 
-              child: const Text("Allow")
-            ),
-          ]
-        )
       );
     }
   }

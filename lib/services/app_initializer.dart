@@ -63,8 +63,8 @@ Future<void> requestAllPermissions() async {
     print(
       "⚠️ Ignoring battery optimizations is NOT granted, background isolate might drop.",
     );
-     // Note: If you want 100% 24/7 reliability, you must prompt the user 
-     // to disable battery optimizations for Snevva in Android Settings.
+    // Note: If you want 100% 24/7 reliability, you must prompt the user
+    // to disable battery optimizations for Snevva in Android Settings.
   }
 
   // Only show settings if user permanently denied
