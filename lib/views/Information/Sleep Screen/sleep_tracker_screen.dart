@@ -96,7 +96,9 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
   void _setupSleepListeners() {
     // Listen to sleep progress updates
-    _sleepUpdateSubscription = _service.on("sleep_update").listen((event) async {
+    _sleepUpdateSubscription = _service.on("sleep_update").listen((
+      event,
+    ) async {
       if (event != null && mounted) {
         final prefs = await SharedPreferences.getInstance();
         final manuallyStopped = prefs.getBool('manually_stopped') ?? false;
@@ -127,7 +129,8 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
         });
 
         debugPrint(
-            "💤 Sleep update in UI: ${elapsedMinutes}m / ${goalMinutes}m");
+          "💤 Sleep update in UI: ${elapsedMinutes}m / ${goalMinutes}m",
+        );
       }
     });
 
@@ -262,7 +265,22 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     }
 
     debugPrint("🕵️ Secret API push activated");
-    sleepController.updateSleepTimestoServer(bedTime, wakeTime);
+
+    final bedtimeDT = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+      bedTime.hour,
+      bedTime.minute,
+    );
+    final wakeDT = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+      wakeTime.hour,
+      wakeTime.minute,
+    );
+    sleepController.uploadsleepdatatoServer(bedtimeDT, wakeDT);
     _secretTapCount = 0;
   }
 
