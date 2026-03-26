@@ -70,7 +70,6 @@ class SignInController extends GetxService {
         body: encryptedRequestBody,
       );
 
-      debugPrint(response.statusCode as String?);
       debugPrint(response.body);
 
       // ❌ FIX 1 — real condition
@@ -358,7 +357,7 @@ class SignInController extends GetxService {
       );
 
       debugPrint(response.body);
-      debugPrint(response.statusCode as String?);
+      debugPrint(response.statusCode.toString());
 
       // ❌ FIX #1 — real condition
       // ❌ FIX 1 — real condition

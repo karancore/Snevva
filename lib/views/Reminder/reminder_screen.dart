@@ -132,7 +132,7 @@ class _ReminderScreenState extends State<ReminderScreen>
                         decoration: BoxDecoration(
                           color: isDarkMode ? darkGray : white,
                           borderRadius: BorderRadius.circular(8.0),
-                          boxShadow: [
+                          boxShadow: isDarkMode ? null : [
                             BoxShadow(
                               color: Colors.grey.withOpacity(0.4),
                               spreadRadius: 2,
