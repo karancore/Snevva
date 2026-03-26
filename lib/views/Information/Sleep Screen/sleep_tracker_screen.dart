@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:math';
+
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
@@ -9,6 +11,7 @@ import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_bottom_sheet.dart';
+
 import '../../../Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/common_stat_graph_widget.dart';
 import 'package:snevva/common/global_variables.dart';
@@ -48,6 +51,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
   StreamSubscription? _sleepUpdateSubscription;
   StreamSubscription? _sleepSavedSubscription;
   StreamSubscription? _goalReachedSubscription;
+  int _secretTapCount = 0;
 
   @override
   void initState() {
@@ -152,7 +156,9 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
           _progress = (elapsedMinutes / goalMinutes).clamp(0.0, 1.0);
         });
 
-        print("💤 Sleep update in UI: ${elapsedMinutes}m / ${goalMinutes}m");
+        debugPrint(
+          "💤 Sleep update in UI: ${elapsedMinutes}m / ${goalMinutes}m",
+        );
       }
     });
 
@@ -185,6 +191,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
       event,
     ) {
       if (event != null && mounted) {
+        sleepController.stopSleep();
         Get.snackbar(
           '🎉 Goal Reached!',
           'You\'ve completed your sleep goal!',
@@ -236,16 +243,18 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
   }
 
   void _toggleView() async {
-    sleepController.isMonthlyView.value = !sleepController.isMonthlyView.value;
+    final nextIsMonthly = !sleepController.isMonthlyView.value;
+    sleepController.isMonthlyView.value = nextIsMonthly;
 
-    if (sleepController.isMonthlyView.value) {
-      await sleepController.loadSleepfromAPI(
+    if (nextIsMonthly) {
+      await sleepController.loadMonthlySleep(
         month: _selectedMonth.month,
         year: _selectedMonth.year,
       );
-    } else {
-      sleepController.updateDeepSleepSpots();
+      return;
     }
+
+    sleepController.updateDeepSleepSpots();
   }
 
   void _changeMonth(int delta) async {
@@ -257,10 +266,50 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
     setState(() => _selectedMonth = newMonth);
 
-    await sleepController.loadSleepfromAPI(
-      month: newMonth.month,
-      year: newMonth.year,
+    if (sleepController.isMonthlyView.value) {
+      await sleepController.loadMonthlySleep(
+        month: newMonth.month,
+        year: newMonth.year,
+      );
+    }
+  }
+
+  void _handleSecretSleepPush() {
+    _secretTapCount++;
+
+    if (_secretTapCount != 7) return;
+
+    final bedTime = sleepController.bedtime.value;
+    final wakeTime = sleepController.waketime.value;
+
+    if (bedTime == null || wakeTime == null) {
+      Get.snackbar(
+        'Sleep times missing',
+        'Set both bedtime and wake time first.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      _secretTapCount = 0;
+      return;
+    }
+
+    debugPrint("🕵️ Secret API push activated");
+
+    final bedtimeDT = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+      bedTime.hour,
+      bedTime.minute,
     );
+    final wakeDT = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+      wakeTime.hour,
+      wakeTime.minute,
+    );
+    sleepController.uploadsleepdatatoServer(bedtimeDT, wakeDT);
+    _secretTapCount = 0;
   }
 
   @override
@@ -350,11 +399,14 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                               width: 30,
                             ),
                             const SizedBox(width: 10),
-                            Text(
-                              "Bedtime",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
+                            GestureDetector(
+                              onTap: _handleSecretSleepPush,
+                              child: Text(
+                                "Bedtime",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ],
@@ -512,9 +564,9 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
                   final points =
                       sleepController.isMonthlyView.value
-                          ? sleepController.getMonthlyDeepSleepSpots(
-                            _selectedMonth,
-                          )
+                          ? (sleepController.monthlySleepSpots.isEmpty
+                              ? <FlSpot>[]
+                              : sleepController.monthlySleepSpots.toList())
                           : sleepController.deepSleepSpots
                               .take(daysSinceMonday + 1)
                               .toList();

@@ -1,8 +1,9 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
+
+import 'package:http/http.dart' as http;
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import 'package:snevva/consts/consts.dart';
-import 'package:http/http.dart' as http;
+
 import '../../common/custom_snackbar.dart';
 import '../../env/env.dart';
 import '../../services/api_service.dart';
@@ -83,20 +84,20 @@ class BmiUpdateController extends GetxService {
     this.height.value = height;
     this.weight.value = weight;
 
-    print('Set Age: ${age}, Height: ${height} cm, Weight: ${weight} kg');
-    updatebmivalues();
+    debugPrint('Set Age: $age, Height: $height cm, Weight: $weight kg');
+    updateBmiValues();
     return true;
   }
 
-  Future<void> updatebmivalues() async {
-    print(
+  void updateBmiValues() {
+    debugPrint(
       "ht and wt before ${localStorageManager.userGoalDataMap['HeightData']['Value']} and ${localStorageManager.userGoalDataMap['WeightData']['Value']}",
     );
     localStorageManager.userGoalDataMap['HeightData']['Value'] = height.value;
     localStorageManager.userGoalDataMap['WeightData']['Value'] = weight.value;
 
-    print('Updated Height: ${height.value}, Weight: ${weight.value}');
-    print(
+    debugPrint('Updated Height: ${height.value}, Weight: ${weight.value}');
+    debugPrint(
       "ht and wt updated in local storage manager ${localStorageManager.userGoalDataMap['HeightData']['Value']} and ${localStorageManager.userGoalDataMap['WeightData']['Value']}",
     );
     // await localStorageManager.reloadUserMap();
@@ -127,7 +128,7 @@ class BmiUpdateController extends GetxService {
     height.value = savedHeight;
     weight.value = savedWeight;
 
-    print('  ${height.value} cm, Weight: ${weight.value} kg');
+    debugPrint('  ${height.value} cm, Weight: ${weight.value} kg');
 
     if (height.value > 0 && weight.value > 0) {
       final heightInMeters = height.value / 100;
@@ -146,7 +147,7 @@ class BmiUpdateController extends GetxService {
       }
     }
 
-    print('Calculated BMI: ${bmi.value}');
+    debugPrint('Calculated BMI: ${bmi.value}');
   }
 
   Future<void> loadAllHealthTips(BuildContext context) async {
@@ -188,7 +189,7 @@ class BmiUpdateController extends GetxService {
       } else if (age.value > 25 && age.value <= 60) {
         tags.add("Age 25 to 60");
       }
-      // print(localStorageManager.userGoalDataMap['HeightData']['Value']);
+      // debugPrint(localStorageManager.userGoalDataMap['HeightData']['Value']);
       final payload = {
         'Tags': tags,
         'FetchAll': false,

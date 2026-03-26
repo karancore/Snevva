@@ -1,20 +1,10 @@
-import 'dart:convert';
 
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
-import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
-import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
-
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Alerts/alerts_screen.dart';
-import 'package:snevva/views/SignUp/sign_in_screen.dart';
-import '../../Controllers/Hydration/hydration_stat_controller.dart';
 
-import '../../Controllers/Vitals/vitalsController.dart';
-import '../../common/global_variables.dart';
 import '../../services/notification_service.dart';
 import '../../widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../widgets/dashboard/dashboard_ads_carousel_slider.dart';
@@ -44,6 +34,10 @@ class _DashboardState extends State<Dashboard>
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final notificationController = NotificationService();
 
+
+  final scrollController = ScrollController();
+  bool _showAppBar = true;
+
   @override
   void initState() {
     super.initState();
@@ -66,10 +60,28 @@ class _DashboardState extends State<Dashboard>
     );
 
     _animationController.forward();
+      scrollController.addListener(() {
+        if (scrollController.position.userScrollDirection ==
+            ScrollDirection.reverse) {
+          if (_showAppBar) {
+            setState(() {
+              _showAppBar = false;
+            });
+          }
+        } else if (scrollController.position.userScrollDirection ==
+            ScrollDirection.forward) {
+          if (!_showAppBar) {
+            setState(() {
+              _showAppBar = true;
+            });
+          }
+        }
+      });
   }
 
   @override
   void dispose() {
+    scrollController.dispose();
     _animationController.dispose();
     super.dispose();
   }
@@ -81,70 +93,79 @@ class _DashboardState extends State<Dashboard>
     final width = mediaQuery.size.width;
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
+
       key: _scaffoldKey,
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
-      appBar: AppBar(
-        title: Padding(
-          padding: const EdgeInsets.only(left: 8.0, top: 10),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Obx(
-                () => Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('🖐🏻 Hello', style: TextStyle(fontSize: 16)),
-                    Text(
-                      localStorageManager.userMap['Name']?.toString() ?? 'User',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              Obx(() {
-                bool hasNewNotif =
-                    notificationController.hasNewNotification.value;
-                return Stack(
-                  children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.notifications_none,
-                        size: 28,
-                        color: AppColors.primaryColor,
-                      ),
-                      onPressed: () {
-                        Get.to(() => AlertsScreen());
-                        notificationController.hasNewNotification.value = false;
-                      },
-                    ),
-                    if (hasNewNotif)
-                      Positioned(
-                        right: 8,
-                        top: 8,
-                        child: Container(
-                          height: 10,
-                          width: 10,
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(_showAppBar ? kToolbarHeight : 0),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: _showAppBar ? 1.0 : 0.0,
+          child: AppBar(
+            title: Padding(
+              padding: const EdgeInsets.only(left: 8.0, top: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Obx(
+                    () => Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('🖐🏻 Hello', style: TextStyle(fontSize: 16)),
+
+                        Text(
+                          localStorageManager.userMap['Name']?.toString() ?? 'User',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                  ],
-                );
-              }),
-            ],
-          ),
-        ),
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 4.0),
-          child: IconButton(
-            icon: SvgPicture.asset(drawerIcon),
-            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  Obx(() {
+                    bool hasNewNotif =
+                        notificationController.hasNewNotification.value;
+                    return Stack(
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.notifications_none,
+                            size: 28,
+                            color: AppColors.primaryColor,
+                          ),
+                          onPressed: () {
+                            Get.to(() => AlertsScreen());
+                            notificationController.hasNewNotification.value = false;
+                          },
+                        ),
+                        if (hasNewNotif)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              height: 10,
+                              width: 10,
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  }),
+                ],
+              ),
+            ),
+            leading: Padding(
+              padding: const EdgeInsets.only(left: 4.0),
+              child: IconButton(
+                icon: SvgPicture.asset(drawerIcon),
+                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+              ),
+            ),
           ),
         ),
       ),
@@ -159,12 +180,15 @@ class _DashboardState extends State<Dashboard>
           }
         },
         child: SafeArea(
+
           child: ScrollConfiguration(
+
             behavior: ScrollBehavior().copyWith(
               scrollbars: false,
               overscroll: false,
             ),
             child: SingleChildScrollView(
+              controller: scrollController,
               padding: const EdgeInsets.only(
                 left: 16,
                 right: 16,
@@ -187,7 +211,7 @@ class _DashboardState extends State<Dashboard>
                       //         hasEmptyValue(
                       //           localStorageManager.userGoalDataMap,
                       //         );
-                      //     print(anyEmpty);
+                      //     debugPrint(anyEmpty);
                       //
                       //     return anyEmpty
                       //         ? SizedBox.shrink()

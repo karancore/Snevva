@@ -104,14 +104,32 @@ class _WeightScaleState extends State<WeightScale>
               ),
               const Size(300, 300),
             ),
-        child: CustomPaint(
-          size: const Size(300, 300),
-          painter: WeightPainter(
-            _needleWeight, // needle moves, actual weight stays fixed
-            minWeight,
-            maxWeight,
-            isDarkMode,
-            width,
+        child: SizedBox(
+          width: 300,
+          height: 300,
+          child: Stack(
+            children: [
+              RepaintBoundary(
+                child: CustomPaint(
+                  size: const Size(300, 300),
+                  painter: WeightDialPainter(
+                    minWeight: minWeight,
+                    maxWeight: maxWeight,
+                    isDarkMode: isDarkMode,
+                    width: width,
+                  ),
+                ),
+              ),
+              CustomPaint(
+                size: const Size(300, 300),
+                painter: WeightPainter(
+                  selectedWeight: _needleWeight,
+                  minWeight: minWeight,
+                  maxWeight: maxWeight,
+                  width: width,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -119,20 +137,18 @@ class _WeightScaleState extends State<WeightScale>
   }
 }
 
-class WeightPainter extends CustomPainter {
-  final double selectedWeight;
+class WeightDialPainter extends CustomPainter {
   final double minWeight;
   final double maxWeight;
   final bool isDarkMode;
   final double width;
 
-  WeightPainter(
-    this.selectedWeight,
-    this.minWeight,
-    this.maxWeight,
-    this.isDarkMode,
-    this.width,
-  );
+  const WeightDialPainter({
+    required this.minWeight,
+    required this.maxWeight,
+    required this.isDarkMode,
+    required this.width,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -197,15 +213,41 @@ class WeightPainter extends CustomPainter {
         tp.paint(canvas, Offset(tx, ty));
       }
     }
+  }
 
-    // 4. Draw the needle over everything
-    double selectedAngle =
+  @override
+  bool shouldRepaint(covariant WeightDialPainter oldDelegate) {
+    return oldDelegate.minWeight != minWeight ||
+        oldDelegate.maxWeight != maxWeight ||
+        oldDelegate.isDarkMode != isDarkMode ||
+        oldDelegate.width != width;
+  }
+}
+
+class WeightPainter extends CustomPainter {
+  final double selectedWeight;
+  final double minWeight;
+  final double maxWeight;
+  final double width;
+
+  const WeightPainter({
+    required this.selectedWeight,
+    required this.minWeight,
+    required this.maxWeight,
+    required this.width,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height * 0.85);
+    final radius = width > 400 ? (size.width / 2) : (size.width / 2.6);
+
+    final selectedAngle =
         pi + ((selectedWeight - minWeight) / (maxWeight - minWeight)) * pi;
 
-    double needleLength = radius + 8;
-    double needleX = center.dx + needleLength * cos(selectedAngle);
-    double needleY = center.dy + needleLength * sin(selectedAngle);
-
+    final needleLength = radius + 8;
+    final needleX = center.dx + needleLength * cos(selectedAngle);
+    final needleY = center.dy + needleLength * sin(selectedAngle);
     final needlePaint =
         Paint()
           ..color = AppColors.primaryColor
@@ -244,5 +286,10 @@ class WeightPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant WeightPainter oldDelegate) {
+    return oldDelegate.selectedWeight != selectedWeight ||
+        oldDelegate.minWeight != minWeight ||
+        oldDelegate.maxWeight != maxWeight ||
+        oldDelegate.width != width;
+  }
 }

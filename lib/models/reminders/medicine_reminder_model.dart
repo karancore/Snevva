@@ -213,19 +213,19 @@ String reminderToString(MedicineReminderModel model) {
 extension ReminderPayLoadValidation on ReminderPayloadModel {
   void validate() {
     switch (category.toLowerCase()) {
-      case 'medicine':
+      case 'Medicine':
         _validateMedicine();
         break;
 
-      case 'water':
+      case 'Water':
         _validateWater();
         break;
 
-      case 'meal':
+      case 'Meal':
         _validateMeal();
         break;
 
-      case 'event':
+      case 'Event':
         _validateEvent();
         break;
     }

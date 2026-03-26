@@ -1,9 +1,11 @@
 import 'dart:convert';
-import 'package:get/get.dart';
+
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
+
 import '../../common/custom_snackbar.dart';
 import '../../env/env.dart';
 import '../../services/auth_header_helper.dart';
@@ -127,7 +129,7 @@ class UpdateOldPasswordController extends GetxService {
         );
 
         resetState();
-        Get.to(SignInScreen());
+        Get.to(() => SignInScreen());
       }
     } catch (e) {
       CustomSnackbar.showError(
@@ -182,7 +184,7 @@ class UpdateOldPasswordController extends GetxService {
         );
 
         resetState();
-        Get.to(SignInScreen());
+        Get.to(() => SignInScreen());
       }
     } catch (e) {
       CustomSnackbar.showError(

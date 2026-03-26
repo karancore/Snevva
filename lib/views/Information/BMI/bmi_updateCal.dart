@@ -31,7 +31,7 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
   late FixedExtentScrollController weightController;
 
   final List<int> weights = List.generate(100, (i) => i + 1); // 1–120 kg
-  int selectedWeight = 70;
+  int selectedWeight = 52;
 
   // visual dimensions (keep them consistent)
   static const double _visibleItemWidth = 32.0;
@@ -90,6 +90,7 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    weightController.dispose();
     super.dispose();
   }
 
@@ -229,8 +230,10 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
                                       physics: const FixedExtentScrollPhysics(),
                                       perspective: 0.003,
                                       onSelectedItemChanged: (index) {
+                                        final newWeight = weights[index];
                                         setState(() {
-                                          selectedWeight = weights[index];
+                                          selectedWeight = newWeight;
+                                          weight = newWeight.toDouble();
                                         });
                                       },
                                       childDelegate:
@@ -354,7 +357,7 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
                 weight,
               );
               if (flag) {
-                Get.to(BMIUpdateResultScreen(bmi: bmi, age: age));
+                Get.to(() => BMIUpdateResultScreen(bmi: bmi, age: age));
               }
             },
           ),

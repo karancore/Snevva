@@ -4,6 +4,7 @@ import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/views/SignUp/forgot_password.dart';
+
 import '../../widgets/SignInScreens/sign_in_footer_widget.dart';
 import 'create_new_profile.dart';
 
@@ -89,7 +90,7 @@ class _SignInScreenState extends State<SignInScreen> {
           context,
         );
       } else {
-        print("Invalid input format");
+        debugPrint("Invalid input format");
         // 🔹 Invalid input
         // _handleSignInError();
         return;
@@ -103,13 +104,13 @@ class _SignInScreenState extends State<SignInScreen> {
           context: context,
           rememberMe: rememberMe,
         );
-        print("Sign-in successful");
+        debugPrint("Sign-in successful");
       } else {
-        print("Sign-in failed");
+        debugPrint("Sign-in failed");
         // _handleSignInError();
       }
     } catch (e) {
-      print("Exception $e");
+      debugPrint("Exception $e");
       _handleSignInError("We couldn’t sign you in. Please try again.");
     } finally {
       setState(() => isLoading = false);
@@ -242,25 +243,6 @@ class _SignInScreenState extends State<SignInScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                // Row(
-                                //   children: [
-                                //     Checkbox(
-                                //       value: rememberMe,
-                                //       activeColor: AppColors.primaryColor,
-                                //       onChanged: (value) {
-                                //         setState(() {
-                                //           rememberMe = value!;
-                                //         });
-                                //       },
-                                //     ),
-                                //     Text(
-                                //       AppLocalizations.of(
-                                //         context,
-                                //       )!.checkboxRememberMe,
-                                //       style: TextStyle(fontSize: 14),
-                                //     ),
-                                //   ],
-                                // ),
                                 TextButton(
                                   onPressed: () {
                                     Navigator.push(
@@ -312,7 +294,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                       isLoading: isLoading,
                                       // Pass here
                                       onBottomTextPressed: () {
-                                        Get.to(SignUpScreen());
+                                        Get.to(() => SignUpScreen());
                                       },
                                     ),
                                   ),

@@ -109,4 +109,4 @@ pdf.extend(
 
 output = Path('output/pdf/snevva_app_summary.pdf')
 output.write_bytes(pdf)
-print(output)
+debugPrint(output)

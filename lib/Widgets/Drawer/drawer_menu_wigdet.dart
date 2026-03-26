@@ -250,19 +250,41 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                       fit: BoxFit.cover,
                       placeholder:
                           (_, __) =>
-                              const Center(child: CircularProgressIndicator()),
+                              CircleAvatar(
+                                radius: 60,
+                                backgroundColor: Colors.grey,
+                                child:  SizedBox(),
+                              ),
                       errorWidget:
                           (_, __, ___) =>
-                              Image.asset(profileMainImg, fit: BoxFit.cover),
+                              CircleAvatar(
+                                radius: 60,
+                                backgroundColor: Colors.grey,
+                                child:  Icon(
+                                  Icons.person,
+                                  size: 200 * 0.75,
+                                  color: Colors.white,
+                                ),
+                              )
                     );
                   }
                   // 3️⃣ Default asset
                   else {
-                    imageWidget = Image.asset(
-                      profileMainImg,
-                      width: 120,
-                      height: 120,
-                      fit: BoxFit.cover,
+                    imageWidget = Container(
+                      padding: const EdgeInsets.all(4), // border thickness
+                      decoration: const BoxDecoration(
+                        color: white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: CircleAvatar(
+                        radius: 60,
+                        backgroundColor: grey,
+                        child: Icon(
+                          Icons.person_2,
+                          size: 200 * 0.50,
+                          color: white,
+                        ),
+                      ),
                     );
                   }
 
@@ -275,7 +297,7 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                 const SizedBox(height: 8),
                 Text(
                   localStorageManager.userMap['Name']?.toString() ?? 'User',
-                  style: const TextStyle(color: Colors.white, fontSize: 24),
+                  style: const TextStyle(color: white, fontSize: 24),
                 ),
               ],
             ),
@@ -394,12 +416,12 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                         duration: const Duration(milliseconds: 200),
                         child:
                             isLoading
-                                ? const SizedBox(
+                                ? SizedBox(
                                   height: 20,
                                   width: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2.5,
-                                    color: Colors.deepPurple,
+                                    color: AppColors.primaryColor,
                                   ),
                                 )
                                 : Row(

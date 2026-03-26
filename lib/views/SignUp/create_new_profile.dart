@@ -1,12 +1,13 @@
 import 'package:flutter/gestures.dart';
-import 'package:snevva/Widgets/SignInScreens/sign_in_footer_widget.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import 'package:snevva/views/SignUp/verify_with_otp.dart';
+
 import '../../Controllers/signupAndSignIn/otp_verification_controller.dart';
 import '../../Controllers/signupAndSignIn/sign_up_controller.dart';
 import '../../Widgets/SignInScreens/create_profile_header_widget.dart';
+import '../../services/google_auth.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -51,7 +52,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
         if (result != null && result != false) {
           Get.to(
-            VerifyWithOtpScreen(
+            () => VerifyWithOtpScreen(
               emailOrPasswordText: input,
               appBarText: AppLocalizations.of(context)!.verifyEmailAddress,
               responseOtp: result,
@@ -62,11 +63,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
       } else if (phoneRegex.hasMatch(input)) {
         final result = await signupController.signUpUsingPhone(input, context);
-        print("result ${result.toString()}");
+        debugPrint("result ${result.toString()}");
 
         if (result != null && result != false) {
           Get.to(
-            VerifyWithOtpScreen(
+            () => VerifyWithOtpScreen(
               emailOrPasswordText: input,
               appBarText: AppLocalizations.of(context)!.verifyPhoneNumber,
               responseOtp: result,
@@ -83,8 +84,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         );
       }
     } catch (e, s) {
-      print("❌ Caught error: $e");
-      print("📌 Stack: $s");
+      debugPrint("❌ Caught error: $e");
+      debugPrint("📌 Stack: $s");
       CustomSnackbar.showError(
         title: 'Error',
         message: 'Failed to create profile $e',
@@ -128,7 +129,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             setState(() {
                               isLoading = true;
                             });
-                            print("ElevatedButton $input");
                             await onButtonClick(input);
                             setState(() {
                               isLoading = false;
@@ -196,14 +196,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                     child: IconButton(
                       onPressed: () async {
-                        setState(() {
-                          isSigningIn = true; // Start the sign-in process
-                        });
-                        //await GoogleAuthService.signInWithGoogle(context);
-                        setState(() {
-                          isSigningIn =
-                              false; // Sign-in complete, stop the loading indicator
-                        });
+                        if (isSigningIn) return;
+
+                        setState(() => isSigningIn = true);
+
+                        try {
+                          final googleAuth = Get.find<GoogleAuthService>();
+                          await googleAuth.init(context);
+                          // await googleAuth.signIn();
+                        } finally {
+                          if (mounted) {
+                            setState(() => isSigningIn = false);
+                          }
+                        }
                       },
                       icon: Image.asset(google, height: 28, width: 28),
                       padding: const EdgeInsets.all(12),

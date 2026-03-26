@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:snevva/Controllers/WomenHealth/bottom_sheet_controller.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 import 'package:snevva/consts/consts.dart';
+
 import '../../Controllers/WomenHealth/calender_controller.dart';
 
 class CalendarWidget extends StatelessWidget {
@@ -91,7 +92,7 @@ class CalendarWidget extends StatelessWidget {
           womenController.periodDataStartMonth.value,
           womenController.periodDataStartDay.value,
         );
-        print("🟢 Calendar using PeriodData: $lastPeriodDate");
+        debugPrint("🟢 Calendar using PeriodData: $lastPeriodDate");
       } else {
         // Fallback to WomenHealthData
         try {
@@ -102,7 +103,7 @@ class CalendarWidget extends StatelessWidget {
               int.parse(parts[1]),
               int.parse(parts[0]),
             );
-            print("🟡 Calendar using WomenHealthData: $lastPeriodDate");
+            debugPrint("🟡 Calendar using WomenHealthData: $lastPeriodDate");
           }
         } catch (e) {
           lastPeriodDate = null;

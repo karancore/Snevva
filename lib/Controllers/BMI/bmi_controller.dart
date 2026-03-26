@@ -1,6 +1,8 @@
 import 'dart:convert';
-import 'package:snevva/consts/consts.dart';
+
 import 'package:http/http.dart' as http;
+import 'package:snevva/consts/consts.dart';
+
 import '../../common/custom_snackbar.dart';
 import '../../env/env.dart';
 import '../../services/api_service.dart';
@@ -67,7 +69,7 @@ class BmiController extends GetxService {
     height.value = savedHeight;
     weight.value = savedWeight;
 
-    print('Loaded Height: ${height.value} cm, Weight: ${weight.value} kg');
+    debugPrint('Loaded Height: ${height.value} cm, Weight: ${weight.value} kg');
 
     if (height.value > 0 && weight.value > 0) {
       final heightInMeters = height.value / 100;
@@ -86,7 +88,7 @@ class BmiController extends GetxService {
       }
     }
 
-    print('Calculated BMI: ${bmi.value}');
+    debugPrint('Calculated BMI: ${bmi.value}');
   }
 
   void _loadMockData() {
@@ -195,7 +197,7 @@ class BmiController extends GetxService {
       } else if (age.value > 25 && age.value <= 60) {
         tags.add("Age 25 to 60");
       }
-      // print(localStorageManager.userGoalDataMap['HeightData']['Value']);
+      // debugPrint(localStorageManager.userGoalDataMap['HeightData']['Value']);
       final payload = {
         'Tags': tags,
         'FetchAll': false,

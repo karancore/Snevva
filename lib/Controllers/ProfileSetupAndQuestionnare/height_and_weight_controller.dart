@@ -1,4 +1,4 @@
-import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
@@ -6,7 +6,8 @@ import 'package:snevva/env/env.dart';
 import 'package:snevva/models/queryParamViewModels/height_vm.dart';
 import 'package:snevva/models/queryParamViewModels/weight_vm.dart';
 import 'package:snevva/services/api_service.dart';
-import 'package:http/http.dart' as http;
+
+import '../../views/ProfileAndQuestionnaire/questionnaire_screen.dart';
 
 class HeightWeightController extends GetxController {
   // height
@@ -50,11 +51,8 @@ class HeightWeightController extends GetxController {
     heightInCm.value = cm;
   }
 
-  // Weight
 
-  // var weight = 52.0.obs;
-
-  var weightInKg = 52.0.obs;
+  var weightInKg = 0.0.obs;
 
   void setWeight(double weightValue) {
     weightInKg.value = weightValue;
@@ -65,36 +63,55 @@ class HeightWeightController extends GetxController {
     WeightVM weight,
     BuildContext context,
   ) async {
-    print('🟢 saveData() CALLED');
+    debugPrint('🟢 saveData() CALLED');
+
+    if(height.value == null || weight.value == null) {
+      debugPrint('⚠️ Height or Weight value is null. Aborting save.');
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Height and Weight values cannot be null.',
+      );
+      return;
+    }
+    if(height.value! <= 0 || weight.value! <= 0) {
+      debugPrint('⚠️ Height or Weight value is non-positive. Aborting save.');
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Error',
+        message: 'Height and Weight values must be greater than zero.',
+      );
+      return;
+    }
 
     try {
-      print('📥 Incoming HeightVM: ${height.toString()}');
-      print('📥 Incoming WeightVM: ${weight.toString()}');
+      debugPrint('📥 Incoming HeightVM: ${height.toString()}');
+      debugPrint('📥 Incoming WeightVM: ${weight.toString()}');
 
       final heightValue = (height.value ?? 0).toDouble();
       final weightValue = (weight.value ?? 0).toDouble();
 
-      print('📏 heightValue: $heightValue');
-      print('⚖️ weightValue: $weightValue');
+      debugPrint('📏 heightValue: $heightValue');
+      debugPrint('⚖️ weightValue: $weightValue');
 
       /// -----------------------------
       /// LOCAL STORAGE DEBUG + FIX
       /// -----------------------------
-      print(
+      debugPrint(
         '🗂.userGoalDataMap BEFORE init: ${localStorageManager.userGoalDataMap}',
       );
 
       // Ensure base map
       localStorageManager.userGoalDataMap.value ??= {};
-      print('✅.userGoalDataMap initialized');
+      debugPrint('✅.userGoalDataMap initialized');
 
       // Ensure Height map
       localStorageManager.userGoalDataMap['HeightData'] ??= {};
-      print('✅ Height map initialized');
+      debugPrint('✅ Height map initialized');
 
       // Ensure Weight map
       localStorageManager.userGoalDataMap['WeightData'] ??= {};
-      print('✅ Weight map initialized');
+      debugPrint('✅ Weight map initialized');
 
       // Save values
       localStorageManager.userGoalDataMap['HeightData']['Value'] = double.parse(
@@ -105,7 +122,7 @@ class HeightWeightController extends GetxController {
         weightValue.toStringAsFixed(2),
       );
 
-      print(
+      debugPrint(
         '💾.userGoalDataMap AFTER save: ${localStorageManager.userGoalDataMap}',
       );
 
@@ -113,7 +130,7 @@ class HeightWeightController extends GetxController {
       heightInCm.value = heightValue;
       weightInKg.value = weightValue;
 
-      print(
+      debugPrint(
         '🔄 Controller updated → '
         'heightInCm=${heightInCm.value}, '
         'weightInKg=${weightInKg.value}',
@@ -151,8 +168,8 @@ class HeightWeightController extends GetxController {
         final endpoint = item['endpoint'] as String;
         final payload = item['payload'] as Map<String, dynamic>;
 
-        print('🌐 API CALL → $endpoint');
-        print('📤 Payload → $payload');
+        debugPrint('🌐 API CALL → $endpoint');
+        debugPrint('📤 Payload → $payload');
 
         final response = await ApiService.post(
           endpoint,
@@ -162,27 +179,30 @@ class HeightWeightController extends GetxController {
         );
 
         if (response is http.Response && response.statusCode >= 400) {
-          print(
+          debugPrint(
             '❌ Save to $endpoint failed with status ${response.statusCode}',
           );
           allSuccessful = false;
         } else {
-          print('✅ Save to $endpoint successful');
+          debugPrint('✅ Save to $endpoint successful');
         }
       }
 
       if (allSuccessful) {
-        print('🎉 ALL SAVES SUCCESSFUL');
+        debugPrint('🎉 ALL SAVES SUCCESSFUL');
         CustomSnackbar.showSuccess(
           context: context,
           title: 'Success',
           message: 'Profile data saved successfully.',
         );
+        if (context.mounted) {
+          Get.to(() => QuestionnaireScreen());
+        }
       }
     } catch (e, stack) {
-      print('❌ EXCEPTION IN saveData');
-      print(e);
-      print(stack);
+      debugPrint('❌ EXCEPTION IN saveData');
+      debugPrint(e.toString());
+      debugPrint(stack.toString());
 
       CustomSnackbar.showError(
         context: context,

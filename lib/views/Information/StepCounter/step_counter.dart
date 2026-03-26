@@ -1,21 +1,18 @@
 import 'dart:async';
 import 'dart:math';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
-
-import 'package:snevva/consts/consts.dart';
-
 import 'package:geolocator/geolocator.dart';
-import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
+import 'package:snevva/consts/consts.dart';
+import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.dart';
 import 'package:snevva/widgets/semi_circular_progress.dart';
 
-import '../../../Widgets/CommonWidgets/common_stat_graph_widget.dart';
 import '../../../common/global_variables.dart';
-import '../../../models/hive_models/steps_model.dart';
 import '../../../widgets/CommonWidgets/custom_appbar.dart';
 import '../../../widgets/CommonWidgets/step_stat_graph_widget.dart';
 import '../../../widgets/Drawer/drawer_menu_wigdet.dart';
@@ -63,58 +60,15 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
     // Ensure we observe app lifecycle to refresh on resume
     WidgetsBinding.instance.addObserver(this);
 
-    // Ensure controller's Hive data is loaded so weekly graph can render immediately
-    // Trigger load and refresh UI once complete
-    stepController.loadTodayStepsFromHive().then((_) {
-      if (!mounted) return;
-      setState(() {});
-    });
-
-    // Watch stepSpots so UI updates when controller updates the weekly points
-    ever(stepController.stepSpots, (val) {
-      print("📈 stepSpots updated: ${stepController.stepSpots}");
-      if (!mounted) return;
-      setState(() {});
-    });
-
-    // Also listen to changes in todaySteps for the counter updates
-    stepController.todaySteps.listen((steps) {
-      print("👣 Reactive update: todaySteps = $steps");
-      if (!mounted) return;
-      setState(() {});
-    });
+    // Keep initial load without forcing full-screen rebuilds.
+    stepController.loadTodayStepsFromHive();
   }
-
-  // Future<void> _startAndAttachService() async {
-  //   final isRunning = await service.isRunning();
-
-  //   if (!isRunning) {
-  //     await service.startService();
-  //   }
-
-  //   /// Wait for service to be ready
-  //   await Future.delayed(const Duration(milliseconds: 300));
-
-  //   // Load data - controller will handle the streaming
-  //   stepController.loadGoal();
-  //   stepController.loadTodayStepsFromHive(); // Ensure steps are loaded from Hive
-
-  //   _loadWeeklyData();
-  // }
-
-  // void _onStepsUpdated(dynamic event) {
-  //   if (event == null) return;
-  //
-  //   final newSteps = event["steps"] as int;
-  //   final oldSteps = stepController.todaySteps.value;
-  //
-  //   if (newSteps > oldSteps) {
-  //     stepController.incrementSteps(newSteps - oldSteps);
-  //   }
-  // }
-
   @override
   void dispose() {
+    _locationSub?.cancel();
+    _uiRefreshTimer?.cancel();
+    _debounce?.cancel();
+    _secretResetTimer?.cancel();
     // Remove lifecycle observer
     WidgetsBinding.instance.removeObserver(this);
     // No need to cancel _serviceSub anymore
@@ -127,7 +81,7 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
 
     if (state == AppLifecycleState.resumed) {
       // Force reload from Hive and prefs when app returns to foreground
-      print('🔁 App resumed - reloading steps from Hive');
+      debugPrint('🔁 App resumed - reloading steps from Hive');
       stepController.loadTodayStepsFromHive();
     }
   }
@@ -161,7 +115,7 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
   //     _graphMaxY = maxSteps * 1.1; // add 10% padding
   //   });
 
-  //   print("📈 Weekly data loaded: $_points");
+  //   debugPrint("📈 Weekly data loaded: $_points");
   // }
 
   //   Future<void> _loadMonthlyData(DateTime month) async {
@@ -351,7 +305,7 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
                           );
 
                           if (_secretTapCount == 7) {
-                            print("🕵️ Secret API push activated");
+                            debugPrint("🕵️ Secret API push activated");
                             stepController.saveStepRecordToServer();
                             _secretTapCount = 0;
                           }
@@ -471,7 +425,7 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
 
                   final points =
                       _isMonthlyView
-                          ? stepController.getMonthlyStepsSpots(DateTime.now())
+                          ? stepController.getMonthlyStepsSpots(_selectedMonth)
                           : stepController.stepSpots
                               .take(daysSinceMonday + 1)
                               .toList();

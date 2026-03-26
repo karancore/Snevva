@@ -82,7 +82,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     final mediaQuery = MediaQuery.of(context);
 
     height = mediaQuery.size.height;
-    print("Height of Diet Plan Screen: $height");
+    debugPrint("Height of Diet Plan Screen: $height");
     width = mediaQuery.size.width;
 
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -159,7 +159,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                       }
                       final item = data[index];
 
-                      print(
+                      debugPrint(
                         "Runtime Type of meal plan is: ${item.runtimeType}",
                       );
 
@@ -333,7 +333,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
 
   Future<void> fetchCategoryReponse(String categoryText) async {
     final result = await dietController.getAllDiets(context, categoryText);
-    print(result?.data);
+    debugPrint(result?.data.toString());
   }
 
   Widget dietCategoryIcons(
@@ -407,7 +407,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
           dietController.dietTagsDataResponse.value = item;
           final daysList = item.mealPlan;
 
-          Get.to(DietDetailsScreen(diet: item, daysList: daysList));
+          Get.to(() => DietDetailsScreen(diet: item, daysList: daysList));
         },
         child: Container(
           width: cardWidth,
@@ -489,7 +489,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
             tags: [],
           );
 
-          Get.to(DietDetailsScreen(diet: diet, daysList: []));
+          Get.to(() => DietDetailsScreen(diet: diet, daysList: []));
         },
         child: Container(
           width: width * 0.43,

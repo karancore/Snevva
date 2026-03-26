@@ -1,12 +1,15 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/services/auth_header_helper.dart';
+import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/services/encryption_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
+
 import '../../../consts/consts.dart';
 import '../../../env/env.dart';
 
@@ -95,19 +98,19 @@ class CreatePasswordController extends GetxService {
 
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
-        print("response Body: $responseBody");
+        debugPrint("response Body: $responseBody");
 
         final encryptedBody = responseBody['data'];
-        print("👉 Encrypted token response: $encryptedBody");
+        debugPrint("👉 Encrypted token response: $encryptedBody");
 
         final responseHash = response.headers['x-data-hash'];
-        print("👉 Response Hash: $responseHash");
+        debugPrint("👉 Response Hash: $responseHash");
 
         final decrypted = EncryptionService.decryptData(
           encryptedBody,
           responseHash!,
         );
-        print("Decrypted token response: $decrypted");
+        debugPrint("Decrypted token response: $decrypted");
 
         if (decrypted == null) {
           CustomSnackbar.showError(
@@ -121,7 +124,7 @@ class CreatePasswordController extends GetxService {
         final Map<String, dynamic> responseData = jsonDecode(decrypted);
 
         final token = responseData['data'];
-        print("👉 Token: $token");
+        debugPrint("👉 Token: $token");
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
@@ -136,6 +139,8 @@ class CreatePasswordController extends GetxService {
         );
 
         localStorageManager.registerDeviceFCMIfNeeded();
+
+        await AuthService().ensurePostLoginPermissionsAndStartTracking();
 
         Get.offAll(() => ProfileSetupInitial()); // 👈 clears previous stack
       }
@@ -186,19 +191,19 @@ class CreatePasswordController extends GetxService {
 
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
-        print("response Body: $responseBody");
+        debugPrint("response Body: $responseBody");
 
         final encryptedBody = responseBody['data'];
-        print("👉 Encrypted token response: $encryptedBody");
+        debugPrint("👉 Encrypted token response: $encryptedBody");
 
         final responseHash = response.headers['x-data-hash'];
-        print("👉 Response Hash: $responseHash");
+        debugPrint("👉 Response Hash: $responseHash");
 
         final decrypted = EncryptionService.decryptData(
           encryptedBody,
           responseHash!,
         );
-        print("Decrypted token response: $decrypted");
+        debugPrint("Decrypted token response: $decrypted");
 
         if (decrypted == null) {
           CustomSnackbar.showError(
@@ -212,7 +217,7 @@ class CreatePasswordController extends GetxService {
         final Map<String, dynamic> responseData = jsonDecode(decrypted);
 
         final token = responseData['data'];
-        print("👉 Token: $token");
+        debugPrint("👉 Token: $token");
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
@@ -228,14 +233,16 @@ class CreatePasswordController extends GetxService {
 
         localStorageManager.registerDeviceFCMIfNeeded();
 
+        // await AuthService().ensurePostLoginPermissionsAndStartTracking();
+
         Get.offAll(() => ProfileSetupInitial()); // 👈 clears previous stack
       } else {
         final decryptedError = EncryptionService.decryptData(
           response.body,
           response.headers['x-data-hash']!,
         );
-        print("Decrypted error response: $decryptedError");
-        print('HTTP Error: ${response.statusCode} - ${decryptedError}');
+        debugPrint("Decrypted error response: $decryptedError");
+        debugPrint('HTTP Error: ${response.statusCode} - ${decryptedError}');
         CustomSnackbar.showError(
           context: context,
           title: 'Error',

@@ -1,7 +1,7 @@
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/views/EmergencyContact/add_emergency_contact.dart';
+
 import '../../Widgets/Emergency/emergency_contact_widget.dart';
 import '../../consts/consts.dart';
 
@@ -117,7 +117,7 @@ class EmergencyContact extends StatelessWidget {
               children: [
                 InkWell(
                   onTap: () {
-                    Get.to(AddEmergencyContact());
+                    Get.to(() => AddEmergencyContact());
                   },
                   borderRadius: BorderRadius.circular(40),
                   child: Padding(

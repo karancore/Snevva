@@ -1,16 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:dropdown_flutter/custom_dropdown.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
-import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
+
 import '../../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
-import '../../Controllers/local_storage_manager.dart';
 import '../../Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
-import '../../Widgets/CommonWidgets/custom_appbar.dart';
-import '../../Widgets/CommonWidgets/custom_outlined_button.dart';
+import '../../Controllers/local_storage_manager.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
-import '../../Widgets/CommonWidgets/common_date_widget.dart';
-import '../../Widgets/ProfileSetupAndQuestionnaire/height_and_weight_field.dart';
 import '../../consts/consts.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -27,12 +23,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String profilePictureUrl = '';
   final controller = Get.put(EditprofileController());
 
+  final ScrollController _scrollController = ScrollController();
+  bool _showAppBar = true;
+
   @override
   void initState() {
     super.initState();
 
-    print(localStorageManager.userMap);
-    print(localStorageManager.userGoalDataMap);
+    debugPrint(localStorageManager.userMap as String?);
+    debugPrint(localStorageManager.userGoalDataMap as String?);
 
     /// Initialize values from localStorageManager
     controller.name = localStorageManager.userMap['Name']?.toString() ?? '';
@@ -40,7 +39,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     controller.phoneNumber =
         localStorageManager.userMap['PhoneNumber']?.toString() ?? '';
 
-    print('Edit Profile Screen phone : ${controller.phoneNumber}');
+    debugPrint('Edit Profile Screen phone : ${controller.phoneNumber}');
 
     final heightValue =
         localStorageManager.userGoalDataMap['HeightData']?['Value'];
@@ -48,8 +47,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     controller.heightValue =
         (heightValue is num) ? heightValue.toStringAsFixed(2) : '';
 
-    print(localStorageManager.userGoalDataMap['HeightData']?['Value']);
-    print(controller.heightValue);
+    debugPrint(localStorageManager.userGoalDataMap['HeightData']?['Value']);
+    debugPrint(controller.heightValue);
 
     final weightValue =
         localStorageManager.userGoalDataMap['WeightData']?['Value'];
@@ -77,8 +76,35 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     localStorageManager.userMap['ProfilePicture']?['CdnUrl'];
 
     profilePictureUrl = 'https://$cdnUrl';
-    print("Profile picture url is https://$cdnUrl");
+
+    _scrollController.addListener(() {
+      if (_scrollController.position.userScrollDirection ==
+          ScrollDirection.reverse) {
+        if (_showAppBar) {
+          setState(() {
+            _showAppBar = false;
+          });
+        }
+      }
+
+      if (_scrollController.position.userScrollDirection ==
+          ScrollDirection.forward) {
+        if (!_showAppBar) {
+          setState(() {
+            _showAppBar = true;
+          });
+        }
+      }
+    });
   }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -87,56 +113,76 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final width = mediaQuery.size.width;
     // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    String heightValue;
     return Scaffold(
       extendBodyBehindAppBar: true,
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
-      appBar: AppBar(
-        backgroundColor: AppColors.primaryLight4PercentOpacity,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(_showAppBar ? kToolbarHeight : 0),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: _showAppBar ? 1.0 : 0.0,
+          child: SafeArea(
+            bottom: false,
+            child: AppBar(
+              backgroundColor: Colors.transparent,
+              scrolledUnderElevation: 0,
+              surfaceTintColor: AppColors.primaryColor,
 
-        centerTitle: true,
-        title: Text(
-          "Edit Profile",
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w500,
-            color: white,
-          ),
-        ),
-
-        // Conditionally show leading drawer icon
-        leading: Builder(
-          builder:
-              (context) => IconButton(
-                icon: SvgPicture.asset(
-                  isDarkMode ? drawerIconWhite : drawerIcon,
+              centerTitle: true,
+              title: Text(
+                "Edit Profile",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w500,
                   color: white,
                 ),
-                onPressed: () => Scaffold.of(context).openDrawer(),
-              ),
-        ),
 
-        // Conditionally show close (cross) icon
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 20),
-            child: InkWell(
-              onTap: () => Navigator.pop(context),
-              child: SizedBox(
-                height: 24,
-                width: 24,
-                child: Icon(
-                  Icons.clear,
-                  size: 21,
-                  color: white, // Adapt to theme
+              ),
+              flexibleSpace: Container(
+                decoration: BoxDecoration(
+
+                  color: Colors.transparent
+
                 ),
               ),
+
+              // Conditionally show leading drawer icon
+              leading: Builder(
+                builder:
+                    (context) => IconButton(
+                      icon: SvgPicture.asset(
+                        isDarkMode ? drawerIconWhite : drawerIcon,
+                        color: white,
+                      ),
+                      onPressed: () => Scaffold.of(context).openDrawer(),
+                    ),
+              ),
+
+              // Conditionally show close (cross) icon
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 20),
+                  child: InkWell(
+                    onTap: () => Navigator.pop(context),
+                    child: SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: Icon(
+                        Icons.clear,
+                        size: 21,
+                        color: white, // Adapt to theme
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
 
       body: SingleChildScrollView(
+        controller: _scrollController,
         child: Column(
           children: [
             SizedBox(
@@ -170,7 +216,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               final String? cdnUrl =
                               localStorageManager.userMap['ProfilePicture']?['CdnUrl'];
 
-                              ImageProvider imageProvider;
+                              ImageProvider ? imageProvider;
 
                               // 1️⃣ Highest Priority → User picked image
                               if (pickedFile != null) {
@@ -184,14 +230,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               }
 
                               // 3️⃣ Fallback → Default asset
-                              else {
-                                imageProvider = AssetImage(profileMainImg);
-                              }
+
 
                               return CircleAvatar(
                                 radius: 60,
-                                backgroundColor: Colors.grey.shade200,
+                                backgroundColor: grey,
                                 backgroundImage: imageProvider,
+                                child: imageProvider == null
+                                    ? Icon(
+                                  Icons.person,
+                                  size: 200 * 0.75,
+                                  color: white,
+                                )
+                                    : null,
                               );
                             }),
                           ),
@@ -204,8 +255,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     .pickImageFromGallery();
                               },
                               icon: SizedBox(
-                                height: 32,
-                                width: 32,
+                                height: 42,
+                                width: 42,
                                 child: CircleAvatar(
                                   backgroundColor: AppColors.primaryColor,
                                   child: Icon(
@@ -487,7 +538,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     //     localStorageManager.userMap['MonthOfBirth'] = newDate.month;
                     //     localStorageManager.userMap['YearOfBirth'] = newDate.year;
                     //
-                    //     print("Date updated: ${DateFormat('dd/MM/yyyy').format(newDate)}");
+                    //     debugPrint("Date updated: ${DateFormat('dd/MM/yyyy').format(newDate)}");
                     //   },
                     // ),
                     AutoSizeText(

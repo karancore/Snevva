@@ -1,10 +1,9 @@
 import 'package:snevva/views/Information/HydrationScreens/hydration_bottom_sheet.dart';
 import 'package:snevva/views/Information/HydrationScreens/water_bottom_sheet.dart';
-import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.dart';
-import 'package:snevva/views/Reminder/reminder_screen.dart';
 import 'package:snevva/views/Reminder/reminder_wrapper.dart';
 import 'package:snevva/widgets/Hydration/floating_button_bar.dart';
 import 'package:wheel_picker/wheel_picker.dart';
+
 import '../../../../Widgets/CommonWidgets/custom_appbar.dart';
 import '../../../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../../../consts/consts.dart';
@@ -162,111 +161,99 @@ class _HydrationScreenState extends State<HydrationScreen>
           horizontal: wp(context, 0.05),
           vertical: hp(context, 0.01),
         ),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: Column(
+        child: Column(
+          children: [
+            SizedBox(height: hp(context, 0.08)), // responsive top space
+            /// Animated Number + Goal Row
+            Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    SizedBox(height: hp(context, 0.08)), // responsive top space
-                    /// Animated Number + Goal Row
-                    Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            AnimatedBuilder(
-                              animation: numberAnimation,
-                              builder:
-                                  (context, child) => Text(
-                                    "${numberAnimation.value.toInt()}",
-                                    style: const TextStyle(
-                                      fontSize: 64,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                    AnimatedBuilder(
+                      animation: numberAnimation,
+                      builder:
+                          (context, child) => Text(
+                            "${numberAnimation.value.toInt()}",
+                            style: const TextStyle(
+                              fontSize: 64,
+                              fontWeight: FontWeight.bold,
                             ),
-                            const Padding(
-                              padding: EdgeInsets.only(bottom: 10),
-                              child: Text(
-                                'ml',
-                                style: TextStyle(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: hp(context, 0.01)),
-                        Text(
-                          'Wow, keep going!',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                            color: grey,
                           ),
-                        ),
-                        SizedBox(height: hp(context, 0.01)),
-                        Obx(
-                          () => Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                "Goal: ${controller.waterGoal.value} ml",
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              InkWell(
-                                borderRadius: BorderRadius.circular(8),
-                                onTap: () async {
-                                  await showWaterBottomSheet(
-                                    context: context,
-                                    isDarkMode: isDarkMode,
-                                    onConfirm: (value) async {
-                                      await controller.updateWaterGoal(
-                                        value,
-                                        context,
-                                      );
-                                    },
-                                  );
-                                },
-                                child: const Padding(
-                                  padding: EdgeInsets.all(10),
-                                  child: Icon(
-                                    Icons.edit,
-                                    size: 22,
-                                    color: AppColors.primaryColor,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
                     ),
-
-                    /// Fill remaining space and keep image near bottom
-                    Expanded(
-                      child: Center(
-                        child: Image.asset(
-                          hydrationEle,
-                          height: hp(context, 0.45),
-                          fit: BoxFit.contain,
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 10),
+                      child: Text(
+                        'ml',
+                        style: TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                   ],
                 ),
+                SizedBox(height: hp(context, 0.01)),
+                Text(
+                  'Wow, keep going!',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    color: grey,
+                  ),
+                ),
+                SizedBox(height: hp(context, 0.01)),
+                Obx(
+                  () => Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "Goal: ${controller.waterGoal.value} ml",
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () async {
+                          await showWaterBottomSheet(
+                            context: context,
+                            isDarkMode: isDarkMode,
+                            onConfirm: (value) async {
+                              await controller.updateWaterGoal(value, context);
+                            },
+                          );
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.all(10),
+                          child: Icon(
+                            Icons.edit,
+                            size: 22,
+                            color: AppColors.primaryColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            /// Fill remaining space and keep image near bottom
+            Expanded(
+              child: Center(
+                child: Image.asset(
+                  hydrationEle,
+                  height: hp(context, 0.45),
+                  fit: BoxFit.contain,
+                ),
               ),
-            );
-          },
+            ),
+          ],
         ),
       ),
     );
@@ -292,7 +279,7 @@ class _HydrationScreenState extends State<HydrationScreen>
 //           initialIndex: 7,
 //           // Default = 2000ml
 //           onConfirm: (value) {
-//             print("Water goal set to $value ml");
+//             debugPrint("Water goal set to $value ml");
 //           },
 //         ),
 //   );

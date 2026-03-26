@@ -10,18 +10,16 @@ extension WaterToMedicineMapper on WaterReminderModel {
       customReminder: CustomReminder(
         type: type,
         timesPerDay:
-            timesPerDay != null
-                ? TimesPerDay(
-                  count: timesPerDay,
-                  list: alarms.map((e) => e.toJson().toString()).toList(),
-                )
-                : null,
+            TimesPerDay(
+              count: timesPerDay,
+              list: alarms.map((e) => e.dateTime.toIso8601String()).toList(),
+            ),
         everyXHours:
             interval != null
                 ? EveryXHours(
                   hours: int.tryParse(interval ?? '') ?? 0,
                   startTime: waterReminderStartTime,
-                  endTime: waterReminderStartTime,
+                  endTime: waterReminderEndTime,
                 )
                 : null,
       ),

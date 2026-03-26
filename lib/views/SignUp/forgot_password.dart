@@ -35,7 +35,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
   }
 
   Future<void> onButtonClick(String input) async {
-    print("onButtonClick $input");
+    debugPrint("onButtonClick $input");
     if (textFieldController.text.isEmpty) {
       CustomSnackbar.showError(
         context: context,
@@ -75,7 +75,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
       if (result != false) {
         // notify.showOtpNotification(result);
         Get.to(
-          VerifyWithOtpScreen(
+          () => VerifyWithOtpScreen(
             emailOrPasswordText: input,
             appBarText: AppLocalizations.of(context)!.verifyEmailAddress,
             responseOtp: result,

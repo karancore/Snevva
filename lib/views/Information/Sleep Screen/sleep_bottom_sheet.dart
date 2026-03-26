@@ -1,11 +1,12 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
 import 'package:wheel_picker/wheel_picker.dart';
+
 import '../../../../consts/consts.dart';
 import '../../../services/app_initializer.dart';
 import '../../../services/notification_service.dart';
@@ -192,7 +193,7 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
       });
     }
 
-    print("🌙 Auto-started sleep tracking (window active)");
+    debugPrint("🌙 Auto-started sleep tracking (window active)");
   }
 
   void _setupSleepListeners() {
@@ -454,7 +455,20 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
                             ? "Update & Start Tracking"
                             : "Start Sleep Tracking",
                     onTap: () async {
-                      await _startSleepTracking();
+                      final bedHour = bedHourController.selected;
+                      final bedMinute = bedMinuteController.selected * 15;
+
+                      final wakeHour = wakeHourController.selected;
+                      final wakeMinute = wakeMinuteController.selected * 15;
+
+                      final bedTime = TimeOfDay(hour: bedHour, minute: bedMinute);
+                      final wakeTime = TimeOfDay(hour: wakeHour, minute: wakeMinute);
+
+                      await Future.wait([
+                        _startSleepTracking(),
+                        Get.find<SleepController>()
+                            .updateSleepTimestoServer(bedTime, wakeTime),
+                      ]);
                     },
                   ),
                   const SizedBox(height: 12),
@@ -489,6 +503,7 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
                             initialIndex: 0,
                           );
                         });
+
 
                         Get.snackbar(
                           'Schedule Cleared',

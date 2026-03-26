@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/common/global_variables.dart';
-import 'package:http/http.dart' as http;
 import 'package:snevva/services/auth_service.dart';
+
 import '../common/custom_snackbar.dart';
 import '../env/env.dart';
 import 'api_service.dart';
@@ -148,7 +150,7 @@ class GoogleAuthService extends GetxService {
 
       final result = jsonDecode(jsonEncode(response));
       final token = result['data'];
-      print("Received token from backend: $token");
+      debugPrint("Received token from backend: $token");
       final prefs = await SharedPreferences.getInstance();
       prefs.setString('auth_token', token);
 

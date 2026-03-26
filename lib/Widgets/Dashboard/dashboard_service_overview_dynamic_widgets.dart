@@ -4,12 +4,12 @@ import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/views/Information/HydrationScreens/water_bottom_sheet.dart';
+
 import '../../Controllers/SleepScreen/sleep_controller.dart';
 import '../../Controllers/StepCounter/step_counter_controller.dart';
 import '../../common/global_variables.dart';
 import '../../common/statement_of_use_bottom_sheet.dart';
 import '../../consts/consts.dart';
-import '../../views/Information/HydrationScreens/hydration_bottom_sheet.dart';
 import '../../views/Information/HydrationScreens/hydration_screen.dart';
 import '../../views/Information/Sleep Screen/sleep_bottom_sheet.dart';
 import '../../views/Information/Sleep Screen/sleep_tracker_screen.dart';
@@ -185,10 +185,10 @@ class _DashboardServiceOverviewDynamicWidgetsState
 
                     if (agreed == true) {
                       await prefs.setBool('isFirstTime', false);
-                      Get.to(VitalScreen());
+                      Get.to(() => VitalScreen());
                     }
                   } else {
-                    Get.to(VitalScreen());
+                    Get.to(() => VitalScreen());
                   }
                 },
                 width: widget.width,
@@ -239,6 +239,7 @@ class _DashboardServiceOverviewDynamicWidgetsState
                       child: Lottie.asset(
                         ecgDashboardLottie,
                         fit: BoxFit.contain,
+                        animate: TickerMode.of(context),
                       ),
                     ),
                   ),
@@ -255,8 +256,11 @@ class _DashboardServiceOverviewDynamicWidgetsState
                 onTap: () async {
                   final prefs = await SharedPreferences.getInstance();
                   final isGoalSet = prefs.getBool('isStepGoalSet') ?? false;
+                  final int? backendGoal = stepgoal;
+                  final bool hasCompletedSetup =
+                      isGoalSet || backendGoal != null;
 
-                  if (stepgoal == null || !isGoalSet) {
+                  if (!hasCompletedSetup) {
                     final goal = await showStepCounterBottomSheet(
                       context,
                       widget.isDarkMode,
@@ -282,7 +286,18 @@ class _DashboardServiceOverviewDynamicWidgetsState
                       });
                     }
                   } else {
-                    final goal = prefs.getInt('stepGoalValue') ?? 10000;
+                    if (!isGoalSet) {
+                      await prefs.setBool('isStepGoalSet', true);
+                    }
+                    if (backendGoal != null) {
+                      final stored = prefs.getInt('stepGoalValue');
+                      if (stored != backendGoal) {
+                        await prefs.setInt('stepGoalValue', backendGoal);
+                      }
+                    }
+
+                    final goal =
+                        backendGoal ?? prefs.getInt('stepGoalValue') ?? 10000;
 
                     if (!context.mounted) return;
 

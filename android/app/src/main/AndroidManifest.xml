@@ -23,6 +23,7 @@
     <!-- 🏃 Step counting & sensors -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
     <uses-permission android:name="android.permission.BODY_SENSORS" />
+    <uses-permission android:name="android.permission.BODY_SENSORS_BACKGROUND" />
 
     <!-- 📍 Location -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -151,7 +152,8 @@
         <service
             android:name=".StepCounterService"
             android:exported="false"
-            android:foregroundServiceType="health" />
+            android:foregroundServiceType="dataSync|health"
+            tools:replace="android:exported,android:foregroundServiceType" />
 
         <!-- 🛌 Flutter Background Service (Sleep Tracking + Step Event Relay) -->
         <meta-data
@@ -164,9 +166,12 @@
             android:name="id.flutter.flutter_background_service.notification_channel_desc"
             android:value="Step &amp; sleep tracking"/>
         <service
-            android:name="id.flutter.flutter_background_service.BackgroundService"
-            android:foregroundServiceType="dataSync|health"
-            android:exported="true" />
+            android:name=".SleepNoticingService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync|health" />
+
+        <receiver android:name=".StartSleepReceiver" android:exported="false" />
+        <receiver android:name=".StopSleepReceiver" android:exported="false" />
 
         <!-- Worker Initialization (if needed, usually auto-inits) -->
     </application>

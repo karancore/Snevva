@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/services/hive_service.dart';
 
 import '../common/global_variables.dart';
+import '../consts/consts.dart';
 import '../models/hive_models/steps_model.dart';
 
 // Global reference to the pedometer stream subscription
@@ -91,23 +92,23 @@ Future<bool> backgroundEntry(ServiceInstance service) async {
           );
         }
 
-        print("👣 Steps updated → $newSteps (diff: $diff)");
+        debugPrint("👣 Steps updated → $newSteps (diff: $diff)");
       },
       onError: (error) {
-        print("❌ Pedometer error: $error");
+        debugPrint("❌ Pedometer error: $error");
       },
     );
 
     // Listen for service stop and cancel pedometer stream
     service.on('stopService').listen((_) {
-      print("🛑 Stopping background service...");
+      debugPrint("🛑 Stopping background service...");
       _pedometerSubscription?.cancel();
       service.stopSelf();
     });
 
     return true;
   } catch (e) {
-    print("❌ Background service failed: $e");
+    debugPrint("❌ Background service failed: $e");
     return false;
   }
 }
@@ -117,11 +118,11 @@ Future<void> stopBackgroundService() async {
 
   final isRunning = await service.isRunning();
   if (!isRunning) {
-    print("ℹ️ Background service not running");
+    debugPrint("ℹ️ Background service not running");
     return;
   }
 
-  print("🛑 Sending stop signal to background service");
+  debugPrint("🛑 Sending stop signal to background service");
 
   service.invoke('stopService');
 
@@ -136,7 +137,7 @@ Future<void> stopBackgroundService() async {
 //   // Check if service is already running
 //   final isRunning = await service.isRunning();
 //   if (isRunning) {
-//     print("⚠️ Background service already running, skipping initialization");
+//     debugPrint("⚠️ Background service already running, skipping initialization");
 //     return;
 //   }
 
@@ -159,8 +160,8 @@ Future<void> stopBackgroundService() async {
 
 //   try {
 //     await service.startService();
-//     print("✅ Background service started successfully");
+//     debugPrint("✅ Background service started successfully");
 //   } catch (e) {
-//     print("❌ Failed to start background service: $e");
+//     debugPrint("❌ Failed to start background service: $e");
 //   }
 // }

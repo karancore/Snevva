@@ -71,7 +71,7 @@ class MoodController extends GetxService {
 
       // ✅ DATA EXISTS → TAKE LATEST ENTRY
       final latestMood = moodList.last['Mood'];
-      print('Latest mood from API: $latestMood');
+      debugPrint('Latest mood from API: $latestMood');
 
       if (moods.contains(latestMood)) {
         selectedMood.value = latestMood;

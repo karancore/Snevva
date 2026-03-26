@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:snevva/consts/consts.dart';
-import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:snevva/consts/consts.dart';
+
 import '../../common/custom_snackbar.dart';
 import '../../env/env.dart';
 import '../../services/api_service.dart';
@@ -130,7 +130,7 @@ class HealthTipsController extends GetxService {
 
     try {
       List<String> tags = ['Health Tips'];
-      print("call2");
+      debugPrint("call2");
 
       final localStorageManager = Get.find<LocalStorageManager>();
       final day = localStorageManager.userMap['DayOfBirth'];
@@ -165,8 +165,8 @@ class HealthTipsController extends GetxService {
           tags.add("Age 25 to 60");
         }
       }
-      // print(localStorageManager.userGoalDataMap['HeightData']['Value']);
-      // print(tags);
+      // debugPrint(localStorageManager.userGoalDataMap['HeightData']['Value']);
+      // debugPrint(tags);
       final payload = {
         'Tags': tags,
         'FetchAll': false,

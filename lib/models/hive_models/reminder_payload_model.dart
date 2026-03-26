@@ -1,7 +1,6 @@
 import 'package:hive/hive.dart';
 
 import '../../common/global_variables.dart';
-import '../../consts/consts.dart';
 
 part 'reminder_payload_model.g.dart';
 
@@ -74,17 +73,34 @@ class ReminderPayloadModel {
     this.endWaterTime,
   });
 
+  static String _normalizeCategoryForApi(String raw) {
+    final normalized = raw.trim();
+    if (normalized.isEmpty) return normalized;
+    switch (normalized.toLowerCase()) {
+      case 'medicine':
+        return 'Medicine';
+      case 'water':
+        return 'Water';
+      case 'meal':
+        return 'Meal';
+      case 'event':
+        return 'Event';
+      default:
+        return normalized;
+    }
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'Id': id,
       'Title': title,
-      'Category': category,
+      'Category': _normalizeCategoryForApi(category),
       'MedicineName': medicineName,
       'MedicineType': medicineType,
       'Dosage': dosage?.toJson(),
       'MedicineFrequencyPerDay': medicineFrequencyPerDay,
       'ReminderFrequencyType': reminderFrequencyType,
-      'CustomReminder': customReminder?.toJson(),
+      'CustomReminder': customReminder.toJson(),
       'RemindBefore': remindBefore?.toJson(),
       'StartDate': startDate,
       'EndDate': endDate,
@@ -96,6 +112,17 @@ class ReminderPayloadModel {
   }
 
   factory ReminderPayloadModel.fromJson(Map<String, dynamic> json) {
+    final custom =
+        json['CustomReminder'] != null
+            ? CustomReminder.fromJson(json['CustomReminder'])
+            : const CustomReminder();
+
+    final interval = custom.everyXHours;
+    final startWaterTime =
+        json['StartWaterTime'] ?? interval?.startTime;
+    final endWaterTime =
+        json['EndWaterTime'] ?? interval?.endTime;
+
     return ReminderPayloadModel(
       id: json['Id'] ?? 0,
       title: json['Title'] ?? '',
@@ -106,10 +133,7 @@ class ReminderPayloadModel {
       whenToTake: json['WhenToTake'],
       medicineFrequencyPerDay: json['MedicineFrequencyPerDay'],
       reminderFrequencyType: json['ReminderFrequencyType'],
-      customReminder:
-          json['CustomReminder'] != null
-              ? CustomReminder.fromJson(json['CustomReminder'])
-              : const CustomReminder(),
+      customReminder: custom,
       remindBefore:
           json['RemindBefore'] != null
               ? RemindBefore.fromJson(json['RemindBefore'])
@@ -117,8 +141,8 @@ class ReminderPayloadModel {
       startDate: json['StartDate'],
       endDate: json['EndDate'],
       notes: json['Notes'],
-      startWaterTime: json['StartWaterTime'],
-      endWaterTime: json['EndWaterTime'],
+      startWaterTime: startWaterTime,
+      endWaterTime: endWaterTime,
     );
   }
   @override
@@ -206,14 +230,15 @@ class CustomReminder {
   const CustomReminder({this.type, this.timesPerDay, this.everyXHours});
 
   factory CustomReminder.fromJson(Map<String, dynamic> json) {
-    final type = Option.values.firstWhere(
-      (e) => e.name == json['type'],
-
-      orElse: () {
-        debugPrint("Unknown reminder type:  ${json['type']}");
-        return Option.times;
-      },
-    );
+    final rawType = json['Type'];
+    final type =
+        Option.values.cast<Option?>().firstWhere(
+              (e) => e?.name == rawType,
+          orElse:
+              () =>
+          json['EveryXHours'] != null ? Option.interval : Option.times,
+        ) ??
+            Option.times;
 
     switch (type) {
       case Option.times:
@@ -230,13 +255,18 @@ class CustomReminder {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = {'type': type?.name};
+    final Map<String, dynamic> data = {
+      'Type': type?.name,
+    };
+
     if (timesPerDay != null) {
       data['TimesPerDay'] = timesPerDay!.toJson();
     }
+
     if (everyXHours != null) {
       data['EveryXHours'] = everyXHours!.toJson();
     }
+
     return data;
   }
 }
@@ -251,10 +281,13 @@ class TimesPerDay {
 
   const TimesPerDay({required this.count, required this.list});
 
-  Map<String, dynamic> toJson() => {'Count': count, 'List': list};
+  Map<String, dynamic> toJson() => {
+    'Count': count,
+    'List': list,
+  };
 
   factory TimesPerDay.fromJson(Map<String, dynamic> json) => TimesPerDay(
-    count: json['Count'],
+    count: (json['Count'] ?? '').toString(),
     list: List<String>.from(json['List'] ?? []),
   );
 }
@@ -337,17 +370,29 @@ extension ReminderPayloadSafeAccess on ReminderPayloadModel {
 
   String get waterStartSafe {
     _ensure('water');
-    return startWaterTime!;
+    final start = (startWaterTime ?? customReminder.everyXHours?.startTime)?.trim();
+    if (start == null || start.isEmpty) {
+      throw Exception("Water reminder $id missing startWaterTime");
+    }
+    return start;
   }
 
   String get waterEndSafe {
     _ensure('water');
-    return endWaterTime!;
+    final end = (endWaterTime ?? customReminder.everyXHours?.endTime)?.trim();
+    if (end == null || end.isEmpty) {
+      throw Exception("Water reminder $id missing endWaterTime");
+    }
+    return end;
   }
 
   int get waterTimesCountSafe {
     _ensure('water');
-    return int.parse(customReminder.timesPerDay!.count);
+    final rawCount = customReminder.timesPerDay?.count;
+    if (rawCount == null || rawCount.toString().trim().isEmpty) {
+      throw Exception("Water reminder $id missing timesPerDay count");
+    }
+    return int.parse(rawCount.toString());
   }
 
   // ---------------- EVENT / MEAL ----------------

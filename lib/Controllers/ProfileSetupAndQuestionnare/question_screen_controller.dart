@@ -1,7 +1,8 @@
+import 'package:http/http.dart' as http;
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
-import 'package:http/http.dart' as http;
+import 'package:snevva/services/auth_service.dart';
 
 import '../../common/custom_snackbar.dart';
 
@@ -29,6 +30,8 @@ class QuestionScreenController extends GetxController {
     }
     selectedAnswers[questionIndex] = List.from(currentSelection);
   }
+
+  final authService = AuthService();
 
   /// Check if an option is selected
   bool isSelected(int questionIndex, String optionText) {
@@ -83,10 +86,10 @@ class QuestionScreenController extends GetxController {
         encryptionRequired: true,
       );
 
-      print(response);
+      debugPrint(response.toString());
 
       if (response is http.Response) {
-        print(response);
+        debugPrint(response.toString());
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
@@ -95,7 +98,9 @@ class QuestionScreenController extends GetxController {
         return;
       }
 
-      print("✅ Q${questionIndex + 1} saved → $answers");
+      debugPrint("✅ Q${questionIndex + 1} saved → $answers");
+      // await authService
+      //     .ensurePostLoginPermissionsAndStartTracking();
     } catch (e) {
       CustomSnackbar.showError(
         context: context,
@@ -107,7 +112,7 @@ class QuestionScreenController extends GetxController {
 
   Future<void> saveFinalStep() async {
     // Handle last question’s API OR summary save
-    print("🎯 Final step reached, do summary save here...");
+    debugPrint("🎯 Final step reached, do summary save here...");
   }
 
   bool hasAnySelection(int questionIndex) {

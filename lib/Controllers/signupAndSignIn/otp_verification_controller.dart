@@ -88,8 +88,8 @@ class OTPVerificationController extends GetxService {
       '➡️ Navigating to ${isForgotPasswordScreen.value ? "UpdateOldPassword" : "CreateNewPassword"}',
     );
 
-    print("$emailOrPasswordText");
-    print("isForgotPasswordScreen.value ${isForgotPasswordScreen.value}");
+    debugPrint("$emailOrPasswordText");
+    debugPrint("isForgotPasswordScreen.value ${isForgotPasswordScreen.value}");
 
     Get.to(
       () =>

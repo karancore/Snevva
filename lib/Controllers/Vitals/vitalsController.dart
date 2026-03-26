@@ -2,11 +2,11 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/models/queryParamViewModels/bloodpressure.dart';
 import 'package:snevva/services/api_service.dart';
-import 'package:http/http.dart' as http;
 
 import '../../common/custom_snackbar.dart';
 
@@ -43,7 +43,7 @@ class VitalsController extends GetxController {
         prefs.getInt('bloodGlucose') ??
         0; // Load BloodGlucose, default to 0 if not found
 
-    print(
+    debugPrint(
       'Loaded BPM: ${bpm.value}, SYS: ${sys.value}, DIA: ${dia.value}, BloodGlucose: ${bloodGlucose.value}',
     );
   }
@@ -58,7 +58,7 @@ class VitalsController extends GetxController {
     await prefs.setInt('bloodGlucose', bloodGlucose.value); // Save BloodGlucose
     await prefs.setBool('isFirstTime', false);
 
-    print(
+    debugPrint(
       'Vitals saved: BPM: ${bpm.value}, SYS: ${sys.value}, DIA: ${dia.value}, BloodGlucose: ${bloodGlucose.value}',
     );
   }
@@ -78,7 +78,7 @@ class VitalsController extends GetxController {
       );
 
       if (response is http.Response) {
-        print(
+        debugPrint(
           'Error fetching vitals data: ${response.statusCode} - ${response.body}',
         );
         return;
@@ -86,7 +86,7 @@ class VitalsController extends GetxController {
 
       final resbody = jsonDecode(jsonEncode(response));
 
-      print('Vitals data fetched: $resbody');
+      debugPrint('Vitals data fetched: $resbody');
 
       // Assuming the response structure is:
       // { "status": true, "statusType": "success", "message": "Create Success", "data": { "BloodPressureData": [...] } }
@@ -110,15 +110,15 @@ class VitalsController extends GetxController {
           // Optional: You could also save these values to local storage here
           saveVitalsToLocalStorage();
 
-          print(
+          debugPrint(
             'Fetched and updated BPM: ${bpm.value}, SYS: ${sys.value}, DIA: ${dia.value}, BloodGlucose: ${bloodGlucose.value}',
           );
         }
       } else {
-        print('Error: ${resbody['message']}');
+        debugPrint('Error: ${resbody['message']}');
       }
     } catch (e) {
-      print('Error fetching vitals data: $e');
+      debugPrint('Error fetching vitals data: $e');
     }
   }
 
@@ -134,7 +134,7 @@ class VitalsController extends GetxController {
       dia.value = bloodPressureData.dia?.toInt() ?? 0;
       bloodGlucose.value = bloodPressureData.bloodGlucose?.toInt() ?? 0;
 
-      print(
+      debugPrint(
         'Updated BPM: ${bpm.value}, SYS: ${sys.value}, DIA: ${dia.value}, BloodGlucose: ${bloodGlucose.value}',
       );
 

@@ -1,8 +1,9 @@
 import 'dart:convert';
+
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../views/SignUp/sign_in_screen.dart';
+
 import '../services/device_token_service.dart';
 
 class LocalStorageManager extends GetxService {
@@ -28,7 +29,7 @@ class LocalStorageManager extends GetxService {
   Future<bool> hasValidSession() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
-    print("hasValidSession $token");
+    debugPrint("hasValidSession $token");
     return token != null && token.isNotEmpty;
   }
 

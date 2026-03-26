@@ -7,6 +7,7 @@ import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
 import 'package:snevva/views/Reminder/add_reminder_screen.dart';
 import 'package:snevva/views/Reminder/reminder_details_card.dart';
+
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../common/custom_snackbar.dart';
 import '../../common/global_variables.dart';
@@ -73,6 +74,7 @@ class _ReminderScreenState extends State<ReminderScreen>
 
   Future<void> _loadData() async {
     await controller.loadAllReminderLists();
+    await controller.getReminderFromAPI(context);
   }
 
   @override
@@ -115,129 +117,125 @@ class _ReminderScreenState extends State<ReminderScreen>
         return Column(
           children: [
             Expanded(
-              child: RefreshIndicator(
-                onRefresh: _loadData,
-                color: AppColors.primaryColor,
-                child: ListView(
-                  padding: EdgeInsets.only(left: 16, right: 16, bottom: 16),
-                  children: [
-                    ...controller.reminders.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final reminder = entry.value;
+              child: ListView(
+                padding: EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                children: [
+                  ...controller.reminders.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final reminder = entry.value;
 
-                      final category = reminder.category;
-                      return SlideTransition(
-                        position: _slideForIndex(index),
-                        child: Container(
-                          margin: EdgeInsets.all(10.0),
-                          decoration: BoxDecoration(
-                            color: isDarkMode ? darkGray : white,
-                            borderRadius: BorderRadius.circular(8.0),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.4),
-                                spreadRadius: 2,
-                                blurRadius: 6,
-                                offset: Offset(0, 0),
-                              ),
-                            ],
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.only(
-                              left: 12,
-                              top: 8,
-                              right: 8,
-                              bottom: 8,
+                    final category = reminder.category;
+                    return SlideTransition(
+                      position: _slideForIndex(index),
+                      child: Container(
+                        margin: EdgeInsets.all(10.0),
+                        decoration: BoxDecoration(
+                          color: isDarkMode ? darkGray : white,
+                          borderRadius: BorderRadius.circular(8.0),
+                          boxShadow: isDarkMode ? null : [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.4),
+                              spreadRadius: 2,
+                              blurRadius: 6,
+                              offset: Offset(0, 0),
                             ),
-                            child: AnimatedCrossFade(
-                              duration: const Duration(milliseconds: 250),
-                              firstCurve: Curves.easeIn,
-                              secondCurve: Curves.easeOut,
-                              crossFadeState:
-                                  expandedIndex == index
-                                      ? CrossFadeState.showSecond
-                                      : CrossFadeState.showFirst,
+                          ],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            left: 12,
+                            top: 8,
+                            right: 8,
+                            bottom: 8,
+                          ),
+                          child: AnimatedCrossFade(
+                            duration: const Duration(milliseconds: 250),
+                            firstCurve: Curves.easeIn,
+                            secondCurve: Curves.easeOut,
+                            crossFadeState:
+                                expandedIndex == index
+                                    ? CrossFadeState.showSecond
+                                    : CrossFadeState.showFirst,
 
-                              firstChild: Column(
-                                children: [
-                                  CollapsedHeader(
-                                    reminder: reminder,
-                                    category: category,
-                                    isDarkMode: isDarkMode,
-                                    onToggle: () {
-                                      setState(() {
-                                        expandedIndex =
-                                            expandedIndex == index
-                                                ? null
-                                                : index;
-                                      });
-                                    },
-                                    onEdit:
-                                        () => Get.to(
-                                          AddReminderScreen(reminder: reminder),
-                                        ),
-                                    onDelete:
-                                        () => _showDeleteConfirmation(reminder),
+                            firstChild: Column(
+                              children: [
+                                CollapsedHeader(
+                                  reminder: reminder,
+                                  category: category,
+                                  isDarkMode: isDarkMode,
+                                  onToggle: () {
+                                    setState(() {
+                                      expandedIndex =
+                                          expandedIndex == index
+                                              ? null
+                                              : index;
+                                    });
+                                  },
+                                  onEdit:
+                                      () => Get.to(
+                                        AddReminderScreen(reminder: reminder),
+                                      ),
+                                  onDelete:
+                                      () => _showDeleteConfirmation(reminder),
+                                ),
+                                const SizedBox(height: 6),
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    bottom: 12.0,
                                   ),
-                                  const SizedBox(height: 6),
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      bottom: 12.0,
-                                    ),
-                                    child: _buildCategoryContent(
-                                      reminder,
-                                      category,
-                                    ),
+                                  child: _buildCategoryContent(
+                                    reminder,
+                                    category,
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
+                            ),
 
-                              secondChild: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  CollapsedHeader(
-                                    reminder: reminder,
-                                    category: category,
-                                    isDarkMode: isDarkMode,
-                                    isExpanded: true,
-                                    onToggle: () {
-                                      setState(() {
-                                        expandedIndex =
-                                            expandedIndex == index
-                                                ? null
-                                                : index;
-                                      });
-                                    },
-                                    onEdit:
-                                        () => Get.to(
-                                          AddReminderScreen(reminder: reminder),
-                                        ),
-                                    onDelete:
-                                        () => _showDeleteConfirmation(reminder),
+                            secondChild: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                CollapsedHeader(
+                                  reminder: reminder,
+                                  category: category,
+                                  isDarkMode: isDarkMode,
+                                  isExpanded: true,
+                                  onToggle: () {
+                                    setState(() {
+                                      expandedIndex =
+                                          expandedIndex == index
+                                              ? null
+                                              : index;
+                                    });
+                                  },
+                                  onEdit:
+                                      () => Get.to(
+                                        AddReminderScreen(reminder: reminder),
+                                      ),
+                                  onDelete:
+                                      () => _showDeleteConfirmation(reminder),
+                                ),
+                                const SizedBox(height: 6),
+                                ReminderDetailsCard(
+                                  reminder: reminder,
+                                  index: index,
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    bottom: 12.0,
                                   ),
-                                  const SizedBox(height: 6),
-                                  ReminderDetailsCard(
-                                    reminder: reminder,
-                                    index: index,
+                                  child: _buildCategoryContent(
+                                    reminder,
+                                    category,
                                   ),
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      bottom: 12.0,
-                                    ),
-                                    child: _buildCategoryContent(
-                                      reminder,
-                                      category,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      );
-                    }),
-                  ],
-                ),
+                      ),
+                    );
+                  }),
+                ],
               ),
             ),
           ],
@@ -261,7 +259,7 @@ class _ReminderScreenState extends State<ReminderScreen>
               //   duration: const Duration(seconds: 3),
               // );
               // return;
-              final result = await Get.to(AddReminderScreen());
+              final result = await Get.to(() => AddReminderScreen());
               // Always reload data when returning, regardless of result
               // The controller already handles the update, but this ensures consistency
               if (result == true) {
@@ -278,18 +276,91 @@ class _ReminderScreenState extends State<ReminderScreen>
   }
 
   void _showDeleteConfirmation(ReminderPayloadModel reminder) {
-    Get.defaultDialog(
-      title: "Delete Reminder",
-      middleText: "Are you sure you want to delete this reminder?",
-      textConfirm: "Delete",
-      textCancel: "Cancel",
-      confirmTextColor: white,
-      buttonColor: AppColors.primaryColor,
-      onConfirm: () async {
-        await controller.deleteReminder(reminder);
-        Navigator.pop(context);
-      },
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 4),
+              Container(
+                height: 56,
+                width: 56,
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.delete_forever_rounded,
+                  color: Colors.red,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "Delete Reminder",
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Are you sure you want to delete this reminder? This action can’t be undone.",
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: mediumGrey,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Get.back(),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    side: BorderSide(color: AppColors.primaryColor),
+                  ),
+                  child: const Text("Cancel"),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    await Future.wait([
+                      controller.deleteReminder(reminder),
+                      controller.deleteReminderFromAPI(reminder.id, context)
+                    ]);
+                    Get.back();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text("Delete"),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      barrierDismissible: false,
     );
+
   }
 
   Widget _buildCategoryContent(ReminderPayloadModel reminder, String category) {
@@ -352,7 +423,7 @@ class _ReminderScreenState extends State<ReminderScreen>
                     //   duration: const Duration(seconds: 3),
                     // );
                     // return;
-                    Get.to(AddReminderScreen(reminder: reminder));
+                    Get.to(() => AddReminderScreen(reminder: reminder));
                   },
                   child: SvgPicture.asset(
                     pen,
@@ -379,6 +450,8 @@ class _ReminderScreenState extends State<ReminderScreen>
         );
 
       case 'water':
+        final isTimesBased = reminder.customReminder.type == Option.times;
+        final isIntervalBased = reminder.customReminder.type == Option.interval;
         return Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -386,7 +459,7 @@ class _ReminderScreenState extends State<ReminderScreen>
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (reminder.customReminder.timesPerDay?.count != null)
+                if (isTimesBased && timesPerDay > 0)
                   Text(
                     "Times per day: $timesPerDay",
                     maxLines: 1,
@@ -396,7 +469,7 @@ class _ReminderScreenState extends State<ReminderScreen>
                       color: Color(0xff878787),
                     ),
                   ),
-                if (frequencyHour >= 1)
+                if (isIntervalBased && frequencyHour >= 1)
                   Text(
                     "Reminder will ring after every $frequencyHour ${pluralizeHour(frequencyHour)}",
                     maxLines: 1,
@@ -423,7 +496,7 @@ class _ReminderScreenState extends State<ReminderScreen>
                 //   duration: const Duration(seconds: 3),
                 // );
                 // return;
-                Get.to(AddReminderScreen(reminder: reminder));
+                Get.to(() => AddReminderScreen(reminder: reminder));
               },
               child: SvgPicture.asset(
                 pen,
@@ -476,7 +549,7 @@ class _ReminderScreenState extends State<ReminderScreen>
                 //   duration: const Duration(seconds: 3),
                 // );
                 // return;
-                Get.to(AddReminderScreen(reminder: reminder));
+                Get.to(() => AddReminderScreen(reminder: reminder));
               },
               child: SvgPicture.asset(
                 pen,
@@ -538,7 +611,7 @@ class _ReminderScreenState extends State<ReminderScreen>
                     //   duration: const Duration(seconds: 3),
                     // );
                     // return;
-                    Get.to(AddReminderScreen(reminder: reminder));
+                    Get.to(() => AddReminderScreen(reminder: reminder));
                   },
                   child: SvgPicture.asset(
                     pen,

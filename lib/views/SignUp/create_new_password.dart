@@ -1,6 +1,6 @@
 import 'package:flutter/gestures.dart';
-import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
+
 import '../../Controllers/local_storage_manager.dart';
 import '../../Controllers/signupAndSignIn/create_password_controller.dart';
 import '../../Controllers/signupAndSignIn/otp_verification_controller.dart';
@@ -109,8 +109,7 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
           icon: Icon(Icons.arrow_back_ios, size: 18),
           onPressed: () {
             Get.delete<OTPVerificationController>();
-
-            Get.to(SignInScreen());
+            Get.to(() => SignInScreen());
           },
         ),
         centerTitle: true,
