@@ -928,30 +928,42 @@ class SleepController extends GetxService {
         final int year =
             int.tryParse(item['Year'].toString()) ?? 0; // Convert to int
 
-        final String from = item['SleepingFrom']?.toString() ?? '';
-        final String to = item['SleepingTo']?.toString() ?? '';
-
-        if (day <= 0 || month <= 0 || year <= 0 || from.isEmpty || to.isEmpty) {
+        if (day <= 0 || month <= 0 || year <= 0) {
           debugPrint('⚠️ Skipping invalid sleep item: $item');
           continue;
         }
 
-        DateTime bedTime;
-        DateTime wakeTime;
-        try {
-          bedTime = _parseTime(year, month, day, from);
-          wakeTime = _parseTime(year, month, day, to);
-        } catch (e) {
-          debugPrint('⚠️ Failed to parse sleep times for item: $item ($e)');
-          continue;
-        }
+        final int? countMinutes = int.tryParse(item['Count']?.toString() ?? '');
+        Duration duration;
 
-        // 🌙 If wake time is next day
-        if (wakeTime.isBefore(bedTime)) {
-          wakeTime = wakeTime.add(const Duration(days: 1));
-        }
+        if (countMinutes != null && countMinutes >= 0) {
+          duration = Duration(minutes: countMinutes);
+        } else {
+          final String from = item['SleepingFrom']?.toString() ?? '';
+          final String to = item['SleepingTo']?.toString() ?? '';
 
-        final duration = wakeTime.difference(bedTime);
+          if (from.isEmpty || to.isEmpty) {
+            debugPrint('⚠️ Skipping invalid sleep item: $item');
+            continue;
+          }
+
+          DateTime bedTime;
+          DateTime wakeTime;
+          try {
+            bedTime = _parseTime(year, month, day, from);
+            wakeTime = _parseTime(year, month, day, to);
+          } catch (e) {
+            debugPrint('⚠️ Failed to parse sleep times for item: $item ($e)');
+            continue;
+          }
+
+          // 🌙 If wake time is next day
+          if (wakeTime.isBefore(bedTime)) {
+            wakeTime = wakeTime.add(const Duration(days: 1));
+          }
+
+          duration = wakeTime.difference(bedTime);
+        }
 
         final key = dateKey(DateTime(year, month, day));
         monthlyDeepSleepHistory[key] = duration;
