@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:alarm/alarm.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Controllers/Reminder/water_controller.dart';
@@ -18,6 +19,18 @@ class ReminderScheduler {
 
   static ReminderController get _reminderController =>
       Get.find<ReminderController>(tag: 'reminder');
+
+  static String _audioPathForCategory(String category) {
+    final normalized = category.trim().toLowerCase();
+
+    if (normalized.contains('water')) return waterSound;
+    if (normalized.contains('meal')) return mealSound;
+    if (normalized.contains('medicine')) return medicineSound;
+    if (normalized.contains('event')) return eventSound;
+    if (normalized.contains('sleep')) return sleepSound;
+
+    return alarmSound;
+  }
 
   /// ==============================
   /// SCHEDULE ALL REMINDERS
@@ -181,7 +194,7 @@ class ReminderScheduler {
       final alarmSettings = AlarmSettings(
         id: alarmId,
         dateTime: scheduledTime,
-        assetAudioPath: alarmSound,
+        assetAudioPath: medicineSound,
         loopAudio: true,
         vibrate: true,
         androidFullScreenIntent: true,
@@ -397,7 +410,7 @@ class ReminderScheduler {
     final alarmSettings = AlarmSettings(
       id: scheduledReminderId(reminderId: reminder.id, time: beforeTime),
       dateTime: beforeTime,
-      assetAudioPath: alarmSound,
+      assetAudioPath: remindBeforeSound,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
         fadeDuration: Duration(seconds: 5),
@@ -467,7 +480,7 @@ class ReminderScheduler {
       final alarmSettings = AlarmSettings(
         id: alarmId,
         dateTime: dateTime,
-        assetAudioPath: alarmSound,
+        assetAudioPath: _audioPathForCategory(category),
         volumeSettings: VolumeSettings.fade(
           volume: 0.8,
           fadeDuration: Duration(seconds: 5),

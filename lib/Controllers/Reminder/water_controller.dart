@@ -99,7 +99,7 @@ class WaterController extends GetxController {
     final alarm = AlarmSettings(
       id: alarmsId(),
       dateTime: nextTime,
-      assetAudioPath: alarmSound,
+      assetAudioPath: waterSound,
       loopAudio: false,
       androidFullScreenIntent: true,
       volumeSettings: VolumeSettings.fade(

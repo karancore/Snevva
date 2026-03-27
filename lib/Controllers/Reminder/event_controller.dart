@@ -119,7 +119,7 @@ class EventController extends GetxController {
     final alarmSettings = AlarmSettings(
       id: id,
       dateTime: scheduledTime,
-      assetAudioPath: alarmSound,
+      assetAudioPath: eventSound,
       loopAudio: true,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
@@ -258,7 +258,7 @@ class EventController extends GetxController {
     final alarmSettings = AlarmSettings(
       id: alarmId,
       dateTime: scheduledTime,
-      assetAudioPath: alarmSound,
+      assetAudioPath: eventSound,
       loopAudio: true,
       androidFullScreenIntent: true,
       volumeSettings: VolumeSettings.fade(

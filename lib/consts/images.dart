@@ -114,7 +114,12 @@ const wellnessContainerImg6 = "assets/Images/MentalWellness/lake4.webp";
 const musicPlayer = "assets/Images/MentalWellness/rainInForest.webp";
 
 const alarmSound = "assets/sounds/alarm-327234.mp3";
-const waterSound = "assets/sounds/Water 1.mp3";
+const waterSound = "assets/sounds/water.mp3";
+const mealSound = "assets/sounds/meal.mp3";
+const medicineSound = "assets/sounds/medicine.mp3";
+const eventSound = "assets/sounds/event.mp3";
+const remindBeforeSound = "assets/sounds/remind_before.mp3";
+const sleepSound = "assets/sounds/sleep.mp3";
 
 //Music Icons
 const shuffleIcon = "assets/Icons/music/shuffle.svg";

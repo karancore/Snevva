@@ -40,7 +40,7 @@ class MealController extends GetxController {
     final alarmSettings = AlarmSettings(
       id: id,
       dateTime: scheduledTime,
-      assetAudioPath: alarmSound,
+      assetAudioPath: mealSound,
       loopAudio: true,
       androidFullScreenIntent: true,
       volumeSettings: VolumeSettings.fade(
@@ -99,7 +99,7 @@ class MealController extends GetxController {
     final alarmSettings = AlarmSettings(
       id: alarmId,
       dateTime: scheduledTime,
-      assetAudioPath: alarmSound,
+      assetAudioPath: mealSound,
       androidFullScreenIntent: true,
       loopAudio: true,
       volumeSettings: VolumeSettings.fade(

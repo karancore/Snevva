@@ -238,7 +238,7 @@ class MedicineController extends GetxController {
       final alarmSettings = AlarmSettings(
         id: alarmId,
         dateTime: reminderTime,
-        assetAudioPath: alarmSound,
+        assetAudioPath: medicineSound,
         loopAudio: true,
         vibrate: true,
         androidFullScreenIntent: true,
@@ -341,7 +341,7 @@ class MedicineController extends GetxController {
       final alarmSettings = AlarmSettings(
         id: alarmId,
         dateTime: scheduledTime,
-        assetAudioPath: alarmSound,
+        assetAudioPath: medicineSound,
         loopAudio: true,
         vibrate: true,
         androidFullScreenIntent: true,
@@ -563,7 +563,7 @@ class MedicineController extends GetxController {
       id: alarmId,
       androidFullScreenIntent: true,
       dateTime: scheduledTime,
-      assetAudioPath: alarmSound,
+      assetAudioPath: medicineSound,
       loopAudio: true,
       vibrate: true,
       volumeSettings: VolumeSettings.fade(

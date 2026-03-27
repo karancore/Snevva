@@ -72,6 +72,7 @@ class _SignInScreenState extends State<SignInScreen> {
     bool isEmail = emailRegExp.hasMatch(input);
     bool isPhone = phoneRegExp.hasMatch(input);
 
+
     try {
       bool success = false;
 
@@ -84,6 +85,14 @@ class _SignInScreenState extends State<SignInScreen> {
         );
       } else if (isPhone) {
         // 🔹 Phone Login
+        if (input.length < 10) {
+          CustomSnackbar.showError(context: context,
+              title: "Can't Sign In",
+              message: "Please enter a valid phone number");
+          _handleSignInError(
+              "Please enter a valid phone number with country code.");
+          return;
+        }
         success = await signInController.signInUsingPhone(
           input,
           password,

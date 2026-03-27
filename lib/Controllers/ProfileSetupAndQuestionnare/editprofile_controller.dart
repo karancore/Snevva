@@ -299,7 +299,8 @@ class EditprofileController extends GetxService {
                                     // await notify.showOtpNotification(result);
 
                                     if (result != false && result != null) {
-                                      otpVerificationController.responseOtp =
+                                      otpVerificationController.responseOtp
+                                          .value =
                                           result;
 
                                       // ✅ Close first dialog
@@ -329,6 +330,8 @@ class EditprofileController extends GetxService {
                                       isLoading.value = false;
                                     }
                                   } catch (e) {
+                                    debugPrint(
+                                        'Error during phone OTP process: $e');
                                     CustomSnackbar.showError(
                                       context: context,
                                       title: 'Error',
@@ -376,7 +379,8 @@ class EditprofileController extends GetxService {
                                     // await notify.showOtpNotification(result);
 
                                     if (result != false && result != null) {
-                                      otpVerificationController.responseOtp =
+                                      otpVerificationController.responseOtp
+                                          .value =
                                           result;
 
                                       // ✅ Close first dialog
@@ -406,6 +410,7 @@ class EditprofileController extends GetxService {
                                       isLoading.value = false;
                                     }
                                   } catch (e) {
+                                    debugPrint('Error sending OTP: $e');
                                     CustomSnackbar.showError(
                                       context: context,
                                       title: 'Error',

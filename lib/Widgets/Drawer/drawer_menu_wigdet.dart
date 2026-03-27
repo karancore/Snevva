@@ -1,7 +1,9 @@
 import 'dart:async';
+
 import 'package:alarm/alarm.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:http/http.dart' as http;
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/DietPlan/diet_plan_controller.dart';
@@ -17,18 +19,18 @@ import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/signupAndSignIn/otp_verification_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
+import 'package:snevva/common/agent_debug_logger.dart';
 import 'package:snevva/env/env.dart';
-import 'package:http/http.dart' as http;
 import 'package:snevva/services/api_service.dart';
+import 'package:snevva/services/app_initializer.dart';
 import 'package:snevva/services/background_pedometer_service.dart';
 import 'package:snevva/services/decisiontree_service.dart';
-import 'package:snevva/services/app_initializer.dart';
-import 'package:snevva/common/agent_debug_logger.dart';
 import 'package:snevva/services/hive_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
 import 'package:snevva/views/Settings/in_app_downloads.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
+
 import '../../consts/consts.dart';
 import 'drawer_menu_item.dart';
 
@@ -403,7 +405,10 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                     child: OutlinedButton(
                       onPressed: isLoading ? null : performLogout,
                       style: OutlinedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF0E5FF),
+                        backgroundColor:
+                            isLoading
+                                ? grey.withOpacity(0.5)
+                                : const Color(0xFFF0E5FF),
                         side: const BorderSide(color: Colors.transparent),
                         minimumSize: const Size(double.infinity, 40),
                         shape: RoundedRectangleBorder(
@@ -419,7 +424,7 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                                   width: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2.5,
-                                    color: AppColors.primaryColor,
+                                    color: white,
                                   ),
                                 )
                                 : Row(

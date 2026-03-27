@@ -38,6 +38,18 @@ List<Map<String, dynamic>> _decodeReminderEntries(List<String> encodedItems) {
   return decoded;
 }
 
+String _audioPathForReminderCategory(String category) {
+  final normalized = category.trim().toLowerCase();
+
+  if (normalized.contains('water')) return waterSound;
+  if (normalized.contains('meal')) return mealSound;
+  if (normalized.contains('medicine')) return medicineSound;
+  if (normalized.contains('event')) return eventSound;
+  if (normalized.contains('sleep')) return sleepSound;
+
+  return alarmSound;
+}
+
 List<int> _collectExpiredBeforeAlarmIds(Map<String, dynamic> payload) {
   final now = DateTime.fromMillisecondsSinceEpoch(payload['nowEpochMs'] as int);
   final alarms = (payload['alarms'] as List).cast<Map<String, dynamic>>();
@@ -336,7 +348,7 @@ class ReminderController extends GetxController {
     final alarmSettings = AlarmSettings(
       id: alarmId,
       dateTime: beforeTime,
-      assetAudioPath: alarmSound,
+      assetAudioPath: remindBeforeSound,
       loopAudio: false,
       allowAlarmOverlap: true,
       vibrate: soundVibrationToggle.value,
@@ -573,7 +585,7 @@ class ReminderController extends GetxController {
     final newAlarm = AlarmSettings(
       id: alarmsId(),
       dateTime: nextTime,
-      assetAudioPath: alarmSound,
+      assetAudioPath: _audioPathForReminderCategory('water'),
       androidFullScreenIntent: true,
       loopAudio: true,
       vibrate: soundVibrationToggle.value,
@@ -1508,6 +1520,7 @@ class ReminderController extends GetxController {
       scheduledTime: resolvedTime,
       notificationTitle: title,
       notificationBody: (reminder.notes ?? '').trim(),
+      assetAudioPath: mealSound,
       payload: jsonEncode({
         'groupId': reminder.id.toString(),
         'category': 'meal',
@@ -1556,6 +1569,7 @@ class ReminderController extends GetxController {
       scheduledTime: resolvedTime,
       notificationTitle: title,
       notificationBody: (reminder.notes ?? '').trim(),
+      assetAudioPath: eventSound,
       payload: payload,
     );
 
@@ -1846,6 +1860,7 @@ class ReminderController extends GetxController {
     required String notificationTitle,
     required String notificationBody,
     required String? payload,
+    String assetAudioPath = alarmSound,
   }) {
     return AlarmSettings(
       id: ReminderScheduler.scheduledReminderId(
@@ -1853,7 +1868,7 @@ class ReminderController extends GetxController {
         time: scheduledTime,
       ),
       dateTime: scheduledTime,
-      assetAudioPath: alarmSound,
+      assetAudioPath: assetAudioPath,
       androidFullScreenIntent: true,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
@@ -2008,7 +2023,7 @@ class ReminderController extends GetxController {
               time: t,
             ),
             dateTime: t,
-            assetAudioPath: alarmSound,
+            assetAudioPath: waterSound,
             loopAudio: false,
             androidFullScreenIntent: true,
             volumeSettings: VolumeSettings.fade(
@@ -2060,7 +2075,7 @@ class ReminderController extends GetxController {
               time: t,
             ),
             dateTime: t,
-            assetAudioPath: alarmSound,
+            assetAudioPath: waterSound,
             loopAudio: false,
             androidFullScreenIntent: true,
             volumeSettings: VolumeSettings.fade(
@@ -2903,7 +2918,7 @@ class ReminderController extends GetxController {
       final alarmSettings = AlarmSettings(
         id: alarmId,
         dateTime: targetTimes[i],
-        assetAudioPath: alarmSound,
+        assetAudioPath: medicineSound,
         loopAudio: true,
         vibrate: true,
         androidFullScreenIntent: true,
