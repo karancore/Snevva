@@ -6,7 +6,6 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.Display
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -14,56 +13,44 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private val sleepServiceChannelName = "com.coretegra.snevva/sleep_service"
+    private val stepServiceChannelName = "com.coretegra.snevva/step_service"
     private val displayConfigChannelName = "com.coretegra.snevva/display_config"
     private val oemChannelName = "com.coretegra.snevva/oem_settings"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         // Reset headless flag for pure UI run
         getSharedPreferences("steps_prefs", android.content.Context.MODE_PRIVATE)
             .edit().putBoolean("is_headless", false).apply()
-        
-        // Request ACTIVITY_RECOGNITION permission (required since Android 10 for step sensor)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACTIVITY_RECOGNITION)
-                    != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(android.Manifest.permission.ACTIVITY_RECOGNITION),
-                    1001
-                )
-            } else {
-                startStepCounterService()
-            }
-        } else {
-            startStepCounterService()
-        }
-            
+
+        startStepCounterService()
         AlarmHelper.cancelSleepAlarms(this)
         requestHighestRefreshRate()
         Log.d("Lifecycle", "onCreate called")
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 1001) {
-            // Start service regardless — sensor may still work, and we log if sensor is missing
-            startStepCounterService()
+    private fun startStepCounterService(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+            ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.ACTIVITY_RECOGNITION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.d(
+                "MainActivity",
+                "Skipping StepCounterService start until ACTIVITY_RECOGNITION is granted"
+            )
+            return false
         }
-    }
 
-    private fun startStepCounterService() {
         val stepIntent = Intent(this, StepCounterService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(stepIntent)
         } else {
             startService(stepIntent)
         }
+        return true
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -83,6 +70,17 @@ class MainActivity : FlutterActivity() {
                         openAutostartSettings()
                         result.success(true)
                     }
+                    else -> result.notImplemented()
+                }
+            }
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            stepServiceChannelName
+        )
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "startStepService" -> result.success(startStepCounterService())
                     else -> result.notImplemented()
                 }
             }
