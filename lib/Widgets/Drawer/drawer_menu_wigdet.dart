@@ -225,79 +225,45 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
               children: [
                 Obx(() {
                   final pickedFile = initialProfileController.pickedImage.value;
-
                   final String? cdnUrl =
-                      localStorageManager.userMap['ProfilePicture']?['CdnUrl'];
+                      localStorageManager.userMap['ProfilePicture']?['CdnUrl']
+                          ?.toString();
 
-                  Widget imageWidget;
-
-                  // 1️⃣ User picked image (highest priority)
+                  ImageProvider? imageProvider;
                   if (pickedFile != null) {
-                    imageWidget = Image.file(
-                      pickedFile,
-                      width: 120,
-                      height: 120,
-                      fit: BoxFit.cover,
-                    );
-                  }
-                  // 2️⃣ API image
-                  else if (cdnUrl != null && cdnUrl.isNotEmpty) {
-                    final fullUrl =
-                        cdnUrl.startsWith("http") ? cdnUrl : "https://$cdnUrl";
-
-                    imageWidget = CachedNetworkImage(
-                      imageUrl: fullUrl,
-                      width: 120,
-                      height: 120,
-                      fit: BoxFit.cover,
-                      placeholder:
-                          (_, __) => CircleAvatar(
-                            radius: 60,
-                            backgroundColor: Colors.grey,
-                            child: SizedBox(),
-                          ),
-                      errorWidget:
-                          (_, __, ___) => CircleAvatar(
-                            radius: 60,
-                            backgroundColor: Colors.grey,
-                            child: Icon(
-                              Icons.person,
-                              size: 200 * 0.75,
-                              color: Colors.white,
-                            ),
-                          ),
-                    );
-                  }
-                  // 3️⃣ Default asset
-                  else {
-                    imageWidget = Container(
-                      padding: const EdgeInsets.all(4), // border thickness
-                      decoration: const BoxDecoration(
-                        color: white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: CircleAvatar(
-                        radius: 60,
-                        backgroundColor: grey,
-                        child: Icon(
-                          Icons.person_2,
-                          size: 200 * 0.50,
-                          color: white,
-                        ),
-                      ),
-                    );
+                    imageProvider = FileImage(pickedFile);
+                  } else if (cdnUrl != null && cdnUrl.isNotEmpty) {
+                    final imageUrl =
+                        cdnUrl.startsWith('http') ? cdnUrl : 'https://$cdnUrl';
+                    imageProvider = CachedNetworkImageProvider(imageUrl);
                   }
 
                   return CircleAvatar(
                     radius: 60,
-                    backgroundColor: Colors.grey.shade200,
-                    child: ClipOval(child: imageWidget),
+                    backgroundColor: Colors.grey,
+                    child:
+                        imageProvider == null
+                            ? Icon(
+                              Icons.person,
+                              size: 200 * 0.75,
+                              color: Colors.white,
+                            )
+                            : ClipOval(
+                              child: Image(
+                                image: imageProvider,
+                                width: 120,
+                                height: 120,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
                   );
                 }),
                 const SizedBox(height: 8),
-                Text(
-                  localStorageManager.userMap['Name']?.toString() ?? 'User',
-                  style: const TextStyle(color: white, fontSize: 24),
+                Obx(
+                  () => Text(
+                    localStorageManager.userMap['Name']?.toString() ?? 'User',
+                    style: const TextStyle(color: white, fontSize: 24),
+                  ),
                 ),
               ],
             ),

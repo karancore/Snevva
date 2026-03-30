@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,8 +19,25 @@ class LocalStorageManager extends GetxService {
   void onInit() {
     super.onInit();
     reloadUserMap();
+    loadProfilePicture();
   }
 
+  Future<void> loadProfilePicture() async {
+    final String? cdnUrl = userMap['ProfilePicture']?['CdnUrl'];
+
+    String profilePictureUrl = 'https://$cdnUrl';
+    if (profilePictureUrl.isNotEmpty) {
+      try {
+        // Preload the image to cache it
+        await precacheImage(
+          CachedNetworkImageProvider(profilePictureUrl),
+          Get.context!,
+        );
+      } catch (e) {
+        debugPrint('Error preloading profile picture: $e');
+      }
+    }
+  }
   // // Optional: use this if you need async init
   // @override
   // Future<void> onReady() async {

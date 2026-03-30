@@ -2,7 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
-import 'package:snevva/common/global_variables.dart';
 
 import '../../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import '../../Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
@@ -77,6 +76,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         localStorageManager.userMap['ProfilePicture']?['CdnUrl'];
 
     profilePictureUrl = 'https://$cdnUrl';
+
+    // loadProfilePicture();
 
     _scrollController.addListener(() {
       if (_scrollController.position.userScrollDirection ==
