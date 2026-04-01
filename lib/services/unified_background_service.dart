@@ -401,7 +401,8 @@ void _startHeartbeatTimer({
         try {
           final windowEnd = DateTime.parse(windowEndStr);
           if (DateTime.now().isAfter(windowEnd)) {
-            _sleepNoticingService.stopMonitoring();
+            // NOTE: do NOT stop monitoring here — it must keep running 24/7
+            // so the next night's screen events are recorded.
             await _stopSleepAndSave(service, prefs, sleepBox);
           }
         } catch (_) {}
@@ -744,6 +745,16 @@ Future<void> _stopSleepAndSave(
   }
 
   print("✅ Sleep data saved successfully");
+
+  // ── Pending upload queue ────────────────────────────────────────────
+  // Write the sleep data to SharedPrefs so the main isolate's
+  // SleepController can pick it up and call uploadsleepdatatoServer even
+  // if no listener was registered at the moment this isolate fires
+  // sleep_saved (e.g. the sleep screen was never opened this session).
+  await prefs.setString('pending_sleep_upload_start', effectiveStart.toIso8601String());
+  await prefs.setString('pending_sleep_upload_end', effectiveEnd.toIso8601String());
+  await prefs.setInt('pending_sleep_upload_duration', totalSleepMinutes);
+  print('📋 Pending upload queued for main isolate');
 
   // Notify UI
   service.invoke("sleep_saved", {

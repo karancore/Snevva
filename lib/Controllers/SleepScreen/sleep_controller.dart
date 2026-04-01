@@ -49,6 +49,14 @@ class SleepController extends GetxService {
   static const _sleepCandidateHadPhoneUsageKey = "sleep_candidate_had_phone";
   static const _correctedSleepMinutesPrefix = "sleep_corrected_minutes_";
 
+  // Keys for the pending-upload queue written by the background isolate.
+  // The background service writes these after every Hive save so the
+  // main isolate can upload to the server even if the sleep screen was
+  // never opened during that session.
+  static const _pendingUploadStartKey = 'pending_sleep_upload_start';
+  static const _pendingUploadEndKey   = 'pending_sleep_upload_end';
+  static const _pendingUploadDurKey   = 'pending_sleep_upload_duration';
+
   RxBool isMonthlyView = false.obs;
 
   final RxList<FlSpot> monthlySleepSpots = <FlSpot>[].obs;
@@ -85,6 +93,8 @@ class SleepController extends GetxService {
     _checkIfAlreadySleeping();
     loadDeepSleepData();
     loadUserSleepTimes();
+    // Flush any sleep data that was saved while the screen was closed.
+    _uploadPendingSleep();
   }
 
   @override
@@ -173,6 +183,12 @@ class SleepController extends GetxService {
           if (bedDateTime != null && wakeDateTime != null) {
             debugPrint("📡 Uploading sleep to server: $startTime → $endTime");
             await uploadsleepdatatoServer(bedDateTime, wakeDateTime);
+            // Clear the pending queue so _uploadPendingSleep doesn't
+            // double-upload the same session on next app open.
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.remove(_pendingUploadStartKey);
+            await prefs.remove(_pendingUploadEndKey);
+            await prefs.remove(_pendingUploadDurKey);
           }
         }
 
@@ -485,6 +501,47 @@ class SleepController extends GetxService {
   Future<void> _clearSleepCandidate(SharedPreferences prefs) async {
     await prefs.remove(_sleepCandidateStartKey);
     await prefs.remove(_sleepCandidateHadPhoneUsageKey);
+  }
+
+  // ────────────────────────────────────────────────
+  // PENDING UPLOAD QUEUE (written by background isolate)
+  // ────────────────────────────────────────────────
+
+  /// Checks SharedPrefs for sleep data queued by the background isolate and
+  /// uploads it to the server. Called at controller init so any night that
+  /// was saved while the sleep screen was closed still reaches the DB on
+  /// the next app open / screen visit.
+  ///
+  /// Safe to call multiple times — no-op if no pending data.
+  Future<void> _uploadPendingSleep() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final startStr = prefs.getString(_pendingUploadStartKey);
+      final endStr   = prefs.getString(_pendingUploadEndKey);
+      final duration = prefs.getInt(_pendingUploadDurKey) ?? 0;
+
+      if (startStr == null || endStr == null || duration < 10) return;
+
+      final bedDateTime  = DateTime.tryParse(startStr);
+      final wakeDateTime = DateTime.tryParse(endStr);
+      if (bedDateTime == null || wakeDateTime == null) return;
+
+      debugPrint(
+        '📡 Flushing pending sleep upload: $startStr → $endStr ($duration min)',
+      );
+
+      await uploadsleepdatatoServer(bedDateTime, wakeDateTime);
+
+      // Clear pending queue only after a successful upload attempt.
+      await prefs.remove(_pendingUploadStartKey);
+      await prefs.remove(_pendingUploadEndKey);
+      await prefs.remove(_pendingUploadDurKey);
+
+      debugPrint('✅ Pending sleep upload flushed');
+    } catch (e) {
+      // Leave pending keys intact so the next init retries the upload.
+      debugPrint('⚠️ _uploadPendingSleep failed: $e');
+    }
   }
 
   int timeOfDayToMinutes(TimeOfDay t) => t.hour * 60 + t.minute;
