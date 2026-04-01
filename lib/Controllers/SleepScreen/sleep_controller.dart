@@ -807,7 +807,7 @@ class SleepController extends GetxService {
         "Time": TimeOfDay.fromDateTime(wake).format(Get.context!),
         "SleepingFrom": timeOfDayToString(TimeOfDay.fromDateTime(bedDateTime)),
         "SleepingTo": timeOfDayToString(TimeOfDay.fromDateTime(wake)),
-        "Count": duration.inMinutes,
+        "Count": deepSleepDuration.value.inMinutes.toString(),
       };
 
       debugPrint("🛰️ Uploading sleep payload: $payload");
