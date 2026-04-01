@@ -500,6 +500,28 @@ class _MyAppState extends State<MyApp> {
           data: const {},
         );
         await initBackgroundService();
+
+        // ── Flush pending sleep upload ──────────────────────────────────
+        // The background isolate writes pending_sleep_upload_* keys after
+        // every Hive save. SleepController._uploadPendingSleep() reads and
+        // clears them, but only runs inside onInit — which fires only when
+        // SleepController is first instantiated (it's lazyPut).
+        //
+        // If the sleep screen was never opened during this session the
+        // controller stays dormant. We force-instantiate it here so the
+        // upload always reaches the server, even with the app in background.
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.reload();
+          final hasPendingSleep =
+              prefs.getString('pending_sleep_upload_start') != null;
+          if (hasPendingSleep && Get.isRegistered<SleepController>()) {
+            debugPrint('📡 Pending sleep detected — triggering SleepController init');
+            Get.find<SleepController>(); // onInit → _uploadPendingSleep()
+          }
+        } catch (e) {
+          debugPrint('⚠️ Pending sleep flush check failed: $e');
+        }
       }),
     );
   }
