@@ -165,6 +165,17 @@ class SleepController extends GetxService {
         // Reload weekly data to show new entry
         await _loadWeeklySleepData();
 
+        // Upload to server — only if we have valid timestamps and meaningful
+        // sleep duration (uploadsleepdatatoServer has its own 10-min guard too).
+        if (startTime != null && endTime != null && duration >= 10) {
+          final bedDateTime = DateTime.tryParse(startTime);
+          final wakeDateTime = DateTime.tryParse(endTime);
+          if (bedDateTime != null && wakeDateTime != null) {
+            debugPrint("📡 Uploading sleep to server: $startTime → $endTime");
+            await uploadsleepdatatoServer(bedDateTime, wakeDateTime);
+          }
+        }
+
         // Show success message
         Get.snackbar(
           '😴 Sleep Recorded',

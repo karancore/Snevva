@@ -71,6 +71,13 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.reload();
 
+    // ── Always-on screen monitoring ───────────────────────────────
+    // Start 24/7 screen-off/on recording immediately — BEFORE the session
+    // restore logic runs. This ensures no events are lost between service
+    // boot and the first heartbeat tick.
+    _sleepNoticingService.startMonitoring();
+    print("🔍 Always-on sleep monitoring started at ${DateTime.now()}");
+
     await _ensureCurrentDayStepState(
       service: service,
       prefs: prefs,
@@ -130,7 +137,7 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
       await prefs.setInt("user_bedtime_ms", bedtimeMinutes);
       await prefs.setInt("user_waketime_ms", waketimeMinutes);
 
-      // Calculate and store sleep window
+      // Pin the sleep window so the screen monitor and calculator agree.
       final sleepWindow = _computeActiveSleepWindow(
         bedtimeMinutes,
         waketimeMinutes,
@@ -149,11 +156,16 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
         await prefs.setString("current_sleep_window_key", sleepWindow.dateKey);
       }
 
+      // Screen monitoring is already running 24/7 — only seed the rolling
+      // anchor so a service-restart mid-window doesn't lose early sleep.
       await _sleepNoticingService.initializeForSleepWindow();
-      _sleepNoticingService.startMonitoring();
+      // NOTE: do NOT call startMonitoring() here — it was started at boot.
+
+      final totalSleepMinutes =
+          await _sleepNoticingService.getTotalSleepMinutes();
 
       service.invoke("sleep_update", {
-        "elapsed_minutes": 0,
+        "elapsed_minutes": totalSleepMinutes,
         "goal_minutes": goalMinutes,
         "is_sleeping": true,
       });
@@ -164,15 +176,10 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
 
       _updateSleepNotification(
         service: service,
-        elapsedMinutes: 0,
+        elapsedMinutes: totalSleepMinutes,
         goalMinutes: goalMinutes,
       );
-      _startSleepProgressTimer(
-        service: service,
-        prefs: prefs,
-        goalMinutes: goalMinutes,
-        sleepBox: sleepBox,
-      );
+      // Heartbeat timer already running — no need to restart it.
     });
 
     // ═══════════════════════════════════════════════════════════════
@@ -180,10 +187,9 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
     // ═══════════════════════════════════════════════════════════════
 
     service.on("stop_sleep").listen((event) async {
-      _sleepProgressTimer?.cancel();
-      _sleepProgressTimer = null;
-      _sleepNoticingService.stopMonitoring();
-      print("✅ SleepNoticingService stopped at ${DateTime.now()}");
+      // NOTE: we do NOT stop screen monitoring — it must remain alive for
+      // the next night's sleep window even after the current session ends.
+      print("⏹️ stop_sleep received at ${DateTime.now()}");
       await _stopSleepAndSave(service, prefs, sleepBox);
     });
 
@@ -289,6 +295,7 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
       print("🛑 Stopping unified background service at ${DateTime.now()}...");
       _sleepProgressTimer?.cancel();
       _sleepProgressTimer = null;
+      // Service is truly stopping — stop screen monitoring.
       _sleepNoticingService.stopMonitoring();
 
       AgentDebugLogger.log(
@@ -413,23 +420,6 @@ void _startHeartbeatTimer({
   });
 }
 
-// Keep the old name as a thin wrapper so all existing call-sites compile.
-void _startSleepProgressTimer({
-  required ServiceInstance service,
-  required SharedPreferences prefs,
-  required int goalMinutes,
-  required Box<SleepLog> sleepBox,
-}) {
-  // goalMinutes is now read fresh inside the timer — no need to pass it.
-  // Delegate to the always-on heartbeat (no-op if already running because
-  // the timer is replaced each call).
-  _startHeartbeatTimer(
-    service: service,
-    prefs: prefs,
-    sleepBox: sleepBox,
-    stepBox: Hive.box<StepEntry>('step_history'), // already open at this point
-  );
-}
 
 // ───────────────────────────────────────────────────────────────────
 // 🌙 SLEEP SESSION RESTORE / AUTO-START
@@ -465,8 +455,9 @@ Future<void> _restoreOrAutoStartSleepTracking({
     }
 
     // Resume active sleep session
+    // Seed rolling anchor only if not already set (avoids overwriting real data).
     await _sleepNoticingService.initializeForSleepWindow();
-    _sleepNoticingService.startMonitoring();
+    // Screen monitoring already running 24/7 — do NOT call startMonitoring().
 
     final goalMinutes = prefs.getInt("sleep_goal_minutes") ?? 480;
     final totalSleepMinutes =
@@ -486,14 +477,7 @@ Future<void> _restoreOrAutoStartSleepTracking({
       elapsedMinutes: totalSleepMinutes,
       goalMinutes: goalMinutes,
     );
-
-    // Re-start the 1-min progress timer after service restart
-    _startSleepProgressTimer(
-      service: service,
-      prefs: prefs,
-      goalMinutes: goalMinutes,
-      sleepBox: sleepBox,
-    );
+    // Heartbeat timer already running — no need to restart.
     return;
   }
 
@@ -578,8 +562,9 @@ Future<void> _startSleepTrackingSession({
     await prefs.setString(_lastAutoStartedSleepWindowKey, sleepWindow.dateKey);
   }
 
+  // Only seed the rolling anchor — monitoring is already running 24/7.
   await _sleepNoticingService.initializeForSleepWindow();
-  _sleepNoticingService.startMonitoring();
+  // NOTE: do NOT call startMonitoring() here.
 
   final totalSleepMinutes = await _sleepNoticingService.getTotalSleepMinutes();
   final startTime =
@@ -602,14 +587,7 @@ Future<void> _startSleepTrackingSession({
     elapsedMinutes: totalSleepMinutes,
     goalMinutes: goalMinutes,
   );
-
-  // Start the 1-min progress timer
-  _startSleepProgressTimer(
-    service: service,
-    prefs: prefs,
-    goalMinutes: goalMinutes,
-    sleepBox: sleepBox,
-  );
+  // Heartbeat timer already running — no need to restart.
 }
 
 // ───────────────────────────────────────────────────────────────────
@@ -717,7 +695,16 @@ Future<void> _stopSleepAndSave(
 
   if (!effectiveEnd.isAfter(effectiveStart)) effectiveEnd = effectiveStart;
 
-  final totalSleepMinutes = await _sleepNoticingService.getTotalSleepMinutes();
+  // Calculate sleep minutes: the SleepNoticingService clips the 24h raw
+  // buffer to the resolved sleep window, so totalSleepMinutes already
+  // respects the window boundaries.
+  final totalSleepMinutes = await _sleepNoticingService.getTotalSleepMinutes(
+    windowStart:
+        windowStartString != null ? DateTime.tryParse(windowStartString) : null,
+    windowEnd:
+        windowEndString != null ? DateTime.tryParse(windowEndString) : null,
+    windowDateKey: windowKey,
+  );
 
   print("💾 Saving sleep data:");
   print("   Start: $effectiveStart");
@@ -740,7 +727,9 @@ Future<void> _stopSleepAndSave(
     );
   }
 
-  // Clear sleep state
+  // Clear the is_sleeping session state — but leave the raw screen-event
+  // buffer intact so the next window calculation (or a late wake detection)
+  // can still read it. The buffer is date-keyed and naturally expires.
   await prefs.setBool("is_sleeping", false);
   await prefs.remove("sleep_start_time");
   await prefs.remove("sleep_goal_minutes");
@@ -748,7 +737,7 @@ Future<void> _stopSleepAndSave(
   await prefs.remove("current_sleep_window_end");
   await prefs.remove("current_sleep_window_key");
 
-  // Clear sleep intervals
+  // Clean up legacy per-window interval keys (old architecture).
   if (windowKey != null) {
     await prefs.remove('sleep_intervals_$windowKey');
     await prefs.remove('last_screen_off_$windowKey');

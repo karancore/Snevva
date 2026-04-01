@@ -1,40 +1,65 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:screen_state/screen_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 
-/// SleepNoticingService
-///
-/// Automatically tracks screen off/on events within the user's sleep window
-/// and aggregates sleep intervals for total sleep time calculation.
+// ─────────────────────────────────────────────────────────────────────────────
+// SleepNoticingService
+//
+// Architecture: ALWAYS-ON screen monitoring, window-clipped calculation.
+//
+// The service runs 24/7. Screen-off/on events are written to a rolling
+// 24-hour buffer keyed by calendar date, WITHOUT any is_sleeping check.
+// Sleep duration is calculated from those raw intervals by clipping them
+// to the user's sleep window at save-time (inside _stopSleepAndSave).
+//
+// This guarantees that no sleep data is lost even if the bedtime heartbeat
+// fires late, the app is never opened, or the service restarts mid-night.
+// ─────────────────────────────────────────────────────────────────────────────
+
 class SleepNoticingService {
   static const Duration minSleepGap = Duration(minutes: 3);
 
-  // ✅ FIX: Use the same plain keys as SharedPreferences everywhere — no 'flutter.' prefix
+  // SharedPrefs key prefixes used by the rolling 24h buffer.
+  // All keys are date-scoped so old data cannot pollute a fresh night.
+  //
+  //   rolling_screen_off_<YYYY-MM-DD>   → ISO timestamp of last SCREEN_OFF
+  //                                        (open interval anchor, null when
+  //                                         screen is on / interval closed)
+  //   raw_intervals_<YYYY-MM-DD>        → comma-separated "start|end" pairs
+  //                                        of closed screen-off intervals
+  //
+  // Sleep-window keys (written by unified_background_service, read here):
+  //   current_sleep_window_start        → ISO DateTime window start
+  //   current_sleep_window_end          → ISO DateTime window end
+  //   current_sleep_window_key          → YYYY-MM-DD date key for the window
+  //   user_bedtime_ms                   → bedtime minutes-of-day
+  //   user_waketime_ms                  → waketime minutes-of-day
+
   static const String _bedtimeKey = 'user_bedtime_ms';
   static const String _waketimeKey = 'user_waketime_ms';
 
   StreamSubscription<ScreenStateEvent>? _subscription;
   final Screen _screen = Screen();
 
-  // ─────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
   // PUBLIC API
-  // ─────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
 
+  /// Start listening to screen events.  Call once at service boot and leave
+  /// running forever (24/7).  Idempotent — safe to call again after restart.
   void startMonitoring() {
     if (_subscription != null) {
       debugPrint('ℹ️ SleepNoticingService already monitoring');
       return;
     }
 
-    debugPrint('🚀 SleepNoticingService.startMonitoring');
+    debugPrint('🚀 SleepNoticingService.startMonitoring (always-on)');
 
     try {
       _subscription = _screen.screenStateStream.listen((event) {
-        debugPrint('📱 Screen event received: $event');
+        debugPrint('📱 Screen event: $event');
 
         if (event == ScreenStateEvent.SCREEN_OFF) {
           _onScreenTurnedOff();
@@ -43,134 +68,166 @@ class SleepNoticingService {
         }
       });
 
-      debugPrint('✅ Screen state monitoring started');
+      debugPrint('✅ Always-on screen monitoring started');
     } catch (e) {
       debugPrint('❌ Screen state stream error: $e');
     }
   }
 
+  /// Stop listening.  Only called when the entire service is stopping.
   void stopMonitoring() {
     debugPrint('🛑 SleepNoticingService.stopMonitoring');
     _subscription?.cancel();
     _subscription = null;
   }
 
-  // Called when sleep starts (or when service restarts mid-sleep session).
-  // Seeds the open-interval anchor so we never lose sleep time due to an
-  // unknown screen state after a service restart.
+  // ─────────────────────────────────────────────────────────────────────────
+  // initializeForSleepWindow
+  //
+  // Seeds the rolling anchor from window.start when:
+  //   • the service just booted inside an active window AND
+  //   • we don't already know the real screen state (no anchor in prefs).
+  //
+  // This is conservative: if the screen was actually ON when the service
+  // started the next SCREEN_ON event will close a tiny interval (which may
+  // be filtered by minSleepGap).  If it was OFF we accumulate correctly.
+  // ─────────────────────────────────────────────────────────────────────────
+
   Future<void> initializeForSleepWindow() async {
     final prefs = await SharedPreferences.getInstance();
-    final window = await _computeActiveSleepWindow(prefs);
+    final window = _computeActiveSleepWindowFromPrefs(prefs);
     if (window == null) return;
 
     final now = DateTime.now();
     if (!_isWithinWindow(now, window.start, window.end)) return;
 
-    final lastOffKey = 'last_screen_off_${window.dateKey}';
+    final todayKey = _todayDateKey();
+    final rollingOffKey = 'rolling_screen_off_$todayKey';
 
-    // Only seed the anchor if there is no existing open-interval key.
-    // If one already exists from before the restart, we honour it (preserves
-    // any sleep that happened before the service went down).
-    final existing = prefs.getString(lastOffKey);
+    final existing = prefs.getString(rollingOffKey);
     if (existing == null) {
-      // We don't know the real screen state after a restart — assume screen is
-      // off (conservative). If it's actually on, the next SCREEN_ON event will
-      // close this interval correctly. If it's off, we continue accumulating.
-      await prefs.setString(lastOffKey, window.start.toIso8601String());
+      // Seed anchor at window.start — conservative assumption: screen was off.
+      await prefs.setString(rollingOffKey, window.start.toIso8601String());
       debugPrint(
-        '🔒 initializeForSleepWindow: seeded open interval from window.start (${window.start})',
+        '🔒 initializeForSleepWindow: seeded rolling anchor at ${window.start}',
       );
     } else {
       debugPrint(
-        'ℹ️ initializeForSleepWindow: existing open interval found ($existing), keeping it.',
+        'ℹ️ initializeForSleepWindow: rolling anchor already exists ($existing)',
       );
     }
   }
 
-  // ─────────────────────────────────────────────
-  // SCREEN OFF → POSSIBLE SLEEP START
-  // ─────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
+  // getTotalSleepMinutes
+  //
+  // Computes sleep minutes by:
+  //   1. Reading raw_intervals_<dateKey> (all closed screen-off periods today)
+  //   2. Adding the open interval (rolling_screen_off still set → screen is off)
+  //   3. Clipping every interval to [window.start, window.end]
+  //   4. Merging overlaps and summing
+  //
+  // If window is null (no sleep window configured) returns 0.
+  // ─────────────────────────────────────────────────────────────────────────
 
-  Future<void> _onScreenTurnedOff() async {
-    debugPrint('🌙 SCREEN_OFF detected');
-
+  /// Computes total sleep minutes, clipped to the given sleep window.
+  ///
+  /// Callers may pass [windowStart], [windowEnd], and [windowDateKey] to
+  /// explicitly pin the window (from the unified_background_service's
+  /// current_sleep_window_* prefs). If omitted the window is resolved from
+  /// prefs (bedtime / pinned window keys).
+  Future<int> getTotalSleepMinutes({
+    DateTime? windowStart,
+    DateTime? windowEnd,
+    String? windowDateKey,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
 
-    // Check if sleep tracking is active
-    final isSleeping = prefs.getBool("is_sleeping") ?? false;
-    if (!isSleeping) {
-      debugPrint('⛔ Sleep tracking not active, ignoring SCREEN_OFF');
-      return;
+    _SleepWindow? resolvedWindow;
+
+    if (windowStart != null && windowEnd != null && windowDateKey != null) {
+      resolvedWindow = _SleepWindow(
+        start: windowStart,
+        end: windowEnd,
+        dateKey: windowDateKey,
+      );
+    } else {
+      resolvedWindow = _computeActiveSleepWindowFromPrefs(prefs);
     }
 
-    final window = await _computeActiveSleepWindow(prefs);
-    if (window == null) {
-      debugPrint('⛔ Sleep window not available');
-      return;
-    }
-
-    final now = DateTime.now();
-    debugPrint('   now: $now');
-    debugPrint('   sleep window: ${window.start} → ${window.end}');
-    debugPrint('   dateKey: ${window.dateKey}');
-
-    if (!_isWithinWindow(now, window.start, window.end)) {
-      debugPrint('⛔ SCREEN_OFF ignored (outside sleep window)');
-      return;
-    }
-
-    final lastOffKey = 'last_screen_off_${window.dateKey}';
-    await prefs.setString(lastOffKey, now.toIso8601String());
-
-    debugPrint('🔒 SCREEN_OFF saved → $lastOffKey = $now');
+    if (resolvedWindow == null) return 0;
+    return _calculateSleepMinutesForWindow(prefs, resolvedWindow);
   }
 
-  // ─────────────────────────────────────────────
-  // SCREEN ON → AWAKE SEGMENT, SAVE INTERVAL
-  // ─────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
+  // clearSleepData
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Future<void> clearSleepData(String dateKey) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('raw_intervals_$dateKey');
+    await prefs.remove('rolling_screen_off_$dateKey');
+
+    // Legacy keys — remove so old data doesn't pollute fresh runs.
+    await prefs.remove('sleep_intervals_$dateKey');
+    await prefs.remove('last_screen_off_$dateKey');
+
+    debugPrint('🗑️ Cleared sleep data for $dateKey');
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SCREEN OFF — always record, no is_sleeping check
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Future<void> _onScreenTurnedOff() async {
+    final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now();
+    final todayKey = _dateKey(now);
+    final rollingOffKey = 'rolling_screen_off_$todayKey';
+
+    // Always write the screen-off timestamp. If there is already an open
+    // interval from a previous SCREEN_OFF that was never closed (e.g. service
+    // restarted while screen was off), we keep the earlier timestamp so we
+    // don't lose that sleep time.
+    final existing = prefs.getString(rollingOffKey);
+    if (existing == null) {
+      await prefs.setString(rollingOffKey, now.toIso8601String());
+      debugPrint('🔒 SCREEN_OFF → rolling anchor set at $now ($todayKey)');
+    } else {
+      debugPrint(
+        '🔒 SCREEN_OFF → anchor already open ($existing), keeping earlier',
+      );
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SCREEN ON — close open interval, record to raw buffer, no is_sleeping check
+  // ─────────────────────────────────────────────────────────────────────────
 
   Future<void> _onScreenTurnedOn() async {
-    debugPrint('🌞 SCREEN_ON detected');
-
     final prefs = await SharedPreferences.getInstance();
-
-    // Check if sleep tracking is active
-    final isSleeping = prefs.getBool("is_sleeping") ?? false;
-    if (!isSleeping) {
-      debugPrint('⛔ Sleep tracking not active, ignoring SCREEN_ON');
-      return;
-    }
-
-    final window = await _computeActiveSleepWindow(prefs);
-    if (window == null) {
-      debugPrint('⛔ Sleep window not available');
-      return;
-    }
-
     final now = DateTime.now();
-    if (!now.isBefore(window.end) &&
-        Get.context != null &&
-        Get.isRegistered<SleepController>()) {
-      final bedMin = prefs.getInt(_bedtimeKey);
-      final wakeMin = prefs.getInt(_waketimeKey);
 
-      if (bedMin != null && wakeMin != null) {
-        final bedTime = TimeOfDay(hour: bedMin ~/ 60, minute: bedMin % 60);
-        final wakeTime = TimeOfDay(hour: wakeMin ~/ 60, minute: wakeMin % 60);
+    // The screen-off could have started on the previous calendar day
+    // (e.g. went to sleep at 23:00, woke at 07:00 — SCREEN_OFF was on day-1).
+    // We handle this by checking today's key first, then yesterday's.
+    final todayKey = _dateKey(now);
+    final yesterdayKey = _dateKey(now.subtract(const Duration(days: 1)));
 
-        await Get.find<SleepController>().updateSleepTimestoServer(
-          bedTime,
-          wakeTime,
-        );
+    String? offKey;
+    String? lastOffIso;
+
+    for (final dayKey in [todayKey, yesterdayKey]) {
+      final candidate = prefs.getString('rolling_screen_off_$dayKey');
+      if (candidate != null) {
+        offKey = dayKey;
+        lastOffIso = candidate;
+        break;
       }
     }
 
-    final lastOffKey = 'last_screen_off_${window.dateKey}';
-    final intervalsKey = 'sleep_intervals_${window.dateKey}';
-
-    final lastOffIso = prefs.getString(lastOffKey);
-    if (lastOffIso == null) {
-      debugPrint('ℹ️ No open sleep segment (no SCREEN_OFF before)');
+    if (offKey == null || lastOffIso == null) {
+      debugPrint('ℹ️ SCREEN_ON → no open screen-off anchor found, ignoring');
       return;
     }
 
@@ -178,279 +235,231 @@ class SleepNoticingService {
     try {
       lastOff = DateTime.parse(lastOffIso);
     } catch (e) {
-      debugPrint('❌ Failed to parse last SCREEN_OFF: $e');
-      await prefs.remove(lastOffKey);
+      debugPrint('❌ Failed to parse rolling screen-off anchor: $e');
+      await prefs.remove('rolling_screen_off_$offKey');
       return;
     }
 
-    debugPrint('🕰️ Raw OFF interval: $lastOff → $now');
+    debugPrint('🌞 SCREEN_ON → closing interval $lastOff → $now');
 
-    // Clamp interval to sleep window
-    DateTime start = lastOff.isBefore(window.start) ? window.start : lastOff;
-    DateTime end = now.isAfter(window.end) ? window.end : now;
-
-    debugPrint('✂️ Clamped interval: $start → $end');
-
-    if (!end.isAfter(start)) {
-      debugPrint('⛔ Ignored (non-positive interval)');
-      await prefs.remove(lastOffKey);
-      return;
-    }
-
-    final duration = end.difference(start);
-    debugPrint('⏱️ Interval duration: ${duration.inMinutes} min');
-
-    if (duration < minSleepGap) {
-      debugPrint('⛔ Ignored (below minSleepGap ${minSleepGap.inMinutes} min)');
-      await prefs.remove(lastOffKey);
-      return;
-    }
-
-    // Append interval
-    final existing = prefs.getString(intervalsKey);
+    // Store the raw (unclipped) interval under the day the SCREEN_OFF started.
+    // Clipping to the sleep window happens in getTotalSleepMinutes.
+    final rawKey = 'raw_intervals_$offKey';
+    final existing = prefs.getString(rawKey);
     final intervals = _parseIntervals(existing);
-    intervals.add(_TimeInterval(start: start, end: end));
-    final merged = _mergeIntervals(intervals);
-    final serialized = _serializeIntervals(merged);
 
-    await prefs.setString(intervalsKey, serialized);
-    await prefs.remove(lastOffKey);
-
-    debugPrint('💾 Interval saved → $intervalsKey');
-    debugPrint('   merged intervals: ${merged.length}');
-  }
-
-  // ─────────────────────────────────────────────
-  // PUBLIC UTILITY: Get total sleep time
-  // ─────────────────────────────────────────────
-
-  // ... existing code ...
-
-  Future<int> getTotalSleepMinutes() async {
-    final prefs = await SharedPreferences.getInstance();
-    final window = await _computeActiveSleepWindow(prefs);
-
-    if (window == null) return 0;
-
-    final intervalsKey = 'sleep_intervals_${window.dateKey}';
-    final intervalsStr = prefs.getString(intervalsKey);
-
-    int totalMinutes = 0;
-
-    // Count saved intervals (merged to avoid duplicate/overlapping entries)
-    if (intervalsStr != null && intervalsStr.isNotEmpty) {
-      final merged = _mergeIntervals(_parseIntervals(intervalsStr));
-      for (final interval in merged) {
-        totalMinutes += interval.end.difference(interval.start).inMinutes;
-      }
-    }
-
-    // Check for open interval (screen currently off)
-    final lastOffKey = 'last_screen_off_${window.dateKey}';
-    final lastOffStr = prefs.getString(lastOffKey);
-    if (lastOffStr != null) {
-      try {
-        final lastOff = DateTime.parse(lastOffStr);
-        final now = DateTime.now();
-
-        // Clamp to window
-        DateTime start =
-            lastOff.isBefore(window.start) ? window.start : lastOff;
-        DateTime end = now.isAfter(window.end) ? window.end : now;
-
-        if (end.isAfter(start)) {
-          final openIntervalMinutes = end.difference(start).inMinutes;
-          if (openIntervalMinutes >= minSleepGap.inMinutes) {
-            totalMinutes += openIntervalMinutes;
-            debugPrint(
-              '📱 Open interval (screen still off): $openIntervalMinutes mins',
-            );
-          }
-        }
-      } catch (e) {
-        debugPrint('⚠️ Failed to parse open interval: $e');
-      }
-    }
-
-    debugPrint('📊 Total sleep from intervals + open: $totalMinutes mins');
-    return totalMinutes;
-  }
-
-  // ... rest of existing code ...
-  // ─────────────────────────────────────────────
-  // PUBLIC UTILITY: Clear sleep data
-  // ─────────────────────────────────────────────
-
-  Future<void> clearSleepData(String dateKey) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('sleep_intervals_$dateKey');
-    await prefs.remove('last_screen_off_$dateKey');
-    debugPrint('🗑️ Cleared sleep data for $dateKey');
-  }
-
-  // ─────────────────────────────────────────────
-  // HELPERS
-  // ─────────────────────────────────────────────
-
-  bool _isWithinWindow(DateTime t, DateTime start, DateTime end) {
-    final inside =
-        (!t.isBefore(start)) && (t.isBefore(end) || t.isAtSameMomentAs(end));
-    return inside;
-  }
-
-  Future<_SleepWindow?> _computeActiveSleepWindow(
-    SharedPreferences prefs,
-  ) async {
-    debugPrint('🧠 Computing active sleep window');
-
-    // First try to get from current sleep session
-    final currentWindowStart = prefs.getString("current_sleep_window_start");
-    final currentWindowEnd = prefs.getString("current_sleep_window_end");
-    final currentWindowKey = prefs.getString("current_sleep_window_key");
-
-    if (currentWindowStart != null &&
-        currentWindowEnd != null &&
-        currentWindowKey != null) {
-      debugPrint('✅ Using current sleep session window');
-      return _SleepWindow(
-        start: DateTime.parse(currentWindowStart),
-        end: DateTime.parse(currentWindowEnd),
-        dateKey: currentWindowKey,
+    final duration = now.difference(lastOff);
+    if (duration >= minSleepGap) {
+      intervals.add(_TimeInterval(start: lastOff, end: now));
+      final merged = _mergeIntervals(intervals);
+      await prefs.setString(rawKey, _serializeIntervals(merged));
+      debugPrint(
+        '💾 Raw interval saved → $rawKey  (${duration.inMinutes} min)',
+      );
+    } else {
+      debugPrint(
+        '⛔ Interval too short (${duration.inMinutes} min < ${minSleepGap.inMinutes} min), discarded',
       );
     }
 
-    // Fallback to calculating from bedtime/waketime
+    // Clear the open anchor — interval is now closed.
+    await prefs.remove('rolling_screen_off_$offKey');
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // CALCULATION — clip raw intervals to sleep window, sum minutes
+  // ─────────────────────────────────────────────────────────────────────────
+
+  int _calculateSleepMinutesForWindow(
+    SharedPreferences prefs,
+    _SleepWindow window,
+  ) {
+    final allIntervals = <_TimeInterval>[];
+
+    // Collect raw intervals for the window's day AND the previous day
+    // (handles cross-midnight windows like 23:00 → 07:00).
+    for (final rawKey in [
+      'raw_intervals_${window.dateKey}',
+      'raw_intervals_${_dateKey(window.start.subtract(const Duration(days: 1)))}',
+      // Also check legacy keys written by the old architecture.
+      'sleep_intervals_${window.dateKey}',
+    ]) {
+      final str = prefs.getString(rawKey);
+      if (str != null && str.isNotEmpty) {
+        allIntervals.addAll(_parseIntervals(str));
+      }
+    }
+
+    // Add open interval if screen is currently off (rolling anchor still set).
+    for (final dayKey in [
+      window.dateKey,
+      _dateKey(window.start.subtract(const Duration(days: 1))),
+    ]) {
+      final offStr = prefs.getString('rolling_screen_off_$dayKey');
+      // Also check legacy key name used by old implementation.
+      final legacyOffStr = prefs.getString('last_screen_off_${window.dateKey}');
+
+      final anchorStr = offStr ?? legacyOffStr;
+      if (anchorStr != null) {
+        try {
+          final lastOff = DateTime.parse(anchorStr);
+          final now = DateTime.now();
+          final end = now.isAfter(window.end) ? window.end : now;
+          if (end.difference(lastOff) >= minSleepGap) {
+            allIntervals.add(_TimeInterval(start: lastOff, end: end));
+            debugPrint(
+              '📱 Open interval included (screen still off): ${end.difference(lastOff).inMinutes} min',
+            );
+          }
+        } catch (_) {}
+        break; // Only add the open anchor once.
+      }
+    }
+
+    if (allIntervals.isEmpty) return 0;
+
+    // Clip every interval to [window.start, window.end].
+    final clipped = <_TimeInterval>[];
+    for (final iv in allIntervals) {
+      final start = iv.start.isBefore(window.start) ? window.start : iv.start;
+      final end = iv.end.isAfter(window.end) ? window.end : iv.end;
+      if (end.isAfter(start) &&
+          end.difference(start) >= minSleepGap) {
+        clipped.add(_TimeInterval(start: start, end: end));
+      }
+    }
+
+    final merged = _mergeIntervals(clipped);
+    final totalMinutes = merged.fold<int>(
+      0,
+      (sum, iv) => sum + iv.end.difference(iv.start).inMinutes,
+    );
+
+    debugPrint(
+      '📊 Sleep minutes for window ${window.dateKey}: $totalMinutes min '
+      '(${merged.length} clipped intervals)',
+    );
+    return totalMinutes;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SLEEP WINDOW HELPERS  (kept self-contained — no dependency on UBS)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Build the active sleep window purely from SharedPrefs.
+  /// Priority: current_sleep_window_* keys (set by UBS when session is live)
+  ///           → fall back to computing from bedtime/waketime prefs.
+  _SleepWindow? _computeActiveSleepWindowFromPrefs(SharedPreferences prefs) {
+    // 1. Use the pinned window keys if available (session already started).
+    final startStr = prefs.getString('current_sleep_window_start');
+    final endStr = prefs.getString('current_sleep_window_end');
+    final keyStr = prefs.getString('current_sleep_window_key');
+
+    if (startStr != null && endStr != null && keyStr != null) {
+      try {
+        return _SleepWindow(
+          start: DateTime.parse(startStr),
+          end: DateTime.parse(endStr),
+          dateKey: keyStr,
+        );
+      } catch (_) {}
+    }
+
+    // 2. Compute from user's bedtime/waketime preferences.
     final bedMin = prefs.getInt(_bedtimeKey);
     final wakeMin = prefs.getInt(_waketimeKey);
 
-    debugPrint('   stored bedMin: $bedMin');
-    debugPrint('   stored wakeMin: $wakeMin');
-
-    if (bedMin == null || wakeMin == null) {
-      debugPrint('⛔ Missing bedtime or waketime');
+    if (bedMin == null || wakeMin == null) return null;
+    if (!_isValidMinutesOfDay(bedMin) || !_isValidMinutesOfDay(wakeMin)) {
       return null;
     }
 
-    final bedTod = TimeOfDay(hour: bedMin ~/ 60, minute: bedMin % 60);
-    final wakeTod = TimeOfDay(hour: wakeMin ~/ 60, minute: wakeMin % 60);
-
-    final now = DateTime.now();
-
-    DateTime sleepStartToday = _buildDateTime(now, bedTod);
-    DateTime sleepStart;
-
-    if (bedMin > wakeMin) {
-      // CROSS MIDNIGHT CASE (e.g., 23:00 → 06:00)
-
-      if (now.isBefore(_buildDateTime(now, wakeTod))) {
-        // After midnight but before wake time → belongs to yesterday's sleep
-        sleepStart = sleepStartToday.subtract(const Duration(days: 1));
-      } else if (now.isBefore(sleepStartToday)) {
-        // Before bedtime tonight → still yesterday's sleep window
-        sleepStart = sleepStartToday.subtract(const Duration(days: 1));
-      } else {
-        // After bedtime tonight
-        sleepStart = sleepStartToday;
-      }
-    } else {
-      // NORMAL SAME-DAY SLEEP (e.g., 22:00 → 23:00)
-      sleepStart = sleepStartToday;
-    }
-
-    final sleepEnd = _resolveSleepEnd(sleepStart, wakeTod);
-    final key = _dateKey(sleepStart);
-
-    debugPrint('🛏️ BedTime TOD: $bedTod');
-    debugPrint('⏰ WakeTime TOD: $wakeTod');
-    debugPrint('🌙 Sleep window resolved: $sleepStart → $sleepEnd');
-    debugPrint('🗓️ dateKey: $key');
-
-    return _SleepWindow(start: sleepStart, end: sleepEnd, dateKey: key);
+    return _buildWindowFromMinutes(bedMin, wakeMin, DateTime.now());
   }
 
-  DateTime _buildDateTime(DateTime base, TimeOfDay tod) {
-    return DateTime(base.year, base.month, base.day, tod.hour, tod.minute);
-  }
+  _SleepWindow _buildWindowFromMinutes(
+    int bedMin,
+    int wakeMin,
+    DateTime now,
+  ) {
+    final bedHour = bedMin ~/ 60;
+    final bedMinute = bedMin % 60;
+    final wakeHour = wakeMin ~/ 60;
+    final wakeMinute = wakeMin % 60;
 
-  DateTime _resolveSleepStart(DateTime now, TimeOfDay bedtime) {
-    DateTime start = _buildDateTime(now, bedtime);
+    DateTime start = DateTime(now.year, now.month, now.day, bedHour, bedMinute);
 
-    debugPrint('🛠️ resolveSleepStart');
-    debugPrint('   now: $now');
-    debugPrint('   raw start: $start');
-
+    // If bedtime is more than 5 min in the future, this is yesterday's bedtime.
     if (start.isAfter(now.add(const Duration(minutes: 5)))) {
       start = start.subtract(const Duration(days: 1));
-      debugPrint('   ⏪ shifted to yesterday: $start');
     }
 
-    return start;
-  }
-
-  DateTime _resolveSleepEnd(DateTime sleepStart, TimeOfDay waketime) {
     DateTime end = DateTime(
-      sleepStart.year,
-      sleepStart.month,
-      sleepStart.day,
-      waketime.hour,
-      waketime.minute,
+      start.year,
+      start.month,
+      start.day,
+      wakeHour,
+      wakeMinute,
     );
 
-    debugPrint('🛠️ resolveSleepEnd');
-    debugPrint('   raw end: $end');
-
-    if (!end.isAfter(sleepStart)) {
+    if (!end.isAfter(start)) {
       end = end.add(const Duration(days: 1));
-      debugPrint('   ➕ shifted to next day: $end');
     }
 
-    return end;
-  }
-
-  String _dateKey(DateTime d) {
     final key =
-        '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-    return key;
+        '${start.year}-${start.month.toString().padLeft(2, '0')}-${start.day.toString().padLeft(2, '0')}';
+
+    return _SleepWindow(start: start, end: end, dateKey: key);
   }
 
-  List<_TimeInterval> _parseIntervals(String? intervals) {
-    if (intervals == null || intervals.isEmpty) {
-      return <_TimeInterval>[];
-    }
+  bool _isWithinWindow(DateTime t, DateTime start, DateTime end) {
+    return !t.isBefore(start) && (t.isBefore(end) || t.isAtSameMomentAs(end));
+  }
 
-    final parsed = <_TimeInterval>[];
-    for (final raw in intervals.split(',')) {
-      final parts = raw.split('|');
+  bool _isValidMinutesOfDay(int? v) => v != null && v >= 0 && v < 24 * 60;
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // DATE KEY HELPERS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  String _todayDateKey() => _dateKey(DateTime.now());
+
+  String _dateKey(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // INTERVAL SERIALISATION
+  // ─────────────────────────────────────────────────────────────────────────
+
+  List<_TimeInterval> _parseIntervals(String? raw) {
+    if (raw == null || raw.isEmpty) return [];
+    final result = <_TimeInterval>[];
+    for (final entry in raw.split(',')) {
+      final parts = entry.split('|');
       if (parts.length != 2) continue;
       try {
         final start = DateTime.parse(parts[0]);
         final end = DateTime.parse(parts[1]);
-        if (end.isAfter(start)) {
-          parsed.add(_TimeInterval(start: start, end: end));
-        }
+        if (end.isAfter(start)) result.add(_TimeInterval(start: start, end: end));
       } catch (_) {}
     }
-    return parsed;
+    return result;
   }
 
   List<_TimeInterval> _mergeIntervals(List<_TimeInterval> intervals) {
-    if (intervals.isEmpty) return <_TimeInterval>[];
-
+    if (intervals.isEmpty) return [];
     final sorted = [...intervals]..sort((a, b) => a.start.compareTo(b.start));
-
     final merged = <_TimeInterval>[sorted.first];
     for (var i = 1; i < sorted.length; i++) {
-      final current = sorted[i];
+      final cur = sorted[i];
       final last = merged.last;
-
-      if (!current.start.isAfter(last.end)) {
-        final end = current.end.isAfter(last.end) ? current.end : last.end;
+      if (!cur.start.isAfter(last.end)) {
+        final end = cur.end.isAfter(last.end) ? cur.end : last.end;
         merged[merged.length - 1] = _TimeInterval(start: last.start, end: end);
       } else {
-        merged.add(current);
+        merged.add(cur);
       }
     }
-
     return merged;
   }
 
@@ -461,7 +470,9 @@ class SleepNoticingService {
   }
 }
 
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Data classes
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _SleepWindow {
   final DateTime start;
