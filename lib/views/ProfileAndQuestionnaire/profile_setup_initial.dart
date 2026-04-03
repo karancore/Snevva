@@ -1,17 +1,14 @@
 import 'package:dropdown_flutter/custom_dropdown.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
-import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/Widgets/CommonWidgets/common_date_widget.dart';
-
+import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/models/queryParamViewModels/date_of_birth.dart';
 import 'package:snevva/models/queryParamViewModels/occupation_vm.dart';
 import 'package:snevva/models/queryParamViewModels/string_value_vm.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/height_and_weight_screen.dart';
+
 import '../../Widgets/ProfileSetupAndQuestionnaire/gender_radio_button.dart';
 import '../../common/first_letter_upper_case_formatter.dart';
 import '../../common/global_variables.dart';
@@ -26,10 +23,10 @@ class ProfileSetupInitial extends StatefulWidget {
 
 class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
   late final ProfileSetupController initialProfileController;
-  final LocalStorageManager localStorageManager = Get.put(
-    LocalStorageManager(),
-    permanent: true,
-  );
+  final LocalStorageManager localStorageManager =
+      Get.isRegistered<LocalStorageManager>()
+          ? Get.find<LocalStorageManager>()
+          : Get.put(LocalStorageManager(), permanent: true);
 
   DateTime? dob;
 
@@ -39,10 +36,10 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
 
     // Put controllers/services ONCE. If you register them in Bindings, use Get.find instead.
     // Mark permanent true here to avoid accidental re-registration in other places.
-    initialProfileController = Get.put(
-      ProfileSetupController(),
-      permanent: true,
-    );
+    initialProfileController =
+        Get.isRegistered<ProfileSetupController>()
+            ? Get.find<ProfileSetupController>()
+            : Get.put(ProfileSetupController(), permanent: true);
 
     // Read stored values without mutating Rx during build.
     final storedName = localStorageManager.userMap['Name'];

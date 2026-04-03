@@ -277,7 +277,7 @@ class TimesPerDay {
 
   const TimesPerDay({required this.count, required this.list});
 
-  Map<String, dynamic> toJson() => {'Count': count, 'List': list};
+  Map<String, dynamic> toJson() => {'Count': count.toString(), 'List': list};
 
   factory TimesPerDay.fromJson(Map<String, dynamic> json) => TimesPerDay(
     count: (json['Count'] ?? '').toString(),

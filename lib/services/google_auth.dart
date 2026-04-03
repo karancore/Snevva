@@ -50,8 +50,13 @@ class GoogleAuthService extends GetxService {
 
           user.value = account;
 
-          await precacheImage(
-              CachedNetworkImageProvider(account.photoUrl ?? ''), context);
+          final photoUrl = account.photoUrl?.trim();
+          if (photoUrl != null && photoUrl.isNotEmpty) {
+            await precacheImage(
+              CachedNetworkImageProvider(photoUrl),
+              context,
+            );
+          }
 
           await _handleBackendLogin(account, context, account.email);
         }

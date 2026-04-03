@@ -42,14 +42,28 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
 
   Future<void> _loadGenderFromPreferences() async {
     final prefs = await SharedPreferences.getInstance();
-    final localGender = prefs.getString('user_gender');
+    final storedGender = prefs.getString('user_gender')?.trim();
+    final localStorageManager =
+        Get.isRegistered<LocalStorageManager>()
+            ? Get.find<LocalStorageManager>()
+            : null;
+    final signInController =
+        Get.isRegistered<SignInController>()
+            ? Get.find<SignInController>()
+            : null;
+    final userInfo = signInController?.userProfData;
+    final userData = userInfo is Map<String, dynamic> ? userInfo['data'] : null;
+    final fallbackGender =
+        localStorageManager?.userMap['Gender'] ??
+        (userData is Map ? userData['Gender'] : null);
+
+    if (!mounted) return;
 
     setState(() {
-      // gender = localGender ?? 'Not Specified';
-      final signInController = Get.put(SignInController());
-      final userInfo = signInController.userProfData ?? {};
-      final userData = userInfo['data'];
-      gender = (localGender != null) ? localGender : userData['Gender'];
+      gender =
+          (storedGender != null && storedGender.isNotEmpty)
+              ? storedGender
+              : fallbackGender?.toString();
       debugPrint("Gender $gender");
       isLoading = false;
     });
@@ -74,9 +88,7 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
 
     final userActiveData = localstorage.userGoalDataMap;
     logLong('userActiveData: ', userActiveData.toString());
-    final womentracking = userActiveData['TrackWomenData'];
     final stepgoal = userActiveData['StepGoalData']?['Count'];
-    final SleepGoalData = userActiveData['SleepGoalData'];
 
     logLong('userActiveData:  ', userActiveData.toString());
     // Safe check for userData and gender

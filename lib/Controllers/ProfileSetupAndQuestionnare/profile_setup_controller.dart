@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/env/env.dart';
@@ -15,6 +16,9 @@ import 'package:snevva/services/api_service.dart';
 import '../../consts/consts.dart';
 
 class ProfileSetupController extends GetxService {
+  static const String _reminderCountTypeError =
+      'CustomReminder.TimesPerDay.Count';
+
   // ================= TEXT + ERRORS =================
   final userNameController = TextEditingController();
   RxString userNameText = ''.obs;
@@ -300,12 +304,27 @@ class ProfileSetupController extends GetxService {
         final Map<String, dynamic> payload =
             item['payload'] as Map<String, dynamic>;
 
-        final response = await ApiService.post(
-          endpoint,
-          payload,
-          withAuth: true,
-          encryptionRequired: true,
-        );
+        late final Object response;
+        try {
+          response = await ApiService.post(
+            endpoint,
+            payload,
+            withAuth: true,
+            encryptionRequired: true,
+          );
+        } on ApiException catch (e) {
+          final retriedResponse = await _retryAfterReminderRepairIfNeeded(
+            endpoint: endpoint,
+            payload: payload,
+            error: e,
+          );
+
+          if (retriedResponse == null) {
+            rethrow;
+          }
+
+          response = retriedResponse;
+        }
 
         if (response is http.Response) {
           allSuccessful = false;
@@ -343,5 +362,54 @@ class ProfileSetupController extends GetxService {
       );
     }
     return false;
+  }
+
+  Future<Object?> _retryAfterReminderRepairIfNeeded({
+    required String endpoint,
+    required Map<String, dynamic> payload,
+    required ApiException error,
+  }) async {
+    if (endpoint != userOccupationApi) {
+      return null;
+    }
+
+    final detail =
+        error.decryptedBody ?? error.message ?? error.rawBody;
+    final hasReminderCountTypeError =
+        detail.contains(_reminderCountTypeError) &&
+            detail.contains('could not be converted to System.String');
+
+    if (!hasReminderCountTypeError) {
+      return null;
+    }
+
+    debugPrint(
+      '🛠️ Occupation save hit reminder count type error. '
+          'Attempting remote reminder repair before retry.',
+    );
+
+    try {
+      final reminderController = Get.find<ReminderController>(tag: 'reminder');
+      final repairedCount =
+      await reminderController.repairRemoteReminderPayloads();
+
+      if (repairedCount == 0) {
+        debugPrint('⚠️ Reminder repair did not update any remote reminders.');
+        return null;
+      }
+
+      debugPrint('🔁 Retrying occupation save after reminder repair...');
+      return ApiService.post(
+        endpoint,
+        payload,
+        withAuth: true,
+        encryptionRequired: true,
+      );
+    } catch (repairError, stackTrace) {
+      debugPrint(
+          '❌ Reminder repair before occupation retry failed: $repairError');
+      debugPrint(stackTrace.toString());
+      return null;
+    }
   }
 }

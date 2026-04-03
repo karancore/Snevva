@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Widgets/old_device_alert.dart';
 import 'package:snevva/common/custom_snackbar.dart';
@@ -16,6 +17,9 @@ import '../../services/auth_header_helper.dart';
 import '../../services/encryption_service.dart';
 
 class SignInController extends GetxService {
+  static const String _reminderCountTypeError =
+      'CustomReminder.TimesPerDay.Count';
+
   dynamic userProfData = {};
   dynamic userGoalData = {};
   //final authService = Get.find<AuthService>();
@@ -281,16 +285,65 @@ class SignInController extends GetxService {
   }
 
   Future<dynamic> userInfo() async {
-    final response = await ApiService.post(
-      userprofileInfo,
-      null,
-      withAuth: true,
-      encryptionRequired: false,
-    );
+    late final Object response;
+    try {
+      response = await ApiService.post(
+        userprofileInfo,
+        null,
+        withAuth: true,
+        encryptionRequired: false,
+      );
+    } on ApiException catch (e) {
+      final retriedResponse = await _retryUserInfoAfterReminderRepair(e);
+      if (retriedResponse == null) {
+        rethrow;
+      }
+      response = retriedResponse;
+    }
     // debugPrint("$response");
     userProfData = response;
     localStorage.userMap.value = userProfData['data'];
     return userProfData;
+  }
+
+  Future<Object?> _retryUserInfoAfterReminderRepair(ApiException error) async {
+    final detail = error.decryptedBody ?? error.message ?? error.rawBody;
+    final hasReminderCountTypeError =
+        detail.contains(_reminderCountTypeError) &&
+            detail.contains('could not be converted to System.String');
+
+    if (!hasReminderCountTypeError) {
+      return null;
+    }
+
+    debugPrint(
+      '🛠️ userInfo() hit reminder count type error. '
+          'Attempting remote reminder repair before retry.',
+    );
+
+    try {
+      final reminderController = Get.find<ReminderController>(tag: 'reminder');
+      final repairedCount =
+      await reminderController.repairRemoteReminderPayloads();
+
+      if (repairedCount == 0) {
+        debugPrint('⚠️ Reminder repair did not update any remote reminders.');
+        return null;
+      }
+
+      debugPrint('🔁 Retrying userInfo() after reminder repair...');
+      return ApiService.post(
+        userprofileInfo,
+        null,
+        withAuth: true,
+        encryptionRequired: false,
+      );
+    } catch (repairError, stackTrace) {
+      debugPrint(
+          '❌ Reminder repair before userInfo retry failed: $repairError');
+      debugPrint(stackTrace.toString());
+      return null;
+    }
   }
 
   Future<dynamic> useeractivedataInfo() async {

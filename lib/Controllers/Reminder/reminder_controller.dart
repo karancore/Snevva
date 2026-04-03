@@ -3141,4 +3141,47 @@ class ReminderController extends GetxController {
     }
     debugPrint("━━━━━━━━━━ END LOAD REMINDER DATA ━━━━━━━━━━");
   }
+
+  Future<int> repairRemoteReminderPayloads() async {
+    try {
+      await loadAllReminderLists();
+
+      if (reminders.isEmpty) {
+        debugPrint('ℹ️ No reminders available for remote repair.');
+        return 0;
+      }
+
+      var repairedCount = 0;
+
+      for (final reminder in reminders) {
+        try {
+          final payload = reminder.toJson();
+          payload.removeWhere((key, value) => value == null);
+
+          await ApiService.post(
+            editreminderApi,
+            payload,
+            withAuth: true,
+            encryptionRequired: true,
+          );
+
+          repairedCount++;
+        } catch (e, stackTrace) {
+          _logConversion(
+            'Failed repairing remote reminder ${reminder.id}: $e',
+            stackTrace: stackTrace,
+          );
+        }
+      }
+
+      debugPrint('🧹 Repaired $repairedCount remote reminder payload(s).');
+      return repairedCount;
+    } catch (e, stackTrace) {
+      _logConversion(
+        'Remote reminder repair failed: $e',
+        stackTrace: stackTrace,
+      );
+      return 0;
+    }
+  }
 }

@@ -157,13 +157,13 @@ class TimesPerDay {
 
   factory TimesPerDay.fromJson(Map<String, dynamic> json) {
     return TimesPerDay(
-      count: json['count'] ?? 0,
+      count: (json['count'] ?? 0).toString(),
       list: List<String>.from(json['list'] ?? []),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'count': count, 'list': list};
+    return {'count': count.toString(), 'list': list};
   }
 }
 

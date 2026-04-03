@@ -1,11 +1,13 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:snevva/common/debug_logger.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/services/encryption_service.dart';
+
 import '../env/env.dart';
 import 'auth_header_helper.dart';
 
@@ -34,19 +36,35 @@ class ApiException implements Exception {
 class ApiService {
   static const String _baseUrl = baseUrl;
 
-  static Map<String, String> _redactHeaders(Map<String, String> headers) {
-    final copy = Map<String, String>.from(headers);
-    for (final key in copy.keys.toList()) {
-      final lower = key.toLowerCase();
-      if (lower == 'authorization') {
-        copy[key] = 'Bearer ***';
-      } else if (lower == 'x-data-hash') {
-        copy[key] = '***';
-      } else if (lower == 'x-device-info') {
-        copy[key] = '***';
-      }
+  static dynamic _normalizePayloadForApi(dynamic value, {String? parentKey}) {
+    if (value is List) {
+      return value
+          .map((item) => _normalizePayloadForApi(item, parentKey: parentKey))
+          .toList();
     }
-    return copy;
+
+    if (value is Map) {
+      final normalized = <String, dynamic>{};
+      value.forEach((key, item) {
+        final keyString = key.toString();
+        final normalizedItem = _normalizePayloadForApi(
+          item,
+          parentKey: keyString,
+        );
+
+        if (parentKey != null &&
+            parentKey.toLowerCase() == 'timesperday' &&
+            keyString.toLowerCase() == 'count' &&
+            normalizedItem != null) {
+          normalized[keyString] = normalizedItem.toString();
+        } else {
+          normalized[keyString] = normalizedItem;
+        }
+      });
+      return normalized;
+    }
+
+    return value;
   }
 
   static Future<Object> post(
@@ -62,7 +80,9 @@ class ApiService {
     }
 
     if (encryptionRequired && plainBody != null) {
-      final jsonString = jsonEncode(plainBody);
+      final normalizedBody =
+          _normalizePayloadForApi(plainBody) as Map<String, dynamic>;
+      final jsonString = jsonEncode(normalizedBody);
       final encrypted = EncryptionService.encryptData(jsonString);
 
       headers['x-data-hash'] = encrypted['Hash'] ?? '';
@@ -138,7 +158,11 @@ class ApiService {
       return response;
     } else {
       String? bodyPayload;
-      if (plainBody != null) bodyPayload = jsonEncode(plainBody);
+      if (plainBody != null) {
+        final normalizedBody =
+            _normalizePayloadForApi(plainBody) as Map<String, dynamic>;
+        bodyPayload = jsonEncode(normalizedBody);
+      }
 
       if (kDebugMode) {
         debugPrint("bodyPayload $bodyPayload");

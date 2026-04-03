@@ -18,10 +18,16 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final localStorageManager = Get.find<LocalStorageManager>();
-  final initialProfileController = Get.put(ProfileSetupController());
+  final initialProfileController =
+      Get.isRegistered<ProfileSetupController>()
+          ? Get.find<ProfileSetupController>()
+          : Get.put(ProfileSetupController());
 
   String profilePictureUrl = '';
-  final controller = Get.put(EditprofileController());
+  final controller =
+      Get.isRegistered<EditprofileController>()
+          ? Get.find<EditprofileController>()
+          : Get.put(EditprofileController());
 
   final ScrollController _scrollController = ScrollController();
   bool _showAppBar = true;
@@ -210,7 +216,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                               final String? cdnUrl =
                                   localStorageManager
-                                      .userMap['ProfilePicture']?['CdnUrl'];
+                                      .userMap['ProfilePicture']?['CdnUrl']
+                                      ?.toString()
+                                      .trim();
 
                               ImageProvider? imageProvider;
 
@@ -219,9 +227,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 imageProvider = FileImage(pickedFile);
                               }
                               // 2️⃣ Second Priority → API image
-                              else if (cdnUrl != null && cdnUrl.isNotEmpty) {
+                              else if (cdnUrl != null &&
+                                  cdnUrl.isNotEmpty &&
+                                  cdnUrl.toLowerCase() != 'null') {
                                 imageProvider = CachedNetworkImageProvider(
-                                  "https://$cdnUrl",
+                                  cdnUrl.startsWith('http')
+                                      ? cdnUrl
+                                      : 'https://$cdnUrl',
                                 );
                               }
 

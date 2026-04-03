@@ -9,7 +9,6 @@ import '../services/device_token_service.dart';
 
 class LocalStorageManager extends GetxService {
   RxMap<String, dynamic> userMap = <String, dynamic>{}.obs;
-  bool _sessionChecked = false;
 
   RxMap<String, dynamic> userGoalDataMap = <String, dynamic>{}.obs;
 
@@ -18,25 +17,41 @@ class LocalStorageManager extends GetxService {
   @override
   void onInit() {
     super.onInit();
-    reloadUserMap();
-    loadProfilePicture();
+    Future.microtask(() async {
+      await reloadUserMap();
+      await loadProfilePicture();
+    });
   }
 
   Future<void> loadProfilePicture() async {
-    final String? cdnUrl = userMap['ProfilePicture']?['CdnUrl'];
+    final profilePictureUrl = _buildHttpsUrl(
+      userMap['ProfilePicture']?['CdnUrl']?.toString(),
+    );
+    final context = Get.context;
 
-    String profilePictureUrl = 'https://$cdnUrl';
-    if (profilePictureUrl.isNotEmpty) {
-      try {
-        // Preload the image to cache it
-        await precacheImage(
-          CachedNetworkImageProvider(profilePictureUrl),
-          Get.context!,
-        );
-      } catch (e) {
-        debugPrint('Error preloading profile picture: $e');
-      }
+    if (profilePictureUrl == null || context == null) {
+      return;
     }
+
+    try {
+      await precacheImage(
+        CachedNetworkImageProvider(profilePictureUrl),
+        context,
+      );
+    } catch (e) {
+      debugPrint('Error preloading profile picture: $e');
+    }
+  }
+
+  String? _buildHttpsUrl(String? rawUrl) {
+    final normalized = rawUrl?.trim();
+    if (normalized == null ||
+        normalized.isEmpty ||
+        normalized.toLowerCase() == 'null') {
+      return null;
+    }
+
+    return normalized.startsWith('http') ? normalized : 'https://$normalized';
   }
   // // Optional: use this if you need async init
   // @override

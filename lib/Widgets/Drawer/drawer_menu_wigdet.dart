@@ -232,7 +232,9 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                   ImageProvider? imageProvider;
                   if (pickedFile != null) {
                     imageProvider = FileImage(pickedFile);
-                  } else if (cdnUrl != null && cdnUrl.isNotEmpty) {
+                  } else if (cdnUrl != null &&
+                      cdnUrl.isNotEmpty &&
+                      cdnUrl.toLowerCase() != 'null') {
                     final imageUrl =
                         cdnUrl.startsWith('http') ? cdnUrl : 'https://$cdnUrl';
                     imageProvider = CachedNetworkImageProvider(imageUrl);
