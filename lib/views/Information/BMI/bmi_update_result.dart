@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
@@ -25,6 +26,9 @@ class BMIUpdateResultScreen extends StatefulWidget {
 
 class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
   late final BmiUpdateController controller;
+
+  final scrollController = ScrollController();
+  bool _showAppBar = true;
 
   String getStatus(double bmi) {
     if (bmi < 18.5) return 'Underweight';
@@ -62,6 +66,29 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.loadAllHealthTips(context);
     });
+    scrollController.addListener(() {
+      if (scrollController.position.userScrollDirection ==
+          ScrollDirection.reverse) {
+        if (_showAppBar) {
+          setState(() {
+            _showAppBar = false;
+          });
+        }
+      } else if (scrollController.position.userScrollDirection ==
+          ScrollDirection.forward) {
+        if (!_showAppBar) {
+          setState(() {
+            _showAppBar = true;
+          });
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -75,19 +102,27 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
     final status = getStatus(widget.bmi);
     final statusColor = getStatusColor(widget.bmi);
     final imagePath = getImg(widget.bmi);
+    print("Height of screen is $height");
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
-      extendBodyBehindAppBar: true,
 
-      appBar: CustomAppBar(appbarText: "BMI Result"),
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(_showAppBar ? kToolbarHeight : 0),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: _showAppBar ? 1.0 : 0.0,
+          child: CustomAppBar(appbarText: "BMI Result"),
+        ),
+      ),
       body: SingleChildScrollView(
-        controller: controller.scrollController,
+        controller: scrollController,
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
             children: [
-              const SizedBox(height: 90),
+              SizedBox(height: height * 0.02165842),
+              // 2.165842% of screen height
 
               // Elephant Image
               Image.asset(
