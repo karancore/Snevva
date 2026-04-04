@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
-import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/DietPlan/diet_plan_controller.dart';
@@ -25,8 +24,8 @@ import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/env/env.dart';
-import 'package:snevva/models/hive_models/steps_model.dart';
 import 'package:snevva/services/api_service.dart';
+import 'package:snevva/services/hive_service.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import 'package:snevva/views/permissions/permission_gate_screen.dart';
 
@@ -329,7 +328,7 @@ class AuthService {
     return token;
   }
 
-  static Future<void> logExceptionToServer(dynamic exceptionDetails) async {
+  static Future<bool> logExceptionToServer(dynamic exceptionDetails) async {
     try {
       debugPrint("🚨 Logging exception to server: $exceptionDetails");
 
@@ -345,8 +344,10 @@ class AuthService {
       }
 
       debugPrint('Successfully logged exception to server');
+      return true;
     } catch (e) {
       debugPrint('Error during log exception API call: $e');
+      return false;
     }
   }
 
@@ -373,14 +374,10 @@ class AuthService {
       await prefs.clear();
 
       try {
-        await Hive.box<StepEntry>('step_history').clear();
+        final stepHistoryBox = await HiveService().stepHistoryBox();
+        await stepHistoryBox.clear();
       } catch (e) {
         debugPrint('❌ Failed to clear step_history on logout: $e');
-        try {
-          await Hive.box<StepEntry>('step_history').clear();
-        } catch (e2) {
-          debugPrint('❌ Second attempt to clear step_history failed: $e2');
-        }
       }
 
       final localStorageManager = Get.find<LocalStorageManager>();

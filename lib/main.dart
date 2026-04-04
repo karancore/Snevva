@@ -43,7 +43,6 @@ import 'Controllers/WomenHealth/bottom_sheet_controller.dart';
 import 'Controllers/alerts/alerts_controller.dart';
 import 'Controllers/local_storage_manager.dart';
 import 'Controllers/signupAndSignIn/create_password_controller.dart';
-import 'common/ExceptionLogger.dart';
 import 'common/agent_debug_logger.dart';
 import 'common/global_variables.dart';
 import 'consts/consts.dart';
@@ -51,6 +50,7 @@ import 'firebase_options.dart';
 import 'performance/frame_timing_monitor.dart';
 import 'performance/refresh_rate_bootstrap.dart';
 import 'services/app_initializer.dart';
+import 'services/crash_report_service.dart';
 import 'services/notification_channel.dart';
 import 'utils/theme.dart';
 import 'views/Reminder/reminder_screen.dart';
@@ -101,51 +101,10 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 /// 🚀 MAIN
 /// ------------------------------------------------------------
 void main() {
-  ErrorWidget.builder = (FlutterErrorDetails details) {
-    ExceptionLogger.log(
-      exception: details.exception,
-      stackTrace: details.stack,
-    );
-
-    return Builder(
-      builder: (context) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final overlay = Overlay.of(context);
-          overlay?.insert(
-            OverlayEntry(
-              builder: (context) {
-                return Material(
-                  color: white,
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Image.asset(errorIcon, scale: 2),
-                        const SizedBox(height: 10),
-                        const Text(
-                          'Oops! Something went wrong.',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          );
-        });
-
-        return const SizedBox(); // 👈 REQUIRED return
-      },
-    );
-  };
-
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+      CrashReportService.install();
 
       // Register the step MethodChannel so the native StepCounterService can
       // deliver step counts to this Flutter engine via onStepDetected.
@@ -188,9 +147,7 @@ void main() {
         ),
       );
     },
-    (error, stack) async {
-      await ExceptionLogger.log(exception: error, stackTrace: stack);
-    },
+    CrashReportService.handleZoneError,
   );
 }
 
@@ -338,6 +295,7 @@ class _MyAppState extends State<MyApp> {
     _themeController = Get.find<ThemeController>();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(CrashReportService.markUiReady());
       if (!mounted) return;
       final updatedProfile = RefreshRateBootstrap.updateFromContext(context);
       if (updatedProfile == null) return;

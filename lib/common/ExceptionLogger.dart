@@ -5,6 +5,36 @@ import 'package:snevva/services/auth_service.dart';
 import '../consts/consts.dart';
 
 class ExceptionLogger {
+  static Future<Map<String, dynamic>> buildPayload({
+    required Object exception,
+    StackTrace? stackTrace,
+    String? userInput,
+    String? methodName,
+    String? className,
+  }) async {
+    final extracted = stackTrace != null ? _extractFromStack(stackTrace) : {};
+
+    debugPrint("Logging exception: ${exception.toString()}");
+    debugPrint(
+      "extracted methodName: ${extracted['methodName']}, className: ${extracted['className']}",
+    );
+
+    final log = ExceptionLog(
+      dataCode: DateTime.now().millisecondsSinceEpoch.toString(),
+      userId: await _getUserId(),
+      userInput: userInput,
+      errorMessage: exception.toString(),
+      occuredAt: DateTime.now().toIso8601String(),
+      stringException: exception.runtimeType.toString(),
+      stackTrace: stackTrace?.toString(),
+      innerException: null,
+      methodName: methodName ?? extracted['methodName'],
+      className: className ?? extracted['className'],
+    );
+
+    return log.toJson();
+  }
+
   static Future<void> log({
     required Object exception,
     StackTrace? stackTrace,
@@ -13,27 +43,15 @@ class ExceptionLogger {
     String? className,
   }) async {
     try {
-      final extracted = stackTrace != null ? _extractFromStack(stackTrace) : {};
-
-      debugPrint("Logging exception: ${exception.toString()}");
-      debugPrint(
-        "extracted methodName: ${extracted['methodName']}, className: ${extracted['className']}",
-      );
-
-      final log = ExceptionLog(
-        dataCode: DateTime.now().millisecondsSinceEpoch.toString(),
-        userId: await _getUserId(),
+      final payload = await buildPayload(
+        exception: exception,
+        stackTrace: stackTrace,
         userInput: userInput,
-        errorMessage: exception.toString(),
-        occuredAt: DateTime.now().toIso8601String(),
-        stringException: exception.runtimeType.toString(),
-        stackTrace: stackTrace?.toString(),
-        innerException: null,
-        methodName: methodName ?? extracted['methodName'],
-        className: className ?? extracted['className'],
+        methodName: methodName,
+        className: className,
       );
 
-      AuthService.logExceptionToServer(log.toJson());
+      await AuthService.logExceptionToServer(payload);
     } catch (_) {}
   }
 
