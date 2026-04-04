@@ -240,21 +240,34 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                     imageProvider = CachedNetworkImageProvider(imageUrl);
                   }
 
+                  const avatarRadius = 60.0;
+
                   return CircleAvatar(
-                    radius: 60,
-                    backgroundColor: Colors.grey,
+                    radius: avatarRadius,
+                    backgroundColor: Colors.grey.withOpacity(0.5),
                     child:
                         imageProvider == null
-                            ? Icon(
-                              Icons.person,
-                              size: 200 * 0.75,
-                              color: Colors.white,
+                            ? LayoutBuilder(
+                              builder: (context, constraints) {
+                                final iconSize =
+                                    (constraints.biggest.shortestSide * 0.95)
+                                        .clamp(24.0, avatarRadius)
+                                        .toDouble();
+
+                                return Center(
+                                  child: Icon(
+                                    Icons.person,
+                                    size: iconSize,
+                                    color: Colors.white,
+                                  ),
+                                );
+                              },
                             )
                             : ClipOval(
                               child: Image(
                                 image: imageProvider,
-                                width: 120,
-                                height: 120,
+                                width: avatarRadius * 2,
+                                height: avatarRadius * 2,
                                 fit: BoxFit.cover,
                               ),
                             ),
