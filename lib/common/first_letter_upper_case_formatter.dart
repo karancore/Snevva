@@ -2,10 +2,8 @@ import 'package:flutter/services.dart';
 
 class FirstLetterUpperCaseFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue,
+      TextEditingValue newValue,) {
     if (newValue.text.isEmpty) return newValue;
 
     final String capitalizedText =
@@ -13,7 +11,7 @@ class FirstLetterUpperCaseFormatter extends TextInputFormatter {
 
     return TextEditingValue(
       text: capitalizedText,
-      selection: TextSelection.collapsed(offset: capitalizedText.length),
+      selection: newValue.selection,
     );
   }
 }
