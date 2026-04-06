@@ -281,6 +281,14 @@ class _MoodQuestionnaireState extends State<MoodQuestionnaire> {
                                       () {
                                     if (nextId == null) {
                                       Get.until((route) => route.isFirst);
+                                      Get.snackbar(
+                                        '🌿 You matter',
+                                        'Thanks for sharing how you feel. We’re here with you.',
+                                        snackPosition: SnackPosition.TOP,
+                                        backgroundColor: Colors.pink.shade200,
+                                        colorText: Colors.white,
+                                        duration: const Duration(seconds: 3),
+                                      );
                                     } else {
                                       setState(() {
                                         currentQuestionId = nextId;
