@@ -63,3 +63,4 @@ logs
 logs.txt
 logs2
 lib/bin/
+pubspec.lock
