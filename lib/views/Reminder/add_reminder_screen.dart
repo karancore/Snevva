@@ -395,8 +395,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     });
   }
 
-  Future<TimeOfDay?> _showTimeWheelPicker() async {
-    final initialTime = TimeOfDay.now();
+  Future<TimeOfDay?> _showTimeWheelPicker({TimeOfDay? initTime}) async {
+    final initialTime = initTime ?? TimeOfDay.now();
     final initialHour12 =
         initialTime.hourOfPeriod == 0 ? 12 : initialTime.hourOfPeriod;
     final initialHourIndex = initialHour12 - 1;
@@ -484,10 +484,19 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     String? category,
   }) async {
     debugPrint("Selecting time... ${textController.toString()} ");
-    TimeOfDay? picked = await _showTimeWheelPicker();
+    TimeOfDay? picked = await _showTimeWheelPicker(
+      initTime:
+          reminderController.pickedTimes[category]?.isNotEmpty == true
+              ? reminderController.pickedTimes[category]!.last
+              : null,
+    );
     debugPrint("Picked time: $picked");
     reminderController.pickedTime.value = picked;
 
+    if (picked != null && category != null) {
+      reminderController.pickedTimes.putIfAbsent(category, () => []);
+      reminderController.pickedTimes[category]!.add(picked);
+    }
     if (picked != null) {
       final hour = picked.hourOfPeriod.toString().padLeft(2, '0');
       final minute = picked.minute.toString().padLeft(2, '0');
@@ -588,7 +597,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     if (picked != null) {
       date.value = picked;
 
-      final formattedDate = DateFormat('dd MMMM').format(picked);
+      final formattedDate = DateFormat('MMMM dd, yyyy').format(picked);
 
       if (dateString != null) {
         dateString.value = formattedDate;
@@ -982,12 +991,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 data: Theme.of(context).copyWith(unselectedWidgetColor: grey),
                 child: CustomRadio(
                   selected: isSelected,
-                  activeColor: isSelected ? ((Theme
-                      .of(context)
-                      .brightness ==
-                      Brightness.dark)
-                      ? white
-                      : black) : grey,
+                  activeColor:
+                      isSelected
+                          ? ((Theme.of(context).brightness == Brightness.dark)
+                              ? white
+                              : black)
+                          : grey,
                   onTap: () {
                     final rx =
                         medicineGetxController.medicineRemindMeBeforeOption;
@@ -1004,12 +1013,14 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               const SizedBox(width: 8),
               Text(
                 "Remind me ",
-                style: TextStyle(color: isSelected ? ((Theme
-                    .of(context)
-                    .brightness ==
-                    Brightness.dark)
-                    ? white
-                    : black) : grey),
+                style: TextStyle(
+                  color:
+                      isSelected
+                          ? ((Theme.of(context).brightness == Brightness.dark)
+                              ? white
+                              : black)
+                          : grey,
+                ),
               ),
               SizedBox(
                 width: 50,
@@ -1021,12 +1032,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   keyboardType: TextInputType.number,
                   style: TextStyle(
                     fontSize: 13,
-                    color: isSelected ? ((Theme
-                        .of(context)
-                        .brightness ==
-                        Brightness.dark)
-                        ? white
-                        : black) : grey,
+                    color:
+                        isSelected
+                            ? ((Theme.of(context).brightness == Brightness.dark)
+                                ? white
+                                : black)
+                            : grey,
                   ),
                   decoration: const InputDecoration(
                     isDense: true,
@@ -1042,36 +1053,36 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 width: 70,
                 height: 35,
                 child: DropdownButton<String>(
-                  dropdownColor: isSelected ? ((Theme
-                      .of(context)
-                      .brightness ==
-                      Brightness.dark)
-                      ? black
-                      : white) : grey,
+                  dropdownColor:
+                      isSelected
+                          ? ((Theme.of(context).brightness == Brightness.dark)
+                              ? black
+                              : white)
+                          : grey,
                   value: reminderController.selectedValue.value,
                   isExpanded: false,
                   iconSize: 18,
                   items:
-                  ['minutes', 'hours']
-                      .map(
-                        (value) =>
-                        DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(
-                            value,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: isSelected ? ((Theme
-                                  .of(context)
-                                  .brightness ==
-                                  Brightness.dark)
-                                  ? white
-                                  : black) : grey,
+                      ['minutes', 'hours']
+                          .map(
+                            (value) => DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(
+                                value,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color:
+                                      isSelected
+                                          ? ((Theme.of(context).brightness ==
+                                                  Brightness.dark)
+                                              ? white
+                                              : black)
+                                          : grey,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                  )
-                      .toList(),
+                          )
+                          .toList(),
                   onChanged: (newValue) {
                     if (newValue != null) {
                       reminderController.selectedValue.value = newValue;
@@ -1081,17 +1092,18 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               ),
               Text(
                 " before",
-                style: TextStyle(color: isSelected ? ((Theme
-                    .of(context)
-                    .brightness ==
-                    Brightness.dark)
-                    ? white
-                    : black) : grey),
+                style: TextStyle(
+                  color:
+                      isSelected
+                          ? ((Theme.of(context).brightness == Brightness.dark)
+                              ? white
+                              : black)
+                          : grey,
+                ),
               ),
             ],
           );
         }),
-
       ],
     );
   }
@@ -1523,12 +1535,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   // Custom radio
                   CustomRadio(
                     selected: isSelected,
-                    activeColor: isSelected ? ((Theme
-                        .of(context)
-                        .brightness ==
-                        Brightness.dark)
-                        ? white
-                        : black) : grey,
+                    activeColor:
+                        isSelected
+                            ? ((Theme.of(context).brightness == Brightness.dark)
+                                ? white
+                                : black)
+                            : grey,
                     onTap: () {
                       final rx = eventGetxController.eventRemindMeBefore;
                       if (rx.value == 0) {
@@ -1544,12 +1556,15 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   // "Remind me" text
                   Text(
                     "Remind me",
-                    style: TextStyle(color: isSelected ? ((Theme
-                        .of(context)
-                        .brightness ==
-                        Brightness.dark)
-                        ? white
-                        : black) : grey),
+                    style: TextStyle(
+                      color:
+                          isSelected
+                              ? ((Theme.of(context).brightness ==
+                                      Brightness.dark)
+                                  ? white
+                                  : black)
+                              : grey,
+                    ),
                   ),
                   const SizedBox(width: 4),
 
@@ -1562,12 +1577,13 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       keyboardType: TextInputType.number,
                       style: TextStyle(
                         fontSize: 13,
-                        color: isSelected ? ((Theme
-                            .of(context)
-                            .brightness ==
-                            Brightness.dark)
-                            ? white
-                            : black) : grey,
+                        color:
+                            isSelected
+                                ? ((Theme.of(context).brightness ==
+                                        Brightness.dark)
+                                    ? white
+                                    : black)
+                                : grey,
                       ),
                       enabled: isSelected,
                       decoration: const InputDecoration(
@@ -1587,35 +1603,38 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     height: 35,
                     child: DropdownButton<String>(
                       value: reminderController.selectedValue.value,
-                      dropdownColor: isSelected ? ((Theme
-                          .of(context)
-                          .brightness ==
-                          Brightness.dark)
-                          ? black
-                          : white) : grey,
+                      dropdownColor:
+                          isSelected
+                              ? ((Theme.of(context).brightness ==
+                                      Brightness.dark)
+                                  ? black
+                                  : white)
+                              : grey,
                       isExpanded: false,
                       iconSize: 18,
                       items:
-                      ['minutes', 'hours']
-                          .map(
-                            (value) =>
-                            DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(
-                                value,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: isSelected ? ((Theme
-                                      .of(context)
-                                      .brightness ==
-                                      Brightness.dark)
-                                      ? white
-                                      : black) : grey,
+                          ['minutes', 'hours']
+                              .map(
+                                (value) => DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(
+                                    value,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color:
+                                          isSelected
+                                              ? ((Theme.of(
+                                                        context,
+                                                      ).brightness ==
+                                                      Brightness.dark)
+                                                  ? white
+                                                  : black)
+                                              : grey,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                      )
-                          .toList(),
+                              )
+                              .toList(),
                       onChanged: (newValue) {
                         if (newValue != null) {
                           reminderController.selectedValue.value = newValue;
@@ -1628,12 +1647,15 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   // Pluralized unit + "before"
                   Text(
                     " before",
-                    style: TextStyle(color: isSelected ? ((Theme
-                        .of(context)
-                        .brightness ==
-                        Brightness.dark)
-                        ? white
-                        : black) : grey),
+                    style: TextStyle(
+                      color:
+                          isSelected
+                              ? ((Theme.of(context).brightness ==
+                                      Brightness.dark)
+                                  ? white
+                                  : black)
+                              : grey,
+                    ),
                   ),
                 ],
               );
@@ -1874,11 +1896,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   value: Option.times,
                   groupValue: selected,
                   activeColor:
-                  ((Theme
-                      .of(context)
-                      .brightness == Brightness.dark)
-                      ? white
-                      : black),
+                      ((Theme.of(context).brightness == Brightness.dark)
+                          ? white
+                          : black),
                   onChanged: (value) {
                     medicineGetxController.medicineReminderOption.value =
                         value!;
@@ -1887,12 +1907,14 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               ),
               Text(
                 "Remind me",
-                style: TextStyle(color: timesSelected ? ((Theme
-                    .of(context)
-                    .brightness ==
-                    Brightness.dark)
-                    ? white
-                    : black) : grey),
+                style: TextStyle(
+                  color:
+                      timesSelected
+                          ? ((Theme.of(context).brightness == Brightness.dark)
+                              ? white
+                              : black)
+                          : grey,
+                ),
               ),
               SizedBox(
                 width: 36,
@@ -1902,13 +1924,11 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   keyboardType: TextInputType.number,
                   style: TextStyle(
                     color:
-                    timesSelected
-                        ? ((Theme
-                        .of(context)
-                        .brightness == Brightness.dark)
-                        ? white
-                        : black)
-                        : grey,
+                        timesSelected
+                            ? ((Theme.of(context).brightness == Brightness.dark)
+                                ? white
+                                : black)
+                            : grey,
                   ),
                   decoration: const InputDecoration(
                     isDense: true,
@@ -1923,13 +1943,11 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 "time${t > 1 ? 's' : ''}",
                 style: TextStyle(
                   color:
-                  timesSelected
-                      ? ((Theme
-                      .of(context)
-                      .brightness == Brightness.dark)
-                      ? white
-                      : black)
-                      : grey,
+                      timesSelected
+                          ? ((Theme.of(context).brightness == Brightness.dark)
+                              ? white
+                              : black)
+                          : grey,
                 ),
               ),
 
@@ -1937,26 +1955,22 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 "a",
                 style: TextStyle(
                   color:
-                  timesSelected
-                      ? ((Theme
-                      .of(context)
-                      .brightness == Brightness.dark)
-                      ? white
-                      : black)
-                      : grey,
+                      timesSelected
+                          ? ((Theme.of(context).brightness == Brightness.dark)
+                              ? white
+                              : black)
+                          : grey,
                 ),
               ),
               Text(
                 "day",
                 style: TextStyle(
                   color:
-                  timesSelected
-                      ? ((Theme
-                      .of(context)
-                      .brightness == Brightness.dark)
-                      ? white
-                      : black)
-                      : grey,
+                      timesSelected
+                          ? ((Theme.of(context).brightness == Brightness.dark)
+                              ? white
+                              : black)
+                          : grey,
                 ),
               ),
             ],
@@ -1975,11 +1989,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   value: Option.interval,
                   groupValue: selected,
                   activeColor:
-                  ((Theme
-                      .of(context)
-                      .brightness == Brightness.dark)
-                      ? white
-                      : black),
+                      ((Theme.of(context).brightness == Brightness.dark)
+                          ? white
+                          : black),
                   onChanged: (value) {
                     medicineGetxController.medicineReminderOption.value =
                         value!;
@@ -1990,13 +2002,11 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 "Remind me every",
                 style: TextStyle(
                   color:
-                  intervalSelected
-                      ? ((Theme
-                      .of(context)
-                      .brightness == Brightness.dark)
-                      ? white
-                      : black)
-                      : grey,
+                      intervalSelected
+                          ? ((Theme.of(context).brightness == Brightness.dark)
+                              ? white
+                              : black)
+                          : grey,
                 ),
               ),
               SizedBox(
@@ -2007,13 +2017,11 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   keyboardType: TextInputType.number,
                   style: TextStyle(
                     color:
-                    intervalSelected
-                        ? ((Theme
-                        .of(context)
-                        .brightness == Brightness.dark)
-                        ? white
-                        : black)
-                        : grey,
+                        intervalSelected
+                            ? ((Theme.of(context).brightness == Brightness.dark)
+                                ? white
+                                : black)
+                            : grey,
                   ),
                   decoration: const InputDecoration(
                     isDense: true,
@@ -2029,13 +2037,11 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 "hour${e > 1 ? 's' : ''}",
                 style: TextStyle(
                   color:
-                  intervalSelected
-                      ? ((Theme
-                      .of(context)
-                      .brightness == Brightness.dark)
-                      ? white
-                      : black)
-                      : grey,
+                      intervalSelected
+                          ? ((Theme.of(context).brightness == Brightness.dark)
+                              ? white
+                              : black)
+                          : grey,
                 ),
               ),
 
@@ -2043,26 +2049,22 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 "a",
                 style: TextStyle(
                   color:
-                  intervalSelected
-                      ? ((Theme
-                      .of(context)
-                      .brightness == Brightness.dark)
-                      ? white
-                      : black)
-                      : grey,
+                      intervalSelected
+                          ? ((Theme.of(context).brightness == Brightness.dark)
+                              ? white
+                              : black)
+                          : grey,
                 ),
               ),
               Text(
                 "day",
                 style: TextStyle(
                   color:
-                  intervalSelected
-                      ? ((Theme
-                      .of(context)
-                      .brightness == Brightness.dark)
-                      ? white
-                      : black)
-                      : grey,
+                      intervalSelected
+                          ? ((Theme.of(context).brightness == Brightness.dark)
+                              ? white
+                              : black)
+                          : grey,
                 ),
               ),
             ],

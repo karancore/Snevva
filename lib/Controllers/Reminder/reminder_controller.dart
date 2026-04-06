@@ -98,6 +98,7 @@ class ReminderController extends GetxController {
   final xTimeUnitController = TextEditingController();
   var reminders = <reminder_payload.ReminderPayloadModel>[].obs;
   var alarms = <AlarmSettings>[].obs;
+  Map<String, List<TimeOfDay>> pickedTimes = {};
   var isLoading = false.obs;
   final selectedValue = 'minutes'.obs;
   var startDateString = ''.obs;
