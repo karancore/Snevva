@@ -11,7 +11,7 @@ import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.d
 import 'package:snevva/views/Information/mental_wellness_screen.dart';
 import 'package:snevva/views/Information/vitals.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
-import 'package:snevva/views/Reminder/reminder_wrapper.dart';
+import 'package:snevva/views/Reminder/add_reminder_screen.dart';
 import 'package:snevva/views/WomenHealth/women_health_screen.dart';
 
 import '../../Controllers/StepCounter/step_counter_controller.dart';
@@ -103,7 +103,7 @@ class _MenuScreenState extends State<MenuScreen>
         title: "Add A Reminder",
         subtitle: "Medication, meal, hydration alert",
         imagePath: reminderIcon,
-        navigateTo: ReminderScreenWrapper(),
+        navigateTo: AddReminderScreen(),
       ),
       MenuItem(
         title: "Steps Tracker",
