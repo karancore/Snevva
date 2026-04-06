@@ -99,6 +99,12 @@ class _SignInScreenState extends State<SignInScreen> {
           context,
         );
       } else {
+        if (input.length < 10 || input.length > 10) {
+          CustomSnackbar.showError(context: context,
+              title: "Can't Sign In",
+              message: "Please enter a valid phone number");
+          return;
+        }
         debugPrint("Invalid input format");
         // 🔹 Invalid input
         // _handleSignInError();
