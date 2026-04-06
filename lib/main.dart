@@ -104,7 +104,7 @@ void main() {
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
-      CrashReportService.install();
+      // CrashReportService.install();
 
       // Register the step MethodChannel so the native StepCounterService can
       // deliver step counts to this Flutter engine via onStepDetected.
@@ -147,7 +147,10 @@ void main() {
         ),
       );
     },
-    CrashReportService.handleZoneError,
+        (error, stack) async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('ERRORS', '$error\n$stack');
+    },
   );
 }
 

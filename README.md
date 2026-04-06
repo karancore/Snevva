@@ -34,6 +34,7 @@ Snevva is a Flutter-based health companion app focused on daily wellness trackin
 - `lib/models` data models
 - `lib/consts` constants, colors, images
 - `lib/l10n` localization resources
+- `docs/sleep-service-architecture.md` sleep service design and runtime flow
 - `assets/` images, icons, sounds, decision tree JSON
 
 **Environment Setup**
@@ -69,4 +70,3 @@ flutter test
 **Notes**
 - Background tracking relies on permissions for activity recognition, notifications, and (optionally) location. Ensure device permissions are granted.
 - Localization uses Flutter's `gen-l10n` pipeline; resources live in `lib/l10n`.
-

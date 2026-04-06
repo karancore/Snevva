@@ -1,12 +1,10 @@
 package com.coretegra.snevva
 
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.Display
-import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -24,33 +22,14 @@ class MainActivity : FlutterActivity() {
         getSharedPreferences("steps_prefs", android.content.Context.MODE_PRIVATE)
             .edit().putBoolean("is_headless", false).apply()
 
-        startStepCounterService()
+        StepServiceStarter.tryStart(this, "activity_launch")
         AlarmHelper.cancelSleepAlarms(this)
         requestHighestRefreshRate()
         Log.d("Lifecycle", "onCreate called")
     }
 
     private fun startStepCounterService(): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-            ContextCompat.checkSelfPermission(
-                this,
-                android.Manifest.permission.ACTIVITY_RECOGNITION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            Log.d(
-                "MainActivity",
-                "Skipping StepCounterService start until ACTIVITY_RECOGNITION is granted"
-            )
-            return false
-        }
-
-        val stepIntent = Intent(this, StepCounterService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(stepIntent)
-        } else {
-            startService(stepIntent)
-        }
-        return true
+        return StepServiceStarter.tryStart(this, "flutter_request")
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {

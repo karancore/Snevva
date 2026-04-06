@@ -3,7 +3,6 @@ package com.coretegra.snevva
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.util.Log
 
 class BootReceiver : BroadcastReceiver() {
@@ -17,16 +16,11 @@ class BootReceiver : BroadcastReceiver() {
 
             // 1. Restart StepCounterService immediately so step counting works from boot
             //    without requiring the user to open the app.
-            val stepIntent = Intent(context, StepCounterService::class.java)
-            try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(stepIntent)
-                } else {
-                    context.startService(stepIntent)
-                }
+            val started = StepServiceStarter.tryStart(context, "boot")
+            if (started) {
                 Log.d("BootReceiver", "✅ StepCounterService started on boot.")
-            } catch (e: Exception) {
-                Log.e("BootReceiver", "Failed to start StepCounterService on boot", e)
+            } else {
+                Log.d("BootReceiver", "Skipping StepCounterService start on boot.")
             }
 
             // 2. flutter_background_service handles its own boot start via autoStartOnBoot=true.

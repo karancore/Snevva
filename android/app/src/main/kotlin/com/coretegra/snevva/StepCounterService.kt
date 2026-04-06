@@ -2,19 +2,19 @@ package com.coretegra.snevva
 
 import android.app.*
 import android.content.*
+import android.content.pm.ServiceInfo
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.IBinder
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.plugin.common.MethodChannel
-import android.content.pm.ServiceInfo
-import android.os.SystemClock
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
 
 class StepCounterService : Service(), SensorEventListener {
 
@@ -81,11 +81,23 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (!StepServiceStarter.hasRequiredPermissions(this)) {
+            Log.w("StepService", "Missing permissions onStartCommand; stopping service.")
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
         return START_STICKY
     }
 
     override fun onCreate() {
         super.onCreate()
+        if (!StepServiceStarter.hasRequiredPermissions(this)) {
+            Log.w("StepService", "Missing permissions onCreate; aborting service startup.")
+            stopSelf()
+            return
+        }
+
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
@@ -98,14 +110,34 @@ class StepCounterService : Service(), SensorEventListener {
         val stepsToday = prefs.getInt(KEY_TODAY_STEPS, 0)
         val notification = buildNotification(stepsToday)
 
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH)
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } catch (securityException: SecurityException) {
+            Log.e("StepService", "Failed to enter foreground mode", securityException)
+            stopSelf()
+            return
+        } catch (exception: Exception) {
+            Log.e("StepService", "Unexpected failure entering foreground mode", exception)
+            stopSelf()
+            return
         }
 
-        registerStepListener()
-        scheduleSparseWakeup()
+        try {
+            registerStepListener()
+            scheduleSparseWakeup()
+        } catch (exception: Exception) {
+            Log.e("StepService", "Failed during StepCounterService startup", exception)
+            stopSelf()
+            return
+        }
 
         Log.d("StepService", "🚀 StepCounterService started.")
     }
@@ -177,7 +209,9 @@ class StepCounterService : Service(), SensorEventListener {
 
     override fun onDestroy() {
         super.onDestroy()
-        sensorManager.unregisterListener(this)
+        if (::sensorManager.isInitialized) {
+            sensorManager.unregisterListener(this)
+        }
         Log.d("StepService", "🛑 StepCounterService destroyed.")
     }
 
