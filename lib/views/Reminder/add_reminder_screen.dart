@@ -495,7 +495,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
     if (picked != null && category != null) {
       reminderController.pickedTimes.putIfAbsent(category, () => []);
-      reminderController.pickedTimes[category]!.add(picked);
+      reminderController.pickedTimes[category] = [picked];
     }
     if (picked != null) {
       final hour = picked.hourOfPeriod.toString().padLeft(2, '0');
@@ -1756,7 +1756,13 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                         child: TextField(
                           controller: controller,
                           readOnly: true,
-                          onTap: () => _selectTime(textController: controller),
+                          onTap: () {
+                            print("Tapped time field $index");
+                            _selectTime(
+                              textController: controller,
+                              category: "Medicine_$index",
+                            );
+                          },
                           decoration: const InputDecoration(
                             hintText: '09:30 AM',
                             hintStyle: TextStyle(color: grey),
@@ -1830,7 +1836,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             // }
                             _selectTime(
                               textController: controller,
-                              category: "Medicine",
+                              category: "Medicine_$index",
                             );
                           },
                           decoration: commonInputDecoration(hint: "09:30 AM"),
@@ -2117,7 +2123,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   onTap:
                       () => _selectTime(
                         textController: startTimeController,
-                        category: "Water",
+                        category: "$title+Start",
                       ),
                   decoration: commonInputDecoration(hint: '09:30 AM'),
                 ),
@@ -2140,7 +2146,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     onTap:
                         () => _selectTime(
                           textController: endTimeController,
-                          category: "Water",
+                          category: "$title+End",
                         ),
                     decoration: commonInputDecoration(hint: '11:30 PM'),
                   ),
