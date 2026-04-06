@@ -63,7 +63,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await sleepController.loadDeepSleepData();
-      sleepController.loadUserSleepTimes();
+      // sleepController.loadUserSleepTimes();
       _checkBatteryOptimizations();
     });
   }
