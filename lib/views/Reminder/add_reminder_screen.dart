@@ -1004,7 +1004,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               const SizedBox(width: 8),
               Text(
                 "Remind me ",
-                style: TextStyle(color: isSelected ? black : grey),
+                style: TextStyle(color: isSelected ? ((Theme
+                    .of(context)
+                    .brightness ==
+                    Brightness.dark)
+                    ? white
+                    : black) : grey),
               ),
               SizedBox(
                 width: 50,
