@@ -982,12 +982,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 data: Theme.of(context).copyWith(unselectedWidgetColor: grey),
                 child: CustomRadio(
                   selected: isSelected,
-                  activeColor: ((Theme
+                  activeColor: isSelected ? ((Theme
                       .of(context)
                       .brightness ==
                       Brightness.dark)
                       ? white
-                      : black),
+                      : black) : grey,
                   onTap: () {
                     final rx =
                         medicineGetxController.medicineRemindMeBeforeOption;
@@ -1004,12 +1004,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               const SizedBox(width: 8),
               Text(
                 "Remind me ",
-                style: TextStyle(color: isSelected ? ((Theme
-                    .of(context)
-                    .brightness ==
-                    Brightness.dark)
-                    ? white
-                    : black) : grey),
+                style: TextStyle(color: isSelected ? black : grey),
               ),
               SizedBox(
                 width: 50,
@@ -1041,50 +1036,42 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               SizedBox(
                 width: 70,
                 height: 35,
-                child: AbsorbPointer(
-                  absorbing: isSelected ? false : true,
-                  child: DropdownButton<String>(
-                    dropdownColor: ((Theme
-                        .of(context)
-                        .brightness ==
-                        Brightness.dark)
-                        ? black
-                        : white),
-                    value: reminderController.selectedValue.value,
-                    isExpanded: false,
-                    iconSize: 18,
-                    items:
-                    ['minutes', 'hours']
-                        .map(
-                          (value) =>
-                          DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(
-                              value,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isSelected ? ((Theme
-                                    .of(context)
-                                    .brightness ==
-                                    Brightness.dark)
-                                    ? white
-                                    : black) : ((Theme
-                                    .of(context)
-                                    .brightness ==
-                                    Brightness.dark)
-                                    ? white
-                                    : black),
-                              ),
+                child: DropdownButton<String>(
+                  dropdownColor: isSelected ? ((Theme
+                      .of(context)
+                      .brightness ==
+                      Brightness.dark)
+                      ? black
+                      : white) : grey,
+                  value: reminderController.selectedValue.value,
+                  isExpanded: false,
+                  iconSize: 18,
+                  items:
+                  ['minutes', 'hours']
+                      .map(
+                        (value) =>
+                        DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(
+                            value,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isSelected ? ((Theme
+                                  .of(context)
+                                  .brightness ==
+                                  Brightness.dark)
+                                  ? white
+                                  : black) : grey,
                             ),
                           ),
-                    )
-                        .toList(),
-                    onChanged: (newValue) {
-                      if (newValue != null) {
-                        reminderController.selectedValue.value = newValue;
-                      }
-                    },
-                  ),
+                        ),
+                  )
+                      .toList(),
+                  onChanged: (newValue) {
+                    if (newValue != null) {
+                      reminderController.selectedValue.value = newValue;
+                    }
+                  },
                 ),
               ),
               Text(
@@ -1099,6 +1086,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             ],
           );
         }),
+
       ],
     );
   }
@@ -1486,18 +1474,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 style: TextStyle(
                   color:
                       reminderController.startDateString.value == "Start Date"
-                          ? ((Theme
-                          .of(context)
-                          .brightness ==
-                          Brightness.dark)
-                          ? white
-                          : black)
-                          : ((Theme
-                          .of(context)
-                          .brightness ==
-                          Brightness.dark)
-                          ? white
-                          : black),
+                          ? grey
+                          : black,
                 ),
               ),
             ),
@@ -1540,12 +1518,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   // Custom radio
                   CustomRadio(
                     selected: isSelected,
-                    activeColor: ((Theme
+                    activeColor: isSelected ? ((Theme
                         .of(context)
                         .brightness ==
                         Brightness.dark)
                         ? white
-                        : black),
+                        : black) : grey,
                     onTap: () {
                       final rx = eventGetxController.eventRemindMeBefore;
                       if (rx.value == 0) {
@@ -1602,50 +1580,42 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   SizedBox(
                     width: 70,
                     height: 35,
-                    child: AbsorbPointer(
-                      absorbing: isSelected ? false : true,
-                      child: DropdownButton<String>(
-                        value: reminderController.selectedValue.value,
-                        dropdownColor: ((Theme
-                            .of(context)
-                            .brightness ==
-                            Brightness.dark)
-                            ? black
-                            : white),
-                        isExpanded: false,
-                        iconSize: 18,
-                        items:
-                        ['minutes', 'hours']
-                            .map(
-                              (value) =>
-                              DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(
-                                  value,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: isSelected ? ((Theme
-                                        .of(context)
-                                        .brightness ==
-                                        Brightness.dark)
-                                        ? grey
-                                        : white) : ((Theme
-                                        .of(context)
-                                        .brightness ==
-                                        Brightness.dark)
-                                        ? white
-                                        : black),
-                                  ),
+                    child: DropdownButton<String>(
+                      value: reminderController.selectedValue.value,
+                      dropdownColor: isSelected ? ((Theme
+                          .of(context)
+                          .brightness ==
+                          Brightness.dark)
+                          ? black
+                          : white) : grey,
+                      isExpanded: false,
+                      iconSize: 18,
+                      items:
+                      ['minutes', 'hours']
+                          .map(
+                            (value) =>
+                            DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(
+                                value,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isSelected ? ((Theme
+                                      .of(context)
+                                      .brightness ==
+                                      Brightness.dark)
+                                      ? white
+                                      : black) : grey,
                                 ),
                               ),
-                        )
-                            .toList(),
-                        onChanged: (newValue) {
-                          if (newValue != null) {
-                            reminderController.selectedValue.value = newValue;
-                          }
-                        },
-                      ),
+                            ),
+                      )
+                          .toList(),
+                      onChanged: (newValue) {
+                        if (newValue != null) {
+                          reminderController.selectedValue.value = newValue;
+                        }
+                      },
                     ),
                   ),
                   const SizedBox(width: 4),
