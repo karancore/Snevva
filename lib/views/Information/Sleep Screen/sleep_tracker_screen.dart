@@ -311,7 +311,8 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
       wakeTime.hour,
       wakeTime.minute,
     );
-    sleepController.uploadsleepdatatoServer(bedtimeDT, wakeDT);
+    final duration = wakeDT.difference(bedtimeDT).inMinutes;
+    sleepController.uploadsleepdatatoServer(bedtimeDT, wakeDT, duration);
     _secretTapCount = 0;
   }
 

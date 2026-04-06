@@ -184,7 +184,7 @@ class SleepController extends GetxService {
           final wakeDateTime = DateTime.tryParse(endTime);
           if (bedDateTime != null && wakeDateTime != null) {
             debugPrint("📡 Uploading sleep to server: $startTime → $endTime");
-            await uploadsleepdatatoServer(bedDateTime, wakeDateTime);
+            await uploadsleepdatatoServer(bedDateTime, wakeDateTime, duration);
             // Clear the pending queue so _uploadPendingSleep doesn't
             // double-upload the same session on next app open.
             final prefs = await SharedPreferences.getInstance();
@@ -496,7 +496,7 @@ class SleepController extends GetxService {
     if (deep.inMinutes < 10) return;
 
     await saveDeepSleepData(sleepStart, deep);
-    await uploadsleepdatatoServer(sleepStart, sleepEnd);
+    await uploadsleepdatatoServer(sleepStart, sleepEnd, deep.inMinutes);
 
     debugPrint("🔁 Retroactive sleep saved (no phone): $deep");
   }
@@ -510,7 +510,7 @@ class SleepController extends GetxService {
     if (deep.inMinutes < 10) return;
 
     await saveDeepSleepData(sleepStart, deep);
-    await uploadsleepdatatoServer(sleepStart, sleepEnd);
+    await uploadsleepdatatoServer(sleepStart, sleepEnd, deep.inMinutes);
 
     debugPrint("🔁 Retroactive sleep saved (phone usage assumed)");
   }
