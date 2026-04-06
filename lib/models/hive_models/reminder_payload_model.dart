@@ -4,6 +4,13 @@ import '../../common/global_variables.dart';
 
 part 'reminder_payload_model.g.dart';
 
+String safeString(dynamic value, [String fallback = '']) {
+  if (value == null) return fallback;
+
+  final normalized = value.toString().trim();
+  return normalized.isEmpty ? fallback : normalized;
+}
+
 @HiveType(typeId: 20)
 class ReminderPayloadModel {
   @HiveField(0)
