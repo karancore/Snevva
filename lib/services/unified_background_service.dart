@@ -44,7 +44,8 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
     );
 
     await HiveService().initBackground();
-    await Hive.initFlutter();
+    // Bug 1E fix: Do NOT call Hive.initFlutter() here — HiveService().initBackground()
+    // already handles Hive initialization. Calling it twice caused issues on some devices.
 
     if (!Hive.isAdapterRegistered(SleepLogAdapter().typeId)) {
       Hive.registerAdapter(SleepLogAdapter());

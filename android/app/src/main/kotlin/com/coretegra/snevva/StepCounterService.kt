@@ -175,7 +175,9 @@ class StepCounterService : Service(), SensorEventListener {
             "FlutterSharedPreferences", android.content.Context.MODE_PRIVATE
         )
         flutterPrefs.edit()
-            .putLong("flutter.today_steps", stepsToday.toLong())
+            // Bug 2B fix: Flutter reads this with getInt() (32-bit); putLong() caused
+            // the Dart poller to always see null. Changed to putInt() to match.
+            .putInt("flutter.today_steps", stepsToday)
             .apply()
 
         Log.d("StepService", "👣 Steps today: $stepsToday")

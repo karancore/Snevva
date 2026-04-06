@@ -87,12 +87,12 @@ class SleepController extends GetxService {
   @override
   void onInit() {
     super.onInit();
-    _loadUserSleepTimes();
+    // _loadUserSleepTimes();
     _loadWeeklySleepData();
     _setupBackgroundServiceListeners();
     _checkIfAlreadySleeping();
     loadDeepSleepData();
-    loadUserSleepTimes();
+    // loadUserSleepTimes();
     // Flush any sleep data that was saved while the screen was closed.
     _uploadPendingSleep();
   }
@@ -174,6 +174,8 @@ class SleepController extends GetxService {
 
         // Reload weekly data to show new entry
         await _loadWeeklySleepData();
+
+        await loadDeepSleepData();
 
         // Upload to server — only if we have valid timestamps and meaningful
         // sleep duration (uploadsleepdatatoServer has its own 10-min guard too).
@@ -333,6 +335,21 @@ class SleepController extends GetxService {
     }
     if (wakeMin != null) {
       waketime.value = _minutesToTimeOfDay(wakeMin);
+    }
+
+    // Bug 1D fix: If GetStorage was cleared (logout / reinstall), fall back to
+    // SharedPreferences which is written by the background isolate & setBedtime.
+    if (bedMin == null || wakeMin == null) {
+      SharedPreferences.getInstance().then((prefs) {
+        if (bedMin == null) {
+          final spBed = prefs.getInt(BEDTIME_KEY);
+          if (spBed != null) bedtime.value = _minutesToTimeOfDay(spBed);
+        }
+        if (wakeMin == null) {
+          final spWake = prefs.getInt(WAKETIME_KEY);
+          if (spWake != null) waketime.value = _minutesToTimeOfDay(spWake);
+        }
+      });
     }
   }
 
@@ -530,7 +547,7 @@ class SleepController extends GetxService {
         '📡 Flushing pending sleep upload: $startStr → $endStr ($duration min)',
       );
 
-      await uploadsleepdatatoServer(bedDateTime, wakeDateTime);
+      await uploadsleepdatatoServer(bedDateTime, wakeDateTime, duration);
 
       // Clear pending queue only after a successful upload attempt.
       await prefs.remove(_pendingUploadStartKey);
@@ -776,6 +793,7 @@ class SleepController extends GetxService {
   Future<void> uploadsleepdatatoServer(
     DateTime bedDateTime,
     DateTime wakeDateTime,
+    int durationMinutes
   ) async {
     try {
       // Normalize wake across midnight
@@ -807,7 +825,7 @@ class SleepController extends GetxService {
         "Time": TimeOfDay.fromDateTime(wake).format(Get.context!),
         "SleepingFrom": timeOfDayToString(TimeOfDay.fromDateTime(bedDateTime)),
         "SleepingTo": timeOfDayToString(TimeOfDay.fromDateTime(wake)),
-        "Count": deepSleepDuration.value.inMinutes.toString(),
+        "Count": durationMinutes.toString()
       };
 
       debugPrint("🛰️ Uploading sleep payload: $payload");
@@ -858,7 +876,7 @@ class SleepController extends GetxService {
       debugPrint("   💤 Weekly ← Hive: $key → ${duration.inMinutes} min");
     }
 
-    // 🔥 Set UI value for *today* (or yesterday if today is empty)
+    // 🔥 Set UI value for *today* (or yesterday, or the most recent entry)
     final todayKey = getCurrentDayKey();
     final yesterdayKey = dateKey(
       DateTime.now().subtract(const Duration(days: 1)),
@@ -871,7 +889,21 @@ class SleepController extends GetxService {
       // Fallback to yesterday (likely last night's sleep)
       deepSleepDuration.value = weeklyDeepSleepHistory[yesterdayKey]!;
     } else {
-      deepSleepDuration.value = Duration.zero;
+      // Bug 1A fix: App not opened for 2+ days — find the most recent Hive entry
+      // so the UI circle always shows real data instead of "No sleep yet".
+      final allLogs = box.values.toList()
+        ..sort((a, b) => b.date.compareTo(a.date));
+      if (allLogs.isNotEmpty) {
+        deepSleepDuration.value =
+            Duration(minutes: allLogs.first.durationMinutes);
+        debugPrint(
+          "📅 [loadDeepSleepData] Using most-recent log: "
+          "${dateKey(allLogs.first.date)} → "
+          "${allLogs.first.durationMinutes} min",
+        );
+      } else {
+        deepSleepDuration.value = Duration.zero;
+      }
     }
 
     // #region agent log

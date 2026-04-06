@@ -15,10 +15,12 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
             val prefs = applicationContext.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
             
             // Get bedtime/waketime from prefs
-            val bedMin = prefs.getLong("flutter.user_bedtime_ms", -1L)
-            val wakeMin = prefs.getLong("flutter.user_waketime_ms", -1L)
+            // Bug 1C fix: Flutter's SharedPreferences.setInt() uses putInt() (32-bit),
+            // NOT putLong(). Reading with getLong() always returned the -1L default.
+            val bedMin = prefs.getInt("flutter.user_bedtime_ms", -1)
+            val wakeMin = prefs.getInt("flutter.user_waketime_ms", -1)
             
-            if (bedMin == -1L || wakeMin == -1L) {
+            if (bedMin == -1 || wakeMin == -1) {
                 Log.w("SleepCalcWorker", "No sleep window found.")
                 return Result.success() // Nothing to do
             }
@@ -71,9 +73,10 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
     companion object {
         fun scheduleNext(context: Context) {
             val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-            val wakeMin = prefs.getLong("flutter.user_waketime_ms", -1L)
+        // Bug 1C fix: use getInt() to match Flutter's SharedPreferences.setInt().
+            val wakeMin = prefs.getInt("flutter.user_waketime_ms", -1)
             
-            if (wakeMin == -1L) return
+            if (wakeMin == -1) return
             
             val wakeHour = (wakeMin / 60).toInt()
             val wakeMinute = (wakeMin % 60).toInt()

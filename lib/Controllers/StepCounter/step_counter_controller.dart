@@ -152,14 +152,21 @@ class StepCounterController extends GetxController {
 
     await loadGoal();
 
-    // Set up the MethodChannel handler so the native StepCounterService can
-    // push live step counts directly into the Dart UI without relying on
-    // the flutter_background_service `steps_updated` event (which is never
-    // sent by the native service).
+    // Bug 2A fix: Merged single MethodChannel handler.
+    // The old main.dart handler (which wrote SharedPreferences and relayed the
+    // event to the background isolate) was silently overwritten by the
+    // controller's own setMethodCallHandler. Merged both responsibilities here
+    // so the background isolate's onStepDetected listener is always triggered.
     _stepChannel.setMethodCallHandler((call) async {
       if (call.method == 'onStepDetected') {
         final int newSteps = (call.arguments as int?) ?? 0;
         _lastServiceEventAt = DateTime.now();
+
+        // Write to SharedPreferences (read by the Hive poller and background isolate)
+        await _prefs.setInt('today_steps', newSteps);
+        // Relay to background service isolate so its onStepDetected listener
+        // can persist to Hive and update the notification.
+        FlutterBackgroundService().invoke('onStepDetected', {'steps': newSteps});
 
         if (newSteps > todaySteps.value) {
           lastSteps = todaySteps.value;
@@ -170,8 +177,14 @@ class StepCounterController extends GetxController {
           await _saveToHive(newSteps);
           await _maybeSyncSteps();
         }
+      } else if (call.method == 'onAlarmWakeup') {
+        FlutterBackgroundService().invoke('onAlarmWakeup');
       }
     });
+
+    // Bug 2C fix: _listenToBackgroundSteps() was defined but never called —
+    // the steps_updated events from the background isolate were silently ignored.
+    _listenToBackgroundSteps();
 
     // Always run the hive poller so the UI has a live fallback even when
     // the screen is not open (e.g. on app resume).
