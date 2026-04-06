@@ -39,6 +39,7 @@ class ReminderScheduler {
     List<reminder_payload.ReminderPayloadModel> reminders, {
     Set<int> deletedGroupIds = const {},
     Set<int> deletedAlarmIds = const {},
+    bool skipPastTodaySchedules = false,
   }) async {
     debugPrint("📌 scheduleAll() called with ${reminders.length} reminders");
 
@@ -54,6 +55,7 @@ class ReminderScheduler {
           reminder,
           deletedGroupIds: deletedGroupIds,
           deletedAlarmIds: deletedAlarmIds,
+          skipPastTodaySchedules: skipPastTodaySchedules,
         );
 
         debugPrint("✅ Reminder scheduled successfully ID:${reminder.id}");
@@ -71,6 +73,7 @@ class ReminderScheduler {
     reminder_payload.ReminderPayloadModel reminder, {
     required Set<int> deletedGroupIds,
     required Set<int> deletedAlarmIds,
+    required bool skipPastTodaySchedules,
   }) async {
     debugPrint("📂 Routing reminder category → ${reminder.category}");
 
@@ -86,7 +89,10 @@ class ReminderScheduler {
       case 'water':
         if (deletedGroupIds.contains(reminder.id)) return;
         debugPrint("💧 Scheduling Water Reminder");
-        await scheduleWaterReminder(reminder: reminder);
+        await scheduleWaterReminder(
+          reminder: reminder,
+          skipPastTodaySchedules: skipPastTodaySchedules,
+        );
         break;
 
       case 'meal':
@@ -264,6 +270,7 @@ class ReminderScheduler {
   /// ==============================
   static Future<void> scheduleWaterReminder({
     required reminder_payload.ReminderPayloadModel reminder,
+    bool skipPastTodaySchedules = false,
   }) async {
     debugPrint("💧 scheduleWaterReminder called");
 
@@ -291,6 +298,11 @@ class ReminderScheduler {
       debugPrint("Generated water interval times: $intervalTimes");
 
       for (final time in intervalTimes) {
+        if (time.isBefore(DateTime.now()) && skipPastTodaySchedules) {
+          debugPrint("⛔ Skipping past water interval reminder at $time");
+          continue;
+        }
+
         final scheduledTime =
             time.isBefore(DateTime.now())
                 ? time.add(const Duration(days: 1))
@@ -339,6 +351,11 @@ class ReminderScheduler {
       debugPrint("Generated water alarm times: $alarmTimes");
 
       for (var time in alarmTimes) {
+        if (time.isBefore(DateTime.now()) && skipPastTodaySchedules) {
+          debugPrint("⛔ Skipping past water reminder at $time");
+          continue;
+        }
+
         final scheduledTime =
             time.isBefore(DateTime.now()) ? time.add(Duration(days: 1)) : time;
 

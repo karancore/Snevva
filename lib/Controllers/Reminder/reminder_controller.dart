@@ -82,6 +82,39 @@ List<int> _collectExpiredBeforeAlarmIds(Map<String, dynamic> payload) {
   return expiredIds;
 }
 
+Map<String, dynamic> _normalizeReminderPayloadForApi(
+  Map<String, dynamic> payload,
+) {
+  final normalized = Map<String, dynamic>.from(payload);
+
+  if (normalized['Category'] is String) {
+    final category = normalized['Category'] as String;
+    if (category.isNotEmpty) {
+      normalized['Category'] =
+          category[0].toUpperCase() + category.substring(1);
+    }
+  }
+
+  final customReminder = normalized['CustomReminder'];
+  if (customReminder is Map) {
+    final customReminderMap = Map<String, dynamic>.from(customReminder);
+    final timesPerDay = customReminderMap['TimesPerDay'];
+
+    if (timesPerDay is Map) {
+      final timesPerDayMap = Map<String, dynamic>.from(timesPerDay);
+      timesPerDayMap['Count'] = reminder_payload.safeString(
+        timesPerDayMap['Count'],
+      );
+      customReminderMap['TimesPerDay'] = timesPerDayMap;
+    }
+
+    normalized['CustomReminder'] = customReminderMap;
+  }
+
+  normalized.removeWhere((key, value) => value == null);
+  return normalized;
+}
+
 class ReminderController extends GetxController {
   static const int _computeThreshold = 120;
   static const String _deletedReminderGroupIdsKey =
@@ -1231,13 +1264,17 @@ class ReminderController extends GetxController {
       await loadAllReminderLists();
 
       logLong("getRemindersFromAPI", remoteReminders.toString());
+      final remindersToSchedule = _filterSchedulableRemindersFromApi(
+        remoteReminders,
+      );
       // Scheduling many alarms can take time and shouldn't block the caller
       // (e.g. post-login flow), otherwise UI loaders may appear "stuck".
       unawaited(
         ReminderScheduler().scheduleAll(
-          remoteReminders,
+          remindersToSchedule,
           deletedGroupIds: deletedGroupIds,
           deletedAlarmIds: deletedAlarmIds,
+          skipPastTodaySchedules: true,
         ),
       );
       return remoteReminders;
@@ -1246,6 +1283,85 @@ class ReminderController extends GetxController {
       await loadAllReminderLists();
       return List<reminder_payload.ReminderPayloadModel>.from(reminders);
     }
+  }
+
+  List<reminder_payload.ReminderPayloadModel>
+  _filterSchedulableRemindersFromApi(
+    List<reminder_payload.ReminderPayloadModel> reminders,
+  ) {
+    return reminders.where(_shouldScheduleReminderFromApi).toList();
+  }
+
+  bool _shouldScheduleReminderFromApi(
+    reminder_payload.ReminderPayloadModel reminder,
+  ) {
+    final category = _normalizeCategory(reminder.category);
+    final now = DateTime.now();
+
+    try {
+      switch (category) {
+        case 'medicine':
+          return reminder.medicineTimesSafe.any(
+            (time) =>
+                !buildDateTimeFromTimeString(
+                  time: time,
+                  date: reminder.startDate,
+                ).isBefore(now),
+          );
+
+        case 'meal':
+        case 'event':
+          return reminder.timesSafe.any(
+            (time) =>
+                !buildDateTimeFromTimeString(
+                  time: time,
+                  date: reminder.startDate,
+                ).isBefore(now),
+          );
+
+        case 'water':
+          return _hasUpcomingWaterScheduleToday(reminder, now);
+
+        default:
+          return true;
+      }
+    } catch (e, stackTrace) {
+      _logConversion(
+        'Unable to pre-check reminder ${reminder.id} for API scheduling: $e',
+        stackTrace: stackTrace,
+      );
+      return true;
+    }
+  }
+
+  bool _hasUpcomingWaterScheduleToday(
+    reminder_payload.ReminderPayloadModel reminder,
+    DateTime now,
+  ) {
+    if (reminder.customReminder.everyXHours != null) {
+      final interval = reminder.customReminder.everyXHours!;
+      final start = _tryParseTimeOfDay(reminder.waterStartSafe);
+      final end = _tryParseTimeOfDay(reminder.waterEndSafe);
+      if (start == null || end == null || interval.hours <= 0) {
+        return true;
+      }
+
+      return _generateEveryXHours(
+        start: start,
+        end: end,
+        intervalHours: interval.hours,
+      ).any((scheduledTime) => !scheduledTime.isBefore(now));
+    }
+
+    if (reminder.customReminder.timesPerDay != null) {
+      return _generateTimesBetween(
+        startTime: reminder.waterStartSafe,
+        endTime: reminder.waterEndSafe,
+        times: reminder.waterTimesCountSafe,
+      ).any((scheduledTime) => !scheduledTime.isBefore(now));
+    }
+
+    return true;
   }
 
   Future<void> clearAllReminderBoxes() async {
@@ -2177,30 +2293,7 @@ class ReminderController extends GetxController {
   ) async {
     try {
       debugPrint("🚀 addRemindertoAPI called");
-
-      Map<String, dynamic> payload = reminderData.toJson();
-
-      // ✅ Capitalize Category
-      if (payload['Category'] != null && payload['Category'] is String) {
-        String category = payload['Category'];
-        if (category.isNotEmpty) {
-          payload['Category'] =
-              category[0].toUpperCase() + category.substring(1);
-        }
-      }
-      if (payload['CustomReminder'] != null &&
-          payload['CustomReminder'] is Map &&
-          payload['CustomReminder']['TimesPerDay'] != null &&
-          payload['CustomReminder']['TimesPerDay'] is Map) {
-        var timesPerDay = payload['CustomReminder']['TimesPerDay'];
-
-        if (timesPerDay['Count'] != null) {
-          // Convert Count to String safely
-          timesPerDay['Count'] = timesPerDay['Count'].toString();
-        }
-      }
-
-      payload.removeWhere((key, value) => value == null);
+      final payload = _normalizeReminderPayloadForApi(reminderData.toJson());
 
       // Fix date format
       //       if (payload['CustomReminder']?['TimesPerDay']?['List'] != null) {
@@ -2210,6 +2303,7 @@ class ReminderController extends GetxController {
       //       }asdadasd
 
       debugPrint("📦 Modified Payload: $payload");
+      print("Final Payload: $payload");
       debugPrint("🌐 Hitting API: $addreminderApi");
 
       final response = await ApiService.post(
@@ -2289,28 +2383,9 @@ class ReminderController extends GetxController {
   ) async {
     try {
       debugPrint("➡️ updateReminder called");
-      debugPrint("📦 Payload: ${reminderData.toJson()}");
-
-      Map<String, dynamic> payload = reminderData.toJson();
-
-      if (payload['Category'] != null && payload['Category'] is String) {
-        String category = payload['Category'];
-        if (category.isNotEmpty) {
-          payload['Category'] =
-              category[0].toUpperCase() + category.substring(1);
-        }
-      }
-      if (payload['CustomReminder'] != null &&
-          payload['CustomReminder'] is Map &&
-          payload['CustomReminder']['TimesPerDay'] != null &&
-          payload['CustomReminder']['TimesPerDay'] is Map) {
-        var timesPerDay = payload['CustomReminder']['TimesPerDay'];
-
-        if (timesPerDay['Count'] != null) {
-          // Convert Count to String safely
-          timesPerDay['Count'] = timesPerDay['Count'].toString();
-        }
-      }
+      final payload = _normalizeReminderPayloadForApi(reminderData.toJson());
+      debugPrint("📦 Payload: $payload");
+      print("Final Payload: $payload");
 
       final response = await ApiService.post(
         editreminderApi,
