@@ -1,8 +1,9 @@
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
-import '../../consts/consts.dart';
+
 import '../../Widgets/MoodTracker/animated_circle_widget.dart';
+import '../../consts/consts.dart';
 import 'mood_questionnaire.dart';
 
 class MoodTrackerScreen extends StatelessWidget {
@@ -65,15 +66,15 @@ class MoodTrackerScreen extends StatelessWidget {
                       shadow2 = contColor2;
                       text = 'Pleasant';
                     } else if (index == 1) {
-                      gradient = mood2;
-                      shadow1 = contColor21;
-                      shadow2 = contColor22;
-                      text = 'Unpleasant';
-                    } else {
                       gradient = mood3;
                       shadow1 = contColor31;
                       shadow2 = contColor32;
                       text = 'Good';
+                    } else {
+                      gradient = mood2;
+                      shadow1 = contColor21;
+                      shadow2 = contColor22;
+                      text = 'Unpleasant';
                     }
 
                     return AnimatedScale(

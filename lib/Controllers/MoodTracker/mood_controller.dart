@@ -11,7 +11,7 @@ import '../../common/custom_snackbar.dart';
 import '../../common/global_variables.dart';
 
 class MoodController extends GetxService {
-  List<String> moods = ['Pleasant', 'Unpleasant', 'Good'];
+  List<String> moods = ['Pleasant', 'Good', 'Unpleasant'];
 
   // 0 = Happy, 1 = Neutral, 2 = Sad
   var selectedMoodIndex = (-1).obs;
