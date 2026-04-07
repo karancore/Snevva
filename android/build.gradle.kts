@@ -1,3 +1,5 @@
+import com.android.build.api.variant.LibraryAndroidComponentsExtension
+
 allprojects {
     repositories {
         google()
@@ -31,6 +33,24 @@ gradle.projectsEvaluated {
             n.endsWith("unittest") || n.endsWith("debugunittest") || n.contains("test")
         }.configureEach {
             enabled = false
+        }
+    }
+}
+
+subprojects {
+    if (name == "audioplayers_android") {
+        plugins.withId("com.android.library") {
+            extensions.configure(LibraryAndroidComponentsExtension::class.java) {
+                beforeVariants(selector().all()) { variantBuilder ->
+                    variantBuilder.enableUnitTest = false
+                }
+            }
+        }
+    }
+
+    if (name == "camera_android_camerax") {
+        afterEvaluate {
+            dependencies.add("implementation", "androidx.concurrent:concurrent-futures:1.2.0")
         }
     }
 }

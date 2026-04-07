@@ -127,7 +127,9 @@ dev_dependencies:
   hive_generator: ^2.0.1
   flutter_lints: ^6.0.0
 
-
+dependency_overrides:
+  flutter_background_service_android:
+    path: third_party/flutter_background_service_android
 
 flutter_launcher_icons:
   android: true

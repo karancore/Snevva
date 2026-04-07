@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
 import 'package:snevva/models/hive_models/sleep_log_g.dart';
+import 'package:snevva/services/health_file_storage_service.dart';
 import 'package:snevva/services/notification_service.dart';
 import 'package:snevva/services/unified_background_service.dart';
 import 'package:timezone/data/latest.dart';
@@ -272,6 +273,7 @@ Future<bool> initializeApp() async {
     // 🔔 Notification service (SERVICE, not controller)
     final notifService = NotificationService();
     await notifService.init();
+    await HealthFileStorageService.instance.migrateLegacyDataIfNeeded();
 
     // ⏰ One-time reminder
     final prefs = await SharedPreferences.getInstance();

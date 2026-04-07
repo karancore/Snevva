@@ -1,15 +1,12 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/utils/theme_controller.dart';
-import 'package:snevva/views/debug_log_page.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
-import '../../Widgets/Setting/setting_item_widget.dart';
 import '../../consts/consts.dart';
 import 'about_screen.dart';
+import 'screen_event_logs_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -20,8 +17,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final ThemeController themeController = Get.find<ThemeController>();
-  bool _notificationsToggle = false;
-  double _volume = 0.5;
 
   Future<void> launchEmail() async {
     final Uri emailUri = Uri(
@@ -222,6 +217,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             InkWell(
               onTap: launchEmail,
               child: buildTile('Contact Us', 'Feedbacks Appreciated!'),
+            ),
+
+            InkWell(
+              onTap: () {
+                Get.to(() => const ScreenEventLogsScreen());
+              },
+              child: buildTile(
+                'Screen Event Logs',
+                'View recorded SCREEN_ON and SCREEN_OFF events',
+              ),
             ),
 
             // 🔥 Debug Logs (Visible only in debug mode)

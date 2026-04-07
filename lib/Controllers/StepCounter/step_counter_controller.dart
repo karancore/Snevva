@@ -1,21 +1,20 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
-import 'package:get/get.dart';
 import 'package:hive/hive.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/common/custom_snackbar.dart';
+import 'package:snevva/consts/consts.dart';
 import 'package:snevva/env/env.dart';
-
 import 'package:snevva/models/queryParamViewModels/step_goal_vm.dart';
 import 'package:snevva/services/api_service.dart';
-import 'package:snevva/consts/consts.dart';
+import 'package:snevva/services/health_file_storage_service.dart';
 import 'package:snevva/services/hive_service.dart';
 
 import '../../common/global_variables.dart';
@@ -29,6 +28,8 @@ class StepCounterController extends GetxController {
   RxInt stepGoal = 8000.obs;
 
   final FlutterBackgroundService _service = FlutterBackgroundService();
+  final HealthFileStorageService _fileStorage = HealthFileStorageService
+      .instance;
 
   int lastSteps = 0;
   RxInt lastStepsRx = 0.obs;
@@ -144,6 +145,8 @@ class StepCounterController extends GetxController {
 
   Future<void> _init() async {
     _prefs = await SharedPreferences.getInstance();
+    await _fileStorage.ensureInitialized();
+    await _fileStorage.syncSleepScheduleFromPrefs();
     // Ensure box exists
     await _ensureStepBox();
 
@@ -162,10 +165,8 @@ class StepCounterController extends GetxController {
         final int newSteps = (call.arguments as int?) ?? 0;
         _lastServiceEventAt = DateTime.now();
 
-        // Write to SharedPreferences (read by the Hive poller and background isolate)
-        await _prefs.setInt('today_steps', newSteps);
         // Relay to background service isolate so its onStepDetected listener
-        // can persist to Hive and update the notification.
+        // can keep notifications/UI in sync without owning persistence.
         FlutterBackgroundService().invoke('onStepDetected', {'steps': newSteps});
 
         if (newSteps > todaySteps.value) {
@@ -226,8 +227,7 @@ class StepCounterController extends GetxController {
       stepsHistoryByDate.remove(todayKey);
       stepsHistoryByDate.refresh();
       // await _prefs.remove('today_steps');
-      await _prefs.setInt('today_steps', 0);
-
+      await _fileStorage.writeStepCount(todayKey, 0);
       await _safePutSteps(
         todayKey,
         StepEntry(date: _startOfDay(now), steps: 0),
@@ -254,7 +254,7 @@ class StepCounterController extends GetxController {
       return;
     }
 
-    final steps = _safeGetSteps(dayKey);
+    final steps = await _fileStorage.readStepCount(dayKey);
     if (steps <= 0) return;
 
     final parts = dayKey.split("-");
@@ -354,26 +354,20 @@ class StepCounterController extends GetxController {
   // =======================
   Future<void> _pollHiveToday() async {
     try {
-      await _prefs.reload();
       final todayKey = _dayKey(DateTime.now());
-      final steps = _safeGetSteps(todayKey);
+      final steps = await _fileStorage.readStepCount(todayKey);
 
-      // Also check shared prefs fallback written by background isolate
-      final prefSteps = _prefs.getInt('today_steps');
-      final effective =
-          (prefSteps != null && prefSteps > steps) ? prefSteps : steps;
-
-      if (effective != todaySteps.value) {
+      if (steps != todaySteps.value) {
         // Update reactive values and graph
         lastSteps = todaySteps.value;
         lastStepsRx.value = lastSteps;
         lastPercent = _currentPercent;
-        todaySteps.value = effective;
+        todaySteps.value = steps;
         todaySteps.refresh();
         await updateStepSpots();
         stepSpots.refresh();
         _debugLog(
-          "🔎 Hive poll detected change: todaySteps = $effective (hive=$steps pref=$prefSteps)",
+          "🔎 File poll detected change: todaySteps = $steps",
         );
         // _checkDayReset();
       }
@@ -389,7 +383,7 @@ class StepCounterController extends GetxController {
     final today = DateTime.now();
     final key = _dayKey(today);
 
-    // Persist safely
+    await _fileStorage.writeStepCount(key, steps);
     await _safePutSteps(key, StepEntry(date: _startOfDay(today), steps: steps));
 
     _invalidateMonthlySpotsCache(month: today);
@@ -401,7 +395,7 @@ class StepCounterController extends GetxController {
 
   Future<void> loadTodayStepsFromHive() async {
     final todayKey = _dayKey(DateTime.now());
-    final steps = _safeGetSteps(todayKey);
+    final steps = await _fileStorage.readStepCount(todayKey);
 
     // Preserve previous value so animations can interpolate from the
     // former step count to the new one. If this is the initial load
@@ -495,12 +489,11 @@ class StepCounterController extends GetxController {
         final apiCount = (item['Count'] ?? 0) as int;
         final key = _dayKey(date);
 
-        final hiveCount = _safeGetSteps(key);
+        final localCount = await _fileStorage.readStepCount(key);
+        final merged = apiCount > localCount ? apiCount : localCount;
 
-        final merged = apiCount > hiveCount ? apiCount : hiveCount;
-
-        // If API has higher value, persist merged value to Hive
-        if (apiCount > hiveCount) {
+        if (merged > localCount) {
+          await _fileStorage.writeStepCount(key, merged);
           await _safePutSteps(
             key,
             StepEntry(date: _startOfDay(date), steps: merged),
@@ -686,32 +679,31 @@ class StepCounterController extends GetxController {
   }
 
   Future<void> buildStepsHistoryMap() async {
-    // Start by populating map from local Hive (local source of truth when API is not called)
+    // Start by populating map from local daily JSON files.
     stepsHistoryByDate.clear();
     _invalidateMonthlySpotsCache();
 
-    // Ensure the box is available
-    await _ensureStepBox();
+    final nowDate = DateTime.now();
+    final start = DateTime(nowDate.year, nowDate.month, 1);
+    final end = DateTime(nowDate.year, nowDate.month + 1, 0);
+    final localEntries = await _fileStorage.readStepCountsForRange(
+      start: start,
+      end: end,
+    );
+    stepsHistoryByDate.addAll(localEntries);
 
-    try {
-      for (final key in _stepBox.keys) {
-        try {
+    if (stepsHistoryByDate.isEmpty) {
+      try {
+        await _ensureStepBox();
+        for (final key in _stepBox.keys) {
           final entry = _stepBox.get(key);
           if (entry == null) continue;
-          final k = _dayKey(entry.date);
-          stepsHistoryByDate[k] = entry.steps;
-        } catch (e) {
-          if (e is FileSystemException) {
-            _reopenStepBox();
-            // skip this entry; it'll be picked up on next build
-            continue;
-          }
+          stepsHistoryByDate[_dayKey(entry.date)] = entry.steps;
         }
-      }
-    } catch (e) {
-      // If iterating keys fails due to filesystem, attempt reopen and continue
-      if (e is FileSystemException) {
-        _reopenStepBox();
+      } catch (e) {
+        if (e is FileSystemException) {
+          _reopenStepBox();
+        }
       }
     }
 
@@ -723,8 +715,9 @@ class StepCounterController extends GetxController {
       stepsHistoryByDate[key] = merged;
 
       // Ensure Hive also reflects merged result
-      final hiveCount = _safeGetSteps(key);
-      if (merged > hiveCount) {
+      final localCount = await _fileStorage.readStepCount(key);
+      if (merged > localCount) {
+        await _fileStorage.writeStepCount(key, merged);
         await _safePutSteps(
           key,
           StepEntry(date: _startOfDay(item.date), steps: merged),
@@ -751,7 +744,8 @@ class StepCounterController extends GetxController {
       String key = _dayKey(date);
 
       // Read-only access
-      int steps = stepsHistoryByDate[key] ?? _safeGetSteps(key);
+      final steps = stepsHistoryByDate[key] ??
+          await _fileStorage.readStepCount(key);
 
       stepSpots.add(FlSpot(i.toDouble(), steps.toDouble()));
     }
@@ -776,7 +770,8 @@ class StepCounterController extends GetxController {
   }
 
   // Public safe accessors so other parts of the app can read/write safely.
-  int getStepsForKey(String key) => _safeGetSteps(key);
+  int getStepsForKey(String key) =>
+      stepsHistoryByDate[key] ?? _safeGetSteps(key);
 
   Future<void> putStepsForKey(String key, StepEntry entry) async =>
       _safePutSteps(key, entry);

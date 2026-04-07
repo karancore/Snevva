@@ -50,7 +50,7 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
   bool _isSleeping = false;
   bool _isStarting = false;
   Duration _currentSleepDuration = Duration.zero;
-  Duration _sleepGoal = const Duration(hours: 8);
+  Duration _sleepGoal = Duration(hours: 8);
   double _progress = 0.0;
   bool _hasExistingSchedule = false;
   bool _controllersInitialized = false;

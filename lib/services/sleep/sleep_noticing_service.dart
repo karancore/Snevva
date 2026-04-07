@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:screen_state/screen_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,8 +12,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 //
 // Architecture: ALWAYS-ON screen monitoring, window-clipped calculation.
 //
-// The service runs 24/7. Screen-off/on events are written to a rolling
-// 24-hour buffer keyed by calendar date, WITHOUT any is_sleeping check.
+// The service runs 24/7. Screen-off/on events are written to append-only
+// JSONL files keyed by calendar date, WITHOUT any is_sleeping check.
 // Sleep duration is calculated from those raw intervals by clipping them
 // to the user's sleep window at save-time (inside _stopSleepAndSave).
 //
@@ -19,17 +22,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class SleepNoticingService {
-  static const Duration minSleepGap = Duration(minutes: 3);
+  static Duration minSleepGap = Duration(minutes: 3);
+  static Duration sleepWindowSeedLeadTime = Duration(minutes: 5);
 
-  // SharedPrefs key prefixes used by the rolling 24h buffer.
-  // All keys are date-scoped so old data cannot pollute a fresh night.
-  //
-  //   rolling_screen_off_<YYYY-MM-DD>   → ISO timestamp of last SCREEN_OFF
-  //                                        (open interval anchor, null when
-  //                                         screen is on / interval closed)
-  //   raw_intervals_<YYYY-MM-DD>        → comma-separated "start|end" pairs
-  //                                        of closed screen-off intervals
-  //
+  static final Duration _previousDayOffset = Duration(days: 1);
+  static final Duration _flushDelay = Duration(milliseconds: 750);
+  static final Duration _screenStateRestoreRange = Duration(days: 1);
+  static const int _flushThresholdBytes = 4096;
+  static const String _storageDirectoryName = 'sleep_screen_events';
+  static const String _screenOffEventType = 'SCREEN_OFF';
+  static const String _screenOnEventType = 'SCREEN_ON';
+
   // Sleep-window keys (written by unified_background_service, read here):
   //   current_sleep_window_start        → ISO DateTime window start
   //   current_sleep_window_end          → ISO DateTime window end
@@ -42,6 +45,13 @@ class SleepNoticingService {
 
   StreamSubscription<ScreenStateEvent>? _subscription;
   final Screen _screen = Screen();
+  final Map<String, StringBuffer> _pendingWriteBuffers =
+  <String, StringBuffer>{};
+  final Map<String, int> _pendingWriteSizes = <String, int>{};
+  Timer? _flushTimer;
+  Future<void> _pendingFlush = Future<void>.value();
+  DateTime? _openScreenOffAt;
+  bool _hasRestoredScreenState = false;
 
   // ─────────────────────────────────────────────────────────────────────────
   // PUBLIC API
@@ -62,9 +72,9 @@ class SleepNoticingService {
         debugPrint('📱 Screen event: $event');
 
         if (event == ScreenStateEvent.SCREEN_OFF) {
-          _onScreenTurnedOff();
+          unawaited(_onScreenTurnedOff());
         } else if (event == ScreenStateEvent.SCREEN_ON) {
-          _onScreenTurnedOn();
+          unawaited(_onScreenTurnedOn());
         }
       });
 
@@ -79,12 +89,13 @@ class SleepNoticingService {
     debugPrint('🛑 SleepNoticingService.stopMonitoring');
     _subscription?.cancel();
     _subscription = null;
+    unawaited(_flushPendingWrites());
   }
 
   // ─────────────────────────────────────────────────────────────────────────
   // initializeForSleepWindow
   //
-  // Seeds the rolling anchor from window.start when:
+  // Seeds the open anchor from window.start when:
   //   • the service just booted inside an active window AND
   //   • we don't already know the real screen state (no anchor in prefs).
   //
@@ -97,35 +108,38 @@ class SleepNoticingService {
     final prefs = await SharedPreferences.getInstance();
     final window = _computeActiveSleepWindowFromPrefs(prefs);
     if (window == null) return;
+    await _restoreOpenScreenStateIfNeeded();
 
     final now = DateTime.now();
     if (!_isWithinWindow(now, window.start, window.end)) return;
 
-    final todayKey = _todayDateKey();
-    final rollingOffKey = 'rolling_screen_off_$todayKey';
-
-    final existing = prefs.getString(rollingOffKey);
-    if (existing == null) {
-      // Seed anchor at window.start — conservative assumption: screen was off.
-      await prefs.setString(rollingOffKey, window.start.toIso8601String());
+    if (_openScreenOffAt == null) {
+      _openScreenOffAt = window.start;
+      await _appendEvent(
+        type: _screenOffEventType,
+        timestamp: window.start,
+        synthetic: true,
+      );
       debugPrint(
         '🔒 initializeForSleepWindow: seeded rolling anchor at ${window.start}',
       );
-    } else {
-      debugPrint(
-        'ℹ️ initializeForSleepWindow: rolling anchor already exists ($existing)',
-      );
+      return;
     }
+
+    debugPrint(
+      'ℹ️ initializeForSleepWindow: rolling anchor already exists ($_openScreenOffAt)',
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────────────
   // getTotalSleepMinutes
   //
   // Computes sleep minutes by:
-  //   1. Reading raw_intervals_<dateKey> (all closed screen-off periods today)
-  //   2. Adding the open interval (rolling_screen_off still set → screen is off)
-  //   3. Clipping every interval to [window.start, window.end]
-  //   4. Merging overlaps and summing
+  //   1. Reading append-only screen event JSON for the window dates
+  //   2. Rebuilding closed screen-off intervals from SCREEN_OFF/SCREEN_ON pairs
+  //   3. Adding the open interval if the screen is still off
+  //   4. Clipping every interval to [window.start, window.end]
+  //   5. Merging overlaps and summing
   //
   // If window is null (no sleep window configured) returns 0.
   // ─────────────────────────────────────────────────────────────────────────
@@ -156,7 +170,40 @@ class SleepNoticingService {
     }
 
     if (resolvedWindow == null) return 0;
-    return _calculateSleepMinutesForWindow(prefs, resolvedWindow);
+    await _restoreOpenScreenStateIfNeeded();
+    return _calculateSleepMinutesForWindow(resolvedWindow);
+  }
+
+  Future<ScreenSleepSummary?> readResolvedSleepSummary({
+    DateTime? windowStart,
+    DateTime? windowEnd,
+    String? windowDateKey,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    _SleepWindow? resolvedWindow;
+    if (windowStart != null && windowEnd != null && windowDateKey != null) {
+      resolvedWindow = _SleepWindow(
+        start: windowStart,
+        end: windowEnd,
+        dateKey: windowDateKey,
+      );
+    } else {
+      resolvedWindow = _computeActiveSleepWindowFromPrefs(prefs);
+    }
+
+    if (resolvedWindow == null) {
+      return null;
+    }
+
+    await _restoreOpenScreenStateIfNeeded();
+    final minutes = await _calculateSleepMinutesForWindow(resolvedWindow);
+    return ScreenSleepSummary(
+      dateKey: resolvedWindow.dateKey,
+      start: resolvedWindow.start,
+      end: resolvedWindow.end,
+      duration: Duration(minutes: minutes),
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -164,15 +211,85 @@ class SleepNoticingService {
   // ─────────────────────────────────────────────────────────────────────────
 
   Future<void> clearSleepData(String dateKey) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('raw_intervals_$dateKey');
-    await prefs.remove('rolling_screen_off_$dateKey');
+    await _flushPendingWrites();
 
-    // Legacy keys — remove so old data doesn't pollute fresh runs.
-    await prefs.remove('sleep_intervals_$dateKey');
-    await prefs.remove('last_screen_off_$dateKey');
+    try {
+      final file = await _eventFileForDay(dateKey);
+      if (await file.exists()) {
+        await file.delete();
+      }
+      if (_openScreenOffAt != null && _dateKey(_openScreenOffAt!) == dateKey) {
+        _openScreenOffAt = null;
+      }
+      debugPrint('🗑️ Cleared sleep data for $dateKey');
+    } catch (e) {
+      debugPrint('❌ Failed to clear sleep data for $dateKey: $e');
+    }
+  }
 
-    debugPrint('🗑️ Cleared sleep data for $dateKey');
+  Future<List<ScreenEventLogEntry>> readLoggedEvents({int? limit}) async {
+    await _flushPendingWrites();
+
+    try {
+      final directory = await _sleepEventsDirectory();
+      if (!await directory.exists()) return [];
+
+      final files = <File>[];
+      await for (final entity in directory.list()) {
+        if (entity is File && entity.path.endsWith('.jsonl')) {
+          files.add(entity);
+        }
+      }
+
+      final records = <_ScreenEventRecord>[];
+      for (final file in files) {
+        final fileName = file.uri.pathSegments.isNotEmpty
+            ? file.uri.pathSegments.last
+            : file.path
+            .split(Platform.pathSeparator)
+            .last;
+        final match = RegExp(r'screen_events_(\d{4}-\d{2}-\d{2})\.jsonl$')
+            .firstMatch(fileName);
+        if (match == null) continue;
+
+        records.addAll(await _readEventsForDay(match.group(1)!));
+      }
+
+      records.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      final entries = records
+          .map(
+            (record) =>
+            ScreenEventLogEntry(
+              type: record.type,
+              timestamp: record.timestamp,
+              synthetic: record.synthetic,
+              dateKey: _dateKey(record.timestamp),
+            ),
+      )
+          .toList();
+
+      if (limit != null && entries.length > limit) {
+        return entries.take(limit).toList();
+      }
+
+      return entries;
+    } catch (e) {
+      debugPrint('❌ Failed to read logged screen events: $e');
+      return [];
+    }
+  }
+
+  Future<void> clearLoggedEvents() async {
+    await _flushPendingWrites();
+
+    try {
+      final directory = await _sleepEventsDirectory();
+      if (await directory.exists()) {
+        await directory.delete(recursive: true);
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to clear logged screen events: $e');
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -180,24 +297,24 @@ class SleepNoticingService {
   // ─────────────────────────────────────────────────────────────────────────
 
   Future<void> _onScreenTurnedOff() async {
-    final prefs = await SharedPreferences.getInstance();
+    await _restoreOpenScreenStateIfNeeded();
     final now = DateTime.now();
     final todayKey = _dateKey(now);
-    final rollingOffKey = 'rolling_screen_off_$todayKey';
 
     // Always write the screen-off timestamp. If there is already an open
     // interval from a previous SCREEN_OFF that was never closed (e.g. service
     // restarted while screen was off), we keep the earlier timestamp so we
     // don't lose that sleep time.
-    final existing = prefs.getString(rollingOffKey);
-    if (existing == null) {
-      await prefs.setString(rollingOffKey, now.toIso8601String());
+    if (_openScreenOffAt == null) {
+      _openScreenOffAt = now;
+      await _appendEvent(type: _screenOffEventType, timestamp: now);
       debugPrint('🔒 SCREEN_OFF → rolling anchor set at $now ($todayKey)');
-    } else {
-      debugPrint(
-        '🔒 SCREEN_OFF → anchor already open ($existing), keeping earlier',
-      );
+      return;
     }
+
+    debugPrint(
+      '🔒 SCREEN_OFF → anchor already open ($_openScreenOffAt), keeping earlier',
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -205,56 +322,22 @@ class SleepNoticingService {
   // ─────────────────────────────────────────────────────────────────────────
 
   Future<void> _onScreenTurnedOn() async {
-    final prefs = await SharedPreferences.getInstance();
+    await _restoreOpenScreenStateIfNeeded();
     final now = DateTime.now();
-
-    // The screen-off could have started on the previous calendar day
-    // (e.g. went to sleep at 23:00, woke at 07:00 — SCREEN_OFF was on day-1).
-    // We handle this by checking today's key first, then yesterday's.
-    final todayKey = _dateKey(now);
-    final yesterdayKey = _dateKey(now.subtract(const Duration(days: 1)));
-
-    String? offKey;
-    String? lastOffIso;
-
-    for (final dayKey in [todayKey, yesterdayKey]) {
-      final candidate = prefs.getString('rolling_screen_off_$dayKey');
-      if (candidate != null) {
-        offKey = dayKey;
-        lastOffIso = candidate;
-        break;
-      }
-    }
-
-    if (offKey == null || lastOffIso == null) {
+    final lastOff = _openScreenOffAt;
+    if (lastOff == null) {
       debugPrint('ℹ️ SCREEN_ON → no open screen-off anchor found, ignoring');
-      return;
-    }
-
-    DateTime lastOff;
-    try {
-      lastOff = DateTime.parse(lastOffIso);
-    } catch (e) {
-      debugPrint('❌ Failed to parse rolling screen-off anchor: $e');
-      await prefs.remove('rolling_screen_off_$offKey');
       return;
     }
 
     debugPrint('🌞 SCREEN_ON → closing interval $lastOff → $now');
 
-    // Store the raw (unclipped) interval under the day the SCREEN_OFF started.
-    // Clipping to the sleep window happens in getTotalSleepMinutes.
-    final rawKey = 'raw_intervals_$offKey';
-    final existing = prefs.getString(rawKey);
-    final intervals = _parseIntervals(existing);
-
     final duration = now.difference(lastOff);
     if (duration >= minSleepGap) {
-      intervals.add(_TimeInterval(start: lastOff, end: now));
-      final merged = _mergeIntervals(intervals);
-      await prefs.setString(rawKey, _serializeIntervals(merged));
+      await _appendEvent(type: _screenOnEventType, timestamp: now);
       debugPrint(
-        '💾 Raw interval saved → $rawKey  (${duration.inMinutes} min)',
+        '💾 Raw interval saved → ${_dateKey(lastOff)}  (${duration
+            .inMinutes} min)',
       );
     } else {
       debugPrint(
@@ -263,56 +346,41 @@ class SleepNoticingService {
     }
 
     // Clear the open anchor — interval is now closed.
-    await prefs.remove('rolling_screen_off_$offKey');
+    _openScreenOffAt = null;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
   // CALCULATION — clip raw intervals to sleep window, sum minutes
   // ─────────────────────────────────────────────────────────────────────────
 
-  int _calculateSleepMinutesForWindow(
-    SharedPreferences prefs,
-    _SleepWindow window,
-  ) {
+  Future<int> _calculateSleepMinutesForWindow(_SleepWindow window) async {
+    await _flushPendingWrites();
     final allIntervals = <_TimeInterval>[];
+    final now = DateTime.now();
+    final dayKeys = <String>{
+      window.dateKey,
+      _dateKey(window.start.subtract(_previousDayOffset)),
+    };
+    final allEvents = <_ScreenEventRecord>[];
 
-    // Collect raw intervals for the window's day AND the previous day
-    // (handles cross-midnight windows like 23:00 → 07:00).
-    for (final rawKey in [
-      'raw_intervals_${window.dateKey}',
-      'raw_intervals_${_dateKey(window.start.subtract(const Duration(days: 1)))}',
-      // Also check legacy keys written by the old architecture.
-      'sleep_intervals_${window.dateKey}',
-    ]) {
-      final str = prefs.getString(rawKey);
-      if (str != null && str.isNotEmpty) {
-        allIntervals.addAll(_parseIntervals(str));
-      }
+    for (final dayKey in dayKeys) {
+      allEvents.addAll(await _readEventsForDay(dayKey));
     }
 
-    // Add open interval if screen is currently off (rolling anchor still set).
-    for (final dayKey in [
-      window.dateKey,
-      _dateKey(window.start.subtract(const Duration(days: 1))),
-    ]) {
-      final offStr = prefs.getString('rolling_screen_off_$dayKey');
-      // Also check legacy key name used by old implementation.
-      final legacyOffStr = prefs.getString('last_screen_off_${window.dateKey}');
+    allEvents.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    allIntervals.addAll(_buildIntervalsFromEvents(allEvents));
 
-      final anchorStr = offStr ?? legacyOffStr;
-      if (anchorStr != null) {
-        try {
-          final lastOff = DateTime.parse(anchorStr);
-          final now = DateTime.now();
-          final end = now.isAfter(window.end) ? window.end : now;
-          if (end.difference(lastOff) >= minSleepGap) {
-            allIntervals.add(_TimeInterval(start: lastOff, end: end));
-            debugPrint(
-              '📱 Open interval included (screen still off): ${end.difference(lastOff).inMinutes} min',
-            );
-          }
-        } catch (_) {}
-        break; // Only add the open anchor once.
+    // Add open interval if screen is currently off.
+    final openAnchor = _openScreenOffAt;
+    if (openAnchor != null) {
+      final end = now.isAfter(window.end) ? window.end : now;
+      if (end.difference(openAnchor) >= minSleepGap) {
+        allIntervals.add(_TimeInterval(start: openAnchor, end: end));
+        debugPrint(
+          '📱 Open interval included (screen still off): ${end
+              .difference(openAnchor)
+              .inMinutes} min',
+        );
       }
     }
 
@@ -323,8 +391,7 @@ class SleepNoticingService {
     for (final iv in allIntervals) {
       final start = iv.start.isBefore(window.start) ? window.start : iv.start;
       final end = iv.end.isAfter(window.end) ? window.end : iv.end;
-      if (end.isAfter(start) &&
-          end.difference(start) >= minSleepGap) {
+      if (end.isAfter(start) && end.difference(start) >= minSleepGap) {
         clipped.add(_TimeInterval(start: start, end: end));
       }
     }
@@ -390,8 +457,8 @@ class SleepNoticingService {
     DateTime start = DateTime(now.year, now.month, now.day, bedHour, bedMinute);
 
     // If bedtime is more than 5 min in the future, this is yesterday's bedtime.
-    if (start.isAfter(now.add(const Duration(minutes: 5)))) {
-      start = start.subtract(const Duration(days: 1));
+    if (start.isAfter(now.add(sleepWindowSeedLeadTime))) {
+      start = start.subtract(_previousDayOffset);
     }
 
     DateTime end = DateTime(
@@ -403,7 +470,7 @@ class SleepNoticingService {
     );
 
     if (!end.isAfter(start)) {
-      end = end.add(const Duration(days: 1));
+      end = end.add(_previousDayOffset);
     }
 
     final key =
@@ -428,22 +495,207 @@ class SleepNoticingService {
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   // ─────────────────────────────────────────────────────────────────────────
-  // INTERVAL SERIALISATION
+  // FILE STORAGE
   // ─────────────────────────────────────────────────────────────────────────
 
-  List<_TimeInterval> _parseIntervals(String? raw) {
-    if (raw == null || raw.isEmpty) return [];
-    final result = <_TimeInterval>[];
-    for (final entry in raw.split(',')) {
-      final parts = entry.split('|');
-      if (parts.length != 2) continue;
-      try {
-        final start = DateTime.parse(parts[0]);
-        final end = DateTime.parse(parts[1]);
-        if (end.isAfter(start)) result.add(_TimeInterval(start: start, end: end));
-      } catch (_) {}
+  Future<void> _restoreOpenScreenStateIfNeeded() async {
+    if (_hasRestoredScreenState) return;
+    _hasRestoredScreenState = true;
+    await _flushPendingWrites();
+
+    final now = DateTime.now();
+    final dayKeys = <String>{
+      _todayDateKey(),
+      _dateKey(now.subtract(_screenStateRestoreRange)),
+    };
+    final allEvents = <_ScreenEventRecord>[];
+
+    for (final dayKey in dayKeys) {
+      allEvents.addAll(await _readEventsForDay(dayKey));
     }
-    return result;
+
+    allEvents.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+    DateTime? openStart;
+    for (final event in allEvents) {
+      if (event.type == _screenOffEventType) {
+        openStart ??= event.timestamp;
+        continue;
+      }
+
+      if (event.type == _screenOnEventType) {
+        openStart = null;
+      }
+    }
+
+    _openScreenOffAt = openStart;
+    if (openStart != null) {
+      debugPrint('🔄 Restored open screen-off anchor from file: $openStart');
+    }
+  }
+
+  Future<void> _appendEvent({
+    required String type,
+    required DateTime timestamp,
+    bool synthetic = false,
+  }) async {
+    final dayKey = _dateKey(timestamp);
+    final event = _ScreenEventRecord(
+      type: type,
+      timestamp: timestamp,
+      synthetic: synthetic,
+    );
+
+    final builder = StringBuffer();
+    builder.write(jsonEncode(event.toJson()));
+    builder.write('\n');
+    final payload = builder.toString();
+
+    final buffer = _pendingWriteBuffers.putIfAbsent(dayKey, StringBuffer.new);
+    buffer.write(payload);
+    _pendingWriteSizes[dayKey] =
+        (_pendingWriteSizes[dayKey] ?? 0) + utf8
+            .encode(payload)
+            .length;
+
+    if ((_pendingWriteSizes[dayKey] ?? 0) >= _flushThresholdBytes) {
+      await _flushPendingWrites();
+      return;
+    }
+
+    _scheduleFlush();
+  }
+
+  void _scheduleFlush() {
+    _flushTimer?.cancel();
+    _flushTimer = Timer(_flushDelay, () {
+      unawaited(_flushPendingWrites());
+    });
+  }
+
+  Future<void> _flushPendingWrites() {
+    _flushTimer?.cancel();
+    _flushTimer = null;
+
+    final nextFlush = _pendingFlush.then((_) async {
+      if (_pendingWriteBuffers.isEmpty) return;
+
+      final bufferedWrites = <String, String>{};
+      for (final entry in _pendingWriteBuffers.entries) {
+        bufferedWrites[entry.key] = entry.value.toString();
+      }
+      _pendingWriteBuffers.clear();
+      _pendingWriteSizes.clear();
+
+      for (final entry in bufferedWrites.entries) {
+        final dayKey = entry.key;
+        final payload = entry.value;
+
+        try {
+          final file = await _eventFileForDay(dayKey);
+          final sink = file.openWrite(mode: FileMode.append);
+          sink.write(payload);
+          await sink.flush();
+          await sink.close();
+        } catch (e) {
+          debugPrint('❌ Failed to append sleep events for $dayKey: $e');
+          final retryBuffer = _pendingWriteBuffers.putIfAbsent(
+            dayKey,
+            StringBuffer.new,
+          );
+          retryBuffer.write(payload);
+          _pendingWriteSizes[dayKey] =
+              (_pendingWriteSizes[dayKey] ?? 0) + utf8
+                  .encode(payload)
+                  .length;
+          _scheduleFlush();
+        }
+      }
+    });
+
+    _pendingFlush = nextFlush.catchError((Object error, StackTrace stackTrace) {
+      debugPrint('❌ Sleep event flush failed: $error');
+    });
+
+    return _pendingFlush;
+  }
+
+  Future<File> _eventFileForDay(String dayKey) async {
+    final directory = await _sleepEventsDirectory();
+    return File('${directory.path}/screen_events_$dayKey.jsonl');
+  }
+
+  Future<Directory> _sleepEventsDirectory() async {
+    final baseDirectory = await getApplicationDocumentsDirectory();
+    final directory = Directory(
+      '${baseDirectory.path}/$_storageDirectoryName',
+    );
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+    return directory;
+  }
+
+  Future<List<_ScreenEventRecord>> _readEventsForDay(String dayKey) async {
+    try {
+      final file = await _eventFileForDay(dayKey);
+      if (!await file.exists()) return [];
+
+      final events = <_ScreenEventRecord>[];
+      await for (final line in file
+          .openRead()
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())) {
+        if (line
+            .trim()
+            .isEmpty) continue;
+
+        try {
+          final decoded = jsonDecode(line);
+          if (decoded is Map<String, dynamic>) {
+            final event = _ScreenEventRecord.fromJson(decoded);
+            if (event != null) {
+              events.add(event);
+            }
+          } else if (decoded is Map) {
+            final event = _ScreenEventRecord.fromJson(
+              decoded.cast<String, dynamic>(),
+            );
+            if (event != null) {
+              events.add(event);
+            }
+          }
+        } catch (e) {
+          debugPrint('⚠️ Skipping malformed sleep event line for $dayKey: $e');
+        }
+      }
+      return events;
+    } catch (e) {
+      debugPrint('❌ Failed to read sleep events for $dayKey: $e');
+      return [];
+    }
+  }
+
+  List<_TimeInterval> _buildIntervalsFromEvents(
+      List<_ScreenEventRecord> events,) {
+    final intervals = <_TimeInterval>[];
+    DateTime? lastOff;
+
+    for (final event in events) {
+      if (event.type == _screenOffEventType) {
+        lastOff ??= event.timestamp;
+        continue;
+      }
+
+      if (event.type == _screenOnEventType && lastOff != null) {
+        if (event.timestamp.isAfter(lastOff)) {
+          intervals.add(_TimeInterval(start: lastOff, end: event.timestamp));
+        }
+        lastOff = null;
+      }
+    }
+
+    return intervals;
   }
 
   List<_TimeInterval> _mergeIntervals(List<_TimeInterval> intervals) {
@@ -463,11 +715,6 @@ class SleepNoticingService {
     return merged;
   }
 
-  String _serializeIntervals(List<_TimeInterval> intervals) {
-    return intervals
-        .map((i) => '${i.start.toIso8601String()}|${i.end.toIso8601String()}')
-        .join(',');
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -487,4 +734,72 @@ class _TimeInterval {
   final DateTime end;
 
   const _TimeInterval({required this.start, required this.end});
+}
+
+class ScreenEventLogEntry {
+  final String type;
+  final DateTime timestamp;
+  final bool synthetic;
+  final String dateKey;
+
+  const ScreenEventLogEntry({
+    required this.type,
+    required this.timestamp,
+    required this.synthetic,
+    required this.dateKey,
+  });
+}
+
+class ScreenSleepSummary {
+  final String dateKey;
+  final DateTime start;
+  final DateTime end;
+  final Duration duration;
+
+  const ScreenSleepSummary({
+    required this.dateKey,
+    required this.start,
+    required this.end,
+    required this.duration,
+  });
+}
+
+class _ScreenEventRecord {
+  final String type;
+  final DateTime timestamp;
+  final bool synthetic;
+
+  const _ScreenEventRecord({
+    required this.type,
+    required this.timestamp,
+    required this.synthetic,
+  });
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'type': type,
+      'timestamp': timestamp.toIso8601String(),
+      'synthetic': synthetic,
+    };
+  }
+
+  static _ScreenEventRecord? fromJson(Map<String, dynamic> json) {
+    final type = json['type'] as String?;
+    final timestampValue = json['timestamp'] as String?;
+    final synthetic = json['synthetic'] as bool? ?? false;
+
+    if (type == null || timestampValue == null) {
+      return null;
+    }
+
+    try {
+      return _ScreenEventRecord(
+        type: type,
+        timestamp: DateTime.parse(timestampValue),
+        synthetic: synthetic,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
 }

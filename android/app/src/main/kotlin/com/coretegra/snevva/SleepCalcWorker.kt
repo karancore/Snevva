@@ -1,7 +1,6 @@
 package com.coretegra.snevva
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.util.Log
 import androidx.work.*
 import java.util.*
@@ -13,10 +12,9 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
         Log.d("SleepCalcWorker", "Running SleepCalcWorker...")
         
         try {
-            val prefs = applicationContext.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-
-            val bedMin = prefs.getSleepMinutes("flutter.user_bedtime_ms")
-            val wakeMin = prefs.getSleepMinutes("flutter.user_waketime_ms")
+            MetaStore.syncSleepSchedule(applicationContext)
+            val bedMin = MetaStore.bedtimeMinutes(applicationContext)
+            val wakeMin = MetaStore.waketimeMinutes(applicationContext)
 
             if (bedMin == null || wakeMin == null) {
                 Log.w("SleepCalcWorker", "No sleep window found.")
@@ -46,8 +44,15 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
             // We NO LONGER overwrite "flutter.sleep_intervals" directly from native code.
             // Dart's `unified_background_service.dart` handles the precise sleep calculation via Screen ON/OFF tracking.
             // This Worker serves solely to launch the ApiSyncWorker periodically at wake time!
-            
-            Log.d("SleepCalcWorker", "Wake Time Reached. Launching API Sync for the new day.")
+
+            Log.d(
+                "SleepCalcWorker",
+                "Wake Time Reached. Flushing file buffers and launching native sync."
+            )
+
+            BufferManager.flushAll(applicationContext)
+            val yesterday = SleepWindowResolver.formatDayKey(java.time.LocalDate.now().minusDays(1))
+            SyncQueueStore.enqueue(applicationContext, yesterday)
 
             // Chain to API Sync
             val syncRequest = OneTimeWorkRequestBuilder<ApiSyncWorker>()
@@ -70,8 +75,8 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
     
     companion object {
         fun scheduleNext(context: Context) {
-            val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-            val wakeMin = prefs.getSleepMinutes("flutter.user_waketime_ms")
+            MetaStore.syncSleepSchedule(context)
+            val wakeMin = MetaStore.waketimeMinutes(context)
 
             if (wakeMin == null) {
                 Log.w("SleepCalcWorker", "Skipping scheduleNext: wake time missing or invalid")
@@ -106,42 +111,6 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
                 ExistingWorkPolicy.REPLACE,
                 calcWork
             )
-        }
-
-        private fun SharedPreferences.getSleepMinutes(key: String): Int? {
-            val raw = all[key] ?: return null
-            val normalized = when (raw) {
-                is Int -> normalizeSleepMinutes(raw.toLong())
-                is Long -> normalizeSleepMinutes(raw)
-                is Float -> normalizeSleepMinutes(raw.toLong())
-                is String -> raw.toLongOrNull()?.let(::normalizeSleepMinutes)
-                is Number -> normalizeSleepMinutes(raw.toLong())
-                else -> null
-            }
-
-            if (normalized == null) {
-                Log.w(
-                    "SleepCalcWorker",
-                    "Ignoring invalid sleep pref $key=$raw (${raw::class.java.simpleName})"
-                )
-            }
-
-            return normalized
-        }
-
-        private fun normalizeSleepMinutes(rawValue: Long): Int? {
-            if (rawValue in 0..1439) {
-                return rawValue.toInt()
-            }
-
-            val millisPerMinute = TimeUnit.MINUTES.toMillis(1)
-            val millisPerDay = TimeUnit.DAYS.toMillis(1)
-
-            if (rawValue in 0 until millisPerDay && rawValue % millisPerMinute == 0L) {
-                return (rawValue / millisPerMinute).toInt()
-            }
-
-            return null
         }
     }
 }

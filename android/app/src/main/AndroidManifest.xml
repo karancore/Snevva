@@ -8,6 +8,7 @@
 
     <!-- 🌐 Internet & basic -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
@@ -130,6 +131,16 @@
 
         <!-- Sparse wakeup receiver for step counter -->
         <receiver android:name=".SparseWakeupReceiver" android:exported="false" />
+        <receiver
+            android:name=".DayChangeReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".ConnectivityReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
+            </intent-filter>
+        </receiver>
 
 
 
@@ -172,14 +183,6 @@
             android:name="id.flutter.flutter_background_service.BackgroundService"
             android:foregroundServiceType="dataSync"
             tools:replace="android:foregroundServiceType" />
-
-        <service
-            android:name=".SleepNoticingService"
-            android:exported="false"
-            android:foregroundServiceType="dataSync|health" />
-
-        <receiver android:name=".StartSleepReceiver" android:exported="false" />
-        <receiver android:name=".StopSleepReceiver" android:exported="false" />
 
         <!-- Worker Initialization (if needed, usually auto-inits) -->
     </application>

@@ -15,20 +15,19 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.time.LocalDate
 
 class StepCounterService : Service(), SensorEventListener {
 
     private lateinit var sensorManager: SensorManager
     private var stepSensor: Sensor? = null
-    private lateinit var prefs: SharedPreferences
+    private var screenStateReceiver: ScreenStateReceiver? = null
+    private var currentDayKey: String = SleepWindowResolver.formatDayKey(LocalDate.now())
+    private var stepsToday: Int = 0
 
     // Single unified channel — same ID used by the Dart foreground service
     private val CHANNEL_ID = "tracker_channel"
     private val NOTIFICATION_ID = 1
-
-    private val PREFS_NAME = "steps_prefs"
-    private val KEY_TODAY_STEPS = "today_steps"
-    private val KEY_DATE = "lastDate"
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -98,16 +97,18 @@ class StepCounterService : Service(), SensorEventListener {
             return
         }
 
-        prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
+        MetaStore.ensureCurrentDay(this)
+        MetaStore.syncSleepSchedule(this)
+        stepsToday = DailyStore.todayStepTotal(this)
+        currentDayKey = SleepWindowResolver.formatDayKey(LocalDate.now())
 
         // Note: tracker_channel is created by the Dart side (app_initializer.dart) before this
         // service starts. We create it here as a safety fallback for boot scenarios where
         // Dart hasn't run yet.
         ensureNotificationChannel()
 
-        val stepsToday = prefs.getInt(KEY_TODAY_STEPS, 0)
         val notification = buildNotification(stepsToday)
 
         try {
@@ -132,7 +133,9 @@ class StepCounterService : Service(), SensorEventListener {
 
         try {
             registerStepListener()
+            registerScreenStateReceiver()
             scheduleSparseWakeup()
+            AlarmHelper.scheduleNextDayChange(this)
         } catch (exception: Exception) {
             Log.e("StepService", "Failed during StepCounterService startup", exception)
             stopSelf()
@@ -154,36 +157,26 @@ class StepCounterService : Service(), SensorEventListener {
     override fun onSensorChanged(event: SensorEvent?) {
         if (event?.sensor?.type != Sensor.TYPE_STEP_DETECTOR) return
 
-        val currentDate = android.text.format.DateFormat.format("yyyyMMdd", System.currentTimeMillis()).toString()
-        val savedDate = prefs.getString(KEY_DATE, currentDate)
-
-        // Reset steps daily
-        if (currentDate != savedDate) {
-            prefs.edit().putString(KEY_DATE, currentDate).putInt(KEY_TODAY_STEPS, 0).apply()
-            Log.d("StepService", "📅 New day detected. Steps reset.")
+        val newDayKey = SleepWindowResolver.formatDayKey(LocalDate.now())
+        if (newDayKey != currentDayKey) {
+            BufferManager.flushAll(applicationContext)
+            SyncQueueStore.enqueue(applicationContext, currentDayKey)
+            currentDayKey = newDayKey
+            MetaStore.ensureCurrentDay(applicationContext)
+            stepsToday = DailyStore.todayStepTotal(applicationContext)
+            Log.d("StepService", "📅 New day detected. Steps rolled to $currentDayKey")
         }
 
-        var stepsToday = prefs.getInt(KEY_TODAY_STEPS, 0)
         stepsToday += 1
-        prefs.edit()
-            .putInt(KEY_TODAY_STEPS, stepsToday)
-            .putString(KEY_DATE, currentDate)
-            .apply()
-
-        // Write to Flutter's SharedPreferences so the Dart poller can read directly
-        val flutterPrefs = applicationContext.getSharedPreferences(
-            "FlutterSharedPreferences", android.content.Context.MODE_PRIVATE
-        )
-        flutterPrefs.edit()
-            // Bug 2B fix: Flutter reads this with getInt() (32-bit); putLong() caused
-            // the Dart poller to always see null. Changed to putInt() to match.
-            .putInt("flutter.today_steps", stepsToday)
-            .apply()
+        BufferManager.appendStepEvent(applicationContext, System.currentTimeMillis(), 1)
 
         Log.d("StepService", "👣 Steps today: $stepsToday")
 
         // Update notification only when the Dart isolate is NOT sleeping
         // (Dart isolate will overwrite the notification text during sleep mode)
+        val flutterPrefs = applicationContext.getSharedPreferences(
+            "FlutterSharedPreferences", android.content.Context.MODE_PRIVATE
+        )
         val isSleeping = flutterPrefs.getBoolean("flutter.is_sleeping", false)
         if (!isSleeping) {
             val notifManager = getSystemService(NotificationManager::class.java)
@@ -214,7 +207,22 @@ class StepCounterService : Service(), SensorEventListener {
         if (::sensorManager.isInitialized) {
             sensorManager.unregisterListener(this)
         }
+        screenStateReceiver?.let { unregisterReceiver(it) }
+        screenStateReceiver = null
+        BufferManager.flushAll(applicationContext)
         Log.d("StepService", "🛑 StepCounterService destroyed.")
+    }
+
+    private fun registerScreenStateReceiver() {
+        if (screenStateReceiver != null) return
+
+        val receiver = ScreenStateReceiver()
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_SCREEN_OFF)
+        }
+        registerReceiver(receiver, filter)
+        screenStateReceiver = receiver
     }
 
     private fun buildNotification(stepsToday: Int): Notification {

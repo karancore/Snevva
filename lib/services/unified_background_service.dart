@@ -1,14 +1,17 @@
 import 'dart:async';
 import 'dart:ui';
+
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/models/hive_models/sleep_log_g.dart';
+import 'package:snevva/services/health_file_storage_service.dart';
 import 'package:snevva/services/hive_service.dart';
+
+import '../common/agent_debug_logger.dart';
 import '../consts/consts.dart';
 import '../models/hive_models/sleep_log.dart';
 import '../models/hive_models/steps_model.dart';
-import '../common/agent_debug_logger.dart';
 import '../services/sleep/sleep_noticing_service.dart';
 
 // ───────────────────────────────────────────────────────────────────
@@ -20,6 +23,10 @@ const String _manualStoppedWindowKey = 'manually_stopped_window_key';
 
 // Single instance of SleepNoticingService per BG isolate lifetime
 final SleepNoticingService _sleepNoticingService = SleepNoticingService();
+var sleepHeartbeatInterval = Duration(minutes: 1);
+var sleepWindowFreshnessTolerance = Duration(hours: 6);
+var sleepWindowLookahead = Duration(minutes: 5);
+var sleepWindowDayOffset = Duration(days: 1);
 
 // 1-minute periodic timer that ticks the sleep notification while sleeping
 Timer? _sleepProgressTimer;
@@ -66,6 +73,10 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
     }
 
     print("🚀 Unified background service started at ${DateTime.now()}");
+
+    final fileStorage = HealthFileStorageService.instance;
+    await fileStorage.ensureInitialized();
+    await fileStorage.syncSleepScheduleFromPrefs();
 
     final sleepBox = await HiveService().sleepLogBox();
     final stepBox = await HiveService().stepHistoryBox();
@@ -205,32 +216,12 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
 
       final int newTotalSteps = event['steps'] as int;
 
-      await prefs.reload();
-      final savedSteps = prefs.getInt("today_steps") ?? 0;
+      service.invoke("steps_updated", {"steps": newTotalSteps});
 
-      if (newTotalSteps > savedSteps) {
-        await prefs.setInt("today_steps", newTotalSteps);
-
-        final now = DateTime.now();
-        final todayKey = "${now.year}-${now.month}-${now.day}";
-        final currentHive = stepBox.get(todayKey)?.steps ?? 0;
-        if (newTotalSteps > currentHive) {
-          await stepBox.put(
-            todayKey,
-            StepEntry(
-              date: DateTime(now.year, now.month, now.day),
-              steps: newTotalSteps,
-            ),
-          );
-        }
-
-        service.invoke("steps_updated", {"steps": newTotalSteps});
-
-        // Update notification only when NOT in sleep mode
-        final isSleeping = prefs.getBool("is_sleeping") ?? false;
-        if (!isSleeping) {
-          _updateStepNotification(service: service, steps: newTotalSteps);
-        }
+      // Update notification only when NOT in sleep mode
+      final isSleeping = prefs.getBool("is_sleeping") ?? false;
+      if (!isSleeping) {
+        _updateStepNotification(service: service, steps: newTotalSteps);
       }
     });
 
@@ -370,7 +361,7 @@ void _startHeartbeatTimer({
   required Box<StepEntry> stepBox,
 }) {
   _sleepProgressTimer?.cancel();
-  _sleepProgressTimer = Timer.periodic(const Duration(minutes: 1), (_) async {
+  _sleepProgressTimer = Timer.periodic(sleepHeartbeatInterval, (_) async {
     await prefs.reload();
     final isSleeping = prefs.getBool('is_sleeping') ?? false;
 
@@ -636,13 +627,9 @@ Future<void> _ensureCurrentDayStepState({
   await prefs.setString("last_step_date", todayKey);
   // NOTE: Do NOT remove 'lastRawSteps' — keeps hardware tally correct at midnight.
 
-  final existingToday = stepBox.get(todayKey);
-  if (existingToday == null) {
-    await stepBox.put(todayKey, StepEntry(date: nowTime, steps: 0));
-  }
-
-  final todaySteps = stepBox.get(todayKey)?.steps ?? 0;
-  await prefs.setInt('today_steps', todaySteps);
+  final todaySteps = await HealthFileStorageService.instance.readStepCount(
+    todayKey,
+  );
   service.invoke("steps_updated", {"steps": todaySteps});
 
   final isSleeping = prefs.getBool("is_sleeping") ?? false;
@@ -714,18 +701,14 @@ Future<void> _stopSleepAndSave(
   print("   Total sleep: $totalSleepMinutes mins");
   print("   Goal: $goalMinutes mins");
 
-  // Save to Hive
   if (windowKey != null) {
     final logDate = DateTime.tryParse(windowKey) ?? effectiveStart;
-    await sleepBox.put(
+    await HealthFileStorageService.instance.writeSleepSummary(
       windowKey,
-      SleepLog(
-        date: DateTime(logDate.year, logDate.month, logDate.day),
-        durationMinutes: totalSleepMinutes,
-        startTime: effectiveStart,
-        endTime: effectiveEnd,
-        goalMinutes: goalMinutes,
-      ),
+      durationMinutes: totalSleepMinutes,
+      startTime: DateTime(logDate.year, logDate.month, logDate.day),
+      endTime: effectiveEnd,
+      goalMinutes: goalMinutes,
     );
   }
 
@@ -767,7 +750,15 @@ Future<void> _stopSleepAndSave(
 
   // Restore step notification
   await prefs.reload();
-  final steps = prefs.getInt("today_steps") ?? 0;
+  final steps = await HealthFileStorageService.instance.readStepCount(
+    '${DateTime
+        .now()
+        .year}-${DateTime
+        .now()
+        .month}-${DateTime
+        .now()
+        .day}',
+  );
   _updateStepNotification(service: service, steps: steps);
 }
 
@@ -789,7 +780,8 @@ _SleepWindow? _resolveSleepWindow({
     try {
       final start = DateTime.parse(existingStart);
       final end = DateTime.parse(existingEnd);
-      final isFreshEnough = end.add(const Duration(hours: 6)).isAfter(nowTime);
+      final isFreshEnough =
+      end.add(sleepWindowFreshnessTolerance).isAfter(nowTime);
       if (isFreshEnough) {
         return _SleepWindow(start: start, end: end, dateKey: existingKey);
       }
@@ -835,8 +827,8 @@ _SleepWindow? _computeActiveSleepWindow(
   DateTime start = DateTime(now.year, now.month, now.day, bedHour, bedMinute);
 
   // If bedtime is in the future (more than 5 min from now), use yesterday's bedtime
-  if (start.isAfter(now.add(const Duration(minutes: 5)))) {
-    start = start.subtract(const Duration(days: 1));
+  if (start.isAfter(now.add(sleepWindowLookahead))) {
+    start = start.subtract(sleepWindowDayOffset);
   }
 
   DateTime end = DateTime(
@@ -849,7 +841,7 @@ _SleepWindow? _computeActiveSleepWindow(
 
   // If wake time is before or equal to bedtime, it's next calendar day
   if (!end.isAfter(start)) {
-    end = end.add(const Duration(days: 1));
+    end = end.add(sleepWindowDayOffset);
   }
 
   final key =

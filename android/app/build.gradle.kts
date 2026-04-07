@@ -84,6 +84,7 @@ val firebaseAnalyticsVersion = "com.google.firebase:firebase-analytics-ktx"
 val multidexVersion = "androidx.multidex:multidex:2.0.1"
 val playServicesAuth = "com.google.android.gms:play-services-auth:20.7.0"
 val desugarJdkLibs = "com.android.tools:desugar_jdk_libs:2.1.4"
+val concurrentFutures = "androidx.concurrent:concurrent-futures:1.2.0"
 
 dependencies {
     implementation(platform("com.google.firebase:firebase-bom:$firebaseBomVersion"))
@@ -92,6 +93,7 @@ dependencies {
     implementation(multidexVersion)
     implementation(playServicesAuth)
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation(concurrentFutures)
 
     coreLibraryDesugaring(desugarJdkLibs)
 }

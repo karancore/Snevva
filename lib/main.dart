@@ -111,11 +111,6 @@ void main() {
       const stepChannel = MethodChannel('com.coretegra.snevva/step_detector');
       stepChannel.setMethodCallHandler((call) async {
         if (call.method == 'onStepDetected') {
-          // Write directly to SharedPrefs so the controller poller picks it up
-          // even if the background service isolate isn't running yet.
-          final p = await SharedPreferences.getInstance();
-          final steps = call.arguments as int;
-          await p.setInt('today_steps', steps);
           FlutterBackgroundService().invoke('onStepDetected', {
             'steps': call.arguments,
           });

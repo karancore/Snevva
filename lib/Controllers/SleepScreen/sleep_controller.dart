@@ -13,7 +13,9 @@ import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/models/awake_interval.dart';
 import 'package:snevva/services/api_service.dart';
+import 'package:snevva/services/health_file_storage_service.dart';
 import 'package:snevva/services/hive_service.dart';
+import 'package:snevva/services/sleep/sleep_noticing_service.dart';
 
 import '../../common/global_variables.dart';
 import '../../models/hive_models/sleep_log.dart';
@@ -27,7 +29,7 @@ class SleepController extends GetxService {
 
   // Observable state
   final Rx<Duration> currentSleepDuration = Duration.zero.obs;
-  final Rx<Duration> sleepGoal = const Duration(hours: 8).obs;
+  final Rx<Duration> sleepGoal = Duration(hours: 8).obs;
   final RxBool isSleeping = false.obs;
   final Rx<DateTime?> sleepStartTime = Rxn<DateTime>();
   final RxDouble sleepProgress = 0.0.obs;
@@ -41,6 +43,9 @@ class SleepController extends GetxService {
 
   // Background service
   final _service = FlutterBackgroundService();
+  final SleepNoticingService _sleepNoticingService = SleepNoticingService();
+  final HealthFileStorageService _fileStorage = HealthFileStorageService
+      .instance;
   StreamSubscription? _sleepUpdateSubscription;
   StreamSubscription? _sleepSavedSubscription;
   StreamSubscription? _goalReachedSubscription;
@@ -56,6 +61,8 @@ class SleepController extends GetxService {
   static const _pendingUploadStartKey = 'pending_sleep_upload_start';
   static const _pendingUploadEndKey   = 'pending_sleep_upload_end';
   static const _pendingUploadDurKey   = 'pending_sleep_upload_duration';
+  final Duration _sleepWindowLookahead = Duration(minutes: 5);
+  final Duration _crossMidnightDayOffset = Duration(days: 1);
 
   RxBool isMonthlyView = false.obs;
 
@@ -88,6 +95,8 @@ class SleepController extends GetxService {
   void onInit() {
     super.onInit();
     // _loadUserSleepTimes();
+    unawaited(_fileStorage.ensureInitialized());
+    unawaited(_fileStorage.syncSleepScheduleFromPrefs());
     _loadWeeklySleepData();
     _setupBackgroundServiceListeners();
     _checkIfAlreadySleeping();
@@ -146,6 +155,8 @@ class SleepController extends GetxService {
           }
 
           weeklySleepHistory[targetKey] = currentSleepDuration.value;
+          weeklyDeepSleepHistory[targetKey] = currentSleepDuration.value;
+          deepSleepDuration.value = currentSleepDuration.value;
 
           updateDeepSleepSpots(); // Refresh the graph spots
         }
@@ -303,10 +314,14 @@ class SleepController extends GetxService {
 
     SharedPreferences.getInstance().then((prefs) {
       prefs.setInt(BEDTIME_KEY, minutes);
+      unawaited(_fileStorage.syncSleepScheduleFromPrefs());
       _updateNativeSleepAlarms();
     });
 
     debugPrint('🛏️ Bedtime set → $time');
+    if (waketime.value != null) {
+      unawaited(loadDeepSleepData());
+    }
   }
 
   void setWakeTime(TimeOfDay time) {
@@ -316,10 +331,14 @@ class SleepController extends GetxService {
 
     SharedPreferences.getInstance().then((prefs) {
       prefs.setInt(WAKETIME_KEY, minutes);
+      unawaited(_fileStorage.syncSleepScheduleFromPrefs());
       _updateNativeSleepAlarms();
     });
 
     debugPrint('⏰ Waketime set → $time');
+    if (bedtime.value != null) {
+      unawaited(loadDeepSleepData());
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -355,20 +374,26 @@ class SleepController extends GetxService {
 
   Future<void> _loadWeeklySleepData() async {
     try {
-      // final box = await Hive.openBox<SleepLog>('sleep_log');
-      final box = await HiveService().sleepLogBox();
       final now = DateTime.now();
       final weekStart = now.subtract(Duration(days: now.weekday - 1));
 
       weeklySleepHistory.clear();
+      final localDurations = await _fileStorage.readSleepDurationsForRange(
+        start: weekStart,
+        end: weekStart.add(Duration(days: 6)),
+      );
+      weeklySleepHistory.addAll(localDurations);
 
-      for (int i = 0; i < 7; i++) {
-        final date = weekStart.add(Duration(days: i));
-        final key = _dateKey(date);
-        final log = box.get(key);
-
-        if (log != null) {
-          weeklySleepHistory[key] = Duration(minutes: log.durationMinutes);
+      if (weeklySleepHistory.values.every((duration) =>
+      duration == Duration.zero)) {
+        final box = await HiveService().sleepLogBox();
+        for (int i = 0; i < 7; i++) {
+          final date = weekStart.add(Duration(days: i));
+          final key = _dateKey(date);
+          final log = box.get(key);
+          if (log != null) {
+            weeklySleepHistory[key] = Duration(minutes: log.durationMinutes);
+          }
         }
       }
 
@@ -403,6 +428,8 @@ class SleepController extends GetxService {
           debugPrint(
             "🔄 Restored active sleep session (waiting for background sleep_update)",
           );
+
+          await _syncDeepSleepFromLoggedEvents(preferResolvedWindow: true);
         }
       }
     } catch (e) {
@@ -482,7 +509,7 @@ class SleepController extends GetxService {
 
     // If wake time already passed → tomorrow
     if (wake.isBefore(now)) {
-      wake = wake.add(const Duration(days: 1));
+      wake = wake.add(_crossMidnightDayOffset);
     }
 
     return wake;
@@ -617,7 +644,7 @@ class SleepController extends GetxService {
     // move candidate forward by whole days until it is after base
     DateTime c = candidate;
     while (!c.isAfter(base) && !c.isAtSameMomentAs(base)) {
-      c = c.add(const Duration(days: 1));
+      c = c.add(_crossMidnightDayOffset);
     }
     return c;
   }
@@ -640,14 +667,14 @@ class SleepController extends GetxService {
     DateTime seg1Start = oldBedtime;
     DateTime seg1End = phonePickupTime;
     if (seg1End.isBefore(seg1Start) || seg1End.isAtSameMomentAs(seg1Start)) {
-      seg1End = seg1End.add(const Duration(days: 1));
+      seg1End = seg1End.add(_crossMidnightDayOffset);
     }
 
     // Segment 2: newBedtime -> oldWakeTime
     DateTime seg2Start = newBedtime;
     DateTime seg2End = oldWakeTime;
     if (seg2End.isBefore(seg2Start) || seg2End.isAtSameMomentAs(seg2Start)) {
-      seg2End = seg2End.add(const Duration(days: 1));
+      seg2End = seg2End.add(_crossMidnightDayOffset);
     }
 
     Duration beforePhone = seg1End.difference(seg1Start);
@@ -799,7 +826,7 @@ class SleepController extends GetxService {
       // Normalize wake across midnight
       DateTime wake = wakeDateTime;
       if (wake.isBefore(bedDateTime) || wake.isAtSameMomentAs(bedDateTime)) {
-        wake = wake.add(const Duration(days: 1));
+        wake = wake.add(_crossMidnightDayOffset);
       }
 
       final duration = wake.difference(bedDateTime);
@@ -854,36 +881,56 @@ class SleepController extends GetxService {
   }
 
   Future<void> loadDeepSleepData() async {
-    // final _box = await Hive.openBox<SleepLog>('sleep_log');
     final box = await HiveService().sleepLogBox();
     debugPrint("📥 [loadDeepSleepData] START");
 
     weeklyDeepSleepHistory.clear();
     final prefs = await SharedPreferences.getInstance();
 
-    debugPrint("📦 Hive entries count: ${box.length}");
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day).subtract(
+      const Duration(days: 30),
+    );
+    final localDurations = await _fileStorage.readSleepDurationsForRange(
+      start: start,
+      end: now,
+    );
 
-    for (final log in box.values) {
-      final key = dateKey(log.date);
-      // Prefer corrected minutes stored in prefs (if any), else use Hive minutes.
-      final correctedMins = prefs.getInt(_correctedPrefKeyForDateKey(key));
-      final duration = Duration(minutes: correctedMins ?? log.durationMinutes);
-
-      weeklyDeepSleepHistory[key] = duration;
-
-      debugPrint("loadDeepSleepData ${deepSleepDuration.value}");
-
-      debugPrint("   💤 Weekly ← Hive: $key → ${duration.inMinutes} min");
+    if (localDurations.values.any((duration) => duration.inMinutes > 0)) {
+      for (final entry in localDurations.entries) {
+        final correctedMins = prefs.getInt(
+          _correctedPrefKeyForDateKey(entry.key),
+        );
+        weeklyDeepSleepHistory[entry.key] = Duration(
+          minutes: correctedMins ?? entry.value.inMinutes,
+        );
+      }
+    } else {
+      debugPrint("📦 Hive entries count: ${box.length}");
+      for (final log in box.values) {
+        final key = dateKey(log.date);
+        final correctedMins = prefs.getInt(_correctedPrefKeyForDateKey(key));
+        final duration = Duration(
+            minutes: correctedMins ?? log.durationMinutes);
+        weeklyDeepSleepHistory[key] = duration;
+        debugPrint("   💤 Weekly ← Hive: $key → ${duration.inMinutes} min");
+      }
     }
+
+    final resolvedSummary = await _syncDeepSleepFromLoggedEvents(
+      preferResolvedWindow: false,
+    );
 
     // 🔥 Set UI value for *today* (or yesterday, or the most recent entry)
     final todayKey = getCurrentDayKey();
     final yesterdayKey = dateKey(
-      DateTime.now().subtract(const Duration(days: 1)),
+      DateTime.now().subtract(_crossMidnightDayOffset),
     );
 
-    // Check today first
-    if ((weeklyDeepSleepHistory[todayKey]?.inMinutes ?? 0) > 0) {
+    if ((resolvedSummary?.duration.inMinutes ?? 0) > 0) {
+      deepSleepDuration.value = resolvedSummary!.duration;
+    } else if ((weeklyDeepSleepHistory[todayKey]?.inMinutes ?? 0) > 0) {
+      // Check today first
       deepSleepDuration.value = weeklyDeepSleepHistory[todayKey]!;
     } else if ((weeklyDeepSleepHistory[yesterdayKey]?.inMinutes ?? 0) > 0) {
       // Fallback to yesterday (likely last night's sleep)
@@ -926,6 +973,28 @@ class SleepController extends GetxService {
 
     weeklyDeepSleepHistory.refresh();
     updateDeepSleepSpots();
+  }
+
+  Future<ScreenSleepSummary?> _syncDeepSleepFromLoggedEvents({
+    required bool preferResolvedWindow,
+  }) async {
+    try {
+      final summary = await _sleepNoticingService.readResolvedSleepSummary();
+      if (summary == null || summary.duration.inMinutes <= 0) {
+        return null;
+      }
+
+      weeklyDeepSleepHistory[summary.dateKey] = summary.duration;
+
+      if (preferResolvedWindow) {
+        deepSleepDuration.value = summary.duration;
+      }
+
+      return summary;
+    } catch (e) {
+      debugPrint("❌ Error syncing deep sleep from logged events: $e");
+      return null;
+    }
   }
 
   Duration? get idealWakeupDuration {
@@ -1060,7 +1129,7 @@ class SleepController extends GetxService {
 
           // 🌙 If wake time is next day
           if (wakeTime.isBefore(bedTime)) {
-            wakeTime = wakeTime.add(const Duration(days: 1));
+            wakeTime = wakeTime.add(_crossMidnightDayOffset);
           }
 
           duration = wakeTime.difference(bedTime);
@@ -1184,7 +1253,6 @@ class SleepController extends GetxService {
     Duration duration, {
     bool overwrite = true,
   }) async {
-    // final _box = await Hive.openBox<SleepLog>('sleep_log');
     final box = await HiveService().sleepLogBox();
 
     final key = dateKey(bedDate);
@@ -1199,7 +1267,13 @@ class SleepController extends GetxService {
       return;
     }
 
-    // Put always (put will overwrite existing key if present)
+    await _fileStorage.writeSleepSummary(
+      key,
+      durationMinutes: duration.inMinutes,
+      startTime: bedDate,
+      goalMinutes: sleepGoal.value.inMinutes,
+    );
+
     await box.put(
       key,
       SleepLog(
@@ -1278,7 +1352,7 @@ class SleepController extends GetxService {
     );
 
     if (wake.isBefore(now)) {
-      wake = wake.add(const Duration(days: 1));
+      wake = wake.add(_crossMidnightDayOffset);
     }
 
     return wake;
@@ -1301,9 +1375,9 @@ class SleepController extends GetxService {
     DateTime start = buildDateTime(now, bt);
 
     // If bedtime is in the future, it belongs to yesterday
-    if (start.isAfter(now.add(const Duration(minutes: 5)))) {
+    if (start.isAfter(now.add(_sleepWindowLookahead))) {
       // small grace
-      start = start.subtract(const Duration(days: 1));
+      start = start.subtract(_crossMidnightDayOffset);
     }
 
     return start;
@@ -1314,7 +1388,7 @@ class SleepController extends GetxService {
     DateTime end = buildDateTime(sleepStart, wt);
 
     if (!end.isAfter(sleepStart)) {
-      end = end.add(const Duration(days: 1));
+      end = end.add(_crossMidnightDayOffset);
     }
 
     return end;

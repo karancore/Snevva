@@ -33,11 +33,14 @@ class BootReceiver : BroadcastReceiver() {
                 Log.e("BootReceiver", "Failed to schedule SleepCalcWorker on boot", error)
             }
 
-            // 4. Keep AlarmHelper call for legacy alarm cancellation (it's a no-op stub now)
+            // 4. Refresh file-system schedule/sync state.
             runCatching {
                 AlarmHelper.scheduleSleepAlarms(context)
+                AlarmHelper.scheduleNextDayChange(context)
+                BufferManager.flushAll(context)
+                SyncManager.processQueue(context)
             }.onFailure { error ->
-                Log.e("BootReceiver", "Failed to refresh legacy sleep alarms on boot", error)
+                Log.e("BootReceiver", "Failed to refresh storage/sync scheduling on boot", error)
             }
         }
     }

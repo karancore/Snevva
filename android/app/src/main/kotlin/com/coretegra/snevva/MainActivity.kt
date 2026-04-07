@@ -5,6 +5,7 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.Display
+import androidx.work.WorkManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -19,11 +20,10 @@ class MainActivity : FlutterActivity() {
         super.onCreate(savedInstanceState)
 
         // Reset headless flag for pure UI run
-        getSharedPreferences("steps_prefs", android.content.Context.MODE_PRIVATE)
-            .edit().putBoolean("is_headless", false).apply()
-
         StepServiceStarter.tryStart(this, "activity_launch")
         AlarmHelper.cancelSleepAlarms(this)
+        AlarmHelper.scheduleNextDayChange(this)
+        MetaStore.syncSleepSchedule(this)
         requestHighestRefreshRate()
         Log.d("Lifecycle", "onCreate called")
     }
@@ -69,19 +69,21 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "startSleepService" -> {
-                        AlarmHelper.cancelSleepAlarms(this@MainActivity)
+                        MetaStore.syncSleepSchedule(this@MainActivity)
+                        AlarmHelper.scheduleSleepAlarms(this@MainActivity)
                         SleepCalcWorker.scheduleNext(this@MainActivity)
-                        Log.d("MainActivity", "Native sleep service disabled; scheduled WorkManager instead")
-                        result.success("WorkManager scheduled")
+                        result.success("Native sleep schedule refreshed")
                     }
 
                     "stopSleepService" -> {
-                        androidx.work.WorkManager.getInstance(this@MainActivity).cancelUniqueWork("SLEEP_CALC_WORK")
+                        WorkManager.getInstance(this@MainActivity)
+                            .cancelUniqueWork("SLEEP_CALC_WORK")
                         Log.d("MainActivity", "Sleep tracking work cancelled")
                         result.success("SleepCalcWorker stopped")
                     }
 
                     "updateSleepAlarms" -> {
+                        MetaStore.syncSleepSchedule(this@MainActivity)
                         AlarmHelper.scheduleSleepAlarms(this@MainActivity)
                         SleepCalcWorker.scheduleNext(this@MainActivity)
                         Log.d("MainActivity", "Sleep alarms updated and WorkManager scheduled via Flutter")
@@ -135,6 +137,7 @@ class MainActivity : FlutterActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        BufferManager.flushAll(applicationContext)
         // Clear the engine reference so StepCounterService stops trying to
         // send MethodChannel messages to the now-detached Flutter engine.
         StepCounterService.flutterEngine = null
