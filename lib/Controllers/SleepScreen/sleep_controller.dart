@@ -13,10 +13,9 @@ import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/models/awake_interval.dart';
 import 'package:snevva/services/api_service.dart';
-import 'package:snevva/services/hive_service.dart';
+import 'package:snevva/services/file_storage_service.dart';
 
 import '../../common/global_variables.dart';
-import '../../models/hive_models/sleep_log.dart';
 
 enum SleepState { sleeping, awake }
 
@@ -311,28 +310,18 @@ class SleepController extends GetxService {
 
   Future<void> _loadWeeklySleepData() async {
     try {
-      // final box = await Hive.openBox<SleepLog>('sleep_log');
-      final box = await HiveService().sleepLogBox();
-      final now = DateTime.now();
-      final weekStart = now.subtract(Duration(days: now.weekday - 1));
-
+      final sleepMap = await FileStorageService().readRecentSleepMap(days: 7);
       weeklySleepHistory.clear();
-
-      for (int i = 0; i < 7; i++) {
-        final date = weekStart.add(Duration(days: i));
-        final key = _dateKey(date);
-        final log = box.get(key);
-
-        if (log != null) {
-          weeklySleepHistory[key] = Duration(minutes: log.durationMinutes);
+      sleepMap.forEach((key, minutes) {
+        if (minutes > 0) {
+          weeklySleepHistory[key] = Duration(minutes: minutes);
         }
-      }
-
+      });
       debugPrint(
-        "📊 Weekly sleep data loaded: ${weeklySleepHistory.length} entries",
+        '📊 Weekly sleep loaded from file: ${weeklySleepHistory.length} entries',
       );
     } catch (e) {
-      debugPrint("❌ Error loading weekly sleep data: $e");
+      debugPrint('❌ Error loading weekly sleep data: $e');
     }
   }
 
@@ -768,61 +757,50 @@ class SleepController extends GetxService {
   }
 
   Future<void> loadDeepSleepData() async {
-    // final _box = await Hive.openBox<SleepLog>('sleep_log');
-    final box = await HiveService().sleepLogBox();
-    debugPrint("📥 [loadDeepSleepData] START");
+    debugPrint('📥 [loadDeepSleepData] START (file-based)');
 
     weeklyDeepSleepHistory.clear();
     final prefs = await SharedPreferences.getInstance();
 
-    debugPrint("📦 Hive entries count: ${box.length}");
+    // Read last 7 days from daily JSON files
+    final sleepMap = await FileStorageService().readRecentSleepMap(days: 7);
+    sleepMap.forEach((key, minutes) {
+      if (minutes > 0) {
+        // Prefer corrected minutes stored in prefs (if any), else use file value
+        final correctedMins = prefs.getInt(_correctedPrefKeyForDateKey(key));
+        final effective = correctedMins != null && correctedMins > 0
+            ? correctedMins
+            : minutes;
+        weeklyDeepSleepHistory[key] = Duration(minutes: effective);
+        debugPrint('   💤 $key → $effective min');
+      }
+    });
 
-    for (final log in box.values) {
-      final key = dateKey(log.date);
-      // Prefer corrected minutes stored in prefs (if any), else use Hive minutes.
-      final correctedMins = prefs.getInt(_correctedPrefKeyForDateKey(key));
-      final duration = Duration(minutes: correctedMins ?? log.durationMinutes);
-
-      weeklyDeepSleepHistory[key] = duration;
-
-      debugPrint("loadDeepSleepData ${deepSleepDuration.value}");
-
-      debugPrint("   💤 Weekly ← Hive: $key → ${duration.inMinutes} min");
-    }
-
-    // 🔥 Set UI value for *today* (or yesterday if today is empty)
+    // Set UI value for today (or yesterday if today is empty)
     final todayKey = getCurrentDayKey();
-    final yesterdayKey = dateKey(
-      DateTime.now().subtract(const Duration(days: 1)),
-    );
+    final yesterdayKey = dateKey(DateTime.now().subtract(const Duration(days: 1)));
 
-    // Check today first
     if ((weeklyDeepSleepHistory[todayKey]?.inMinutes ?? 0) > 0) {
       deepSleepDuration.value = weeklyDeepSleepHistory[todayKey]!;
     } else if ((weeklyDeepSleepHistory[yesterdayKey]?.inMinutes ?? 0) > 0) {
-      // Fallback to yesterday (likely last night's sleep)
       deepSleepDuration.value = weeklyDeepSleepHistory[yesterdayKey]!;
     } else {
       deepSleepDuration.value = Duration.zero;
     }
 
-    // #region agent log
     AgentDebugLogger.log(
       runId: 'sleep-ui',
       hypothesisId: 'UI',
       location: 'sleep_controller.dart:loadDeepSleepData:today_value',
-      message: 'Loaded sleep durations and set today deepSleepDuration',
+      message: 'Loaded sleep durations from file storage',
       data: {
         'todayKey': todayKey,
         'todayMinutes': deepSleepDuration.value.inMinutes,
-        'entries': box.length,
+        'entries': weeklyDeepSleepHistory.length,
       },
     );
-    // #endregion
 
-    debugPrint(
-      "loadDeepSleepData deepSleepDuration.value ${deepSleepDuration.value}",
-    );
+    debugPrint('loadDeepSleepData deepSleepDuration.value ${deepSleepDuration.value}');
 
     weeklyDeepSleepHistory.refresh();
     updateDeepSleepSpots();
@@ -1084,48 +1062,36 @@ class SleepController extends GetxService {
     Duration duration, {
     bool overwrite = true,
   }) async {
-    // final _box = await Hive.openBox<SleepLog>('sleep_log');
-    final box = await HiveService().sleepLogBox();
-
     final key = dateKey(bedDate);
 
-    debugPrint("💾 [saveDeepSleepData]");
-    debugPrint("   Key: $key");
-    debugPrint("   Duration (min): ${duration.inMinutes}");
+    debugPrint('💾 [saveDeepSleepData]');
+    debugPrint('   Key: $key');
+    debugPrint('   Duration (min): ${duration.inMinutes}');
 
-    // If not overwriting and already exists, skip
-    if (!overwrite && box.containsKey(key)) {
-      debugPrint("⛔ Already exists in Hive for $key and overwrite == false");
+    // If not overwriting and we already have a value, skip
+    if (!overwrite && (weeklyDeepSleepHistory[key]?.inMinutes ?? 0) > 0) {
+      debugPrint('⛔ Already have data for $key and overwrite == false');
       return;
     }
 
-    // Put always (put will overwrite existing key if present)
-    await box.put(
-      key,
-      SleepLog(
-        date: DateTime(bedDate.year, bedDate.month, bedDate.day),
-        durationMinutes: duration.inMinutes,
-      ),
-    );
+    // Write to daily JSON file (replaces Hive box.put)
+    await FileStorageService().writeSleepMinutes(key, duration.inMinutes);
 
-    debugPrint("✅ HIVE SAVED: $key → ${duration.inMinutes} min");
+    debugPrint('✅ FILE SAVED: $key → ${duration.inMinutes} min');
 
-    // Persist corrected minutes in SharedPreferences for quick UI access.
+    // Also persist to SharedPrefs for quick corrected-minutes access
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_correctedPrefKeyForDateKey(key), duration.inMinutes);
 
-    // #region agent log
     AgentDebugLogger.log(
       runId: 'sleep-ui',
       hypothesisId: 'PREF',
       location: 'sleep_controller.dart:saveDeepSleepData:persist_corrected',
-      message: 'Saved corrected sleep minutes to prefs',
+      message: 'Saved corrected sleep minutes to file + prefs',
       data: {'key': key, 'minutes': duration.inMinutes},
     );
-    // #endregion
 
     weeklyDeepSleepHistory[key] = duration;
-
     deepSleepDuration.value = weeklyDeepSleepHistory[key] ?? Duration.zero;
     weeklyDeepSleepHistory.refresh();
     updateDeepSleepSpots();
@@ -1185,11 +1151,11 @@ class SleepController extends GetxService {
   }
 
   Future<void> clearSleepData() async {
-    final box = await HiveService().sleepLogBox();
-    await box.clear();
+    // File-based: just clear in-memory maps. Daily files are intentionally
+    // kept on disk until successfully synced to server.
     weeklyDeepSleepHistory.clear();
     deepSleepSpots.clear();
-    debugPrint("🗑️ All sleep data cleared from Hive and controller.");
+    debugPrint('🗑️ Sleep data cleared from controller (file store untouched).');
   }
 
   // ─────────────────────────────────────────────

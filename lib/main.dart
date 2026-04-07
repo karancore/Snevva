@@ -28,7 +28,7 @@ import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/update_old_password_controller.dart';
 import 'package:snevva/services/firebase_init.dart';
 import 'package:snevva/services/google_auth.dart';
-import 'package:snevva/services/hive_service.dart';
+
 import 'package:snevva/utils/theme_controller.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
@@ -277,22 +277,7 @@ List<int> _findExpiredBeforeAlarmIdsForStartup(Map<String, dynamic> payload) {
   return expiredIds;
 }
 
-Map<String, int> _mergeSleepHistoryRows(List<Map<String, dynamic>> rows) {
-  final merged = <String, int>{};
 
-  for (final row in rows) {
-    final key = row['key'];
-    final minutes = row['minutes'];
-    if (key is! String || minutes is! int) continue;
-
-    final current = merged[key] ?? 0;
-    if (minutes > current) {
-      merged[key] = minutes;
-    }
-  }
-
-  return merged;
-}
 
 int _countLargePrefsCandidates(List<String> keys) {
   var count = 0;
@@ -374,7 +359,6 @@ class _MyAppState extends State<MyApp> {
   Future<void> _runStage2AfterFirstFrame() async {
     try {
       await Future.wait([
-        HiveService().initMain(),
         ensureFirebaseInitialized(),
         _warmCriticalPostFrameServices(),
       ]);
@@ -535,26 +519,9 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _mergeSleepHistoryInBackground() async {
-    final sleepBox = await HiveService().sleepLogBox();
-    if (sleepBox.length < 180) return;
-
-    final rows = sleepBox.values
-        .map(
-          (log) => <String, dynamic>{
-            'key':
-                '${log.date.year}-'
-                '${log.date.month.toString().padLeft(2, '0')}-'
-                '${log.date.day.toString().padLeft(2, '0')}',
-            'minutes': log.durationMinutes,
-          },
-        )
-        .toList(growable: false);
-
-    if (rows.length >= 180) {
-      await compute(_mergeSleepHistoryRows, rows);
-      return;
-    }
-    _mergeSleepHistoryRows(rows);
+    // Sleep history is now stored in daily JSON files — no Hive box needed.
+    // This method is a no-op; the file-based store never grows unbounded.
+    debugPrint('ℹ️ _mergeSleepHistoryInBackground: file-based store, skipping');
   }
 
   Future<void> _scanLargeSharedPreferences() async {

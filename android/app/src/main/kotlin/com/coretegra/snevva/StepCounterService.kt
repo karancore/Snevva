@@ -148,6 +148,9 @@ class StepCounterService : Service(), SensorEventListener {
 
         Log.d("StepService", "👣 Steps today: $stepsToday")
 
+        // Append to file buffer (primary durable store)
+        BufferManager.appendStepEvent(applicationContext, stepsToday)
+
         // Update notification only when the Dart isolate is NOT sleeping
         // (Dart isolate will overwrite the notification text during sleep mode)
         val isSleeping = flutterPrefs.getBoolean("flutter.is_sleeping", false)
@@ -176,9 +179,12 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     override fun onDestroy() {
+        // Flush buffers before being killed so no step data is lost
+        BufferManager.flushStepsToDaily(applicationContext)
+        BufferManager.flushSleepToDaily(applicationContext)
         super.onDestroy()
         sensorManager.unregisterListener(this)
-        Log.d("StepService", "🛑 StepCounterService destroyed.")
+        Log.d("StepService", "🛑 StepCounterService destroyed + buffers flushed.")
     }
 
     private fun buildNotification(stepsToday: Int): Notification {

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -6,7 +7,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
-import 'package:snevva/models/hive_models/sleep_log_g.dart';
 import 'package:snevva/services/notification_service.dart';
 import 'package:snevva/services/unified_background_service.dart';
 import 'package:timezone/data/latest.dart';
@@ -14,8 +14,7 @@ import 'package:timezone/timezone.dart';
 
 import '../common/agent_debug_logger.dart';
 import '../consts/consts.dart';
-import '../models/hive_models/sleep_log.dart';
-import '../models/hive_models/steps_model.dart';
+
 
 // ====================================================================
 // 0️⃣ NOTIFICATION CHANNEL SETUP (CRITICAL FOR ANDROID 12+)
@@ -77,88 +76,53 @@ Future<void> requestAllPermissions() async {
 }
 
 // ====================================================================
-// 2️⃣ HIVE INITIALIZATION (CHECK IF ALREADY INITIALIZED)
+// 2️⃣ HIVE INITIALIZATION — reminders and medicine boxes only
 // ====================================================================
 Future<void> setupHive() async {
   try {
-    // ✅ Check if already initialized (across isolates, but mainly for main)
-    if (Hive.isBoxOpen('step_history') &&
-        Hive.isBoxOpen('sleep_log') &&
-        Hive.isBoxOpen('medicine_list') &&
-        Hive.isBoxOpen('reminders_box')) {
+    if (Hive.isBoxOpen('medicine_list') && Hive.isBoxOpen('reminders_box')) {
       debugPrint("✅ Hive already initialized, skipping setup");
       return;
     }
 
     var directory = await getApplicationDocumentsDirectory();
-    await Hive.initFlutter(
-      directory.path,
-    ); // This must be called once per isolate
+    await Hive.initFlutter(directory.path);
 
     debugPrint("🧪 Initializing Hive at: ${directory.path}");
 
-    // Register adapters (only if not already registered)
-    if (!Hive.isAdapterRegistered(StepEntryAdapter().typeId)) {
-      Hive.registerAdapter(StepEntryAdapter());
-    }
-
-    // 🔑 OPEN BOXES HERE
-    // await Hive.openBox('sleepBox');
-    // await Hive.openBox('deepSleepBox');
-    // // await Hive.box('medicine_list').clear();
-
-    if (!Hive.isAdapterRegistered(StepEntryAdapter().typeId)) {
-      Hive.registerAdapter(StepEntryAdapter());
-    }
-    if (!Hive.isAdapterRegistered(SleepLogAdapter().typeId)) {
-      Hive.registerAdapter(SleepLogAdapter());
-    }
+    // Register adapters for reminder types only
     if (!Hive.isAdapterRegistered(ReminderPayloadModelAdapter().typeId)) {
       Hive.registerAdapter(ReminderPayloadModelAdapter());
     }
     if (!Hive.isAdapterRegistered(DosageAdapter().typeId)) {
       Hive.registerAdapter(DosageAdapter());
     }
-
     if (!Hive.isAdapterRegistered(CustomReminderAdapter().typeId)) {
       Hive.registerAdapter(CustomReminderAdapter());
     }
-
     if (!Hive.isAdapterRegistered(TimesPerDayAdapter().typeId)) {
       Hive.registerAdapter(TimesPerDayAdapter());
     }
-
     if (!Hive.isAdapterRegistered(EveryXHoursAdapter().typeId)) {
       Hive.registerAdapter(EveryXHoursAdapter());
     }
-
     if (!Hive.isAdapterRegistered(RemindBeforeAdapter().typeId)) {
       Hive.registerAdapter(RemindBeforeAdapter());
     }
 
-    // ✅ Only open boxes if not already open
-    if (!Hive.isBoxOpen('step_history')) {
-      await Hive.openBox<StepEntry>('step_history');
-    }
-
-    debugPrint("✅ Hive setup complete - boxes opened");
-
-    if (!Hive.isBoxOpen('sleep_log')) {
-      await Hive.openBox<SleepLog>('sleep_log');
-    }
+    // Open only reminders and medicine — step/sleep are file-based now
     if (!Hive.isBoxOpen(reminderBox)) {
       await Hive.openBox(reminderBox);
     }
-    if (!Hive.isBoxOpen("medicine_list")) {
+    if (!Hive.isBoxOpen('medicine_list')) {
       await Hive.openBox('medicine_list');
     }
 
-    debugPrint("✅ Hive setup complete - boxes opened");
+    debugPrint("✅ Hive setup complete — reminders/medicine boxes opened");
   } catch (e, stackTrace) {
     debugPrint("❌ Hive setup failed: $e");
     debugPrint(stackTrace as String?);
-    // Optionally rethrow or handle (e.g., show error UI)
-    rethrow; // Let main.dart handle it
+    rethrow;
   }
 }
 

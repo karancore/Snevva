@@ -47,7 +47,22 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
             // Dart's `unified_background_service.dart` handles the precise sleep calculation via Screen ON/OFF tracking.
             // This Worker serves solely to launch the ApiSyncWorker periodically at wake time!
             
-            Log.d("SleepCalcWorker", "Wake Time Reached. Launching API Sync for the new day.")
+            Log.d("SleepCalcWorker", "Wake Time Reached. Flushing buffers and launching API Sync.")
+
+            // Flush step and sleep buffers into daily JSON before syncing
+            BufferManager.flushStepsToDaily(applicationContext)
+            BufferManager.flushSleepToDaily(applicationContext)
+
+            // Add the night's sleep date to the sync queue
+            val sleepDateKey = run {
+                val cal = Calendar.getInstance().apply { time = start.time }
+                "%04d-%02d-%02d".format(
+                    cal.get(Calendar.YEAR),
+                    cal.get(Calendar.MONTH) + 1,
+                    cal.get(Calendar.DAY_OF_MONTH)
+                )
+            }
+            BufferManager.addToSyncQueue(applicationContext, sleepDateKey)
 
             // Chain to API Sync
             val syncRequest = OneTimeWorkRequestBuilder<ApiSyncWorker>()

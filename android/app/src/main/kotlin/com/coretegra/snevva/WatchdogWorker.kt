@@ -11,6 +11,13 @@ class WatchdogWorker(context: Context, params: WorkerParameters) : Worker(contex
 
     override fun doWork(): Result {
         Log.d("WatchdogWorker", "Bark! Checking if FlutterBackgroundService is alive...")
+        // Flush buffers first — ensures data survives even if the service is dead
+        try {
+            BufferManager.flushStepsToDaily(applicationContext)
+            BufferManager.flushSleepToDaily(applicationContext)
+        } catch (e: Exception) {
+            Log.e("WatchdogWorker", "Buffer flush error: ${e.message}")
+        }
         try {
             val serviceIntent = Intent()
             serviceIntent.setClassName(applicationContext, "id.flutter.flutter_background_service.BackgroundService")

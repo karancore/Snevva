@@ -126,6 +126,25 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        // Sync manager channel: Kotlin → Dart trigger for file-based sync queue
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.coretegra.snevva/sync_manager")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    // Native code can call "flushAndSync" to force a buffer flush +
+                    // schedule an immediate Dart sync run
+                    "flushAndSync" -> {
+                        try {
+                            BufferManager.flushStepsToDaily(applicationContext)
+                            BufferManager.flushSleepToDaily(applicationContext)
+                            result.success("flushed")
+                        } catch (e: Exception) {
+                            result.error("FLUSH_ERROR", e.message, null)
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
     }
 
     override fun onStart() {
@@ -136,6 +155,10 @@ class MainActivity : FlutterActivity() {
     override fun onResume() {
         super.onResume()
         requestHighestRefreshRate()
+        // Flush any native-side buffer accumulations back to daily JSON
+        try {
+            BufferManager.flushStepsToDaily(applicationContext)
+        } catch (_: Exception) {}
         Log.d("Lifecycle", "onResume called")
     }
 

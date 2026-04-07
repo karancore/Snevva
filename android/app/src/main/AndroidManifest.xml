@@ -1,13 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Hive -->
+    <!-- File-based storage (internal app dir — no external-storage permissions needed) -->
+    <!-- External storage permissions below are kept only for legacy compatibility -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
-    <!-- 🌐 Internet & basic -->
+    <!-- 🌐 Internet & network state -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
@@ -180,6 +182,15 @@
 
         <receiver android:name=".StartSleepReceiver" android:exported="false" />
         <receiver android:name=".StopSleepReceiver" android:exported="false" />
+
+        <!-- 📡 Network connectivity receiver (triggers file-based sync queue on reconnect) -->
+        <receiver
+            android:name=".ConnectivityReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
+            </intent-filter>
+        </receiver>
 
         <!-- Worker Initialization (if needed, usually auto-inits) -->
     </application>
