@@ -1,6 +1,7 @@
 package com.coretegra.snevva
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.util.Log
 import androidx.work.*
 import java.util.*
@@ -13,22 +14,19 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
         
         try {
             val prefs = applicationContext.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-            
-            // Get bedtime/waketime from prefs
-            // Bug 1C fix: Flutter's SharedPreferences.setInt() uses putInt() (32-bit),
-            // NOT putLong(). Reading with getLong() always returned the -1L default.
-            val bedMin = prefs.getInt("flutter.user_bedtime_ms", -1)
-            val wakeMin = prefs.getInt("flutter.user_waketime_ms", -1)
-            
-            if (bedMin == -1 || wakeMin == -1) {
+
+            val bedMin = prefs.getSleepMinutes("flutter.user_bedtime_ms")
+            val wakeMin = prefs.getSleepMinutes("flutter.user_waketime_ms")
+
+            if (bedMin == null || wakeMin == null) {
                 Log.w("SleepCalcWorker", "No sleep window found.")
                 return Result.success() // Nothing to do
             }
 
-            val bedHour = (bedMin / 60).toInt()
-            val bedMinute = (bedMin % 60).toInt()
-            val wakeHour = (wakeMin / 60).toInt()
-            val wakeMinute = (wakeMin % 60).toInt()
+            val bedHour = bedMin / 60
+            val bedMinute = bedMin % 60
+            val wakeHour = wakeMin / 60
+            val wakeMinute = wakeMin % 60
 
             val now = Calendar.getInstance()
             val start = Calendar.getInstance().apply {
@@ -73,13 +71,15 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
     companion object {
         fun scheduleNext(context: Context) {
             val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-        // Bug 1C fix: use getInt() to match Flutter's SharedPreferences.setInt().
-            val wakeMin = prefs.getInt("flutter.user_waketime_ms", -1)
-            
-            if (wakeMin == -1) return
-            
-            val wakeHour = (wakeMin / 60).toInt()
-            val wakeMinute = (wakeMin % 60).toInt()
+            val wakeMin = prefs.getSleepMinutes("flutter.user_waketime_ms")
+
+            if (wakeMin == null) {
+                Log.w("SleepCalcWorker", "Skipping scheduleNext: wake time missing or invalid")
+                return
+            }
+
+            val wakeHour = wakeMin / 60
+            val wakeMinute = wakeMin % 60
             
             val now = Calendar.getInstance()
             val wakeTime = Calendar.getInstance().apply {
@@ -106,6 +106,42 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
                 ExistingWorkPolicy.REPLACE,
                 calcWork
             )
+        }
+
+        private fun SharedPreferences.getSleepMinutes(key: String): Int? {
+            val raw = all[key] ?: return null
+            val normalized = when (raw) {
+                is Int -> normalizeSleepMinutes(raw.toLong())
+                is Long -> normalizeSleepMinutes(raw)
+                is Float -> normalizeSleepMinutes(raw.toLong())
+                is String -> raw.toLongOrNull()?.let(::normalizeSleepMinutes)
+                is Number -> normalizeSleepMinutes(raw.toLong())
+                else -> null
+            }
+
+            if (normalized == null) {
+                Log.w(
+                    "SleepCalcWorker",
+                    "Ignoring invalid sleep pref $key=$raw (${raw::class.java.simpleName})"
+                )
+            }
+
+            return normalized
+        }
+
+        private fun normalizeSleepMinutes(rawValue: Long): Int? {
+            if (rawValue in 0..1439) {
+                return rawValue.toInt()
+            }
+
+            val millisPerMinute = TimeUnit.MINUTES.toMillis(1)
+            val millisPerDay = TimeUnit.DAYS.toMillis(1)
+
+            if (rawValue in 0 until millisPerDay && rawValue % millisPerMinute == 0L) {
+                return (rawValue / millisPerMinute).toInt()
+            }
+
+            return null
         }
     }
 }

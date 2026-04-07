@@ -27,10 +27,18 @@ class BootReceiver : BroadcastReceiver() {
             //    No manual start needed here.
 
             // 3. Schedule SleepCalcWorker to trigger API sync at wake time
-            SleepCalcWorker.scheduleNext(context)
+            runCatching {
+                SleepCalcWorker.scheduleNext(context)
+            }.onFailure { error ->
+                Log.e("BootReceiver", "Failed to schedule SleepCalcWorker on boot", error)
+            }
 
             // 4. Keep AlarmHelper call for legacy alarm cancellation (it's a no-op stub now)
-            AlarmHelper.scheduleSleepAlarms(context)
+            runCatching {
+                AlarmHelper.scheduleSleepAlarms(context)
+            }.onFailure { error ->
+                Log.e("BootReceiver", "Failed to refresh legacy sleep alarms on boot", error)
+            }
         }
     }
 }
