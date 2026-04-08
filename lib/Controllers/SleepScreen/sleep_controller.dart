@@ -964,41 +964,41 @@ class SleepController extends GetxService {
       }
       monthlyDeepSleepHistory.refresh();
 
-      if (sleepData.isNotEmpty) {
-        final latestSleep = sleepData.first;
-
-        bedtime.value = minutesToTimeOfDay(
-          _parseTime(
-                    year,
-                    month,
-                    latestSleep['Day'],
-                    latestSleep['SleepingFrom'],
-                  ).hour *
-                  60 +
-              _parseTime(
-                year,
-                month,
-                latestSleep['Day'],
-                latestSleep['SleepingFrom'],
-              ).minute,
-        );
-
-        waketime.value = minutesToTimeOfDay(
-          _parseTime(
-                    year,
-                    month,
-                    latestSleep['Day'],
-                    latestSleep['SleepingTo'],
-                  ).hour *
-                  60 +
-              _parseTime(
-                year,
-                month,
-                latestSleep['Day'],
-                latestSleep['SleepingTo'],
-              ).minute,
-        );
-      }
+      // if (sleepData.isNotEmpty) {
+      //   final latestSleep = sleepData.first;
+      //
+      //   bedtime.value = minutesToTimeOfDay(
+      //     _parseTime(
+      //               year,
+      //               month,
+      //               latestSleep['Day'],
+      //               latestSleep['SleepingFrom'],
+      //             ).hour *
+      //             60 +
+      //         _parseTime(
+      //           year,
+      //           month,
+      //           latestSleep['Day'],
+      //           latestSleep['SleepingFrom'],
+      //         ).minute,
+      //   );
+      //
+      //   waketime.value = minutesToTimeOfDay(
+      //     _parseTime(
+      //               year,
+      //               month,
+      //               latestSleep['Day'],
+      //               latestSleep['SleepingTo'],
+      //             ).hour *
+      //             60 +
+      //         _parseTime(
+      //           year,
+      //           month,
+      //           latestSleep['Day'],
+      //           latestSleep['SleepingTo'],
+      //         ).minute,
+      //   );
+      // }
 
       // 🔁 Refresh weekly graph too
       updateDeepSleepSpots();
