@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:snevva/services/sleep/sleep_noticing_service.dart';
@@ -42,6 +43,13 @@ class _ScreenEventLogsScreenState extends State<ScreenEventLogsScreen> {
     }
 
     final events = await _sleepNoticingService.readLoggedEvents();
+    print("Events : ${events.join('\n')}");
+    final eventFiles = File('event_logs.txt');
+    final sink = eventFiles.openWrite(mode: FileMode.append);
+    sink.writeAll(events, '\n');
+    await sink.flush();
+    await sink.close();
+
     if (!mounted) return;
 
     setState(() {
