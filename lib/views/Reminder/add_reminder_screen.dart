@@ -395,7 +395,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     });
   }
 
-  Future<TimeOfDay?> _showTimeWheelPicker() async {
+  Future<TimeOfDay?> _showTimeWheelPicker({String ? buttonText}) async {
+    print("Button text: $buttonText");
     final initialTime = TimeOfDay.now();
     final initialHour12 =
         initialTime.hourOfPeriod == 0 ? 12 : initialTime.hourOfPeriod;
@@ -463,7 +464,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                           ),
                         ),
                       ),
-                      child: const Text('Done', style: TextStyle(color: white)),
+                      child: Text((buttonText != null && buttonText.isNotEmpty)
+                          ? buttonText
+                          : 'Done', style: const TextStyle(color: white)),
                     ),
                   ),
                 ],
@@ -482,9 +485,11 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   Future<void> _selectTime({
     required TextEditingController textController,
     String? category,
+    String? buttonText,
+
   }) async {
     debugPrint("Selecting time... ${textController.toString()} ");
-    TimeOfDay? picked = await _showTimeWheelPicker();
+    TimeOfDay? picked = await _showTimeWheelPicker(buttonText: buttonText);
     debugPrint("Picked time: $picked");
     reminderController.pickedTime.value = picked;
 
@@ -2015,6 +2020,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       () => _selectTime(
                         textController: startTimeController,
                         category: "Water",
+                        buttonText: "Start Time",
                       ),
                   decoration: commonInputDecoration(hint: '09:30 AM'),
                 ),
@@ -2038,6 +2044,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                         () => _selectTime(
                           textController: endTimeController,
                           category: "Water",
+                          buttonText: "End Time",
                         ),
                     decoration: commonInputDecoration(hint: '11:30 PM'),
                   ),
