@@ -594,7 +594,7 @@ class StepCounterController extends GetxController {
       count: goal,
     );
 
-    await _saveStepGoalRemote(model);
+    // await _saveStepGoalRemote(model);
   }
 
   // =======================

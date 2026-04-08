@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/models/hive_models/sleep_log_g.dart';
 import 'package:snevva/services/health_file_storage_service.dart';
 import 'package:snevva/services/hive_service.dart';
@@ -320,6 +321,10 @@ void _updateStepNotification({
   required ServiceInstance service,
   required int steps,
 }) {
+  Get
+      .find<StepCounterController>()
+      .todaySteps
+      .value = steps;
   if (service is AndroidServiceInstance) {
     service.setForegroundNotificationInfo(
       title: 'Snevva Active',

@@ -4,7 +4,6 @@ import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
@@ -284,18 +283,12 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
                         final begin = stepController.lastStepsRx.value;
                         final end = stepController.todaySteps.value;
 
-                        return TweenAnimationBuilder<int>(
-                          key: ValueKey(end),
-                          tween: IntTween(begin: begin, end: end),
-                          duration: const Duration(milliseconds: 400),
-                          builder:
-                              (_, val, __) => Text(
-                                "$val",
-                                style: const TextStyle(
-                                  fontSize: 38,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                        return Text(
+                          "$end",
+                          style: const TextStyle(
+                            fontSize: 38,
+                            fontWeight: FontWeight.bold,
+                          ),
                         );
                       }),
 
