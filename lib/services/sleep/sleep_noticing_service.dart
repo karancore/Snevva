@@ -21,6 +21,11 @@ class SleepNoticingService {
   StreamSubscription<ScreenStateEvent>? _subscription;
   final Screen _screen = Screen();
 
+  // In-memory accumulator for intervals that have been closed (written to
+  // sleep_buf.tmp) but not yet flushed into the daily JSON.  Keeps the live
+  // progress display accurate without re-reading the buffer file on every tick.
+  int _bufferedSleepMinutes = 0;
+
   // ─────────────────────────────────────────────
   // PUBLIC API
   // ─────────────────────────────────────────────
@@ -30,6 +35,9 @@ class SleepNoticingService {
       debugPrint('ℹ️ SleepNoticingService already monitoring');
       return;
     }
+
+    // Reset the in-memory accumulator for the new session.
+    _bufferedSleepMinutes = 0;
 
     debugPrint('🚀 SleepNoticingService.startMonitoring');
 
@@ -66,6 +74,14 @@ class SleepNoticingService {
 
     final now = DateTime.now();
     if (!_isWithinWindow(now, window.start, window.end)) return;
+
+    // Restore the in-memory accumulator from the daily JSON (in case this is
+    // a service restart and previous intervals were already flushed to disk).
+    final fromFile = await FileStorageService().readDailySleepMinutes(window.dateKey);
+    if (fromFile > _bufferedSleepMinutes) {
+      _bufferedSleepMinutes = fromFile;
+      debugPrint('🔄 initializeForSleepWindow: restored buffer from file (${fromFile}m)');
+    }
 
     final lastOffKey = 'last_screen_off_${window.dateKey}';
 
@@ -204,10 +220,14 @@ class SleepNoticingService {
     // ── Write to file buffer instead of SharedPreferences ──────────
     await FileStorageService().appendSleepInterval(window.dateKey, start, end);
 
+    // Track in memory so getTotalSleepMinutes() stays accurate without
+    // re-reading the buffer file on every tick.
+    _bufferedSleepMinutes += duration.inMinutes;
+
     // Clear the open-interval anchor
     await prefs.remove(lastOffKey);
 
-    debugPrint('💾 Sleep interval appended to file buffer: ${window.dateKey}');
+    debugPrint('💾 Sleep interval appended to file buffer: ${window.dateKey} (accumulated: ${_bufferedSleepMinutes}m)');
   }
 
   // ─────────────────────────────────────────────
@@ -220,11 +240,14 @@ class SleepNoticingService {
 
     if (window == null) return 0;
 
-    // Read total from daily file (already accumulated from previous intervals).
-    final fromFile = await FileStorageService().readDailySleepMinutes(window.dateKey);
+    // _bufferedSleepMinutes holds the sum of all intervals that have been
+    // closed (written to sleep_buf.tmp via appendSleepInterval) but not yet
+    // flushed into the daily JSON.  This is the accurate live source during
+    // an active sleep session.
+    final fromBuffer = _bufferedSleepMinutes;
 
     // Also account for any open interval (screen currently off) that hasn't
-    // been flushed yet.
+    // been closed yet.
     int openIntervalMinutes = 0;
     final lastOffKey = 'last_screen_off_${window.dateKey}';
     final lastOffStr = prefs.getString(lastOffKey);
@@ -248,9 +271,63 @@ class SleepNoticingService {
       }
     }
 
-    final total = fromFile + openIntervalMinutes;
-    debugPrint('📊 Total sleep: $total mins (file=$fromFile, open=$openIntervalMinutes)');
+    final total = fromBuffer + openIntervalMinutes;
+    debugPrint('📊 Total sleep: $total mins (buffer=$fromBuffer, open=$openIntervalMinutes)');
     return total;
+  }
+
+  // ─────────────────────────────────────────────
+  // PUBLIC UTILITY: Flush any open interval to buffer
+  // ─────────────────────────────────────────────
+
+  /// If the screen is still off when the sleep session ends, the current
+  /// open interval has never been written to the file buffer (that only
+  /// happens on SCREEN_ON).  This method closes and flushes it immediately
+  /// so it is included in the final sleep total.
+  ///
+  /// Returns the number of minutes flushed (0 if nothing to flush).
+  Future<int> flushOpenInterval(String dateKey) async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastOffKey = 'last_screen_off_$dateKey';
+    final lastOffStr = prefs.getString(lastOffKey);
+
+    if (lastOffStr == null) return 0;
+
+    final window = await _computeActiveSleepWindow(prefs);
+    if (window == null) return 0;
+
+    DateTime lastOff;
+    try {
+      lastOff = DateTime.parse(lastOffStr);
+    } catch (_) {
+      await prefs.remove(lastOffKey);
+      return 0;
+    }
+
+    final now = DateTime.now();
+    final start = lastOff.isBefore(window.start) ? window.start : lastOff;
+    final end = now.isAfter(window.end) ? window.end : now;
+
+    if (!end.isAfter(start)) {
+      await prefs.remove(lastOffKey);
+      return 0;
+    }
+
+    final duration = end.difference(start);
+    if (duration < minSleepGap) {
+      debugPrint(
+        '⛔ flushOpenInterval: ignored (below minSleepGap ${minSleepGap.inMinutes} min)',
+      );
+      await prefs.remove(lastOffKey);
+      return 0;
+    }
+
+    await FileStorageService().appendSleepInterval(dateKey, start, end);
+    await prefs.remove(lastOffKey);
+
+    final mins = duration.inMinutes;
+    debugPrint('💾 flushOpenInterval: wrote ${mins}m for $dateKey ($start → $end)');
+    return mins;
   }
 
   // ─────────────────────────────────────────────

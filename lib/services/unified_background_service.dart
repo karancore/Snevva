@@ -657,6 +657,27 @@ Future<void> _stopSleepAndSave(
 
   if (!effectiveEnd.isAfter(effectiveStart)) effectiveEnd = effectiveStart;
 
+  // ── Step 1: Close any open interval (screen still off at wake time) ─────
+  // If the screen is still off when the session ends, the open interval has
+  // NOT yet been written to sleep_buf.tmp. We compute and flush it now so
+  // that it is included in the final total.
+  if (windowKey != null) {
+    final openMins = await _sleepNoticingService.flushOpenInterval(windowKey);
+    if (openMins > 0) {
+      debugPrint('📱 Flushed open interval at session end: ${openMins}m');
+    }
+  }
+
+  // ── Step 2: Flush buffer → daily JSON BEFORE reading the total ──────────
+  // sleep_buf.tmp may contain intervals from earlier SCREEN_ON events that
+  // have never been merged into the daily JSON yet.  Reading the total before
+  // this flush caused those intervals to be silently ignored.
+  if (windowKey != null) {
+    await FileStorageService().flushSleepToDaily();
+    debugPrint('✅ Sleep buffer flushed before total read');
+  }
+
+  // ── Step 3: Read the accurate total from the daily JSON ─────────────────
   final totalSleepMinutes = await _sleepNoticingService.getTotalSleepMinutes();
 
   print("💾 Saving sleep data:");
@@ -665,11 +686,8 @@ Future<void> _stopSleepAndSave(
   print("   Total sleep: $totalSleepMinutes mins");
   print("   Goal: $goalMinutes mins");
 
-  // ── Write to file storage (replaces Hive sleepBox.put) ──────────
+  // ── Step 4: Queue the day for API sync ──────────────────────────────────
   if (windowKey != null) {
-    // The sleep_noticing_service has already buffered the intervals via
-    // appendSleepInterval(). We still flush here as a safety catch-all.
-    await FileStorageService().flushSleepToDaily();
     await FileStorageService().addToSyncQueue(windowKey);
     debugPrint('✅ Sleep session saved to file storage: $windowKey');
   }
