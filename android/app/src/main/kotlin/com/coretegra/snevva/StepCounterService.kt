@@ -2,19 +2,21 @@ package com.coretegra.snevva
 
 import android.app.*
 import android.content.*
+import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.IBinder
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.plugin.common.MethodChannel
-import android.content.pm.ServiceInfo
-import android.os.SystemClock
+import androidx.core.content.ContextCompat
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
 
 class StepCounterService : Service(), SensorEventListener {
 
@@ -98,10 +100,41 @@ class StepCounterService : Service(), SensorEventListener {
         val stepsToday = prefs.getInt(KEY_TODAY_STEPS, 0)
         val notification = buildNotification(stepsToday)
 
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH)
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                // Check if we have FOREGROUND_SERVICE_HEALTH permission before starting foreground service
+                if (ContextCompat.checkSelfPermission(
+                        this,
+                        "android.permission.FOREGROUND_SERVICE_HEALTH"
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    startForeground(
+                        NOTIFICATION_ID,
+                        notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH
+                    )
+                } else {
+                    Log.w(
+                        "StepService",
+                        "⚠️ Missing FOREGROUND_SERVICE_HEALTH permission. Starting as regular service."
+                    )
+                    startForeground(NOTIFICATION_ID, notification)
+                }
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } catch (e: Exception) {
+            Log.e("StepService", "Error starting foreground service", e)
+            // Fallback: try to start as regular foreground service without health type
+            try {
+                startForeground(NOTIFICATION_ID, notification)
+            } catch (e2: Exception) {
+                Log.e(
+                    "StepService",
+                    "Failed to start foreground service even without health type",
+                    e2
+                )
+            }
         }
 
         registerStepListener()
