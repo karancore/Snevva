@@ -56,8 +56,12 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.reload();
 
-    // Seed sleep_elapsed_minutes = 0 so Kotlin notification starts clean.
-    await prefs.setInt('sleep_elapsed_minutes', 0);
+    // Seed sleep_elapsed_minutes = 0 ONLY if it doesn't already exist.
+    // This allows the notification to continue showing yesterday's sleep
+    // until a new sleep session officially begins.
+    if (!prefs.containsKey('sleep_elapsed_minutes')) {
+      await prefs.setInt('sleep_elapsed_minutes', 0);
+    }
 
     await _ensureCurrentDayStepState(
       service: service,
@@ -686,8 +690,10 @@ Future<void> _stopSleepAndSave(
   await prefs.remove("current_sleep_window_start");
   await prefs.remove("current_sleep_window_end");
   await prefs.remove("current_sleep_window_key");
-  // Reset elapsed minutes so Kotlin notification reverts to "😴 Sleep: --"
-  await prefs.setInt("sleep_elapsed_minutes", 0);
+  // We DO NOT reset elapsed minutes here anymore.
+  // This allows the native notification to retain and display the final 
+  // calculated sleep duration throughout the day until the next session starts.
+  // await prefs.setInt("sleep_elapsed_minutes", 0);
 
   // Clear sleep intervals from SharedPrefs (no longer the source of truth)
   if (windowKey != null) {
