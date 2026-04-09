@@ -636,7 +636,7 @@ class _HeartBeatLoaderState extends State<HeartBeatLoader>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   // ✅ Painter caches are owned here so they survive rebuilds.
-  final _HeartBeatLoaderPainter _painter = _HeartBeatLoaderPainter();
+  final _HeartBeatCaches _caches = _HeartBeatCaches();
 
   @override
   void initState() {
@@ -653,8 +653,6 @@ class _HeartBeatLoaderState extends State<HeartBeatLoader>
 
   @override
   Widget build(BuildContext context) {
-    _painter.isDarkMode = widget.isDarkMode;
-
     // ✅ RepaintBoundary is OUTSIDE AnimatedBuilder so the layer is only
     // re-composited when the painter signals repaint — not on every build.
     return RepaintBoundary(
@@ -666,7 +664,6 @@ class _HeartBeatLoaderState extends State<HeartBeatLoader>
           builder: (_, _) {
             final progress = _controller.value;
             final scale = 0.95 + (0.05 * progress);
-            _painter.progress = progress;
 
             return Transform.scale(
               scale: scale,
@@ -675,7 +672,13 @@ class _HeartBeatLoaderState extends State<HeartBeatLoader>
                 child: SizedBox(
                   height: 140,
                   width: 140,
-                  child: CustomPaint(painter: _painter),
+                  child: CustomPaint(
+                    painter: _HeartBeatLoaderPainter(
+                      progress: progress,
+                      isDarkMode: widget.isDarkMode,
+                      caches: _caches,
+                    ),
+                  ),
                 ),
               ),
             );
@@ -696,18 +699,24 @@ class _HeartBeatLoaderState extends State<HeartBeatLoader>
 ///     The glow effect is replicated with a translucent saveLayer instead,
 ///     which stays on the GPU compositing path.
 ///  4. Grid paint object is reused (not reallocated every frame).
+class _HeartBeatCaches {
+  Rect? rect;
+  Path? fullPath;
+  PathMetric? metric;
+  Shader? lineShader;
+  Shader? glowShader;
+}
+
 class _HeartBeatLoaderPainter extends CustomPainter {
-  double progress;
-  bool isDarkMode;
+  final double progress;
+  final bool isDarkMode;
+  final _HeartBeatCaches caches;
 
-  _HeartBeatLoaderPainter({this.progress = 0.0, this.isDarkMode = false});
-
-  // ── Caches (keyed on canvas size) ─────────────────────────────────────
-  Rect? _cachedRect;
-  Path? _cachedFullPath;
-  PathMetric? _cachedMetric;
-  Shader? _cachedLineShader;
-  Shader? _cachedGlowShader;
+  _HeartBeatLoaderPainter({
+    required this.progress,
+    required this.isDarkMode,
+    required this.caches,
+  });
 
   // ── Reusable paint objects ─────────────────────────────────────────────
   final Paint _gridPaint = Paint()..strokeWidth = 1;
@@ -736,8 +745,8 @@ class _HeartBeatLoaderPainter extends CustomPainter {
   // Build path + metric + shaders once per canvas size.
   void _buildCaches(Size size) {
     final rect = Offset.zero & size;
-    if (_cachedRect == rect && _cachedFullPath != null) return;
-    _cachedRect = rect;
+    if (caches.rect == rect && caches.fullPath != null) return;
+    caches.rect = rect;
 
     final midY = size.height / 2;
     final path = Path();
@@ -781,17 +790,17 @@ class _HeartBeatLoaderPainter extends CustomPainter {
       path.lineTo(x += 18, midY);
     }
 
-    _cachedFullPath = path;
-    _cachedMetric  = path.computeMetrics().first;
-    _cachedLineShader = _gradient.createShader(rect);
-    _cachedGlowShader = _gradient.createShader(rect);
+    caches.fullPath = path;
+    caches.metric  = path.computeMetrics().first;
+    caches.lineShader = _gradient.createShader(rect);
+    caches.glowShader = _gradient.createShader(rect);
   }
 
   @override
   void paint(Canvas canvas, Size size) {
     _buildCaches(size); // no-op if size unchanged
 
-    final metric = _cachedMetric!;
+    final metric = caches.metric!;
     if (metric.isClosed) return;
 
     // 1️⃣ Grid
@@ -810,17 +819,16 @@ class _HeartBeatLoaderPainter extends CustomPainter {
     final tangent = metric.getTangentForOffset(metric.length * progress);
 
     // 3️⃣ Glow — GPU-accelerated saveLayer alpha composite
-    //    (replaces MaskFilter.blur which forced software rasterization)
     canvas.saveLayer(Offset.zero & size, _layerPaint);
-    _glowPaint.shader = _cachedGlowShader;
+    _glowPaint.shader = caches.glowShader;
     canvas.drawPath(animatedPath, _glowPaint);
     canvas.restore();
 
     // 4️⃣ Main ECG line
-    _linePaint.shader = _cachedLineShader;
+    _linePaint.shader = caches.lineShader;
     canvas.drawPath(animatedPath, _linePaint);
 
-    // 5️⃣ Pulsing dot (no blur — just a crisp dot)
+    // 5️⃣ Pulsing dot
     if (tangent != null) {
       final pulse = 4 + (2 * sin(progress * pi * 6));
       canvas.drawCircle(tangent.position, pulse, _dotPaint);
