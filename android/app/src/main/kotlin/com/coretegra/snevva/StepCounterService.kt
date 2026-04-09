@@ -250,15 +250,15 @@ class StepCounterService : Service(), SensorEventListener {
         val sleepText = if (sleepMinutes > 0) {
             val h = sleepMinutes / 60
             val m = sleepMinutes % 60
-            if (h > 0) "😴 ${h}h ${m}m" else "😴 ${m}m"
+            if (h > 0) "😴 Sleep: ${h}h ${m}m" else "😴 Sleep: ${m}m"
         } else {
-            "😴 --"
+            "😴 Sleep: --"
         }
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("👟 $stepsToday steps   $sleepText")
+            .setContentTitle("Snevva Active")
+            .setContentText("👟 Steps: $stepsToday   $sleepText")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setOngoing(true)
-            .setOnlyAlertOnce(true)
             .build()
     }
 

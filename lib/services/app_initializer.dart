@@ -151,8 +151,8 @@ Future<void> initBackgroundService() async {
       autoStart: true,
       autoStartOnBoot: true,
       notificationChannelId: 'tracker_channel',
-      initialNotificationTitle: '👟 0 steps   😴 --',
-      initialNotificationContent: '',
+      initialNotificationTitle: 'Snevva Active',
+      initialNotificationContent: '👟 Steps: 0   😴 Sleep: --',
       // ✅ FIX: Same notification ID as StepCounterService.kt (ID = 1)
       // so Android shows only ONE notification for both services.
       foregroundServiceNotificationId: 1,
