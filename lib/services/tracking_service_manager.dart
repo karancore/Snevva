@@ -10,6 +10,9 @@ class TrackingServiceManager {
   static const MethodChannel _stepServiceChannel = MethodChannel(
     'com.coretegra.snevva/step_counter_channel',
   );
+  static const EventChannel _stepUpdatesChannel = EventChannel(
+    'com.coretegra.snevva/step_counter_updates',
+  );
 
   Future<void> start() async {
     await startStepService();
@@ -37,5 +40,15 @@ class TrackingServiceManager {
       debugPrint('Failed to fetch today steps from native service: $error');
       return 0;
     }
+  }
+
+  Stream<int> watchTodaySteps() {
+    if (!Platform.isAndroid) return const Stream<int>.empty();
+
+    return _stepUpdatesChannel.receiveBroadcastStream().map((event) {
+      if (event is int) return event;
+      if (event is num) return event.toInt();
+      throw const FormatException('Unexpected native step update payload');
+    });
   }
 }

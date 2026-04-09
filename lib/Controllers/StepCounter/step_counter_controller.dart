@@ -28,6 +28,7 @@ class StepCounterController extends GetxController {
 
   late SharedPreferences _prefs;
   Timer? _refreshTimer;
+  StreamSubscription<int>? _nativeStepUpdatesSubscription;
   int _trackingClients = 0;
 
   @override
@@ -42,7 +43,14 @@ class StepCounterController extends GetxController {
   Future<void> startTracking() async {
     _trackingClients++;
     await TrackingServiceManager.instance.startStepService();
-    _refreshTimer ??= Timer.periodic(const Duration(seconds: 3), (_) {
+    _nativeStepUpdatesSubscription ??=
+        TrackingServiceManager.instance.watchTodaySteps().listen(
+          _applyNativeSteps,
+          onError: (Object error, StackTrace stackTrace) {
+            debugPrint('Native step updates stream error: $error');
+          },
+        );
+    _refreshTimer ??= Timer.periodic(const Duration(seconds: 15), (_) {
       loadTodaySteps();
     });
     await loadTodaySteps();
@@ -56,10 +64,16 @@ class StepCounterController extends GetxController {
 
     _refreshTimer?.cancel();
     _refreshTimer = null;
+    _nativeStepUpdatesSubscription?.cancel();
+    _nativeStepUpdatesSubscription = null;
   }
 
   Future<void> loadTodaySteps() async {
     final nativeSteps = await TrackingServiceManager.instance.getTodaySteps();
+    _applyNativeSteps(nativeSteps);
+  }
+
+  Future<void> _applyNativeSteps(int nativeSteps) async {
     final previous = todaySteps.value;
 
     if (nativeSteps == previous) {

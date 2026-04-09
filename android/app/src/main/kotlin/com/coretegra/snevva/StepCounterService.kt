@@ -8,7 +8,9 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.SystemClock
 import android.text.format.DateFormat
 import android.util.Log
@@ -17,11 +19,14 @@ import androidx.core.content.ContextCompat
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.EventChannel
+import kotlin.math.max
 
 class StepCounterService : Service(), SensorEventListener {
 
     private lateinit var sensorManager: SensorManager
-    private var stepSensor: Sensor? = null
+    private var stepCounterSensor: Sensor? = null
+    private var stepDetectorSensor: Sensor? = null
     private lateinit var prefs: SharedPreferences
 
     // Single unified channel — same ID used by the Dart foreground service
@@ -86,7 +91,8 @@ class StepCounterService : Service(), SensorEventListener {
         super.onCreate()
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
-        stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+        stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+        stepDetectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
         syncTodayState()
 
         // Note: tracker_channel is created by the Dart side (app_initializer.dart) before this
@@ -134,25 +140,48 @@ class StepCounterService : Service(), SensorEventListener {
             }
         }
 
-        registerStepListener()
+        registerStepListeners()
         scheduleSparseWakeup()
 
         Log.d("StepService", "🚀 StepCounterService started.")
     }
 
-    private fun registerStepListener() {
-        stepSensor?.also { sensor ->
-            sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
-            Log.d("StepService", "✅ Step sensor registered successfully.")
+    private fun registerStepListeners() {
+        stepCounterSensor?.also { sensor ->
+            sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_UI)
+            Log.d("StepService", "✅ TYPE_STEP_COUNTER registered.")
         } ?: run {
             Log.e("StepService", "❌ No TYPE_STEP_COUNTER sensor found on this device.")
+        }
+
+        stepDetectorSensor?.also { sensor ->
+            sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_UI)
+            Log.d("StepService", "✅ TYPE_STEP_DETECTOR registered for live updates.")
+        } ?: run {
+            Log.w(
+                "StepService",
+                "⚠️ No TYPE_STEP_DETECTOR sensor found; live UI updates may be batched."
+            )
         }
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
-        if (event?.sensor?.type != Sensor.TYPE_STEP_COUNTER) return
+        when (event?.sensor?.type) {
+            Sensor.TYPE_STEP_COUNTER -> {
+                val currentSensorSteps = event.values.firstOrNull()?.toInt() ?: return
+                handleStepCounterChanged(currentSensorSteps)
+            }
 
-        val currentSensorSteps = event.values.firstOrNull()?.toInt() ?: return
+            Sensor.TYPE_STEP_DETECTOR -> {
+                val detectedSteps = event.values.firstOrNull()?.toInt()?.coerceAtLeast(1) ?: 1
+                handleStepDetected(detectedSteps)
+            }
+
+            else -> return
+        }
+    }
+
+    private fun handleStepCounterChanged(currentSensorSteps: Int) {
         syncTodayState()
 
         val currentDate = todayKey()
@@ -182,11 +211,12 @@ class StepCounterService : Service(), SensorEventListener {
             else -> savedBaseSteps
         }
 
-        val stepsToday = (currentSensorSteps - baseSteps).coerceAtLeast(0)
+        val computedStepsToday = (currentSensorSteps - baseSteps).coerceAtLeast(0)
+        val stepsToday = max(savedTodaySteps, computedStepsToday)
 
         Log.d(
             "StepService",
-            "👣 raw=$currentSensorSteps base=$baseSteps lastRaw=$lastRawSteps today=$stepsToday date=$currentDate"
+            "👣 counter raw=$currentSensorSteps base=$baseSteps lastRaw=$lastRawSteps today=$stepsToday date=$currentDate"
         )
         prefs.edit()
             .putInt(KEY_TODAY_STEPS, stepsToday)
@@ -195,8 +225,33 @@ class StepCounterService : Service(), SensorEventListener {
             .putString(KEY_DATE, currentDate)
             .apply()
 
+        publishStepUpdate(stepsToday)
+    }
+
+    private fun handleStepDetected(detectedSteps: Int) {
+        syncTodayState()
+
+        val currentDate = todayKey()
+        val currentSteps = prefs.getInt(KEY_TODAY_STEPS, 0)
+        val updatedSteps = currentSteps + detectedSteps
+
+        prefs.edit()
+            .putInt(KEY_TODAY_STEPS, updatedSteps)
+            .putString(KEY_DATE, currentDate)
+            .apply()
+
+        Log.d(
+            "StepService",
+            "👣 detector +$detectedSteps today=$updatedSteps date=$currentDate"
+        )
+
+        publishStepUpdate(updatedSteps)
+    }
+
+    private fun publishStepUpdate(stepsToday: Int) {
         val notifManager = getSystemService(NotificationManager::class.java)
         notifManager.notify(NOTIFICATION_ID, buildNotification(stepsToday))
+        emitStepUpdate(stepsToday)
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
@@ -244,6 +299,9 @@ class StepCounterService : Service(), SensorEventListener {
         private const val KEY_DATE = "last_date"
         // Set by MainActivity so receivers can reach the live Flutter engine.
         var flutterEngine: FlutterEngine? = null
+        @Volatile
+        var stepUpdateSink: EventChannel.EventSink? = null
+        private val mainHandler = Handler(Looper.getMainLooper())
 
         fun getTodaySteps(context: Context): Int {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -264,6 +322,17 @@ class StepCounterService : Service(), SensorEventListener {
 
         private fun todayKey(): String {
             return DateFormat.format("yyyy-MM-dd", System.currentTimeMillis()).toString()
+        }
+
+        fun emitStepUpdate(steps: Int) {
+            val sink = stepUpdateSink ?: return
+            mainHandler.post {
+                try {
+                    sink.success(steps)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to push live step update to Flutter", e)
+                }
+            }
         }
     }
 

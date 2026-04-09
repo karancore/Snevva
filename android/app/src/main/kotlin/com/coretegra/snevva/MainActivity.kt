@@ -9,11 +9,13 @@ import android.view.Display
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private val sleepServiceChannelName = "com.coretegra.snevva/sleep_service"
     private val stepCounterChannelName = "com.coretegra.snevva/step_counter_channel"
+    private val stepCounterUpdatesChannelName = "com.coretegra.snevva/step_counter_updates"
     private val displayConfigChannelName = "com.coretegra.snevva/display_config"
     private val oemChannelName = "com.coretegra.snevva/oem_settings"
 
@@ -85,6 +87,20 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        EventChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            stepCounterUpdatesChannelName
+        ).setStreamHandler(object : EventChannel.StreamHandler {
+            override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                StepCounterService.stepUpdateSink = events
+                events?.success(StepCounterService.getTodaySteps(this@MainActivity))
+            }
+
+            override fun onCancel(arguments: Any?) {
+                StepCounterService.stepUpdateSink = null
+            }
+        })
 
         // Existing channel for SleepNoticingService.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, sleepServiceChannelName)
@@ -178,6 +194,7 @@ class MainActivity : FlutterActivity() {
         // Clear the engine reference so StepCounterService stops trying to
         // send MethodChannel messages to the now-detached Flutter engine.
         StepCounterService.flutterEngine = null
+        StepCounterService.stepUpdateSink = null
         Log.d("Lifecycle", "onDestroy called")
     }
 
