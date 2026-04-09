@@ -6,16 +6,16 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/Widgets/CommonWidgets/common_stat_graph_widget.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
+import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_bottom_sheet.dart';
 
 import '../../../Controllers/SleepScreen/sleep_controller.dart';
-import 'package:snevva/Widgets/CommonWidgets/common_stat_graph_widget.dart';
-import 'package:snevva/common/global_variables.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 enum StatViewMode { weekly, monthly }
 
@@ -36,8 +36,6 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
   TimeOfDay? end = TimeOfDay.fromDateTime(
     DateTime.now().add(Duration(hours: 8)),
   );
-
-  bool _loaded = false;
 
   final sleepController = Get.find<SleepController>();
   final _service = FlutterBackgroundService();
@@ -326,13 +324,6 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     final double center = size / 2;
     final double radius = center - 20;
 
-    if (!_loaded) {
-      _loaded = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        sleepController.loadDeepSleepData();
-      });
-    }
-
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: CustomAppBar(appbarText: 'Sleep Tracker'),
@@ -598,7 +589,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                     measureUnit: 'h',
                     isSleepGraph: true,
                     isWaterGraph: false,
-                    // selectedMonthForHeader: _selectedMonth,
+                    selectedMonthForHeader: _selectedMonth,
                   );
                 }),
               ),
