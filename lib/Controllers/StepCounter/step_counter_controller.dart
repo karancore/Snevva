@@ -406,7 +406,8 @@ class StepCounterController extends GetxController {
   // =======================
   // DATE HELPERS
   // =======================
-  String _dayKey(DateTime d) => "${d.year}-${d.month}-${d.day}";
+  String _dayKey(DateTime d) => 
+      "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
 
   // =======================
   // STEP GOAL
@@ -552,7 +553,7 @@ class StepCounterController extends GetxController {
 
     // Merge in API-fetched list (prefer larger value)
     for (final item in stepsHistoryList) {
-      final key = "${item.date.year}-${item.date.month}-${item.date.day}";
+      final key = _dayKey(item.date);
       final existing = stepsHistoryByDate[key] ?? 0;
       if (item.steps > existing) {
         stepsHistoryByDate[key] = item.steps;
