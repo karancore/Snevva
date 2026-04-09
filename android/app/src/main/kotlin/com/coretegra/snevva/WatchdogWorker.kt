@@ -30,7 +30,7 @@ class WatchdogWorker(context: Context, params: WorkerParameters) : Worker(contex
             return Result.success()
         } catch (e: Exception) {
             Log.e("WatchdogWorker", "Failed to start flutter background service", e)
-            return Result.retry()
+            return Result.failure()
         }
     }
 

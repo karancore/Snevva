@@ -155,10 +155,13 @@ class MainActivity : FlutterActivity() {
     override fun onResume() {
         super.onResume()
         requestHighestRefreshRate()
-        // Flush any native-side buffer accumulations back to daily JSON
-        try {
-            BufferManager.flushStepsToDaily(applicationContext)
-        } catch (_: Exception) {}
+        // ✅ Off main thread — flushStepsToDaily does file I/O (read+parse+write)
+        // which would block the Android main thread and delay the first Flutter frame.
+        Thread {
+            try {
+                BufferManager.flushStepsToDaily(applicationContext)
+            } catch (_: Exception) {}
+        }.start()
         Log.d("Lifecycle", "onResume called")
     }
 

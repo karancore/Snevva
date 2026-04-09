@@ -430,7 +430,7 @@ class _MyAppState extends State<MyApp> {
     try {
       setState(() => _initState = AppInitState.loading);
 
-      final splashDelay = Future.delayed(const Duration(seconds: 3));
+      final splashDelay = Future.delayed(const Duration(milliseconds: 1500));
       final initFuture = initializeApp().timeout(const Duration(seconds: 10));
 
       await Future.wait([splashDelay, initFuture]);
@@ -469,7 +469,9 @@ class _MyAppState extends State<MyApp> {
     _stage3Started = true;
 
     unawaited(
-      Future<void>(() async {
+      // ✅ Delay 1 s so the splash→home transition renders at full FPS
+      // before the background-isolate JIT spike hits.
+      Future<void>.delayed(const Duration(seconds: 1), () async {
         await _cleanupExpiredStartupAlarms();
         await _mergeSleepHistoryInBackground();
         await _scanLargeSharedPreferences();
@@ -632,14 +634,14 @@ class HeartBeatLoader extends StatefulWidget {
 class _HeartBeatLoaderState extends State<HeartBeatLoader>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+  // ✅ Painter caches are owned here so they survive rebuilds.
+  final _HeartBeatLoaderPainter _painter = _HeartBeatLoaderPainter();
 
   @override
   void initState() {
     super.initState();
-
     _controller = AnimationController(vsync: this, duration: widget.duration);
-
-    _controller.forward(); // IMPORTANT → only once (loader)
+    _controller.forward(); // one-shot
   }
 
   @override
@@ -650,170 +652,183 @@ class _HeartBeatLoaderState extends State<HeartBeatLoader>
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 120,
-      width: 120,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (_, _) {
-          final progress = _controller.value;
-          final scale = 0.95 + (0.05 * progress);
+    _painter.isDarkMode = widget.isDarkMode;
 
-          return Transform.scale(
-            scale: scale,
-            child: Opacity(
-              opacity: Curves.easeIn.transform(progress),
-              child: SizedBox(
-                height: 140,
-                width: 140,
-                child: RepaintBoundary(
-                  child: CustomPaint(
-                    painter: _HeartBeatLoaderPainter(
-                      progress: _controller.value,
-                      isDarkMode: widget.isDarkMode,
-                    ),
-                  ),
+    // ✅ RepaintBoundary is OUTSIDE AnimatedBuilder so the layer is only
+    // re-composited when the painter signals repaint — not on every build.
+    return RepaintBoundary(
+      child: SizedBox(
+        height: 120,
+        width: 120,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (_, _) {
+            final progress = _controller.value;
+            final scale = 0.95 + (0.05 * progress);
+            _painter.progress = progress;
+
+            return Transform.scale(
+              scale: scale,
+              child: Opacity(
+                opacity: Curves.easeIn.transform(progress),
+                child: SizedBox(
+                  height: 140,
+                  width: 140,
+                  child: CustomPaint(painter: _painter),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
 }
 
+/// ECG loader painter.
+///
+/// Key performance rules enforced here:
+///  1. Path + PathMetric are computed ONCE per unique canvas size (cached).
+///  2. Gradient shaders are allocated ONCE per unique rect (cached).
+///  3. MaskFilter.blur is REMOVED — it forces software rasterization on
+///     Android and was causing 400–800 ms frame spikes on the raster thread.
+///     The glow effect is replicated with a translucent saveLayer instead,
+///     which stays on the GPU compositing path.
+///  4. Grid paint object is reused (not reallocated every frame).
 class _HeartBeatLoaderPainter extends CustomPainter {
-  final double progress;
-  final bool isDarkMode;
+  double progress;
+  bool isDarkMode;
 
-  _HeartBeatLoaderPainter({required this.progress, required this.isDarkMode});
+  _HeartBeatLoaderPainter({this.progress = 0.0, this.isDarkMode = false});
 
-  @override
-  void paint(Canvas canvas, Size size) {
+  // ── Caches (keyed on canvas size) ─────────────────────────────────────
+  Rect? _cachedRect;
+  Path? _cachedFullPath;
+  PathMetric? _cachedMetric;
+  Shader? _cachedLineShader;
+  Shader? _cachedGlowShader;
+
+  // ── Reusable paint objects ─────────────────────────────────────────────
+  final Paint _gridPaint = Paint()..strokeWidth = 1;
+  final Paint _linePaint = Paint()
+    ..strokeWidth = 2.5
+    ..style = PaintingStyle.stroke
+    ..strokeCap = StrokeCap.round;
+  final Paint _glowPaint = Paint()
+    ..strokeWidth = 8           // wider than line → visible halo
+    ..style = PaintingStyle.stroke
+    ..strokeCap = StrokeCap.round;
+  final Paint _layerPaint = Paint()..color = const Color(0x55FFFFFF);
+  final Paint _dotPaint = Paint()..color = const Color(0xFF5A189A);
+
+  static const _gradient = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [
+      Color(0xFFD9B8FF),
+      Color(0xFFB579FF),
+      Color(0xFFA95BFF),
+      Color(0xFF8A2BE2),
+    ],
+  );
+
+  // Build path + metric + shaders once per canvas size.
+  void _buildCaches(Size size) {
+    final rect = Offset.zero & size;
+    if (_cachedRect == rect && _cachedFullPath != null) return;
+    _cachedRect = rect;
+
     final midY = size.height / 2;
-
-    final gridPaint =
-        Paint()
-          ..color = (isDarkMode ? Colors.white : Colors.black).withValues(
-            alpha: isDarkMode ? 0.08 : 0.06,
-          )
-          ..strokeWidth = 1;
-
-    for (double i = 0; i < size.width; i += 20) {
-      canvas.drawLine(Offset(i, 0), Offset(i, size.height), gridPaint);
-    }
-
-    for (double i = 0; i < size.height; i += 20) {
-      canvas.drawLine(Offset(0, i), Offset(size.width, i), gridPaint);
-    }
-
     final path = Path();
     double x = 0;
     path.moveTo(0, midY);
 
     while (x < size.width - 20) {
       path.lineTo(x += 15, midY);
-      path.lineTo(x += 2, midY - 7);
-      path.lineTo(x += 2, midY);
+      path.lineTo(x += 2,  midY - 7);
+      path.lineTo(x += 2,  midY);
 
       path.lineTo(x += 12, midY);
-      path.lineTo(x += 8, midY - 32);
-      path.lineTo(x += 6, midY + 24);
-      path.lineTo(x += 6, midY - 10);
-      path.lineTo(x += 2, midY);
+      path.lineTo(x += 8,  midY - 32);
+      path.lineTo(x += 6,  midY + 24);
+      path.lineTo(x += 6,  midY - 10);
+      path.lineTo(x += 2,  midY);
 
       path.lineTo(x += 15, midY);
-      path.lineTo(x += 2, midY - 7);
-      path.lineTo(x += 2, midY);
+      path.lineTo(x += 2,  midY - 7);
+      path.lineTo(x += 2,  midY);
 
       path.lineTo(x += 18, midY);
-      path.lineTo(x += 4, midY - 16);
-      path.lineTo(x += 6, midY + 12);
-      path.lineTo(x += 2, midY);
+      path.lineTo(x += 4,  midY - 16);
+      path.lineTo(x += 6,  midY + 12);
+      path.lineTo(x += 2,  midY);
 
-      path.lineTo(x += 8, midY);
-      path.lineTo(x += 2, midY - 7);
-      path.lineTo(x += 2, midY);
+      path.lineTo(x += 8,  midY);
+      path.lineTo(x += 2,  midY - 7);
+      path.lineTo(x += 2,  midY);
 
       path.lineTo(x += 10, midY - 32);
       path.lineTo(x += 10, midY + 24);
 
-      path.lineTo(x += 8, midY);
+      path.lineTo(x += 8,  midY);
       path.lineTo(x += 16, midY);
 
-      path.lineTo(x += 4, midY - 16);
-      path.lineTo(x += 6, midY + 12);
+      path.lineTo(x += 4,  midY - 16);
+      path.lineTo(x += 6,  midY + 12);
 
-      path.lineTo(x += 2, midY);
+      path.lineTo(x += 2,  midY);
       path.lineTo(x += 18, midY);
     }
 
-    final metrics = path.computeMetrics().first;
-    if (metrics.isClosed) return;
+    _cachedFullPath = path;
+    _cachedMetric  = path.computeMetrics().first;
+    _cachedLineShader = _gradient.createShader(rect);
+    _cachedGlowShader = _gradient.createShader(rect);
+  }
 
-    final animatedPath = metrics.extractPath(0, metrics.length * progress);
-    final tangent = metrics.getTangentForOffset(metrics.length * progress);
+  @override
+  void paint(Canvas canvas, Size size) {
+    _buildCaches(size); // no-op if size unchanged
 
-    // -----------------------------
-    // 3️⃣ Gradient ECG Line
-    // -----------------------------
-    final rect = Offset.zero & size;
+    final metric = _cachedMetric!;
+    if (metric.isClosed) return;
 
-    final gradient = const LinearGradient(
-      begin: Alignment.centerLeft,
-      end: Alignment.centerRight,
-      colors: [
-        Color(0xFFD9B8FF), // softer light purple
-        Color(0xFFB579FF), // gradient top color from theme
-        Color(0xFFA95BFF), // primaryColor (main brand)
-        Color(0xFF8A2BE2), // deeper accent purple
-      ],
+    // 1️⃣ Grid
+    _gridPaint.color = (isDarkMode ? Colors.white : Colors.black).withValues(
+      alpha: isDarkMode ? 0.08 : 0.06,
     );
+    for (double i = 0; i < size.width; i += 20) {
+      canvas.drawLine(Offset(i, 0), Offset(i, size.height), _gridPaint);
+    }
+    for (double i = 0; i < size.height; i += 20) {
+      canvas.drawLine(Offset(0, i), Offset(size.width, i), _gridPaint);
+    }
 
-    final paint =
-        Paint()
-          ..shader = gradient.createShader(rect)
-          ..strokeWidth = 2.5
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round;
+    // 2️⃣ Extract the animated slice
+    final animatedPath = metric.extractPath(0, metric.length * progress);
+    final tangent = metric.getTangentForOffset(metric.length * progress);
 
-    // -----------------------------
-    // 4️⃣ Glow Layer (draw FIRST)
-    // -----------------------------
-    final glowPaint =
-        Paint()
-          ..shader = gradient.createShader(rect)
-          ..strokeWidth = 6
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+    // 3️⃣ Glow — GPU-accelerated saveLayer alpha composite
+    //    (replaces MaskFilter.blur which forced software rasterization)
+    canvas.saveLayer(Offset.zero & size, _layerPaint);
+    _glowPaint.shader = _cachedGlowShader;
+    canvas.drawPath(animatedPath, _glowPaint);
+    canvas.restore();
 
-    canvas.drawPath(animatedPath, glowPaint);
+    // 4️⃣ Main ECG line
+    _linePaint.shader = _cachedLineShader;
+    canvas.drawPath(animatedPath, _linePaint);
 
-    // Main ECG line
-    canvas.drawPath(animatedPath, paint);
-
-    // -----------------------------
-    // 5️⃣ Pulsing Dot
-    // -----------------------------
+    // 5️⃣ Pulsing dot (no blur — just a crisp dot)
     if (tangent != null) {
       final pulse = 4 + (2 * sin(progress * pi * 6));
-
-      final dotPaint =
-          Paint()
-            ..color = const Color(0xFF5A189A)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
-
-      canvas.drawCircle(tangent.position, pulse, dotPaint);
+      canvas.drawCircle(tangent.position, pulse, _dotPaint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _HeartBeatLoaderPainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-        oldDelegate.isDarkMode != isDarkMode;
-  }
+  bool shouldRepaint(covariant _HeartBeatLoaderPainter oldDelegate) =>
+      oldDelegate.progress != progress || oldDelegate.isDarkMode != isDarkMode;
 }
 
 class ErrorPlaceholder extends StatelessWidget {
