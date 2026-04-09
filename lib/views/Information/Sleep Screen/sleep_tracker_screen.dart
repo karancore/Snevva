@@ -598,7 +598,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                     measureUnit: 'h',
                     isSleepGraph: true,
                     isWaterGraph: false,
-                    // selectedMonthForHeader: _selectedMonth,
+                    selectedMonthForHeader: _selectedMonth,
                   );
                 }),
               ),

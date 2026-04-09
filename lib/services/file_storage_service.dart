@@ -223,6 +223,43 @@ class FileStorageService {
     return result;
   }
 
+  Future<void> pruneSleepDataBeforeCurrentWeek() async {
+    try {
+      final dir = await _ensureDir('daily');
+      final queuedKeys = (await readSyncQueue()).toSet();
+      final now = DateTime.now();
+      final weekStart = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).subtract(Duration(days: now.weekday - 1));
+
+      final dateKeyPattern = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+
+      for (final entity in dir.listSync()) {
+        if (entity is! File) continue;
+        final name = entity.uri.pathSegments.isEmpty
+            ? ''
+            : entity.uri.pathSegments.last;
+        if (!name.endsWith('.json')) continue;
+
+        final dateKey = name.substring(0, name.length - 5);
+        if (!dateKeyPattern.hasMatch(dateKey)) continue;
+        if (queuedKeys.contains(dateKey)) continue;
+
+        final date = DateTime.tryParse(dateKey);
+        if (date == null) continue;
+        if (!date.isBefore(weekStart)) continue;
+
+        await _mergeDailyJson(dateKey, (json) {
+          json['sleep'] = {'total_sleep_minutes': 0, 'segments': []};
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ pruneSleepDataBeforeCurrentWeek error: $e');
+    }
+  }
+
   // ───────────────────────────────────────────────
   // SYNC QUEUE
   // ───────────────────────────────────────────────
@@ -294,6 +331,18 @@ class FileStorageService {
       }
     });
     debugPrint('✅ writeSleepMinutes: $dateKey → ${minutes}m');
+  }
+
+   /// Directly writes (or merges) a known step total into the daily JSON.
+  Future<void> writeStepTotal(String dateKey, int steps) async {
+    if (steps <= 0) return;
+    await _mergeDailyJson(dateKey, (json) {
+      final existing = (json['steps']?['total'] as int?) ?? 0;
+      if (steps >= existing) {
+        json['steps'] = {'total': steps};
+      }
+    });
+    debugPrint('✅ writeStepTotal: $dateKey → $steps');
   }
 
   /// Deletes a daily file. Only call this AFTER confirmed HTTP 200.

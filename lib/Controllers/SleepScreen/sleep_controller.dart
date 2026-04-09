@@ -946,6 +946,9 @@ class SleepController extends GetxService {
 
         final key = dateKey(DateTime(year, month, day));
         monthlyDeepSleepHistory[key] = duration;
+        
+        await FileStorageService().writeSleepMinutes(key, duration.inMinutes);
+
         // Persist corrected minutes for this day so UI can show the corrected value.
         await prefs.setInt(
           _correctedPrefKeyForDateKey(key),
@@ -1004,27 +1007,27 @@ class SleepController extends GetxService {
       updateDeepSleepSpots();
       savesleepToLocalStorage();
 
-      final int totalDays =
-          (year == DateTime.now().year && month == DateTime.now().month)
-              ? DateTime.now()
-                  .day // 🔥 only till today
-              : daysInMonth(year, month);
-
-      List<FlSpot> spots = [];
-
-      for (int day = 1; day <= totalDays; day++) {
-        final key = dateKey(DateTime(year, month, day));
-
-        if (monthlyDeepSleepHistory.containsKey(key)) {
-          final hours = monthlyDeepSleepHistory[key]!.inMinutes / 60.0;
-          spots.add(FlSpot((day - 1).toDouble(), hours));
-        } else {
-          spots.add(FlSpot((day - 1).toDouble(), 0.0));
-        }
-      }
       debugPrint("✅ Sleep history loaded: $weeklyDeepSleepHistory");
 
-      return spots;
+
+
+
+
+      final monthRef = DateTime(year, month, 1);
+      final merged =
+      <String, Duration>{}..addAll(
+          Map<String, Duration>.from(monthlyDeepSleepHistory))..addAll(
+          Map<String, Duration>.from(weeklyDeepSleepHistory));
+
+
+
+
+
+
+
+
+
+      return _buildMonthlySpots(monthRef, merged);
     } catch (e) {
       debugPrint("❌ Error loading sleep data: $e");
       return [];

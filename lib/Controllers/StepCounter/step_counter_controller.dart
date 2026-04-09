@@ -73,6 +73,7 @@ class StepCounterController extends GetxController {
   Future<void> onInit() async {
     super.onInit();
     await _init();
+    await buildStepsHistoryMap();
     await loadTodayStepsFromFile();
   }
 
