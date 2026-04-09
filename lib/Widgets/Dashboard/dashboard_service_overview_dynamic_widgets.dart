@@ -51,7 +51,7 @@ class _DashboardServiceOverviewDynamicWidgetsState
     super.initState();
 
     stepController = Get.find<StepCounterController>();
-    stepController.activateRealtimeTracking();
+    stepController.startTracking();
     sleepController = Get.find<SleepController>();
     waterController = Get.find<HydrationStatController>();
     vitalController = Get.find<VitalsController>();
@@ -60,6 +60,12 @@ class _DashboardServiceOverviewDynamicWidgetsState
     userActiveData = localStorage.userGoalDataMap ?? {};
     stepgoal = userActiveData['StepGoalData']?['Count'];
     debugPrint('userActiveData $userActiveData');
+  }
+
+  @override
+  void dispose() {
+    stepController.stopTracking();
+    super.dispose();
   }
 
   @override

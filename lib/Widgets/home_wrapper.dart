@@ -103,9 +103,9 @@ class _HomeWrapperState extends State<HomeWrapper> {
     if (!Get.isRegistered<StepCounterController>()) return;
     final stepController = Get.find<StepCounterController>();
     if (isDashboardVisible) {
-      stepController.activateRealtimeTracking();
+      stepController.startTracking();
     } else {
-      stepController.deactivateRealtimeTracking();
+      stepController.stopTracking();
     }
   }
 

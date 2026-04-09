@@ -55,6 +55,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
   @override
   void initState() {
     super.initState();
+    stepController.loadTodaySteps();
     _loadMoodFromPrefs();
     bmiController.loadUserBMI();
     _loadGenderAndInit();
