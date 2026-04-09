@@ -13,7 +13,7 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private val sleepServiceChannelName = "com.coretegra.snevva/sleep_service"
-    private val stepServiceChannelName = "com.coretegra.snevva/step_service"
+    private val stepCounterChannelName = "com.coretegra.snevva/step_counter_channel"
     private val displayConfigChannelName = "com.coretegra.snevva/display_config"
     private val oemChannelName = "com.coretegra.snevva/oem_settings"
 
@@ -56,8 +56,8 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        // Give StepCounterService a reference to the live UI engine so sensor
-        // events can be delivered via MethodChannel to the running Flutter app.
+        // Give background receivers a reference to the live Flutter engine for
+        // non-step wakeup callbacks such as sparse alarm heartbeats.
         StepCounterService.flutterEngine = flutterEngine
 
         // MethodChannels setup
@@ -76,11 +76,12 @@ class MainActivity : FlutterActivity() {
 
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            stepServiceChannelName
+            stepCounterChannelName
         )
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "startStepService" -> result.success(startStepCounterService())
+                    "getTodaySteps" -> result.success(StepCounterService.getTodaySteps(this))
                     else -> result.notImplemented()
                 }
             }
@@ -135,7 +136,6 @@ class MainActivity : FlutterActivity() {
                     // schedule an immediate Dart sync run
                     "flushAndSync" -> {
                         try {
-                            BufferManager.flushStepsToDaily(applicationContext)
                             BufferManager.flushSleepToDaily(applicationContext)
                             result.success("flushed")
                         } catch (e: Exception) {
@@ -155,10 +155,6 @@ class MainActivity : FlutterActivity() {
     override fun onResume() {
         super.onResume()
         requestHighestRefreshRate()
-        // Flush any native-side buffer accumulations back to daily JSON
-        try {
-            BufferManager.flushStepsToDaily(applicationContext)
-        } catch (_: Exception) {}
         Log.d("Lifecycle", "onResume called")
     }
 

@@ -3,23 +3,19 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-import 'app_initializer.dart';
-
 class TrackingServiceManager {
   TrackingServiceManager._();
 
   static final TrackingServiceManager instance = TrackingServiceManager._();
   static const MethodChannel _stepServiceChannel = MethodChannel(
-    'com.coretegra.snevva/step_service',
+    'com.coretegra.snevva/step_counter_channel',
   );
 
   Future<void> start() async {
-    await createServiceNotificationChannel();
-    await _startNativeStepServiceIfNeeded();
-    await initBackgroundService();
+    await startStepService();
   }
 
-  Future<void> _startNativeStepServiceIfNeeded() async {
+  Future<void> startStepService() async {
     if (!Platform.isAndroid) return;
 
     try {
@@ -28,6 +24,18 @@ class TrackingServiceManager {
       debugPrint(
         'Failed to start native step service after permissions were granted: $error',
       );
+    }
+  }
+
+  Future<int> getTodaySteps() async {
+    if (!Platform.isAndroid) return 0;
+
+    try {
+      final result = await _stepServiceChannel.invokeMethod<int>('getTodaySteps');
+      return result ?? 0;
+    } on PlatformException catch (error) {
+      debugPrint('Failed to fetch today steps from native service: $error');
+      return 0;
     }
   }
 }
