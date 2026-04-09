@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 
@@ -19,7 +20,6 @@ class StepStatGraphWidget extends StatelessWidget {
     this.weekLabels,
     this.graphTitle = '',
     required this.maxY,
-    this.selectedMonthForHeader,
   });
 
   final bool isDarkMode;
@@ -32,28 +32,17 @@ class StepStatGraphWidget extends StatelessWidget {
   final int? maxXForWeek;
   final String graphTitle;
   final double maxY;
-  final DateTime? selectedMonthForHeader;
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    DateTime headerDate = now;
-    if (isMonthlyView && selectedMonthForHeader != null) {
-      final selected = selectedMonthForHeader!;
-      final isCurrentMonth =
-          selected.year == now.year && selected.month == now.month;
-      headerDate =
-          isCurrentMonth
-              ? DateTime(now.year, now.month, now.day)
-              : DateTime(selected.year, selected.month + 1, 0);
-    }
-
-    final String formattedDate = DateFormat('d MMM, yyyy').format(headerDate);
+    final String formattedDate = DateFormat(
+      'd MMM, yyyy',
+    ).format(DateTime.now());
 
     final labels =
         weekLabels ?? const ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-    final bool isMonthly = isMonthlyView;
+    final bool isMonthly = labels.length > 7;
 
     // Clamp points so they never exceed maxY
     final clampedPoints =
@@ -164,19 +153,11 @@ class StepStatGraphWidget extends StatelessWidget {
       labels.length * 42.0,
       MediaQuery.of(context).size.width - 40,
     );
-    if (isMonthly) chartWidth += 1;
 
     final safeMaxx =
         isMonthly
-            ? max(0, labels.length - 1).toDouble()
-            : max(0, (maxXForWeek ?? labels.length - 1)).toDouble();
-
-    final now = DateTime.now();
-    final selectedMonth = selectedMonthForHeader;
-    final bool highlightCurrentMonth =
-        selectedMonth != null &&
-        selectedMonth.year == now.year &&
-        selectedMonth.month == now.month;
+            ? max(1, labels.length).toDouble()
+            : max(1, (maxXForWeek ?? labels.length)).toDouble();
 
     return Container(
       padding: const EdgeInsets.only(top: 52),
@@ -201,8 +182,7 @@ class StepStatGraphWidget extends StatelessWidget {
                     if (index >= 0 && index < labels.length) {
                       final bool isToday =
                           isMonthly
-                              ? (highlightCurrentMonth &&
-                                  index == getCurrentDateIndex())
+                              ? index == getCurrentDateIndex()
                               : index == maxXForWeek;
 
                       return Padding(
