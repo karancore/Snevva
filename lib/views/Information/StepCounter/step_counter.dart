@@ -4,7 +4,6 @@ import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
-
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
@@ -58,15 +57,8 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
   void initState() {
     super.initState();
 
-    // Ensure we observe app lifecycle to refresh on resume
     WidgetsBinding.instance.addObserver(this);
-
-    // Start the MethodChannel listener + file poller so this screen receives
-    // live step updates from the native StepCounterService immediately.
-    stepController.activateRealtimeTracking();
-
-    // Load whatever is already in the daily file so the UI shows steps right away.
-    stepController.loadTodayStepsFromFile();
+    stepController.startTracking();
   }
 
   @override
@@ -76,9 +68,7 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
     _debounce?.cancel();
     _secretResetTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
-    // Signal controller that this screen is no longer the active consumer.
-    // (MethodChannel handler stays alive in the controller for background updates.)
-    stepController.deactivateRealtimeTracking();
+    stepController.stopTracking();
     super.dispose();
   }
 
@@ -87,9 +77,9 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
     super.didChangeAppLifecycleState(state);
 
     if (state == AppLifecycleState.resumed) {
-      // Force reload from Hive and prefs when app returns to foreground
-      debugPrint('🔁 App resumed - reloading steps from file');
-      stepController.loadTodayStepsFromFile();
+      debugPrint('Reloading step count from native service');
+      stepController.loadRecentStepsData();
+      stepController.loadTodaySteps();
     }
   }
 
@@ -312,8 +302,8 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
                           );
 
                           if (_secretTapCount == 7) {
-                            debugPrint("🕵️ Secret API push activated");
-                            stepController.saveStepRecordToServer();
+                            debugPrint("Refreshing native step count");
+                            stepController.loadTodaySteps();
                             _secretTapCount = 0;
                           }
                         },
@@ -468,6 +458,7 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
                     isMonthlyView: _isMonthlyView,
                     graphTitle: 'Steps',
                     maxY: maxY,
+                    selectedMonthForHeader: _selectedMonth,
                   );
                 }),
               ),
