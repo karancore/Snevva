@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
-
 import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
 
@@ -167,14 +166,13 @@ class CommonStatGraphWidget extends StatelessWidget {
     String formatted = '';
     final double safeMaxX =
         isMonthly
-            ? max(0, labels.length - 1).toDouble()
-            : max(0, (maxXForWeek ?? labels.length - 1)).toDouble();
+            ? max(1, labels.length).toDouble()
+            : max(1, (maxXForWeek ?? labels.length)).toDouble();
 
     double chartWidth = max(
       labels.length * 42.0,
       MediaQuery.of(context).size.width - 40,
     );
-    if (isMonthly) chartWidth += 1;
 
     if (points.isEmpty || labels.isEmpty) {
       return SizedBox(
