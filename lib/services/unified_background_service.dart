@@ -47,7 +47,7 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
       service.setAsForegroundService();
       service.setForegroundNotificationInfo(
         title: 'Snevva Active',
-        content: '👟 Steps: 0',
+        content: 'Tracking active',
       );
     }
 
@@ -55,12 +55,6 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.reload();
-
-    await _ensureCurrentDayStepState(
-      service: service,
-      prefs: prefs,
-      forceNotify: true,
-    );
 
     await _restoreOrAutoStartSleepTracking(
       service: service,
@@ -166,46 +160,11 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
     });
 
     // ═══════════════════════════════════════════════════════════════
-    // 👣 STEP COUNTING — onStepDetected event (from native service)
-    // ═══════════════════════════════════════════════════════════════
-
-    print("👣 Initializing step counter at ${DateTime.now()}...");
-
-    service.on('onStepDetected').listen((event) async {
-      if (event == null) return;
-
-      final int newTotalSteps = event['steps'] as int;
-
-      await prefs.reload();
-      final savedSteps = prefs.getInt("today_steps") ?? 0;
-
-      if (newTotalSteps > savedSteps) {
-        await prefs.setInt("today_steps", newTotalSteps);
-
-        // Append to file buffer — no Hive write
-        await FileStorageService().appendStepEvent(newTotalSteps);
-
-        service.invoke("steps_updated", {"steps": newTotalSteps});
-
-        // Update notification only when NOT in sleep mode
-        final isSleeping = prefs.getBool("is_sleeping") ?? false;
-        if (!isSleeping) {
-          _updateStepNotification(service: service, steps: newTotalSteps);
-        }
-      }
-    });
-
-    // ═══════════════════════════════════════════════════════════════
     // ⏰ ALARM WAKEUP — sparse 15-min heartbeat
     // ═══════════════════════════════════════════════════════════════
 
     service.on('onAlarmWakeup').listen((_) async {
       await prefs.reload();
-
-      await _ensureCurrentDayStepState(
-        service: service,
-        prefs: prefs,
-      );
 
       await _restoreOrAutoStartSleepTracking(
         service: service,
@@ -258,7 +217,6 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
       _sleepNoticingService.stopMonitoring();
 
       // Flush buffers before stopping so no data is lost
-      await FileStorageService().flushStepsToDaily();
       await FileStorageService().flushSleepToDaily();
 
       AgentDebugLogger.log(
@@ -285,19 +243,6 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
 // ───────────────────────────────────────────────────────────────────
 // 🔔 NOTIFICATION HELPERS — single source of truth
 // ───────────────────────────────────────────────────────────────────
-
-/// Update notification with step count (outside sleep window).
-void _updateStepNotification({
-  required ServiceInstance service,
-  required int steps,
-}) {
-  if (service is AndroidServiceInstance) {
-    service.setForegroundNotificationInfo(
-      title: 'Snevva Active',
-      content: '👟 Steps: $steps',
-    );
-  }
-}
 
 /// Update notification with sleep progress (inside sleep window).
 void _updateSleepNotification({
@@ -576,43 +521,6 @@ Future<bool> _isManualStopBlockingThisWindow({
 }
 
 // ───────────────────────────────────────────────────────────────────
-// 👣 STEP STATE — day boundary / first-run
-// ───────────────────────────────────────────────────────────────────
-
-Future<void> _ensureCurrentDayStepState({
-  required ServiceInstance service,
-  required SharedPreferences prefs,
-  bool forceNotify = false,
-}) async {
-  final nowTime = DateTime.now();
-  final todayKey =
-      "${nowTime.year}-${nowTime.month.toString().padLeft(2, '0')}-${nowTime.day.toString().padLeft(2, '0')}";
-  final lastDate = prefs.getString("last_step_date");
-
-  if (lastDate == todayKey && !forceNotify) return;
-
-  await prefs.setString("last_step_date", todayKey);
-
-  // On day change: flush step buffer so the completed day is written to its
-  // daily JSON, then queue it for sync.
-  if (lastDate != null && lastDate != todayKey) {
-    await FileStorageService().flushStepsToDaily();
-    await FileStorageService().flushSleepToDaily();
-    await FileStorageService().addToSyncQueue(lastDate);
-    debugPrint('📤 Day change: queued $lastDate for sync');
-  }
-
-  // Read today's steps from file (or SharedPrefs fast path)
-  final todaySteps = prefs.getInt('today_steps') ?? 0;
-  service.invoke("steps_updated", {"steps": todaySteps});
-
-  final isSleeping = prefs.getBool("is_sleeping") ?? false;
-  if (!isSleeping) {
-    _updateStepNotification(service: service, steps: todaySteps);
-  }
-}
-
-// ───────────────────────────────────────────────────────────────────
 // 💾 STOP SLEEP AND SAVE — writes to file storage, not Hive
 // ───────────────────────────────────────────────────────────────────
 
@@ -715,11 +623,6 @@ Future<void> _stopSleepAndSave(
     "start_time": effectiveStart.toIso8601String(),
     "end_time": effectiveEnd.toIso8601String(),
   });
-
-  // Restore step notification
-  await prefs.reload();
-  final steps = prefs.getInt("today_steps") ?? 0;
-  _updateStepNotification(service: service, steps: steps);
 }
 
 // ───────────────────────────────────────────────────────────────────

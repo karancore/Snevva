@@ -147,20 +147,11 @@ void main() {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 
-      // Register the step MethodChannel so the native StepCounterService can
-      // deliver step counts to this Flutter engine via onStepDetected.
-      const stepChannel = MethodChannel('com.coretegra.snevva/step_detector');
-      stepChannel.setMethodCallHandler((call) async {
-        if (call.method == 'onStepDetected') {
-          // Write directly to SharedPrefs so the controller poller picks it up
-          // even if the background service isolate isn't running yet.
-          final p = await SharedPreferences.getInstance();
-          final steps = call.arguments as int;
-          await p.setInt('today_steps', steps);
-          FlutterBackgroundService().invoke('onStepDetected', {
-            'steps': call.arguments,
-          });
-        } else if (call.method == 'onAlarmWakeup') {
+      const trackerAlarmChannel = MethodChannel(
+        'com.coretegra.snevva/tracker_alarm',
+      );
+      trackerAlarmChannel.setMethodCallHandler((call) async {
+        if (call.method == 'onAlarmWakeup') {
           FlutterBackgroundService().invoke('onAlarmWakeup');
         }
       });

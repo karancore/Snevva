@@ -32,7 +32,7 @@ class SparseWakeupReceiver : BroadcastReceiver() {
         }
 
         StepCounterService.flutterEngine?.let { engine ->
-            val channel = MethodChannel(engine.dartExecutor.binaryMessenger, "com.coretegra.snevva/step_detector")
+            val channel = MethodChannel(engine.dartExecutor.binaryMessenger, "com.coretegra.snevva/tracker_alarm")
             channel.invokeMethod("onAlarmWakeup", null)
             Log.d("SparseWakeupReceiver", "Wakeup sent to Flutter channel")
         }
