@@ -10,6 +10,8 @@ import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../Widgets/Setting/setting_item_widget.dart';
 import '../../consts/consts.dart';
 import 'about_screen.dart';
+import 'debug_sleep_buffer_screen.dart';
+import 'debug_steps_buffer_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -222,6 +224,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
             InkWell(
               onTap: launchEmail,
               child: buildTile('Contact Us', 'Feedbacks Appreciated!'),
+            ),
+
+            const SizedBox(height: 10),
+            const Divider(thickness: border04px, color: mediumGrey),
+            const SizedBox(height: 20),
+            
+            Text(
+              "Developer Debug",
+              style: TextStyle(
+                color: Theme.of(context).hintColor,
+                fontWeight: FontWeight.w400,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            InkWell(
+              onTap: () {
+                Get.to(() => const DebugSleepBufferScreen());
+              },
+              child: buildTile('Sleep Buffer Logs', 'View raw sleep data & JSONs'),
+            ),
+
+            InkWell(
+              onTap: () {
+                Get.to(() => const DebugStepsBufferScreen());
+              },
+              child: buildTile('Steps Buffer & Sync Queue', 'View steps data & API push flags'),
             ),
 
             // 🔥 Debug Logs (Visible only in debug mode)
