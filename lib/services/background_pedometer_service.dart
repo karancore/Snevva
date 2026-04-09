@@ -19,10 +19,8 @@ Future<bool> backgroundEntry(ServiceInstance service) async {
 
     if (service is AndroidServiceInstance) {
       service.setAsForegroundService();
-      service.setForegroundNotificationInfo(
-        title: "Step Tracking",
-        content: "Tracking your steps in background",
-      );
+      // NOTE: Notification content is managed by the native StepCounterService (Kotlin).
+      // Do NOT call setForegroundNotificationInfo here.
     }
 
     // File-based storage — no Hive init needed in this isolate
@@ -60,12 +58,7 @@ Future<bool> backgroundEntry(ServiceInstance service) async {
 
         service.invoke("steps_updated", {"steps": newSteps});
 
-        if (service is AndroidServiceInstance) {
-          service.setForegroundNotificationInfo(
-            title: "Step Tracking",
-            content: "$newSteps steps today",
-          );
-        }
+        // Notification is owned by native StepCounterService — no call here.
 
         debugPrint("👣 Steps updated → $newSteps (diff: $diff)");
       },

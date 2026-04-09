@@ -8,7 +8,9 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -31,6 +33,16 @@ class StepCounterService : Service(), SensorEventListener {
     private val PREFS_NAME = "steps_prefs"
     private val KEY_TODAY_STEPS = "today_steps"
     private val KEY_DATE = "lastDate"
+
+    // 1-minute ticker — keeps sleep duration in the notification fresh
+    // without requiring any Dart/Flutter involvement.
+    private val notifHandler = Handler(Looper.getMainLooper())
+    private val notifRunnable = object : Runnable {
+        override fun run() {
+            refreshNotification()
+            notifHandler.postDelayed(this, 60_000L)
+        }
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -139,6 +151,7 @@ class StepCounterService : Service(), SensorEventListener {
 
         registerStepListener()
         scheduleSparseWakeup()
+        notifHandler.postDelayed(notifRunnable, 60_000L) // start 1-min ticker
 
         Log.d("StepService", "🚀 StepCounterService started.")
     }
@@ -184,13 +197,9 @@ class StepCounterService : Service(), SensorEventListener {
         // Append to file buffer (primary durable store)
         BufferManager.appendStepEvent(applicationContext, stepsToday)
 
-        // Update notification only when the Dart isolate is NOT sleeping
-        // (Dart isolate will overwrite the notification text during sleep mode)
-        val isSleeping = flutterPrefs.getBoolean("flutter.is_sleeping", false)
-        if (!isSleeping) {
-            val notifManager = getSystemService(NotificationManager::class.java)
-            notifManager.notify(NOTIFICATION_ID, buildNotification(stepsToday))
-        }
+        // Always refresh the unified notification (shows BOTH steps + sleep).
+        // No switching logic needed — collision is impossible.
+        refreshNotification()
 
         // Relay to Flutter UI engine only if alive — fire-and-forget, never block
         val engine = flutterEngine
@@ -212,6 +221,8 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     override fun onDestroy() {
+        // Stop the 1-min ticker first
+        notifHandler.removeCallbacks(notifRunnable)
         // Flush buffers before being killed so no step data is lost
         BufferManager.flushStepsToDaily(applicationContext)
         BufferManager.flushSleepToDaily(applicationContext)
@@ -220,10 +231,32 @@ class StepCounterService : Service(), SensorEventListener {
         Log.d("StepService", "🛑 StepCounterService destroyed + buffers flushed.")
     }
 
-    private fun buildNotification(stepsToday: Int): Notification {
+    /**
+     * Reads current steps + sleep from SharedPreferences and posts the unified
+     * notification. Always called by Kotlin only — Dart never touches the
+     * notification directly.
+     */
+    private fun refreshNotification() {
+        val flutterPrefs = applicationContext.getSharedPreferences(
+            "FlutterSharedPreferences", android.content.Context.MODE_PRIVATE
+        )
+        val steps = flutterPrefs.getLong("flutter.today_steps", 0L).toInt()
+        val sleepMinutes = flutterPrefs.getLong("flutter.sleep_elapsed_minutes", 0L).toInt()
+        val notifManager = getSystemService(NotificationManager::class.java)
+        notifManager.notify(NOTIFICATION_ID, buildNotification(steps, sleepMinutes))
+    }
+
+    private fun buildNotification(stepsToday: Int, sleepMinutes: Int = 0): Notification {
+        val sleepText = if (sleepMinutes > 0) {
+            val h = sleepMinutes / 60
+            val m = sleepMinutes % 60
+            if (h > 0) "😴 Sleep: ${h}h ${m}m" else "😴 Sleep: ${m}m"
+        } else {
+            "😴 Sleep: --"
+        }
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Snevva Active")
-            .setContentText("👟 Steps: $stepsToday")
+            .setContentText("👟 Steps: $stepsToday   $sleepText")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setOngoing(true)
             .build()

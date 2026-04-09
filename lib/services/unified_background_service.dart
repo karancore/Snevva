@@ -45,16 +45,19 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
     // ── Become a foreground service ──────────────────────────────
     if (service is AndroidServiceInstance) {
       service.setAsForegroundService();
-      service.setForegroundNotificationInfo(
-        title: 'Snevva Active',
-        content: '👟 Steps: 0',
-      );
+      // NOTE: We do NOT call setForegroundNotificationInfo here.
+      // The native Kotlin StepCounterService owns the notification content
+      // (it shows both steps + sleep simultaneously). Dart only updates
+      // SharedPrefs values that Kotlin reads on its 1-min ticker.
     }
 
     print("🚀 Unified background service started at ${DateTime.now()}");
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.reload();
+
+    // Seed sleep_elapsed_minutes = 0 so Kotlin notification starts clean.
+    await prefs.setInt('sleep_elapsed_minutes', 0);
 
     await _ensureCurrentDayStepState(
       service: service,
@@ -141,11 +144,8 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
       print("   Goal: $goalMinutes mins");
       print("   Window: ${sleepWindow?.start} → ${sleepWindow?.end}");
 
-      _updateSleepNotification(
-        service: service,
-        elapsedMinutes: 0,
-        goalMinutes: goalMinutes,
-      );
+      // Seed elapsed minutes so Kotlin's ticker shows sleep data immediately.
+      await prefs.setInt('sleep_elapsed_minutes', 0);
       _startSleepProgressTimer(
         service: service,
         prefs: prefs,
@@ -286,31 +286,25 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
 // 🔔 NOTIFICATION HELPERS — single source of truth
 // ───────────────────────────────────────────────────────────────────
 
-/// Update notification with step count (outside sleep window).
+/// Notification updates are now owned entirely by the native Kotlin
+/// StepCounterService. This function is intentionally a no-op so that
+/// any remaining call-sites compile without changes.
 void _updateStepNotification({
   required ServiceInstance service,
   required int steps,
 }) {
-  if (service is AndroidServiceInstance) {
-    service.setForegroundNotificationInfo(
-      title: 'Snevva Active',
-      content: '👟 Steps: $steps',
-    );
-  }
+  // No-op: Kotlin reads flutter.today_steps and updates the notification itself.
 }
 
-/// Update notification with sleep progress (inside sleep window).
+/// Notification updates are now owned entirely by the native Kotlin
+/// StepCounterService. This function is intentionally a no-op so that
+/// any remaining call-sites compile without changes.
 void _updateSleepNotification({
   required ServiceInstance service,
   required int elapsedMinutes,
   required int goalMinutes,
 }) {
-  if (service is AndroidServiceInstance) {
-    service.setForegroundNotificationInfo(
-      title: 'Snevva Active',
-      content: '😴 Sleeping · ${_formatDuration(elapsedMinutes)}',
-    );
-  }
+  // No-op: Kotlin reads flutter.sleep_elapsed_minutes and updates the notification itself.
 }
 
 // ───────────────────────────────────────────────────────────────────
@@ -333,6 +327,9 @@ void _startHeartbeatTimer({
       final windowKey = prefs.getString('current_sleep_window_key');
       final startTime = prefs.getString('sleep_start_time');
 
+      // Write elapsed minutes so Kotlin can display it in the unified notification.
+      await prefs.setInt('sleep_elapsed_minutes', totalSleepMinutes);
+
       service.invoke('sleep_update', {
         'elapsed_minutes': totalSleepMinutes,
         'goal_minutes': goalMinutes,
@@ -340,12 +337,6 @@ void _startHeartbeatTimer({
         'current_sleep_window_key': windowKey,
         'start_time': startTime,
       });
-
-      _updateSleepNotification(
-        service: service,
-        elapsedMinutes: totalSleepMinutes,
-        goalMinutes: goalMinutes,
-      );
 
       // Auto-close when window has passed
       final windowEndStr = prefs.getString('current_sleep_window_end');
@@ -425,11 +416,9 @@ Future<void> _restoreOrAutoStartSleepTracking({
       "start_time": prefs.getString("sleep_start_time"),
     });
 
-    _updateSleepNotification(
-      service: service,
-      elapsedMinutes: totalSleepMinutes,
-      goalMinutes: goalMinutes,
-    );
+    // Seed elapsed minutes so Kotlin's ticker shows current sleep data
+    // immediately after a service restore/restart.
+    await prefs.setInt('sleep_elapsed_minutes', totalSleepMinutes);
 
     _startSleepProgressTimer(
       service: service,
@@ -537,11 +526,9 @@ Future<void> _startSleepTrackingSession({
   print("   Goal: $goalMinutes mins");
   print("   Window: ${sleepWindow?.start} → ${sleepWindow?.end}");
 
-  _updateSleepNotification(
-    service: service,
-    elapsedMinutes: totalSleepMinutes,
-    goalMinutes: goalMinutes,
-  );
+  // Seed elapsed minutes in SharedPrefs so Kotlin's 1-min ticker
+  // immediately picks up the correct value without waiting for the first heartbeat.
+  await prefs.setInt('sleep_elapsed_minutes', totalSleepMinutes);
 
   _startSleepProgressTimer(
     service: service,
@@ -699,6 +686,8 @@ Future<void> _stopSleepAndSave(
   await prefs.remove("current_sleep_window_start");
   await prefs.remove("current_sleep_window_end");
   await prefs.remove("current_sleep_window_key");
+  // Reset elapsed minutes so Kotlin notification reverts to "😴 Sleep: --"
+  await prefs.setInt("sleep_elapsed_minutes", 0);
 
   // Clear sleep intervals from SharedPrefs (no longer the source of truth)
   if (windowKey != null) {
