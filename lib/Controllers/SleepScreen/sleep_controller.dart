@@ -946,24 +946,25 @@ class SleepController extends GetxService {
 
         final key = dateKey(DateTime(year, month, day));
         monthlyDeepSleepHistory[key] = duration;
-        
-        await FileStorageService().writeSleepMinutes(key, duration.inMinutes);
+
+        final currentWeekStart = DateTime.now().subtract(
+          Duration(days: DateTime.now().weekday - 1),
+        );
+        final currentWeekEnd = currentWeekStart.add(const Duration(days: 6));
+        final itemDate = DateTime(year, month, day);
+
+        // Cache locally ONLY if within the active sliding window (current week) to prevent massive storage bounds while navigating historic months
+        if (itemDate.isAfter(currentWeekStart.subtract(const Duration(days: 1))) &&
+            itemDate.isBefore(currentWeekEnd.add(const Duration(days: 1)))) {
+          await FileStorageService().writeSleepMinutes(key, duration.inMinutes);
+          weeklyDeepSleepHistory[key] = duration;
+        }
 
         // Persist corrected minutes for this day so UI can show the corrected value.
         await prefs.setInt(
           _correctedPrefKeyForDateKey(key),
           duration.inMinutes,
         );
-        final currentWeekStart = DateTime.now().subtract(
-          Duration(days: DateTime.now().weekday - 1),
-        );
-        final currentWeekEnd = currentWeekStart.add(Duration(days: 6));
-        final itemDate = DateTime(year, month, day);
-
-        if (itemDate.isAfter(currentWeekStart.subtract(Duration(days: 1))) &&
-            itemDate.isBefore(currentWeekEnd.add(Duration(days: 1)))) {
-          weeklyDeepSleepHistory[key] = duration;
-        }
       }
       monthlyDeepSleepHistory.refresh();
 

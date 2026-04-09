@@ -383,6 +383,11 @@ class StepCounterController extends GetxController {
         final fileCount = await FileStorageService().readDailySteps(key);
         final merged = apiCount > fileCount ? apiCount : fileCount;
 
+        // Cache locally ONLY if within the active sliding window (last 30 days) to prevent massive storage bounds while navigating historic months
+        if (date.isAfter(DateTime.now().subtract(const Duration(days: 30)))) {
+          await FileStorageService().writeStepTotal(key, merged);
+        }
+
         stepsHistoryList.add(_StepEntry(date: date, steps: merged));
       }
 
