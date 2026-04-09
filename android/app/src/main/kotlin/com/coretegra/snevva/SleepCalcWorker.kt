@@ -49,8 +49,6 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
             
             Log.d("SleepCalcWorker", "Wake Time Reached. Flushing buffers and launching API Sync.")
 
-            // Flush step and sleep buffers into daily JSON before syncing
-            BufferManager.flushStepsToDaily(applicationContext)
             BufferManager.flushSleepToDaily(applicationContext)
 
             // Add the night's sleep date to the sync queue

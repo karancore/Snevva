@@ -31,10 +31,8 @@ class ConnectivityReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (!isNetworkAvailable(context)) return
 
-        Log.d(TAG, "Network available — triggering buffer flush + sync")
+        Log.d(TAG, "Network available — triggering sleep buffer flush + sync")
 
-        // Flush any buffered step/sleep data into daily JSON files before sync
-        BufferManager.flushStepsToDaily(context)
         BufferManager.flushSleepToDaily(context)
 
         // Trigger the Dart-side SyncManager via MethodChannel (if engine is alive)
