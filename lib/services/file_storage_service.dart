@@ -4,20 +4,24 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FileStorageService
 //
-// Architecture:
-//   /files/buffer/steps_buf.tmp   ← append-only step events ("$ts,$steps\n")
-//   /files/buffer/sleep_buf.tmp   ← append-only sleep intervals ("$start|$end\n")
-//   /files/daily/YYYY-MM-DD.json  ← aggregated daily record (steps + sleep)
-//   /files/sync_queue.json        ← ["2026-04-05", "2026-04-06"]
+// Architecture (both Dart and Kotlin use the SAME base directory):
+//   Base: context.filesDir  (= getApplicationSupportDirectory() in Flutter)
+//   ├── fs/buffer/steps_buf.tmp   ← append-only step events ("$ts,$steps\n")
+//   ├── fs/buffer/sleep_buf.tmp   ← append-only sleep intervals ("$dateKey|$start|$end\n")
+//   ├── fs/daily/YYYY-MM-DD.json  ← aggregated daily record (steps + sleep)
+//   └── fs/sync_queue.json        ← ["2026-04-05", "2026-04-06"]
 //
 // Key invariants:
 //   • Never read during normal append operation
 //   • Flush reads buffer ONCE, writes daily JSON, deletes buffer → RAM freed
 //   • Daily file deleted only AFTER confirmed HTTP 200
+//   • getApplicationSupportDirectory() on Android == context.filesDir — same
+//     path used by Kotlin's BufferManager.kt so both sides share one store.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class FileStorageService {
@@ -33,11 +37,65 @@ class FileStorageService {
 
   Future<Directory> get _files async {
     if (_filesDir != null) return _filesDir!;
-    final appDir = await getApplicationDocumentsDirectory();
-    // Use a "fs" subfolder so we never collide with Hive's own files in the
-    // documents directory.
+    // ✅ getApplicationSupportDirectory() on Android == context.filesDir,
+    // which is identical to the path used by Kotlin's BufferManager.kt.
+    // This ensures both Dart and Kotlin read/write the SAME files.
+    final appDir = await getApplicationSupportDirectory();
     _filesDir = Directory('${appDir.path}/fs');
     return _filesDir!;
+  }
+
+  // ───────────────────────────────────────────────
+  // ONE-TIME MIGRATION
+  // ───────────────────────────────────────────────
+
+  /// Copies daily JSON files that were written to the old app_flutter/fs/daily/
+  /// path (using getApplicationDocumentsDirectory) into the new files/fs/daily/
+  /// path so existing data is not lost after the path change.
+  ///
+  /// Safe to call on every cold start — skips if migration flag is already set.
+  Future<void> migrateOldFilesIfNeeded() async {
+    const migrationKey = 'fs_path_migration_done_v1';
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool(migrationKey) == true) return;
+
+      final oldBase = await getApplicationDocumentsDirectory();
+      final oldDaily = Directory('${oldBase.path}/fs/daily');
+      if (!oldDaily.existsSync()) {
+        await prefs.setBool(migrationKey, true);
+        return;
+      }
+
+      final newDailyDir = await _ensureDir('daily');
+      int copied = 0;
+
+      for (final entity in oldDaily.listSync()) {
+        if (entity is! File) continue;
+        final name = entity.uri.pathSegments.last;
+        if (!name.endsWith('.json')) continue;
+
+        final dest = File('${newDailyDir.path}/$name');
+        // Only overwrite if the old file has more sleep data
+        if (dest.existsSync()) {
+          try {
+            final oldJson = jsonDecode(entity.readAsStringSync()) as Map<String, dynamic>;
+            final newJson = jsonDecode(dest.readAsStringSync()) as Map<String, dynamic>;
+            final oldMins = (oldJson['sleep']?['total_sleep_minutes'] as int?) ?? 0;
+            final newMins = (newJson['sleep']?['total_sleep_minutes'] as int?) ?? 0;
+            if (oldMins <= newMins) continue; // new file already has better data
+          } catch (_) {}
+        }
+
+        await entity.copy(dest.path);
+        copied++;
+      }
+
+      await prefs.setBool(migrationKey, true);
+      debugPrint('✅ fs migration: copied $copied daily file(s) from app_flutter → files');
+    } catch (e) {
+      debugPrint('⚠️ fs migration error (non-fatal): $e');
+    }
   }
 
   Future<Directory> _ensureDir(String sub) async {

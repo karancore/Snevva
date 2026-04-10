@@ -64,3 +64,5 @@ logs.txt
 logs2
 lib/bin/
 pubspec.lock
+android/build/reports/problems/problems-report.html
+pubspec.lock

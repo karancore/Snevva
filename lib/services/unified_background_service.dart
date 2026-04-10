@@ -668,8 +668,25 @@ Future<void> _stopSleepAndSave(
     debugPrint('✅ Sleep buffer flushed before total read');
   }
 
-  // ── Step 3: Read the accurate total from the daily JSON ─────────────────
-  final totalSleepMinutes = await _sleepNoticingService.getTotalSleepMinutes();
+  // ── Step 3: Read the TRUE final total from the daily JSON ───────────────
+  // Do NOT use _sleepNoticingService.getTotalSleepMinutes() here — that reads
+  // the in-memory _bufferedSleepMinutes cache which may undercount the full
+  // merged duration (e.g. the last open-interval contribution is not yet
+  // reflected in the in-memory counter after flushOpenInterval writes it to
+  // the file buffer and then flushSleepToDaily merges it into the JSON).
+  // Reading directly from the daily JSON after the flush gives us the ground
+  // truth that both the notification and the UI should show.
+  int totalSleepMinutes = 0;
+  if (windowKey != null) {
+    totalSleepMinutes = await FileStorageService().readDailySleepMinutes(windowKey);
+    debugPrint('📊 Final sleep total from daily JSON: ${totalSleepMinutes}m');
+  }
+  // Fallback: if the file read returns 0 (e.g. flush failed), use the
+  // in-memory estimate so we never display '0' to the user.
+  if (totalSleepMinutes == 0) {
+    totalSleepMinutes = await _sleepNoticingService.getTotalSleepMinutes();
+    debugPrint('⚠️ Fell back to in-memory sleep total: ${totalSleepMinutes}m');
+  }
 
   print("💾 Saving sleep data:");
   print("   Start: $effectiveStart");
@@ -683,6 +700,15 @@ Future<void> _stopSleepAndSave(
     debugPrint('✅ Sleep session saved to file storage: $windowKey');
   }
 
+  // ── Step 5: Persist final total so Kotlin notification shows correct value ─
+  // The native StepCounterService 1-min ticker reads flutter.sleep_elapsed_minutes
+  // from SharedPrefs.  The heartbeat timer only wrote partial sleep time during
+  // the session (last screen-off accumulation).  We now overwrite it with the
+  // true merged total so the notification immediately shows e.g. "7h 03m"
+  // instead of the stale heartbeat value (e.g. "4h 47m").
+  await prefs.setInt('sleep_elapsed_minutes', totalSleepMinutes);
+  debugPrint('🔔 sleep_elapsed_minutes updated → ${totalSleepMinutes}m (notification fixed)');
+
   // Clear sleep state
   await prefs.setBool("is_sleeping", false);
   await prefs.remove("sleep_start_time");
@@ -690,10 +716,6 @@ Future<void> _stopSleepAndSave(
   await prefs.remove("current_sleep_window_start");
   await prefs.remove("current_sleep_window_end");
   await prefs.remove("current_sleep_window_key");
-  // We DO NOT reset elapsed minutes here anymore.
-  // This allows the native notification to retain and display the final 
-  // calculated sleep duration throughout the day until the next session starts.
-  // await prefs.setInt("sleep_elapsed_minutes", 0);
 
   // Clear sleep intervals from SharedPrefs (no longer the source of truth)
   if (windowKey != null) {
@@ -711,7 +733,8 @@ Future<void> _stopSleepAndSave(
     "end_time": effectiveEnd.toIso8601String(),
   });
 
-  // Restore step notification
+  // Restore step notification — Kotlin will pick up new sleep_elapsed_minutes
+  // on its next 1-min tick; no extra call needed here.
   await prefs.reload();
   final steps = prefs.getInt("today_steps") ?? 0;
   _updateStepNotification(service: service, steps: steps);

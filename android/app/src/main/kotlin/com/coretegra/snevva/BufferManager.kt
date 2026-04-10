@@ -118,7 +118,7 @@ object BufferManager {
             if (!bufFile.exists() || bufFile.length() == 0L) return
 
             val lines = bufFile.readLines()
-            // Group by dateKey
+            // Group by dateKey, keeping parsed segment pairs
             val byDay = mutableMapOf<String, MutableList<Pair<String, String>>>()
 
             for (line in lines) {
@@ -139,7 +139,7 @@ object BufferManager {
                         if (diff > 0) totalMinutes += diff
                     } catch (_: Exception) {}
                 }
-                mergeSleepIntoDailyFile(context, dateKey, totalMinutes)
+                mergeSleepIntoDailyFile(context, dateKey, totalMinutes, segments)
             }
 
             bufFile.delete()
@@ -184,12 +184,23 @@ object BufferManager {
         }
     }
 
-    private fun mergeSleepIntoDailyFile(context: Context, dateKey: String, totalMinutes: Int) {
+    private fun mergeSleepIntoDailyFile(
+        context: Context,
+        dateKey: String,
+        totalMinutes: Int,
+        segments: List<Pair<String, String>> = emptyList(),
+    ) {
         mergeDailyJson(context, dateKey) { json ->
             val existing = json.optJSONObject("sleep")?.optInt("total_sleep_minutes") ?: 0
             if (totalMinutes >= existing) {
                 val sleepObj = json.optJSONObject("sleep") ?: JSONObject()
                 sleepObj.put("total_sleep_minutes", totalMinutes)
+                // Write the segment list so the daily JSON matches Dart's format
+                val arr = org.json.JSONArray()
+                for ((startIso, endIso) in segments) {
+                    arr.put(JSONObject().put("start", startIso).put("end", endIso))
+                }
+                sleepObj.put("segments", arr)
                 json.put("sleep", sleepObj)
             }
         }

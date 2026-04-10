@@ -7,6 +7,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
+import 'package:snevva/services/file_storage_service.dart';
 import 'package:snevva/services/notification_service.dart';
 import 'package:snevva/services/unified_background_service.dart';
 import 'package:timezone/data/latest.dart';
@@ -229,6 +230,11 @@ Future<bool> initializeApp() async {
     // 🌍 Timezone
     initializeTimeZones();
     setLocalLocation(getLocation('Asia/Kolkata'));
+
+    // 📦 One-time file path migration: copies any daily JSON files that were
+    // written to the OLD app_flutter/fs/daily/ path into the NEW files/fs/daily/
+    // path so data collected before this update is not lost.  Runs exactly once.
+    await FileStorageService().migrateOldFilesIfNeeded();
 
     // 🔔 Notification channel
     await createServiceNotificationChannel();
