@@ -28,6 +28,7 @@ class _DebugStepsBufferScreenState extends State<DebugStepsBufferScreen> {
       final stepsBuf = File('${appDir.path}/fs/buffer/steps_buf.tmp');
       final syncQueue = File('${appDir.path}/fs/sync_queue.json');
       final dailyDir = Directory('${appDir.path}/fs/daily');
+      final apiLogsFile = File('${appDir.path}/fs/api_sync_logs.json');
 
       String bufContent = "File not found or empty.";
       if (stepsBuf.existsSync()) {
@@ -35,8 +36,20 @@ class _DebugStepsBufferScreenState extends State<DebugStepsBufferScreen> {
       }
 
       String queueContent = "File not found or empty.";
+      List<String> queueList = [];
       if (syncQueue.existsSync()) {
         queueContent = await syncQueue.readAsString();
+        try {
+          final decodedQueue = jsonDecode(queueContent) as List;
+          queueList = decodedQueue.map((e) => e.toString()).toList();
+        } catch (_) {}
+      }
+
+      List<dynamic> apiLogs = [];
+      if (apiLogsFile.existsSync()) {
+        try {
+          apiLogs = jsonDecode(await apiLogsFile.readAsString());
+        } catch (_) {}
       }
 
       Map<String, Map<String, dynamic>> dailyData = {};
@@ -44,15 +57,26 @@ class _DebugStepsBufferScreenState extends State<DebugStepsBufferScreen> {
         final files = dailyDir.listSync();
         for (var file in files) {
           if (file is File && file.path.endsWith('.json')) {
+            final fileName = file.path.split(Platform.pathSeparator).last;
+            final dateKey = fileName.replaceAll('.json', '');
+            
             final content = await file.readAsString();
             final json = jsonDecode(content);
             
-            final sentStatus = json['sent'] ?? false;
             final stepsObj = json['steps'] ?? {};
+            
+            // It is pending if the dateKey is present in the sync queue
+            final isPending = queueList.contains(dateKey);
 
-            dailyData[file.path.split(Platform.pathSeparator).last] = {
-              'sent': sentStatus,
-              'steps': const JsonEncoder.withIndent('  ').convert(stepsObj)
+            // Filter API logs strictly for this dateKey and STEP type
+            final relatedLogs = apiLogs.where((l) => 
+                l['dateKeyDate'] == dateKey && l['type'] == 'STEP'
+            ).toList();
+
+            dailyData[fileName] = {
+              'isPending': isPending,
+              'steps': const JsonEncoder.withIndent('  ').convert(stepsObj),
+              'logs': relatedLogs,
             };
           }
         }
@@ -65,7 +89,7 @@ class _DebugStepsBufferScreenState extends State<DebugStepsBufferScreen> {
       });
     } catch (e) {
       setState(() {
-        rawStepsBuf = "Error loading data: \$e";
+        rawStepsBuf = "Error loading data: $e";
       });
     }
   }
@@ -117,8 +141,9 @@ class _DebugStepsBufferScreenState extends State<DebugStepsBufferScreen> {
               (context, index) {
                 final key = dailyJsonContents.keys.elementAt(index);
                 final value = dailyJsonContents[key]!;
-                final bool isSent = value['sent'] as bool;
+                final bool isPending = value['isPending'] as bool;
                 final String stepsStr = value['steps'] as String;
+                final List<dynamic> logs = value['logs'] as List<dynamic>;
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -126,18 +151,18 @@ class _DebugStepsBufferScreenState extends State<DebugStepsBufferScreen> {
                     title: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(key),
-                        Container(
+                         Text(key, style: const TextStyle(fontWeight: FontWeight.bold)),
+                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: isSent ? Colors.green.withOpacity(0.2) : Colors.orange.withOpacity(0.2),
+                            color: isPending ? Colors.orange.withOpacity(0.2) : Colors.green.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            isSent ? "PUSHED TO API" : "PENDING",
+                            isPending ? "IN QUEUE PENDING" : "SYNCED",
                             style: TextStyle(
-                              fontSize: 12,
-                              color: isSent ? Colors.green[800] : Colors.orange[800],
+                              fontSize: 10,
+                              color: isPending ? Colors.orange[800] : Colors.green[800],
                               fontWeight: FontWeight.bold,
                             )
                           ),
@@ -150,7 +175,27 @@ class _DebugStepsBufferScreenState extends State<DebugStepsBufferScreen> {
                         padding: const EdgeInsets.all(8),
                         color: Colors.grey.withOpacity(0.1),
                         child: SelectableText(stepsStr, style: const TextStyle(fontFamily: 'monospace')),
-                      )
+                      ),
+                      if (logs.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.all(8.0),
+                                child: Text("API Sync Activity:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                              ),
+                              ...logs.reversed.map((log) => Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+                                child: Text(
+                                  "[${log['timestamp']}] HTTP ${log['responseCode']}\n${log['message']}",
+                                  style: TextStyle(fontSize: 12, color: Colors.blueGrey[800], fontFamily: 'monospace'),
+                                ),
+                              ))
+                            ],
+                          ),
+                        )
                     ],
                   ),
                 );
@@ -163,3 +208,4 @@ class _DebugStepsBufferScreenState extends State<DebugStepsBufferScreen> {
     );
   }
 }
+

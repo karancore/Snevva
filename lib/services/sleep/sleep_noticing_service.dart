@@ -67,16 +67,21 @@ class SleepNoticingService {
   /// Seeds the open-interval anchor so we never lose sleep time after a
   /// service restart. Uses SharedPrefs only for the transient "screen is off
   /// since X" anchor key — this is a single small write, not a growing list.
+  ///
+  /// Edge case handled: if the service starts (or restarts) *before* the sleep
+  /// window begins (e.g. screen turns off at 15:29 while window starts 15:30),
+  /// we still seed the anchor using `window.start`. `flushOpenInterval` will
+  /// clamp the interval to `[window.start, window.end]` at save time, so the
+  /// full window is captured even if SCREEN_ON never fires.
   Future<void> initializeForSleepWindow() async {
     final prefs = await SharedPreferences.getInstance();
     final window = await _computeActiveSleepWindow(prefs);
     if (window == null) return;
 
-    final now = DateTime.now();
-    if (!_isWithinWindow(now, window.start, window.end)) return;
-
-    // Restore the in-memory accumulator from the daily JSON (in case this is
-    // a service restart and previous intervals were already flushed to disk).
+    // ── Restore in-memory accumulator from disk ─────────────────────────────
+    // Do this regardless of whether 'now' is inside the window. On a service
+    // restart the window may have already ended and the file may hold data from
+    // previous SCREEN_ON closures that we must not double-count.
     final fromFile = await FileStorageService().readDailySleepMinutes(window.dateKey);
     if (fromFile > _bufferedSleepMinutes) {
       _bufferedSleepMinutes = fromFile;
@@ -84,11 +89,18 @@ class SleepNoticingService {
     }
 
     final lastOffKey = 'last_screen_off_${window.dateKey}';
-
     final existing = prefs.getString(lastOffKey);
+
     if (existing == null) {
-      // Assume screen is off (conservative). If it's actually on, the next
-      // SCREEN_ON event will close the interval correctly.
+      // No anchor yet — assume screen is off and seed from window.start.
+      // This is the conservative safe assumption:
+      //   • If the screen is actually on when sleep begins, the next SCREEN_ON
+      //     event will call _onScreenTurnedOn which removes the anchor before
+      //     writing any interval (no double-count).
+      //   • If the screen stays off the entire night, flushOpenInterval will
+      //     produce [window.start → window.end] — the full sleep duration.
+      //   • If SCREEN_OFF fires before window.start, we still seed window.start
+      //     so the interval is correctly clamped at flush time.
       await prefs.setString(lastOffKey, window.start.toIso8601String());
       debugPrint(
         '🔒 initializeForSleepWindow: seeded open interval from window.start (${window.start})',

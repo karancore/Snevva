@@ -15,6 +15,7 @@ import 'package:snevva/models/queryParamViewModels/step_goal_vm.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/services/file_storage_service.dart';
+import 'package:snevva/services/tracking_service_manager.dart';
 
 import '../../common/global_variables.dart';
 
@@ -132,13 +133,21 @@ class StepCounterController extends GetxController {
     final todayKey = _dayKey(now);
     final lastDate = _prefs.getString("last_step_date");
 
-    if (lastDate != null && lastDate != todayKey) {
-      await _forceSyncPreviousDay(lastDate);
-    }
+    // ── Kotlin (StepCounterService) owns the day-change pipeline ────────────
+    // When the sensor fires on the first step of a new day, Kotlin:
+    //   1. Flushes yesterday's buffer → daily JSON
+    //   2. Adds yesterday to sync_queue.json
+    //   3. Enqueues ApiSyncWorker (no Flutter engine needed)
+    //
+    // _forceSyncPreviousDay() was the Dart fallback for when the app wasn't
+    // opened. Since Kotlin runs 24/7 (foreground service), the fallback is
+    // no longer needed — removing it prevents duplicate API calls.
 
     if (lastDate != todayKey) {
-      debugPrint("🌅 New day detected → resetting steps");
+      debugPrint("🌅 New day detected → resetting UI step display");
 
+      // Reset UI-only state. Do NOT touch `today_steps` in SharedPrefs —
+      // that key is authoritative and owned by Kotlin's StepCounterService.
       todaySteps.value = 0;
       lastSteps = 0;
       lastStepsRx.value = 0;
@@ -146,16 +155,10 @@ class StepCounterController extends GetxController {
 
       stepsHistoryByDate.remove(todayKey);
       stepsHistoryByDate.refresh();
-      await _prefs.setInt('today_steps', 0);
       await _prefs.setString("last_step_date", todayKey);
-
-      // Flush stale buffer and queue yesterday for sync
-      await FileStorageService().flushStepsToDaily();
-      if (lastDate != null) {
-        await FileStorageService().addToSyncQueue(lastDate);
-      }
     }
   }
+
 
   void scheduleMidnightReset() {
     final now = DateTime.now();
@@ -166,45 +169,11 @@ class StepCounterController extends GetxController {
     });
   }
 
-  Future<void> _forceSyncPreviousDay(String dayKey) async {
-    final alreadySynced = _prefs.getString(_lastSyncedDateKey);
-
-    if (alreadySynced == dayKey) {
-      debugPrint("⏭️ Yesterday already synced");
-      return;
-    }
-
-    // Read from file storage instead of Hive
-    final steps = await FileStorageService().readDailySteps(dayKey);
-    if (steps <= 0) return;
-
-    final parts = dayKey.split("-");
-    final year = int.parse(parts[0]);
-    final month = int.parse(parts[1]);
-    final day = int.parse(parts[2]);
-
-    final payload = {
-      "Day": day,
-      "Month": month,
-      "Year": year,
-      "Time": "23:59",
-      "Count": steps,
-    };
-
-    try {
-      await ApiService.post(
-        stepRecord,
-        payload,
-        withAuth: true,
-        encryptionRequired: true,
-      );
-
-      await _prefs.setString(_lastSyncedDateKey, dayKey);
-      debugPrint("✅ Yesterday steps force-synced: $steps");
-    } catch (e) {
-      debugPrint("❌ Failed to force sync yesterday: $e");
-    }
-  }
+  // _forceSyncPreviousDay() has been removed.
+  // Day-change sync is now owned entirely by Kotlin's StepCounterService which
+  // enqueues ApiSyncWorker (pure Kotlin HTTP, no Flutter engine needed) whenever
+  // the sensor fires on the first step of a new calendar day.  This runs even
+  // when the app is never opened, solving the original gap.
 
   // =======================
   // LISTEN TO BACKGROUND SERVICE
@@ -334,7 +303,7 @@ class StepCounterController extends GetxController {
       }
     }
 
-    debugPrint("🔢 Calculated today steps from list: $todayTotal");
+    debugPrint('🔢 Calculated today steps from list: $todayTotal');
 
     if (todayTotal > todaySteps.value) {
       lastSteps = todaySteps.value;
@@ -345,6 +314,12 @@ class StepCounterController extends GetxController {
       todaySteps.refresh();
 
       await _saveToFile(todayTotal);
+
+      // Seed the native StepCounterService so its internal counter starts
+      // from the API value (e.g. 644 from a previous install) rather than 0.
+      // This ensures the notification immediately shows the correct baseline
+      // and the sensor increments from the right number.
+      await TrackingServiceManager.instance.seedTodaySteps(todayTotal);
     }
   }
 

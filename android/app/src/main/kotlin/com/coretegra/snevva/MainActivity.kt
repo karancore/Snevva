@@ -81,6 +81,53 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "startStepService" -> result.success(startStepCounterService())
+
+                    // ── Seed today's step count from the API ──────────────────────────
+                    // Called right after login when the server returns the current-day
+                    // step total (e.g. 644 from a previous install).  We write it to:
+                    //   • steps_prefs/today_steps  → sensor increments from this base
+                    //   • FlutterSharedPreferences/flutter.today_steps → notification
+                    "seedTodaySteps" -> {
+                        val steps = (call.arguments as? Int) ?: 0
+                        val nativePrefs = getSharedPreferences("steps_prefs", android.content.Context.MODE_PRIVATE)
+                        val flutterPrefs = applicationContext.getSharedPreferences(
+                            "FlutterSharedPreferences", android.content.Context.MODE_PRIVATE
+                        )
+                        // Only update if the incoming value is strictly larger (never go backward)
+                        val currentNative = nativePrefs.getInt("today_steps", 0)
+                        val currentFlutter = flutterPrefs.getLong("flutter.today_steps", 0L).toInt()
+                        if (steps > currentNative) {
+                            nativePrefs.edit().putInt("today_steps", steps).apply()
+                            Log.d("MainActivity", "🌱 Seeded native today_steps → $steps")
+                        }
+                        if (steps > currentFlutter) {
+                            flutterPrefs.edit().putLong("flutter.today_steps", steps.toLong()).apply()
+                            Log.d("MainActivity", "🌱 Seeded flutter.today_steps → $steps")
+                        }
+                        // Refresh notification immediately so the user sees the correct count
+                        val notifIntent = Intent(applicationContext, StepCounterService::class.java)
+                        notifIntent.action = "REFRESH_NOTIFICATION"
+                        try { applicationContext.startService(notifIntent) } catch (_: Exception) {}
+                        result.success(true)
+                    }
+
+                    // ── Stop the native foreground service on logout ───────────────────
+                    // Stopping the service also removes the persistent notification.
+                    "stopStepService" -> {
+                        try {
+                            val stopIntent = Intent(applicationContext, StepCounterService::class.java)
+                            applicationContext.stopService(stopIntent)
+                            // Belt-and-suspenders: explicitly cancel notification ID 1
+                            val nm = getSystemService(android.app.NotificationManager::class.java)
+                            nm?.cancel(1)
+                            Log.d("MainActivity", "🛑 StepCounterService stopped and notification cleared")
+                            result.success(true)
+                        } catch (e: Exception) {
+                            Log.e("MainActivity", "stopStepService failed: ${e.message}")
+                            result.success(false)
+                        }
+                    }
+
                     else -> result.notImplemented()
                 }
             }

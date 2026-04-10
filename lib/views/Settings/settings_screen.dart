@@ -12,6 +12,7 @@ import '../../consts/consts.dart';
 import 'about_screen.dart';
 import 'debug_sleep_buffer_screen.dart';
 import 'debug_steps_buffer_screen.dart';
+import 'debug_api_sync_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -252,6 +253,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Get.to(() => const DebugStepsBufferScreen());
               },
               child: buildTile('Steps Buffer & Sync Queue', 'View steps data & API push flags'),
+            ),
+
+            InkWell(
+              onTap: () {
+                Get.to(() => const DebugApiSyncScreen());
+              },
+              child: buildTile('API Sync History', 'View when queued data was pushed & API responses'),
             ),
 
             // 🔥 Debug Logs (Visible only in debug mode)

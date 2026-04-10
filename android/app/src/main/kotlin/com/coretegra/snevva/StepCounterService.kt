@@ -15,6 +15,8 @@ import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import androidx.work.Constraints
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import io.flutter.embedding.engine.FlutterEngine
@@ -171,10 +173,55 @@ class StepCounterService : Service(), SensorEventListener {
         val currentDate = android.text.format.DateFormat.format("yyyyMMdd", System.currentTimeMillis()).toString()
         val savedDate = prefs.getString(KEY_DATE, currentDate)
 
-        // Reset steps daily
+        // ── Day boundary crossed ───────────────────────────────────────────────
+        // Kotlin is the sole owner of the day-change pipeline.  Do NOT rely on
+        // the Dart UI being open for this — it may never open if the user just
+        // keeps walking.
         if (currentDate != savedDate) {
-            prefs.edit().putString(KEY_DATE, currentDate).putInt(KEY_TODAY_STEPS, 0).apply()
-            Log.d("StepService", "📅 New day detected. Steps reset.")
+            Log.d("StepService", "📅 New day detected. Flushing yesterday and queuing for sync.")
+
+            // Compute yesterday's dateKey from savedDate (yyyyMMdd → YYYY-MM-DD)
+            val yesterdayKey = savedDate?.let {
+                try {
+                    val y = it.substring(0, 4)
+                    val m = it.substring(4, 6)
+                    val d = it.substring(6, 8)
+                    "$y-$m-$d"
+                } catch (_: Exception) { null }
+            }
+
+            // Run buffer flush + sync enqueue off the sensor callback thread
+            Thread {
+                try {
+                    // 1. Flush yesterday's step buffer → daily JSON
+                    BufferManager.flushStepsToDaily(applicationContext)
+
+                    // 2. Queue yesterday for API sync
+                    if (yesterdayKey != null) {
+                        BufferManager.addToSyncQueue(applicationContext, yesterdayKey)
+                        Log.d("StepService", "📤 Queued $yesterdayKey for sync")
+                    }
+
+                    // 3. Enqueue ApiSyncWorker (runs only when network is available)
+                    val syncRequest = OneTimeWorkRequestBuilder<ApiSyncWorker>()
+                        .setConstraints(
+                            Constraints.Builder()
+                                .setRequiredNetworkType(NetworkType.CONNECTED)
+                                .build()
+                        )
+                        .build()
+                    WorkManager.getInstance(applicationContext).enqueue(syncRequest)
+                    Log.d("StepService", "✅ ApiSyncWorker enqueued for $yesterdayKey")
+                } catch (e: Exception) {
+                    Log.e("StepService", "Day-change sync error: ${e.message}")
+                }
+            }.start()
+
+            // Reset local step counter for the new day
+            prefs.edit()
+                .putString(KEY_DATE, currentDate)
+                .putInt(KEY_TODAY_STEPS, 0)
+                .apply()
         }
 
         var stepsToday = prefs.getInt(KEY_TODAY_STEPS, 0)
@@ -284,3 +331,4 @@ class StepCounterService : Service(), SensorEventListener {
         var flutterEngine: FlutterEngine? = null
     }
 }
+

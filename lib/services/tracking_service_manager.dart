@@ -30,4 +30,36 @@ class TrackingServiceManager {
       );
     }
   }
+
+  /// Seeds the native StepCounterService with an existing step count fetched
+  /// from the API at login time (e.g. the user reinstalled and already had 644
+  /// steps on the server for today).
+  ///
+  /// Only updates if [steps] > the current native counter, so it can never go
+  /// backward. Also triggers an immediate notification refresh so the user sees
+  /// the correct count right away instead of having to take a step first.
+  Future<void> seedTodaySteps(int steps) async {
+    if (!Platform.isAndroid || steps <= 0) return;
+
+    try {
+      await _stepServiceChannel.invokeMethod<bool>('seedTodaySteps', steps);
+      debugPrint('🌱 seedTodaySteps($steps) sent to native');
+    } on PlatformException catch (e) {
+      debugPrint('⚠️ seedTodaySteps failed: $e');
+    }
+  }
+
+  /// Stops the native StepCounterService foreground service and removes the
+  /// persistent notification. Call this on logout so the sticky notification
+  /// disappears when the user is signed out.
+  Future<void> stopNativeStepService() async {
+    if (!Platform.isAndroid) return;
+
+    try {
+      await _stepServiceChannel.invokeMethod<bool>('stopStepService');
+      debugPrint('🛑 stopNativeStepService: foreground service stopped');
+    } on PlatformException catch (e) {
+      debugPrint('⚠️ stopNativeStepService failed: $e');
+    }
+  }
 }

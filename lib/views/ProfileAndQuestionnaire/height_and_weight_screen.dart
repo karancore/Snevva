@@ -254,8 +254,8 @@ class _HeightWeightScreenState extends State<HeightWeightScreen> {
                                 // e.g., "14:30"
                                 value: controller.weightInKg.value,
                               );
-                              debugPrint(heightModel as String?);
-                              debugPrint(weightModel as String?);
+                              debugPrint(heightModel.toString());
+                              debugPrint(weightModel.toString());
 
                               await controller.saveData(
                                 heightModel,

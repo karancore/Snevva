@@ -584,17 +584,26 @@ Future<void> _ensureCurrentDayStepState({
 
   await prefs.setString("last_step_date", todayKey);
 
-  // On day change: flush step buffer so the completed day is written to its
-  // daily JSON, then queue it for sync.
-  if (lastDate != null && lastDate != todayKey) {
-    await FileStorageService().flushStepsToDaily();
-    await FileStorageService().flushSleepToDaily();
-    await FileStorageService().addToSyncQueue(lastDate);
-    debugPrint('📤 Day change: queued $lastDate for sync');
+  // ── Day-change pipeline is now owned entirely by Kotlin (StepCounterService) ──
+  // StepCounterService.onSensorChanged() fires on every step; when it detects a
+  // new calendar date it:
+  //   1. Flushes yesterday's step buffer → daily JSON (BufferManager.flushStepsToDaily)
+  //   2. Adds yesterday to sync_queue.json (BufferManager.addToSyncQueue)
+  //   3. Enqueues ApiSyncWorker with network constraint
+  //
+  // The Dart BG service must NOT duplicate these operations — it may be dead
+  // overnight and would then flush an empty buffer over the correct Kotlin data.
+
+  // Read today's steps from the ground-truth daily JSON file.
+  // This avoids the "0 flash" seen when SharedPrefs cache is stale at startup.
+  // Fall back to SharedPrefs fast-path if the file hasn't been flushed yet
+  // (first few minutes of the day before the first 5-min flush).
+  int todaySteps = await FileStorageService().readDailySteps(todayKey);
+  if (todaySteps == 0) {
+    await prefs.reload();
+    todaySteps = prefs.getInt('today_steps') ?? 0;
   }
 
-  // Read today's steps from file (or SharedPrefs fast path)
-  final todaySteps = prefs.getInt('today_steps') ?? 0;
   service.invoke("steps_updated", {"steps": todaySteps});
 
   final isSleeping = prefs.getBool("is_sleeping") ?? false;
@@ -602,6 +611,7 @@ Future<void> _ensureCurrentDayStepState({
     _updateStepNotification(service: service, steps: todaySteps);
   }
 }
+
 
 // ───────────────────────────────────────────────────────────────────
 // 💾 STOP SLEEP AND SAVE — writes to file storage, not Hive

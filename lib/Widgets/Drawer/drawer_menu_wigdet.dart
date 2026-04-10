@@ -26,6 +26,7 @@ import 'package:snevva/services/app_initializer.dart';
 import 'package:snevva/services/background_pedometer_service.dart';
 import 'package:snevva/services/decisiontree_service.dart';
 import 'package:snevva/services/hive_service.dart';
+import 'package:snevva/services/tracking_service_manager.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
 import 'package:snevva/views/Settings/in_app_downloads.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
@@ -61,6 +62,7 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
       await Future.wait([
         stopUnifiedBackgroundService(),
         stopBackgroundService(),
+        TrackingServiceManager.instance.stopNativeStepService(),
       ]);
 
       AgentDebugLogger.log(

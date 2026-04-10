@@ -363,6 +363,10 @@ class AuthService {
         // Back-compat safety: if anything else is wired to old stopper.
         await stopBackgroundService();
 
+        // Stop the native foreground service so the sticky notification
+        // disappears on all logout paths (manual or token-expired).
+        await TrackingServiceManager.instance.stopNativeStepService();
+
         debugPrint('✅ Background services stopped');
       } catch (e) {
         debugPrint('⚠️ Failed to stop background service: $e');

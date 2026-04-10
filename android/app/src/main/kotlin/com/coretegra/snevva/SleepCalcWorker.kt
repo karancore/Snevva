@@ -32,6 +32,8 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
             val start = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, bedHour)
                 set(Calendar.MINUTE, bedMinute)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
             }
             if (start.after(now)) start.add(Calendar.DAY_OF_MONTH, -1)
 
@@ -39,14 +41,60 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
                 time = start.time
                 set(Calendar.HOUR_OF_DAY, wakeHour)
                 set(Calendar.MINUTE, wakeMinute)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
             }
             if (!end.after(start)) end.add(Calendar.DAY_OF_MONTH, 1)
 
-            // [REMOVED CONFLICT] 
-            // We NO LONGER overwrite "flutter.sleep_intervals" directly from native code.
-            // Dart's `unified_background_service.dart` handles the precise sleep calculation via Screen ON/OFF tracking.
-            // This Worker serves solely to launch the ApiSyncWorker periodically at wake time!
-            
+            val sleepDateKey = "%04d-%02d-%02d".format(
+                start.get(Calendar.YEAR),
+                start.get(Calendar.MONTH) + 1,
+                start.get(Calendar.DAY_OF_MONTH)
+            )
+
+            // ── Edge case: screen never turned on during the sleep window ──────────────
+            // Dart's SleepNoticingService seeds 'last_screen_off_<dateKey>' in SharedPrefs
+            // when the session starts (via initializeForSleepWindow). Intervals are only
+            // written to sleep_buf.tmp when SCREEN_ON fires. If SCREEN_ON never fired, the
+            // buffer is empty and we'd record 0 sleep. We detect this here and append the
+            // clamped [anchor → windowEnd] interval before the regular buffer flush.
+            //
+            // SharedPrefs key format used by Dart: "flutter.last_screen_off_YYYY-MM-DD"
+            val lastOffKey = "flutter.last_screen_off_$sleepDateKey"
+            val lastOffIso = prefs.getString(lastOffKey, null)
+            if (lastOffIso != null) {
+                Log.d("SleepCalcWorker", "Found open interval anchor: $lastOffIso")
+                try {
+                    val fmt = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", java.util.Locale.US)
+                    val rawOff = fmt.parse(lastOffIso.take(23))
+                    if (rawOff != null) {
+                        // Clamp start: anchor ≥ windowStart
+                        val intervalStart = if (rawOff.before(start.time)) start.time else rawOff
+                        // Clamp end: min(windowEnd, now) — worker runs at/after wake time,
+                        // so using end.time (windowEnd) is correct.
+                        val intervalEnd = end.time
+
+                        val diffMin = ((intervalEnd.time - intervalStart.time) / 60_000).toInt()
+                        val minSleepGap = 3 // minutes — mirrors Dart's SleepNoticingService.minSleepGap
+
+                        if (diffMin >= minSleepGap) {
+                            val isoFmt = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", java.util.Locale.US)
+                            val startIso = isoFmt.format(intervalStart)
+                            val endIso   = isoFmt.format(intervalEnd)
+                            BufferManager.appendSleepInterval(applicationContext, sleepDateKey, startIso, endIso)
+                            Log.d("SleepCalcWorker", "Flushed open interval (screen-never-on): ${diffMin}m ($startIso → $endIso)")
+                        } else {
+                            Log.d("SleepCalcWorker", "Open interval too short (${diffMin}m < ${minSleepGap}m), skipping.")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("SleepCalcWorker", "Failed to parse last_screen_off anchor: $e")
+                }
+                // Clear the anchor so the next session starts clean and we don't double-count
+                prefs.edit().remove(lastOffKey).apply()
+                Log.d("SleepCalcWorker", "Cleared SharedPrefs anchor: $lastOffKey")
+            }
+
             Log.d("SleepCalcWorker", "Wake Time Reached. Flushing buffers and launching API Sync.")
 
             // Flush step and sleep buffers into daily JSON before syncing
@@ -54,14 +102,6 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
             BufferManager.flushSleepToDaily(applicationContext)
 
             // Add the night's sleep date to the sync queue
-            val sleepDateKey = run {
-                val cal = Calendar.getInstance().apply { time = start.time }
-                "%04d-%02d-%02d".format(
-                    cal.get(Calendar.YEAR),
-                    cal.get(Calendar.MONTH) + 1,
-                    cal.get(Calendar.DAY_OF_MONTH)
-                )
-            }
             BufferManager.addToSyncQueue(applicationContext, sleepDateKey)
 
             // Chain to API Sync
