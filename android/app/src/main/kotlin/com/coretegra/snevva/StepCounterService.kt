@@ -301,10 +301,18 @@ class StepCounterService : Service(), SensorEventListener {
         } else {
             "😴 Sleep: --"
         }
+        
+        val notificationIntent = Intent(this, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, notificationIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Snevva Active")
             .setContentText("👟 Steps: $stepsToday   $sleepText")
             .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentIntent(pendingIntent)
             .setOngoing(true)
             .build()
     }

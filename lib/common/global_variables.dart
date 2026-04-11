@@ -146,9 +146,9 @@ bool isProfileSetupInitialComplete(Map user) {
   if (occupationData is Map) {
     occupationValid = _hasNonEmptyString(occupationData['Name']);
   }
-  if (!occupationValid) {
-    occupationValid = _hasNonEmptyString(user['Occupation']);
-  }
+  // if (!occupationValid) {
+  //   occupationValid = _hasNonEmptyString(user['Occupation']);
+  // }
 
   return nameValid && genderValid && dobValid && occupationValid;
 }
