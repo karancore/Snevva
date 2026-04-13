@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DebugApiSyncScreen extends StatefulWidget {
   const DebugApiSyncScreen({super.key});
@@ -24,7 +25,9 @@ class _DebugApiSyncScreenState extends State<DebugApiSyncScreen> {
   Future<void> _loadLogs() async {
     try {
       final appDir = await getApplicationSupportDirectory();
-      final logFile = File('${appDir.path}/fs/api_sync_logs.json');
+      final prefs = await SharedPreferences.getInstance();
+      final uid = prefs.getString('PatientCode') ?? 'anonymous';
+      final logFile = File('${appDir.path}/fs/$uid/api_sync_logs.json');
 
       if (logFile.existsSync()) {
         final content = await logFile.readAsString();

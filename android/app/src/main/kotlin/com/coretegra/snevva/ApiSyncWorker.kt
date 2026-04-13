@@ -34,9 +34,11 @@ import javax.crypto.spec.SecretKeySpec
  *  • SleepCalcWorker     — wake time   (sleep only,  type="sleep")
  *  • ConnectivityReceiver— net regained (flush + sync, type="both")
  *
- * Queue format (sync_queue.json):
+ * Queue format (fs/<uid>/sync_queue.json):
  *   New: [{"date":"2026-04-11","type":"steps"}, {"date":"2026-04-11","type":"sleep"}]
  *   Legacy (plain string): treated as type="both" for backward compatibility.
+ *
+ * <uid> = flutter.PatientCode from FlutterSharedPreferences (falls back to "anonymous").
  */
 class ApiSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
@@ -59,6 +61,13 @@ class ApiSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorke
 
         // ── Queue helpers (static so callers don't instantiate the worker) ─
 
+        /** Returns the user-scoped fs/<uid>/ directory (static version). */
+        private fun fsDir(context: Context): java.io.File {
+            val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+            val uid = prefs.getString("flutter.PatientCode", "anonymous") ?: "anonymous"
+            return java.io.File(context.filesDir, "fs/$uid").also { it.mkdirs() }
+        }
+
         /**
          * Adds a typed entry to sync_queue.json.
          *
@@ -66,7 +75,7 @@ class ApiSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorke
          */
         fun addToSyncQueue(context: Context, dateKey: String, type: String = TYPE_BOTH) {
             try {
-                val fsDir     = java.io.File(context.filesDir, "fs").also { it.mkdirs() }
+                val fsDir     = fsDir(context)
                 val queueFile = java.io.File(fsDir, "sync_queue.json")
 
                 val queue = if (queueFile.exists()) readQueue(queueFile) else mutableListOf()
@@ -123,6 +132,13 @@ class ApiSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorke
 
     // ── Worker entry point ─────────────────────────────────────────────────
 
+    /** Returns the user-scoped fs/<uid>/ directory (instance version). */
+    private fun fsDir(): java.io.File {
+        val prefs = applicationContext.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        val uid = prefs.getString("flutter.PatientCode", "anonymous") ?: "anonymous"
+        return java.io.File(applicationContext.filesDir, "fs/$uid").also { it.mkdirs() }
+    }
+
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         Log.d(TAG, "🔄 ApiSyncWorker started")
 
@@ -132,7 +148,7 @@ class ApiSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             return@withContext Result.success()   // don't retry; token arrives after login
         }
 
-        val fsDir = java.io.File(applicationContext.filesDir, "fs")
+        val fsDir = fsDir()
         val queueFile = java.io.File(fsDir, "sync_queue.json")
         if (!queueFile.exists()) {
             Log.d(TAG, "sync_queue.json not found — nothing to sync")
@@ -152,7 +168,7 @@ class ApiSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         val syncedEntries = mutableListOf<SyncEntry>()
 
         for (entry in queue) {
-            val dailyFile = java.io.File(fsDir, "daily/${entry.date}.json")
+            val dailyFile = java.io.File(fsDir, "daily/${entry.date}.json")  // fsDir already user-scoped
             if (!dailyFile.exists()) {
                 Log.w(TAG, "No daily file for ${entry.date} — removing from queue")
                 syncedEntries.add(entry)
@@ -406,8 +422,7 @@ class ApiSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorke
 
     private fun appendApiLog(type: String, dateKey: String, code: Int, message: String) {
         try {
-            val fsDir   = java.io.File(applicationContext.filesDir, "fs")
-            val logFile = java.io.File(fsDir, "api_sync_logs.json")
+            val logFile = java.io.File(fsDir(), "api_sync_logs.json")
             val fmt     = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
             val timestamp = fmt.format(java.util.Date())
 

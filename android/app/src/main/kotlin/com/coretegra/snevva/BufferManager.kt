@@ -20,10 +20,12 @@ import java.io.File
  *  - Day change flush and onTaskRemoved flush are always forced (ignoring thresholds).
  *
  * File layout (inside context.filesDir):
- *   fs/buffer/steps_buf.tmp   ← "$epochSec,$steps\n"  (append-only)
- *   fs/buffer/sleep_buf.tmp   ← "$dateKey|$startIso|$endIso\n"
- *   fs/daily/YYYY-MM-DD.json  ← aggregated daily record
- *   fs/sync_queue.json        ← ["2026-04-05","2026-04-06"]
+ *   fs/<uid>/buffer/steps_buf.tmp   ← "$epochSec,$steps\n"  (append-only)
+ *   fs/<uid>/buffer/sleep_buf.tmp   ← "$dateKey|$startIso|$endIso\n"
+ *   fs/<uid>/daily/YYYY-MM-DD.json  ← aggregated daily record
+ *   fs/<uid>/sync_queue.json        ← [{"date":"2026-04-05","type":"both"}]
+ *
+ * <uid> = flutter.PatientCode from FlutterSharedPreferences (falls back to "anonymous").
  */
 object BufferManager {
 
@@ -227,8 +229,11 @@ object BufferManager {
     // FILE HELPERS
     // ─────────────────────────────────────────────
 
-    private fun fsDir(context: Context): File =
-        File(context.filesDir, "fs").also { it.mkdirs() }
+    private fun fsDir(context: Context): File {
+        val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        val uid = prefs.getString("flutter.PatientCode", "anonymous") ?: "anonymous"
+        return File(context.filesDir, "fs/$uid").also { it.mkdirs() }
+    }
 
     private fun bufferDir(context: Context): File =
         File(fsDir(context), "buffer").also { it.mkdirs() }

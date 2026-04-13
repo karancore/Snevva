@@ -175,7 +175,8 @@ class NotificationService {
       "If today is even half as amazing as you are, it's going to be a good one. 🌻",
       morningTime,
       morningDetails,
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      
       matchDateTimeComponents: DateTimeComponents.time,
     );
     hasNewNotification.value = true;
@@ -187,7 +188,7 @@ class NotificationService {
       'Before you close your eyes, remember you did great today! ✨',
       nightTime,
       nightDetails,
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
     );
     hasNewNotification.value = true;

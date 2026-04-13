@@ -189,10 +189,16 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
 
     // ── Reads total_sleep_minutes from the daily JSON file ────────────────────
 
+    /** Returns the user-scoped fs/<uid>/ directory. */
+    private fun fsDir(): java.io.File {
+        val prefs = applicationContext.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        val uid = prefs.getString("flutter.PatientCode", "anonymous") ?: "anonymous"
+        return java.io.File(applicationContext.filesDir, "fs/$uid").also { it.mkdirs() }
+    }
+
     private fun readDailySleepMinutes(dateKey: String): Int {
         return try {
-            val fsDir     = java.io.File(applicationContext.filesDir, "fs")
-            val dailyFile = java.io.File(fsDir, "daily/$dateKey.json")
+            val dailyFile = java.io.File(fsDir(), "daily/$dateKey.json")
             if (!dailyFile.exists()) return 0
             val json = JSONObject(dailyFile.readText())
             json.optJSONObject("sleep")?.optInt("total_sleep_minutes") ?: 0

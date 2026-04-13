@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DebugStepsBufferScreen extends StatefulWidget {
   const DebugStepsBufferScreen({super.key});
@@ -25,10 +26,14 @@ class _DebugStepsBufferScreenState extends State<DebugStepsBufferScreen> {
   Future<void> _loadData() async {
     try {
       final appDir = await getApplicationSupportDirectory();
-      final stepsBuf = File('${appDir.path}/fs/buffer/steps_buf.tmp');
-      final syncQueue = File('${appDir.path}/fs/sync_queue.json');
-      final dailyDir = Directory('${appDir.path}/fs/daily');
-      final apiLogsFile = File('${appDir.path}/fs/api_sync_logs.json');
+      final prefs = await SharedPreferences.getInstance();
+      final uid = prefs.getString('PatientCode') ?? 'anonymous';
+      final fsPath = '${appDir.path}/fs/$uid';
+
+      final stepsBuf = File('$fsPath/buffer/steps_buf.tmp');
+      final syncQueue = File('$fsPath/sync_queue.json');
+      final dailyDir = Directory('$fsPath/daily');
+      final apiLogsFile = File('$fsPath/api_sync_logs.json');
 
       String bufContent = "File not found or empty.";
       if (stepsBuf.existsSync()) {

@@ -43,6 +43,7 @@ import 'background_pedometer_service.dart';
 import 'decisiontree_service.dart';
 import 'device_token_service.dart';
 import 'encryption_service.dart';
+import 'file_storage_service.dart';
 import 'permission_manager.dart';
 import 'tracking_service_manager.dart';
 
@@ -240,6 +241,11 @@ class AuthService {
     await prefs.setString('PatientCode', PatientCode);
     loginLog("PatientCode saved: $PatientCode");
 
+    // Reset the cached fs/<uid>/ directory so this login session reads from the
+    // correct user-scoped folder (handles hot-session-swap without a process kill).
+    FileStorageService().reset();
+    loginLog("FileStorageService cache reset for $PatientCode");
+
     final Map userMap = localStorageManager.userMap;
     final bool profileComplete = isProfileSetupInitialComplete(userMap);
 
@@ -374,6 +380,12 @@ class AuthService {
       }
 
       final prefs = await SharedPreferences.getInstance();
+
+      // Invalidate the user-scoped fs/<uid>/ cache BEFORE clearing prefs so that
+      // any in-flight Dart read that starts after this point gets a fresh lookup.
+      FileStorageService().reset();
+      debugPrint('🗑️ FileStorageService cache invalidated');
+
       await prefs.clear();
 
       try {

@@ -11,10 +11,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 //
 // Architecture (both Dart and Kotlin use the SAME base directory):
 //   Base: context.filesDir  (= getApplicationSupportDirectory() in Flutter)
-//   ├── fs/buffer/steps_buf.tmp   ← append-only step events ("$ts,$steps\n")
-//   ├── fs/buffer/sleep_buf.tmp   ← append-only sleep intervals ("$dateKey|$start|$end\n")
-//   ├── fs/daily/YYYY-MM-DD.json  ← aggregated daily record (steps + sleep)
-//   └── fs/sync_queue.json        ← ["2026-04-05", "2026-04-06"]
+//   ├── fs/<uid>/buffer/steps_buf.tmp   ← append-only step events ("$ts,$steps\n")
+//   ├── fs/<uid>/buffer/sleep_buf.tmp   ← append-only sleep intervals ("$dateKey|$start|$end\n")
+//   ├── fs/<uid>/daily/YYYY-MM-DD.json  ← aggregated daily record (steps + sleep)
+//   └── fs/<uid>/sync_queue.json        ← [{"date":"2026-04-05","type":"both"}]
+//
+// <uid>  = PatientCode from SharedPreferences (falls back to "anonymous").
+// _filesDir is cached per-login session. Call reset() on logout/login so the
+// next caller picks up the new user's directory.
 //
 // Key invariants:
 //   • Never read during normal append operation
@@ -35,13 +39,21 @@ class FileStorageService {
   // INIT
   // ───────────────────────────────────────────────
 
+  /// Invalidate the cached directory so the next access re-reads the current
+  /// user's PatientCode. Call this on logout (before prefs.clear()) AND on
+  /// successful login so a hot-session-swap always gets the right directory.
+  void reset() {
+    _filesDir = null;
+  }
+
   Future<Directory> get _files async {
     if (_filesDir != null) return _filesDir!;
-    // ✅ getApplicationSupportDirectory() on Android == context.filesDir,
-    // which is identical to the path used by Kotlin's BufferManager.kt.
-    // This ensures both Dart and Kotlin read/write the SAME files.
     final appDir = await getApplicationSupportDirectory();
-    _filesDir = Directory('${appDir.path}/fs');
+    // Scope to the logged-in user so User A's files are never visible to User B.
+    // Mirrors Kotlin's fsDir() in BufferManager / ApiSyncWorker / SleepCalcWorker.
+    final prefs = await SharedPreferences.getInstance();
+    final uid = prefs.getString('PatientCode') ?? 'anonymous';
+    _filesDir = Directory('${appDir.path}/fs/$uid');
     return _filesDir!;
   }
 
@@ -55,44 +67,98 @@ class FileStorageService {
   ///
   /// Safe to call on every cold start — skips if migration flag is already set.
   Future<void> migrateOldFilesIfNeeded() async {
-    const migrationKey = 'fs_path_migration_done_v1';
+    const v1Key = 'fs_path_migration_done_v1';
+    const v2Key = 'fs_uid_migration_done_v2';
     try {
       final prefs = await SharedPreferences.getInstance();
-      if (prefs.getBool(migrationKey) == true) return;
+      final appDir = await getApplicationSupportDirectory();
 
-      final oldBase = await getApplicationDocumentsDirectory();
-      final oldDaily = Directory('${oldBase.path}/fs/daily');
-      if (!oldDaily.existsSync()) {
-        await prefs.setBool(migrationKey, true);
-        return;
-      }
+      // ── v1: app_flutter/fs/daily → files/fs/daily ──────────────────────────
+      if (prefs.getBool(v1Key) != true) {
+        final oldBase = await getApplicationDocumentsDirectory();
+        final oldDaily = Directory('${oldBase.path}/fs/daily');
+        if (oldDaily.existsSync()) {
+          final newDailyDir = await _ensureDir('daily');
+          int copied = 0;
 
-      final newDailyDir = await _ensureDir('daily');
-      int copied = 0;
+          for (final entity in oldDaily.listSync()) {
+            if (entity is! File) continue;
+            final name = entity.uri.pathSegments.last;
+            if (!name.endsWith('.json')) continue;
 
-      for (final entity in oldDaily.listSync()) {
-        if (entity is! File) continue;
-        final name = entity.uri.pathSegments.last;
-        if (!name.endsWith('.json')) continue;
+            final dest = File('${newDailyDir.path}/$name');
+            if (dest.existsSync()) {
+              try {
+                final oldJson = jsonDecode(entity.readAsStringSync()) as Map<String, dynamic>;
+                final newJson = jsonDecode(dest.readAsStringSync()) as Map<String, dynamic>;
+                final oldMins = (oldJson['sleep']?['total_sleep_minutes'] as int?) ?? 0;
+                final newMins = (newJson['sleep']?['total_sleep_minutes'] as int?) ?? 0;
+                if (oldMins <= newMins) continue;
+              } catch (_) {}
+            }
 
-        final dest = File('${newDailyDir.path}/$name');
-        // Only overwrite if the old file has more sleep data
-        if (dest.existsSync()) {
-          try {
-            final oldJson = jsonDecode(entity.readAsStringSync()) as Map<String, dynamic>;
-            final newJson = jsonDecode(dest.readAsStringSync()) as Map<String, dynamic>;
-            final oldMins = (oldJson['sleep']?['total_sleep_minutes'] as int?) ?? 0;
-            final newMins = (newJson['sleep']?['total_sleep_minutes'] as int?) ?? 0;
-            if (oldMins <= newMins) continue; // new file already has better data
-          } catch (_) {}
+            await entity.copy(dest.path);
+            copied++;
+          }
+          debugPrint('✅ fs v1 migration: copied $copied daily file(s) from app_flutter → files');
         }
-
-        await entity.copy(dest.path);
-        copied++;
+        await prefs.setBool(v1Key, true);
       }
 
-      await prefs.setBool(migrationKey, true);
-      debugPrint('✅ fs migration: copied $copied daily file(s) from app_flutter → files');
+      // ── v2: files/fs/{buffer,daily,sync_queue} → files/fs/<uid>/ ───────────
+      // Runs once per user after the multi-user update is installed.
+      if (prefs.getBool(v2Key) != true) {
+        final uid = prefs.getString('PatientCode');
+        if (uid == null || uid.isEmpty) {
+          // Not logged in — nothing to migrate yet; mark done so we don't loop.
+          await prefs.setBool(v2Key, true);
+        } else {
+          final oldFs = Directory('${appDir.path}/fs');
+          final newFs = Directory('${appDir.path}/fs/$uid');
+
+          if (oldFs.existsSync()) {
+            int moved = 0;
+            for (final entity in oldFs.listSync()) {
+              // Skip sub-directories that look like uid directories (already migrated)
+              // A uid-style name contains alphanumeric chars; skip directories entirely —
+              // we handle buffer/ and daily/ recursively below.
+              if (entity is Directory) {
+                final dirName = entity.uri.pathSegments
+                    .where((s) => s.isNotEmpty)
+                    .last;
+                // Migrate known flat sub-dirs
+                if (dirName == 'buffer' || dirName == 'daily') {
+                  final destDir = Directory('${newFs.path}/$dirName');
+                  if (!destDir.existsSync()) await destDir.create(recursive: true);
+                  for (final sub in entity.listSync()) {
+                    if (sub is! File) continue;
+                    final fname = sub.uri.pathSegments.last;
+                    final dest = File('${destDir.path}/$fname');
+                    if (!dest.existsSync()) {
+                      await sub.copy(dest.path);
+                      moved++;
+                    }
+                  }
+                }
+                // Skip any other directory (could be another uid or anonymous)
+                continue;
+              }
+              // Top-level files (e.g. sync_queue.json, api_sync_logs.json)
+              if (entity is File) {
+                final fname = entity.uri.pathSegments.last;
+                if (!newFs.existsSync()) await newFs.create(recursive: true);
+                final dest = File('${newFs.path}/$fname');
+                if (!dest.existsSync()) {
+                  await entity.copy(dest.path);
+                  moved++;
+                }
+              }
+            }
+            debugPrint('✅ fs v2 migration: moved $moved item(s) into fs/$uid/');
+          }
+          await prefs.setBool(v2Key, true);
+        }
+      }
     } catch (e) {
       debugPrint('⚠️ fs migration error (non-fatal): $e');
     }

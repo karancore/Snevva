@@ -106,7 +106,7 @@ class StepCounterService : Service(), SensorEventListener {
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
 
-        // tracker_channel is created by the Dart side (app_initializer.dart) before this
+        // Note: tracker_channel is created by the Dart side (app_initializer.dart) before this
         // service starts. We create it here as a safety fallback for boot scenarios where
         // Dart hasn't run yet.
         ensureNotificationChannel()
@@ -116,6 +116,7 @@ class StepCounterService : Service(), SensorEventListener {
 
         try {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                // Check if we have FOREGROUND_SERVICE_HEALTH permission before starting foreground service
                 if (ContextCompat.checkSelfPermission(
                         this,
                         "android.permission.FOREGROUND_SERVICE_HEALTH"
@@ -138,10 +139,15 @@ class StepCounterService : Service(), SensorEventListener {
             }
         } catch (e: Exception) {
             Log.e("StepService", "Error starting foreground service", e)
+            // Fallback: try to start as regular foreground service without health type
             try {
                 startForeground(NOTIFICATION_ID, notification)
             } catch (e2: Exception) {
-                Log.e("StepService", "Failed to start foreground service even without health type", e2)
+                Log.e(
+                    "StepService",
+                    "Failed to start foreground service even without health type",
+                    e2
+                )
             }
         }
 
@@ -168,12 +174,13 @@ class StepCounterService : Service(), SensorEventListener {
         val savedDate = prefs.getString(KEY_DATE, currentDate)
 
         // ── Day boundary crossed ───────────────────────────────────────────────
-        // Kotlin is the sole owner of the day-change pipeline. Do NOT rely on
+        // Kotlin is the sole owner of the day-change pipeline.  Do NOT rely on
         // the Dart UI being open for this — it may never open if the user just
         // keeps walking.
         if (currentDate != savedDate) {
             Log.d("StepService", "📅 New day detected. Flushing yesterday and queuing for sync.")
 
+            // Compute yesterday's dateKey from savedDate (yyyyMMdd → YYYY-MM-DD)
             val yesterdayKey = savedDate?.let {
                 try {
                     val y = it.substring(0, 4)
@@ -183,19 +190,16 @@ class StepCounterService : Service(), SensorEventListener {
                 } catch (_: Exception) { null }
             }
 
+            // Run buffer flush + sync enqueue off the sensor callback thread
             Thread {
                 try {
                     // 1. Flush yesterday's step buffer → daily JSON
                     BufferManager.flushStepsToDaily(applicationContext)
 
-                    // 2. Queue yesterday for steps-only API sync
+                    // 2. Queue yesterday for API sync
                     if (yesterdayKey != null) {
-                        BufferManager.addToSyncQueue(
-                            applicationContext,
-                            yesterdayKey,
-                            ApiSyncWorker.TYPE_STEPS   // ← steps only, NOT sleep
-                        )
-                        Log.d("StepService", "📤 Queued $yesterdayKey [steps] for sync")
+                        BufferManager.addToSyncQueue(applicationContext, yesterdayKey)
+                        Log.d("StepService", "📤 Queued $yesterdayKey for sync")
                     }
 
                     // 3. Enqueue ApiSyncWorker (runs only when network is available)
@@ -207,7 +211,7 @@ class StepCounterService : Service(), SensorEventListener {
                         )
                         .build()
                     WorkManager.getInstance(applicationContext).enqueue(syncRequest)
-                    Log.d("StepService", "✅ ApiSyncWorker enqueued for $yesterdayKey [steps]")
+                    Log.d("StepService", "✅ ApiSyncWorker enqueued for $yesterdayKey")
                 } catch (e: Exception) {
                     Log.e("StepService", "Day-change sync error: ${e.message}")
                 }
@@ -241,6 +245,7 @@ class StepCounterService : Service(), SensorEventListener {
         BufferManager.appendStepEvent(applicationContext, stepsToday)
 
         // Always refresh the unified notification (shows BOTH steps + sleep).
+        // No switching logic needed — collision is impossible.
         refreshNotification()
 
         // Relay to Flutter UI engine only if alive — fire-and-forget, never block
@@ -263,7 +268,9 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     override fun onDestroy() {
+        // Stop the 1-min ticker first
         notifHandler.removeCallbacks(notifRunnable)
+        // Flush buffers before being killed so no step data is lost
         BufferManager.flushStepsToDaily(applicationContext)
         BufferManager.flushSleepToDaily(applicationContext)
         super.onDestroy()
@@ -272,56 +279,16 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     /**
-     * Reads current steps + sleep from SharedPreferences and posts the unified notification.
-     *
-     * Sleep display logic (segregated from steps):
-     *
-     *  CASE A — Currently sleeping (flutter.is_sleeping == true):
-     *    Show live elapsed minutes from flutter.sleep_elapsed_minutes (written each minute by Dart).
-     *
-     *  CASE B — Sleep session ended today (flutter.sleep_final_date == today):
-     *    Show the final merged total from flutter.sleep_final_minutes (written by SleepCalcWorker).
-     *    This persists until midnight regardless of the step counter resetting.
-     *
-     *  CASE C — New day, no sleep data yet (flutter.sleep_final_date != today):
-     *    Show "--". Steps have already been reset to 0 by the day-change handler.
-     *
-     * Always called by Kotlin only — Dart never touches the notification directly.
+     * Reads current steps + sleep from SharedPreferences and posts the unified
+     * notification. Always called by Kotlin only — Dart never touches the
+     * notification directly.
      */
     private fun refreshNotification() {
         val flutterPrefs = applicationContext.getSharedPreferences(
             "FlutterSharedPreferences", android.content.Context.MODE_PRIVATE
         )
-
         val steps = flutterPrefs.getLong("flutter.today_steps", 0L).toInt()
-
-        // ── Determine sleep display ────────────────────────────────────────
-        val isSleeping = flutterPrefs.getBoolean("flutter.is_sleeping", false)
-
-        val sleepMinutes: Int
-        if (isSleeping) {
-            // CASE A — live progress (Dart heartbeat writes this every minute)
-            sleepMinutes = flutterPrefs.getLong("flutter.sleep_elapsed_minutes", 0L).toInt()
-        } else {
-            // Compare sleep_final_date with today to decide CASE B vs CASE C
-            val todayStr = run {
-                val cal = java.util.Calendar.getInstance()
-                "%04d-%02d-%02d".format(
-                    cal.get(java.util.Calendar.YEAR),
-                    cal.get(java.util.Calendar.MONTH) + 1,
-                    cal.get(java.util.Calendar.DAY_OF_MONTH)
-                )
-            }
-            val sleepFinalDate = flutterPrefs.getString("flutter.sleep_final_date", null)
-            sleepMinutes = if (sleepFinalDate == todayStr) {
-                // CASE B — final merged total for today's sleep (wake day)
-                flutterPrefs.getLong("flutter.sleep_final_minutes", 0L).toInt()
-            } else {
-                // CASE C — new day, no sleep data yet
-                0
-            }
-        }
-
+        val sleepMinutes = flutterPrefs.getLong("flutter.sleep_elapsed_minutes", 0L).toInt() 
         val notifManager = getSystemService(NotificationManager::class.java)
         notifManager.notify(NOTIFICATION_ID, buildNotification(steps, sleepMinutes))
     }
@@ -334,7 +301,7 @@ class StepCounterService : Service(), SensorEventListener {
         } else {
             "😴 Sleep: --"
         }
-
+        
         val notificationIntent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
             this, 0, notificationIntent,
@@ -354,7 +321,7 @@ class StepCounterService : Service(), SensorEventListener {
     private fun ensureNotificationChannel() {
         val existing = (getSystemService(NOTIFICATION_SERVICE) as NotificationManager)
             .getNotificationChannel(CHANNEL_ID)
-        if (existing != null) return
+        if (existing != null) return // Already created by Dart side — skip
 
         val channel = NotificationChannel(
             CHANNEL_ID,
@@ -372,3 +339,4 @@ class StepCounterService : Service(), SensorEventListener {
         var flutterEngine: FlutterEngine? = null
     }
 }
+
