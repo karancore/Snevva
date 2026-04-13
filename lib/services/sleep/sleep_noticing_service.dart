@@ -86,6 +86,21 @@ class SleepNoticingService {
       debugPrint('🔄 initializeForSleepWindow: restored buffer from file (${fromFile}m)');
     }
 
+    final now = DateTime.now();
+
+    // ── Do NOT seed the anchor if the window hasn't started yet ────────────
+    // If the user sets their sleep times at e.g. 4 PM while the sleep window
+    // starts at 10 PM, seeding the anchor to window.start would cause
+    // getTotalSleepMinutes() to immediately report 480 minutes (the full
+    // window length) as an "open interval".  Only seed when we are at or
+    // past the window start.
+    if (now.isBefore(window.start)) {
+      debugPrint(
+        '⏳ initializeForSleepWindow: now ($now) is before window.start (${window.start}) — skipping anchor seed until window opens.',
+      );
+      return;
+    }
+
     final lastOffKey = 'last_screen_off_${window.dateKey}';
     final existing = prefs.getString(lastOffKey);
 
@@ -238,6 +253,16 @@ class SleepNoticingService {
 
     if (window == null) return 0;
 
+    final now = DateTime.now();
+
+    // Guard: if the sleep window hasn't started yet, there is nothing to count.
+    // This prevents a phantom 480-minute "total" being reported immediately
+    // after the user sets their sleep time before the window opens.
+    if (now.isBefore(window.start)) {
+      debugPrint('⏳ getTotalSleepMinutes: window has not started yet — returning 0');
+      return 0;
+    }
+
     // _bufferedSleepMinutes holds the sum of all intervals that have been
     // closed (written to sleep_buf.tmp via appendSleepInterval) but not yet
     // flushed into the daily JSON.  This is the accurate live source during
@@ -252,7 +277,6 @@ class SleepNoticingService {
     if (lastOffStr != null) {
       try {
         final lastOff = DateTime.parse(lastOffStr);
-        final now = DateTime.now();
         DateTime start =
             lastOff.isBefore(window.start) ? window.start : lastOff;
         DateTime end = now.isAfter(window.end) ? window.end : now;
@@ -294,6 +318,19 @@ class SleepNoticingService {
     final window = await _computeActiveSleepWindow(prefs);
     if (window == null) return 0;
 
+    final now = DateTime.now();
+
+    // Guard: if the sleep window hasn't started yet, there is nothing to flush.
+    // This prevents writing a phantom full-window interval when the session is
+    // stopped before the bedtime hour (e.g. user set sleep at 4 PM for 10 PM).
+    if (now.isBefore(window.start)) {
+      debugPrint(
+        '⏳ flushOpenInterval: window has not started yet — clearing stale anchor, returning 0',
+      );
+      await prefs.remove(lastOffKey);
+      return 0;
+    }
+
     DateTime lastOff;
     try {
       lastOff = DateTime.parse(lastOffStr);
@@ -302,7 +339,6 @@ class SleepNoticingService {
       return 0;
     }
 
-    final now = DateTime.now();
     final start = lastOff.isBefore(window.start) ? window.start : lastOff;
     final end = now.isAfter(window.end) ? window.end : now;
 

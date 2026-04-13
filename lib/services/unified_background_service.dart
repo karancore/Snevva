@@ -702,7 +702,26 @@ _SleepWindow? _computeActiveSleepWindow(
   DateTime start = DateTime(now.year, now.month, now.day, bedHour, bedMinute);
 
   if (start.isAfter(now.add(const Duration(minutes: 5)))) {
-    start = start.subtract(const Duration(days: 1));
+    // The bedtime is more than 5 minutes in the future — candidate: yesterday's window.
+    final candidateStart = start.subtract(const Duration(days: 1));
+    DateTime candidateEnd = DateTime(
+      candidateStart.year,
+      candidateStart.month,
+      candidateStart.day,
+      wakeHour,
+      wakeMinute,
+    );
+    if (!candidateEnd.isAfter(candidateStart)) {
+      candidateEnd = candidateEnd.add(const Duration(days: 1));
+    }
+
+    if (now.isAfter(candidateEnd)) {
+      // Yesterday's window has already ended completley — keep tonight's
+      // forward-looking window so we don't start a session for a past window.
+      // (start stays as tonight's bedtime; it is in the future.)
+    } else {
+      start = candidateStart;
+    }
   }
 
   DateTime end = DateTime(
