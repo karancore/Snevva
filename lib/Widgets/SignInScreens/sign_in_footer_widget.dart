@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 
+import '../../common/custom_snackbar.dart';
 import '../../common/loader.dart';
 import '../../consts/consts.dart';
 import '../../services/google_auth.dart';
@@ -108,8 +109,17 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
 
                   try {
                     final googleAuth = Get.find<GoogleAuthService>();
+
                     await googleAuth.init(context);
-                    // await googleAuth.signIn();
+                    await googleAuth.signIn(); // ✅ REQUIRED
+                  } catch (e) {
+                    debugPrint("❌ Google sign-in failed: $e");
+
+                    CustomSnackbar.showError(
+                      context: context,
+                      title: 'Sign-in Required',
+                      message: 'Please sign in with Google to continue.',
+                    );
                   } finally {
                     if (mounted) {
                       setState(() => isSigningIn = false);
