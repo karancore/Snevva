@@ -1,20 +1,16 @@
 import 'package:dropdown_flutter/custom_dropdown.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
-import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/Widgets/CommonWidgets/common_date_widget.dart';
-
+import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/models/queryParamViewModels/date_of_birth.dart';
 import 'package:snevva/models/queryParamViewModels/occupation_vm.dart';
 import 'package:snevva/models/queryParamViewModels/string_value_vm.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/height_and_weight_screen.dart';
+
 import '../../Widgets/ProfileSetupAndQuestionnaire/gender_radio_button.dart';
 import '../../common/first_letter_upper_case_formatter.dart';
-import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
 
 class ProfileSetupInitial extends StatefulWidget {
@@ -103,6 +99,8 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
     });
   }
 
+  final RegExp nameRegex =
+  RegExp(r"^[A-Z][a-zA-Z'’-]*(?: [A-Z][a-zA-Z'’-]*)*$");
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
@@ -416,10 +414,10 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                           .text
                                           .trim();
 
-                                  if (!startsWithCapital(nameValue)) {
+                                  if (!nameRegex.hasMatch(nameValue)) {
                                     Get.snackbar(
                                       'Invalid Name',
-                                      'Start name with a capital letter.',
+                                      'Please enter a valid name (e.g. John Doe, each word should start with a capital letter).',
                                       snackPosition: SnackPosition.TOP,
                                       backgroundColor: AppColors.primaryColor,
                                       colorText: Colors.white,
@@ -491,11 +489,40 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                     yearOfBirth: year,
                                   );
 
+
+                                  // ================= GENDER =================
+
+                                  if (initialProfileController.userGenderValue
+                                      .value.isEmpty) {
+                                    Get.snackbar(
+                                      'Selection Required',
+                                      'Please select your gender to continue.',
+                                      snackPosition: SnackPosition.TOP,
+                                      backgroundColor: AppColors.primaryColor,
+                                      colorText: Colors.white,
+                                      duration: const Duration(seconds: 1),
+                                    );
+                                    return;
+                                  }
                                   // ================= OCCUPATION =================
                                   final occupationValue =
                                       initialProfileController
                                           .selectedOccupation
                                           .value;
+                                  print(
+                                      "Selected Occupation: $occupationValue");
+                                  if (occupationValue == "Occupation" ||
+                                      occupationValue.isEmpty) {
+                                    Get.snackbar(
+                                      'Invalid Occupation',
+                                      'Please select a valid occupation.',
+                                      snackPosition: SnackPosition.TOP,
+                                      backgroundColor: AppColors.primaryColor,
+                                      colorText: Colors.white,
+                                      duration: const Duration(seconds: 1),
+                                    );
+                                    return;
+                                  }
                                   final occupationModel = OccupationVM(
                                     day: DateTime.now().day,
                                     month: DateTime.now().month,

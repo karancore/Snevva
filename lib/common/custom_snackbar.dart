@@ -4,6 +4,46 @@ import 'package:snevva/env/env.dart';
 import '../consts/colors.dart';
 import 'animted_reminder_bar.dart';
 
+enum SnackbarPosition {
+  top,
+  bottom,
+}
+
+class _SnackbarContent extends StatelessWidget {
+  final String title;
+  final String message;
+
+  const _SnackbarContent({
+    required this.title,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.primaryColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(message, style: const TextStyle(color: Colors.white)),
+        ],
+      ),
+    );
+  }
+}
 class CustomSnackbar {
   OverlayEntry? overlay;
 
@@ -32,6 +72,41 @@ class CustomSnackbar {
     // Remove after 3 seconds + animation
     Future.delayed(const Duration(seconds: 4), () {
       overlay?.remove();
+    });
+  }
+
+  static void showCustom({
+    required BuildContext context,
+    required String title,
+    required String message,
+    SnackbarPosition position = SnackbarPosition.bottom,
+  }) {
+    final overlay = Overlay.of(context);
+
+    final topPadding = MediaQuery
+        .of(context)
+        .padding
+        .top + 10;
+
+    final entry = OverlayEntry(
+      builder: (context) {
+        return Positioned(
+          top: position == SnackbarPosition.top ? topPadding : null,
+          bottom: position == SnackbarPosition.bottom ? 20 : null,
+          left: 16,
+          right: 16,
+          child: Material(
+            color: Colors.transparent,
+            child: _SnackbarContent(title: title, message: message),
+          ),
+        );
+      },
+    );
+
+    overlay.insert(entry);
+
+    Future.delayed(const Duration(seconds: 3), () {
+      entry.remove();
     });
   }
 
