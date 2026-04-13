@@ -361,6 +361,25 @@ class AuthService {
     _isLoggingOut = true;
 
     try {
+      // ── Final step sync before logout ────────────────────────────────────────
+      // Auth token is still valid here. Once prefs.clear() runs it's gone, so
+      // this is the ONLY window where we can push today's unflushed steps to
+      // the API. We do it synchronously (awaited) so the data reaches the server
+      // before the token is wiped. Non-fatal — a failure must never block logout.
+      try {
+        if (Get.isRegistered<StepCounterController>()) {
+          final ctrl = Get.find<StepCounterController>();
+          if (ctrl.todaySteps.value > 0) {
+            debugPrint('📤 Logout: syncing today\'s steps (${ctrl.todaySteps.value}) before token clear...');
+            await ctrl.saveStepRecordToServer();
+            debugPrint('✅ Logout step sync done');
+          }
+        }
+      } catch (e) {
+        debugPrint('⚠️ Logout step sync failed (non-fatal): $e');
+      }
+      // ── End final step sync ──────────────────────────────────────────────────
+
       try {
         debugPrint('🛑 Stopping background services...');
 
