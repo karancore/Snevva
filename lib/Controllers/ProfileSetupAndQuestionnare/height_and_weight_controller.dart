@@ -195,7 +195,6 @@ class HeightWeightController extends GetxController {
           message: 'Profile data saved successfully.',
         );
         if (context.mounted) {
-          return;
           Get.to(() => QuestionnaireScreen());
         }
       }
