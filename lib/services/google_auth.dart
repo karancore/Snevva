@@ -51,7 +51,9 @@ class GoogleAuthService extends GetxService {
           user.value = account;
 
           await precacheImage(
-              CachedNetworkImageProvider(account.photoUrl ?? ''), context);
+            CachedNetworkImageProvider(account.photoUrl ?? ''),
+            context,
+          );
 
           await _handleBackendLogin(account, context, account.email);
         }
@@ -81,8 +83,18 @@ class GoogleAuthService extends GetxService {
 
     // Attempt auto login
     debugPrint("🔄 Attempting lightweight authentication...");
-    _google.attemptLightweightAuthentication();
-    _initialized = true;
+    try {
+      await _google.attemptLightweightAuthentication();
+    } catch (e) {
+      debugPrint("❌ Lightweight auth failed: $e");
+
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Sign-in Issue',
+        message: 'Google auto sign-in failed. Please try manually.',
+      );
+      _initialized = true;
+    }
   }
 
   // ---------------- BUTTON LOGIN ----------------
