@@ -327,19 +327,19 @@ class ProfileSetupController extends GetxService {
         );
         CustomSnackbar.showSuccess(
           context: context,
-          title: 'Success',
-          message: 'Profile data saved successfully.',
+          title: 'Done!',
+          message: 'Your profile has been saved.',
         );
         return true;
       }
       return true;
     } catch (e, stack) {
       debugPrint("Exception during profile save: $e");
-      debugPrint(stack.toString());
-      CustomSnackbar.showError(
+      CustomSnackbar.showCustom(
         context: context,
-        title: 'Error',
-        message: 'Failed to save profile data',
+        title: 'Something went wrong',
+        message: 'Your profile couldn’t be saved. Try again later.',
+        position: SnackbarPosition.top,
       );
     }
     return false;
