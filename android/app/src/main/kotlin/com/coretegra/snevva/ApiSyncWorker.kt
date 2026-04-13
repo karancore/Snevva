@@ -8,6 +8,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -29,9 +30,13 @@ import javax.crypto.spec.SecretKeySpec
  *   5. Headers: Content-Type, Accept, Authorization, x-data-hash, X-Device-Info
  *
  * Triggered by:
- *  • StepCounterService  — day change  (steps for yesterday)
- *  • SleepCalcWorker     — wake time   (sleep for last night)
- *  • ConnectivityReceiver— net regained (flush + sync)
+ *  • StepCounterService  — day change  (steps only,  type="steps")
+ *  • SleepCalcWorker     — wake time   (sleep only,  type="sleep")
+ *  • ConnectivityReceiver— net regained (flush + sync, type="both")
+ *
+ * Queue format (sync_queue.json):
+ *   New: [{"date":"2026-04-11","type":"steps"}, {"date":"2026-04-11","type":"sleep"}]
+ *   Legacy (plain string): treated as type="both" for backward compatibility.
  */
 class ApiSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
@@ -46,7 +51,75 @@ class ApiSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         private const val BASE_URL       = "https://abdmstg.coretegra.com"
         private const val STEP_ENDPOINT  = "/api/upsert/addsteprecord"
         private const val SLEEP_ENDPOINT = "/api/upsert/addsleeprecord"
+
+        // ── Sync type constants ────────────────────────────────────────────
+        const val TYPE_STEPS = "steps"
+        const val TYPE_SLEEP = "sleep"
+        const val TYPE_BOTH  = "both"
+
+        // ── Queue helpers (static so callers don't instantiate the worker) ─
+
+        /**
+         * Adds a typed entry to sync_queue.json.
+         *
+         * @param type One of [TYPE_STEPS], [TYPE_SLEEP], [TYPE_BOTH].
+         */
+        fun addToSyncQueue(context: Context, dateKey: String, type: String = TYPE_BOTH) {
+            try {
+                val fsDir     = java.io.File(context.filesDir, "fs").also { it.mkdirs() }
+                val queueFile = java.io.File(fsDir, "sync_queue.json")
+
+                val queue = if (queueFile.exists()) readQueue(queueFile) else mutableListOf()
+
+                // Avoid duplicate (same date + same type)
+                val alreadyPresent = queue.any { it.date == dateKey && it.type == type }
+                if (!alreadyPresent) {
+                    queue.add(SyncEntry(dateKey, type))
+                    writeQueue(queueFile, queue)
+                    Log.d(TAG, "Queued $dateKey [$type]")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "addToSyncQueue error: ${e.message}")
+            }
+        }
+
+        private fun readQueue(file: java.io.File): MutableList<SyncEntry> {
+            return try {
+                val arr = JSONArray(file.readText())
+                val list = mutableListOf<SyncEntry>()
+                for (i in 0 until arr.length()) {
+                    val elem = arr.get(i)
+                    when (elem) {
+                        // ── New typed object format ────────────────────────
+                        is JSONObject -> {
+                            val date = elem.optString("date")
+                            val type = elem.optString("type", TYPE_BOTH)
+                            if (date.isNotBlank()) list.add(SyncEntry(date, type))
+                        }
+                        // ── Legacy plain-string format → treat as "both" ──
+                        is String -> {
+                            if (elem.isNotBlank()) list.add(SyncEntry(elem, TYPE_BOTH))
+                        }
+                    }
+                }
+                list
+            } catch (e: Exception) {
+                Log.e(TAG, "readQueue error: ${e.message}")
+                mutableListOf()
+            }
+        }
+
+        private fun writeQueue(file: java.io.File, queue: List<SyncEntry>) {
+            val arr = JSONArray()
+            for (entry in queue) {
+                arr.put(JSONObject().put("date", entry.date).put("type", entry.type))
+            }
+            file.writeText(arr.toString())
+        }
     }
+
+    /** Typed sync queue entry. */
+    private data class SyncEntry(val date: String, val type: String)
 
     // ── Worker entry point ─────────────────────────────────────────────────
 
@@ -66,7 +139,7 @@ class ApiSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             return@withContext Result.success()
         }
 
-        val queue = readQueue(queueFile)
+        val queue = Companion.readQueue(queueFile)
         if (queue.isEmpty()) {
             Log.d(TAG, "Sync queue is empty")
             return@withContext Result.success()
@@ -76,103 +149,110 @@ class ApiSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorke
 
         val deviceInfoHeader = buildDeviceInfoHeader()
         var allSucceeded = true
-        val syncedKeys = mutableListOf<String>()
+        val syncedEntries = mutableListOf<SyncEntry>()
 
-        for (dateKey in queue) {
-            val dailyFile = java.io.File(fsDir, "daily/$dateKey.json")
+        for (entry in queue) {
+            val dailyFile = java.io.File(fsDir, "daily/${entry.date}.json")
             if (!dailyFile.exists()) {
-                Log.w(TAG, "No daily file for $dateKey — removing from queue")
-                syncedKeys.add(dateKey)
+                Log.w(TAG, "No daily file for ${entry.date} — removing from queue")
+                syncedEntries.add(entry)
                 continue
             }
 
             val json = try {
                 JSONObject(dailyFile.readText())
             } catch (e: Exception) {
-                Log.e(TAG, "Corrupt daily file for $dateKey: ${e.message}")
+                Log.e(TAG, "Corrupt daily file for ${entry.date}: ${e.message}")
                 allSucceeded = false
                 continue
             }
 
-            val parts = dateKey.split("-")
-            if (parts.size != 3) { syncedKeys.add(dateKey); continue }
+            val parts = entry.date.split("-")
+            if (parts.size != 3) { syncedEntries.add(entry); continue }
             val year  = parts[0].toIntOrNull() ?: continue
             val month = parts[1].toIntOrNull() ?: continue
             val day   = parts[2].toIntOrNull() ?: continue
 
-            var daySucceeded = true
+            var entrySucceeded = true
+            val shouldSyncSteps = entry.type == TYPE_STEPS || entry.type == TYPE_BOTH
+            val shouldSyncSleep = entry.type == TYPE_SLEEP || entry.type == TYPE_BOTH
 
             // ── Step sync ─────────────────────────────────────────────────────
-            val stepTotal = json.optJSONObject("steps")?.optInt("total") ?: 0
-            if (stepTotal > 0) {
-                val stepPayload = JSONObject().apply {
-                    put("Day",   day)
-                    put("Month", month)
-                    put("Year",  year)
-                    put("Time",  "11:59 PM")
-                    put("Count", stepTotal)
-                }
-                val code = postEncrypted(STEP_ENDPOINT, stepPayload.toString(), token, deviceInfoHeader)
-                if (code in 200..299) {
-                    val msg = "✅ Steps synced for $dateKey: $stepTotal"
-                    Log.d(TAG, msg)
-                    appendApiLog("STEP", dateKey, code, msg)
+            if (shouldSyncSteps) {
+                val stepTotal = json.optJSONObject("steps")?.optInt("total") ?: 0
+                if (stepTotal > 0) {
+                    val stepPayload = JSONObject().apply {
+                        put("Day",   day)
+                        put("Month", month)
+                        put("Year",  year)
+                        put("Time",  "11:59 PM")
+                        put("Count", stepTotal)
+                    }
+                    val code = postEncrypted(STEP_ENDPOINT, stepPayload.toString(), token, deviceInfoHeader)
+                    if (code in 200..299) {
+                        val msg = "✅ Steps synced for ${entry.date}: $stepTotal"
+                        Log.d(TAG, msg)
+                        appendApiLog("STEP", entry.date, code, msg)
+                    } else {
+                        val msg = "❌ Step sync FAILED for ${entry.date}"
+                        Log.e(TAG, msg)
+                        appendApiLog("STEP", entry.date, code, msg)
+                        entrySucceeded = false
+                        allSucceeded = false
+                    }
                 } else {
-                    val msg = "❌ Step sync FAILED for $dateKey"
-                    Log.e(TAG, msg)
-                    appendApiLog("STEP", dateKey, code, msg)
-                    daySucceeded = false
-                    allSucceeded = false
+                    Log.d(TAG, "Skipping step sync for ${entry.date}: stepTotal=0")
                 }
             }
 
             // ── Sleep sync ────────────────────────────────────────────────────
-            val sleepObj  = json.optJSONObject("sleep")
-            val sleepMins = sleepObj?.optInt("total_sleep_minutes") ?: 0
-            if (sleepMins > 0) {
-                val segments   = sleepObj?.optJSONArray("segments")
-                val sleepStart = segments?.optJSONObject(0)?.optString("start")
-                    ?: "${dateKey}T22:00:00.000"
-                val sleepEnd   = segments?.let {
-                    it.optJSONObject(it.length() - 1)?.optString("end")
-                } ?: estimateEnd(sleepStart, sleepMins)
+            if (shouldSyncSleep) {
+                val sleepObj  = json.optJSONObject("sleep")
+                val sleepMins = sleepObj?.optInt("total_sleep_minutes") ?: 0
+                if (sleepMins > 0) {
+                    val segments   = sleepObj?.optJSONArray("segments")
+                    val sleepStart = segments?.optJSONObject(0)?.optString("start")
+                        ?: "${entry.date}T22:00:00.000"
+                    val sleepEnd   = segments?.let {
+                        it.optJSONObject(it.length() - 1)?.optString("end")
+                    } ?: estimateEnd(sleepStart, sleepMins)
 
-                // Extract HH:mm from ISO timestamps (e.g. "2026-04-11T23:45:00.000" → "23:45")
-                val sleepingFrom = extractHHmm(sleepStart)
-                val sleepingTo   = extractHHmm(sleepEnd)
+                    val sleepingFrom = extractHHmm(sleepStart)
+                    val sleepingTo   = extractHHmm(sleepEnd)
+                    val timeAmPm     = toAmPm(sleepingTo)
 
-                // "Time" = wake-up time in 12-hour AM/PM format, matching Flutter's TimeOfDay.now().format()
-                val timeAmPm = toAmPm(sleepingTo)
-
-                val sleepPayload = JSONObject().apply {
-                    put("Day",         day)
-                    put("Month",       month)
-                    put("Year",        year)
-                    put("Time",        timeAmPm)
-                    put("SleepingFrom", sleepingFrom)
-                    put("SleepingTo",  sleepingTo)
-                    put("Count",       sleepMins.toString()) // API expects Count as String
-                }
-                val code = postEncrypted(SLEEP_ENDPOINT, sleepPayload.toString(), token, deviceInfoHeader)
-                if (code in 200..299) {
-                    val msg = "✅ Sleep synced for $dateKey: ${sleepMins}m"
-                    Log.d(TAG, msg)
-                    appendApiLog("SLEEP", dateKey, code, msg)
+                    val sleepPayload = JSONObject().apply {
+                        put("Day",         day)
+                        put("Month",       month)
+                        put("Year",        year)
+                        put("Time",        timeAmPm)
+                        put("SleepingFrom", sleepingFrom)
+                        put("SleepingTo",  sleepingTo)
+                        put("Count",       sleepMins.toString())
+                    }
+                    val code = postEncrypted(SLEEP_ENDPOINT, sleepPayload.toString(), token, deviceInfoHeader)
+                    if (code in 200..299) {
+                        val msg = "✅ Sleep synced for ${entry.date}: ${sleepMins}m"
+                        Log.d(TAG, msg)
+                        appendApiLog("SLEEP", entry.date, code, msg)
+                    } else {
+                        val msg = "❌ Sleep sync FAILED for ${entry.date}"
+                        Log.e(TAG, msg)
+                        appendApiLog("SLEEP", entry.date, code, msg)
+                        entrySucceeded = false
+                        allSucceeded = false
+                    }
                 } else {
-                    val msg = "❌ Sleep sync FAILED for $dateKey"
-                    Log.e(TAG, msg)
-                    appendApiLog("SLEEP", dateKey, code, msg)
-                    daySucceeded = false
-                    allSucceeded = false
+                    Log.d(TAG, "Skipping sleep sync for ${entry.date}: sleepMins=0")
                 }
             }
 
-            if (daySucceeded) syncedKeys.add(dateKey)
+            if (entrySucceeded) syncedEntries.add(entry)
         }
 
-        if (syncedKeys.isNotEmpty()) {
-            removeFromQueue(queueFile, syncedKeys)
-            Log.d(TAG, "🗑️ Removed from queue: $syncedKeys")
+        if (syncedEntries.isNotEmpty()) {
+            removeFromQueue(queueFile, syncedEntries)
+            Log.d(TAG, "🗑️ Removed from queue: $syncedEntries")
         }
 
         return@withContext if (allSucceeded) Result.success() else Result.retry()
@@ -180,25 +260,14 @@ class ApiSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorke
 
     // ── Encryption — mirrors EncryptionService.dart exactly ───────────────
 
-    /**
-     * AES-256-CBC / PKCS5 (= PKCS7) encrypt [plainText].
-     * Returns a map with:
-     *   "encryptedData" → Base64 ciphertext (same as Dart's encrypted.base64)
-     *   "Hash"          → sha256(encryptedData) hex string
-     */
     private fun encryptPayload(plainText: String): Map<String, String> {
         val keySpec = SecretKeySpec(AES_KEY.toByteArray(Charsets.UTF_8), "AES")
         val ivSpec  = IvParameterSpec(AES_IV.toByteArray(Charsets.UTF_8))
-
-        // "PKCS5Padding" is identical to PKCS7 for block sizes ≤ 256-bit in JVM
         val cipher  = Cipher.getInstance("AES/CBC/PKCS5Padding")
         cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivSpec)
-
         val cipherBytes     = cipher.doFinal(plainText.toByteArray(Charsets.UTF_8))
         val encryptedBase64 = Base64.encodeToString(cipherBytes, Base64.NO_WRAP)
-
         val hash = sha256Hex(encryptedBase64)
-
         return mapOf("encryptedData" to encryptedBase64, "Hash" to hash)
     }
 
@@ -208,12 +277,8 @@ class ApiSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         return hashBytes.joinToString("") { "%02x".format(it) }
     }
 
-    // ── Device info — mirrors DeviceTokenService.buildDeviceInfoHeader() ──
+    // ── Device info ────────────────────────────────────────────────────────
 
-    /**
-     * Returns base64(jsonEncode(deviceFields)) — same logic as Dart's
-     * DeviceTokenService._build() / getDeviceHeaders().
-     */
     private fun buildDeviceInfoHeader(): String {
         val info = JSONObject().apply {
             put("platform",     "android")
@@ -237,12 +302,6 @@ class ApiSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorke
 
     // ── HTTP helpers ───────────────────────────────────────────────────────
 
-    /**
-     * Encrypts [plainJsonBody] and POSTs it to [endpoint] with all required
-     * headers, mirroring ApiService.post(encryptionRequired: true).
-     *
-     * Returns HTTP response code, or 0 if a network/crypto error occurs.
-     */
     private fun postEncrypted(
         endpoint:         String,
         plainJsonBody:    String,
@@ -285,10 +344,6 @@ class ApiSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorke
 
     // ── SharedPreferences helpers ─────────────────────────────────────────
 
-    /**
-     * Auth token stored by Dart's shared_preferences as flutter.auth_token
-     * in FlutterSharedPreferences (this is what AuthHeaderHelper reads).
-     */
     private fun getAuthToken(): String? {
         val prefs = applicationContext.getSharedPreferences(
             "FlutterSharedPreferences", Context.MODE_PRIVATE
@@ -296,21 +351,15 @@ class ApiSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         return prefs.getString("flutter.auth_token", null)
     }
 
-    // ── Sync queue helpers ─────────────────────────────────────────────────
+    // ── Sync queue helpers (instance — operate on the actual file) ─────────
 
-    private fun readQueue(file: java.io.File): List<String> = try {
-        val arr = org.json.JSONArray(file.readText())
-        (0 until arr.length()).map { arr.getString(it) }
-    } catch (e: Exception) {
-        Log.e(TAG, "readQueue error: ${e.message}")
-        emptyList()
-    }
-
-    private fun removeFromQueue(file: java.io.File, toRemove: List<String>) {
+    private fun removeFromQueue(file: java.io.File, toRemove: List<SyncEntry>) {
         try {
-            val current = readQueue(file).toMutableList()
-            current.removeAll(toRemove.toSet())
-            file.writeText(org.json.JSONArray(current).toString())
+            val current = Companion.readQueue(file)
+            current.removeAll { entry ->
+                toRemove.any { it.date == entry.date && it.type == entry.type }
+            }
+            Companion.writeQueue(file, current)
         } catch (e: Exception) {
             Log.e(TAG, "removeFromQueue error: ${e.message}")
         }
@@ -318,30 +367,21 @@ class ApiSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorke
 
     // ── Misc helpers ───────────────────────────────────────────────────────
 
-    /**
-     * Extracts "HH:mm" from an ISO timestamp like "2026-04-11T23:45:00.000".
-     * Falls back to "00:00" on any parse error.
-     */
     private fun extractHHmm(iso: String): String {
         return try {
-            // Handles both "2026-04-11T23:45:00.000" and bare "23:45"
             val timePart = if (iso.contains("T")) iso.substringAfter("T") else iso
-            timePart.take(5) // "HH:mm"
+            timePart.take(5)
         } catch (_: Exception) {
             "00:00"
         }
     }
 
-    /**
-     * Converts a 24-hour "HH:mm" string into Flutter's TimeOfDay.format() output,
-     * e.g. "23:45" → "11:45 PM", "00:30" → "12:30 AM".
-     */
     private fun toAmPm(hhmm: String): String {
         return try {
-            val parts = hhmm.split(":")
+            val parts  = hhmm.split(":")
             val hour24 = parts[0].toInt()
             val minute = parts[1].toInt()
-            val amPm  = if (hour24 < 12) "AM" else "PM"
+            val amPm   = if (hour24 < 12) "AM" else "PM"
             val hour12 = when {
                 hour24 == 0  -> 12
                 hour24 > 12  -> hour24 - 12
@@ -366,9 +406,9 @@ class ApiSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorke
 
     private fun appendApiLog(type: String, dateKey: String, code: Int, message: String) {
         try {
-            val fsDir = java.io.File(applicationContext.filesDir, "fs")
+            val fsDir   = java.io.File(applicationContext.filesDir, "fs")
             val logFile = java.io.File(fsDir, "api_sync_logs.json")
-            val fmt = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+            val fmt     = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
             val timestamp = fmt.format(java.util.Date())
 
             val entry = JSONObject().apply {
@@ -380,19 +420,15 @@ class ApiSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             }
 
             val array = if (logFile.exists()) {
-                try {
-                    org.json.JSONArray(logFile.readText())
-                } catch (e: Exception) {
-                    org.json.JSONArray()
-                }
+                try { JSONArray(logFile.readText()) } catch (e: Exception) { JSONArray() }
             } else {
-                org.json.JSONArray()
+                JSONArray()
             }
 
             array.put(entry)
 
             // Keep only latest 100 logs
-            val trimmedArray = org.json.JSONArray()
+            val trimmedArray = JSONArray()
             val startIdx = if (array.length() > 100) array.length() - 100 else 0
             for (i in startIdx until array.length()) {
                 trimmedArray.put(array.get(i))

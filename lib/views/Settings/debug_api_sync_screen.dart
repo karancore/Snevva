@@ -105,14 +105,22 @@ class _DebugApiSyncScreenState extends State<DebugApiSyncScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: Colors.blue.withOpacity(0.2),
+                                    color: type == 'STEP' 
+                                        ? Colors.orange.withOpacity(0.2) 
+                                        : type == 'SLEEP'
+                                            ? Colors.purple.withOpacity(0.2)
+                                            : Colors.blue.withOpacity(0.2),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
                                     type,
                                     style: TextStyle(
                                       fontSize: 10,
-                                      color: Colors.blue[800],
+                                      color: type == 'STEP' 
+                                          ? Colors.orange[800] 
+                                          : type == 'SLEEP'
+                                              ? Colors.purple[800]
+                                              : Colors.blue[800],
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),

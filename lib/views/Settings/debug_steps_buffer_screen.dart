@@ -36,13 +36,25 @@ class _DebugStepsBufferScreenState extends State<DebugStepsBufferScreen> {
       }
 
       String queueContent = "File not found or empty.";
-      List<String> queueList = [];
+      List<Map<String, dynamic>> queueList = [];
       if (syncQueue.existsSync()) {
-        queueContent = await syncQueue.readAsString();
+        final rawQueue = await syncQueue.readAsString();
         try {
-          final decodedQueue = jsonDecode(queueContent) as List;
-          queueList = decodedQueue.map((e) => e.toString()).toList();
-        } catch (_) {}
+          final decodedQueue = jsonDecode(rawQueue) as List;
+          queueContent = const JsonEncoder.withIndent('  ').convert(decodedQueue);
+          for (var e in decodedQueue) {
+            if (e is Map<String, dynamic>) {
+              queueList.add({
+                'date': e['date']?.toString() ?? '',
+                'type': e['type']?.toString() ?? 'both'
+              });
+            } else if (e is String) {
+              queueList.add({'date': e, 'type': 'both'});
+            }
+          }
+        } catch (_) {
+          queueContent = rawQueue;
+        }
       }
 
       List<dynamic> apiLogs = [];
@@ -65,8 +77,8 @@ class _DebugStepsBufferScreenState extends State<DebugStepsBufferScreen> {
             
             final stepsObj = json['steps'] ?? {};
             
-            // It is pending if the dateKey is present in the sync queue
-            final isPending = queueList.contains(dateKey);
+            // It is pending if the dateKey is present in the sync queue for steps or both
+            final isPending = queueList.any((q) => q['date'] == dateKey && (q['type'] == 'steps' || q['type'] == 'both'));
 
             // Filter API logs strictly for this dateKey and STEP type
             final relatedLogs = apiLogs.where((l) => 

@@ -153,22 +153,21 @@ object BufferManager {
     // SYNC QUEUE
     // ─────────────────────────────────────────────
 
-    fun addToSyncQueue(context: Context, dateKey: String) {
-        try {
-            val queueFile = File(fsDir(context), "sync_queue.json")
-            val existing = if (queueFile.exists()) {
-                val arr = org.json.JSONArray(queueFile.readText())
-                (0 until arr.length()).map { arr.getString(it) }.toMutableList()
-            } else mutableListOf()
-
-            if (!existing.contains(dateKey)) {
-                existing.add(dateKey)
-                queueFile.writeText(org.json.JSONArray(existing).toString())
-                Log.d(TAG, "Added $dateKey to sync queue")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "addToSyncQueue error: ${e.message}")
-        }
+    /**
+     * Adds [dateKey] to the typed sync queue.
+     *
+     * @param type One of [ApiSyncWorker.TYPE_STEPS], [ApiSyncWorker.TYPE_SLEEP],
+     *             or [ApiSyncWorker.TYPE_BOTH]. Defaults to TYPE_BOTH so existing
+     *             call-sites that don't pass a type remain backward-compatible.
+     */
+    fun addToSyncQueue(
+        context: Context,
+        dateKey: String,
+        type: String = ApiSyncWorker.TYPE_BOTH,
+    ) {
+        // Delegate to ApiSyncWorker so the typed JSON format is managed in one place.
+        ApiSyncWorker.addToSyncQueue(context, dateKey, type)
+        Log.d(TAG, "Added $dateKey [$type] to sync queue")
     }
 
     // ─────────────────────────────────────────────

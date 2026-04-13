@@ -34,12 +34,21 @@ class _DebugSleepBufferScreenState extends State<DebugSleepBufferScreen> {
         bufContent = await sleepBuf.readAsString();
       }
 
-      List<String> queueList = [];
+      List<Map<String, dynamic>> queueList = [];
       if (syncQueue.existsSync()) {
         final queueContent = await syncQueue.readAsString();
         try {
           final decodedQueue = jsonDecode(queueContent) as List;
-          queueList = decodedQueue.map((e) => e.toString()).toList();
+          for (var e in decodedQueue) {
+            if (e is Map<String, dynamic>) {
+              queueList.add({
+                'date': e['date']?.toString() ?? '',
+                'type': e['type']?.toString() ?? 'both'
+              });
+            } else if (e is String) {
+              queueList.add({'date': e, 'type': 'both'});
+            }
+          }
         } catch (_) {}
       }
 
@@ -63,7 +72,8 @@ class _DebugSleepBufferScreenState extends State<DebugSleepBufferScreen> {
             
             // Extract just the sleep part beautifully
             if (json.containsKey('sleep')) {
-              final isPending = queueList.contains(dateKey);
+              // It is pending if the dateKey is present in the sync queue for sleep or both
+              final isPending = queueList.any((q) => q['date'] == dateKey && (q['type'] == 'sleep' || q['type'] == 'both'));
 
               // Filter API logs strictly for this dateKey and SLEEP type
               final relatedLogs = apiLogs.where((l) => 

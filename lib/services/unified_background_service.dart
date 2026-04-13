@@ -216,39 +216,11 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
         prefs: prefs,
       );
 
-      final isSleeping = prefs.getBool("is_sleeping") ?? false;
-      if (isSleeping) {
-        final goalMinutes = prefs.getInt("sleep_goal_minutes") ?? 480;
-        final totalSleepMinutes =
-            await _sleepNoticingService.getTotalSleepMinutes();
-        final windowKey = prefs.getString("current_sleep_window_key");
-        final startTime = prefs.getString("sleep_start_time");
-
-        service.invoke("sleep_update", {
-          "elapsed_minutes": totalSleepMinutes,
-          "goal_minutes": goalMinutes,
-          "is_sleeping": true,
-          "current_sleep_window_key": windowKey,
-          "start_time": startTime,
-        });
-
-        _updateSleepNotification(
-          service: service,
-          elapsedMinutes: totalSleepMinutes,
-          goalMinutes: goalMinutes,
-        );
-
-        // Auto-close if sleep window has ended
-        final windowEndStr = prefs.getString("current_sleep_window_end");
-        if (windowEndStr != null) {
-          final windowEnd = DateTime.parse(windowEndStr);
-          if (DateTime.now().isAfter(windowEnd)) {
-            _sleepProgressTimer?.cancel();
-            _sleepProgressTimer = null;
-            await _stopSleepAndSave(service, prefs);
-          }
-        }
-      }
+      // NOTE: Auto-close on window end is intentionally NOT done here.
+      // SleepCalcWorker.kt owns sleep finalization — it fires at the exact
+      // wake time, writes flutter.sleep_final_minutes, clears is_sleeping,
+      // and enqueues the sleep API call. Dart duplicating that logic would
+      // cause race conditions and double API calls.
     });
 
     // ═══════════════════════════════════════════════════════════════
@@ -331,7 +303,10 @@ void _startHeartbeatTimer({
       final windowKey = prefs.getString('current_sleep_window_key');
       final startTime = prefs.getString('sleep_start_time');
 
-      // Write elapsed minutes so Kotlin can display it in the unified notification.
+      // Write elapsed minutes so Kotlin's StepCounterService 1-min ticker can
+      // display CASE A (live progress) in the unified notification.
+      // SleepCalcWorker will overwrite this with the final value when the
+      // window ends — Dart must NOT call _stopSleepAndSave() for that.
       await prefs.setInt('sleep_elapsed_minutes', totalSleepMinutes);
 
       service.invoke('sleep_update', {
@@ -342,17 +317,13 @@ void _startHeartbeatTimer({
         'start_time': startTime,
       });
 
-      // Auto-close when window has passed
-      final windowEndStr = prefs.getString('current_sleep_window_end');
-      if (windowEndStr != null) {
-        try {
-          final windowEnd = DateTime.parse(windowEndStr);
-          if (DateTime.now().isAfter(windowEnd)) {
-            _sleepNoticingService.stopMonitoring();
-            await _stopSleepAndSave(service, prefs);
-          }
-        } catch (_) {}
-      }
+      // NOTE: Auto-close on window end is intentionally NOT performed here.
+      // SleepCalcWorker.kt is scheduled for the exact wake time and handles:
+      //   • flushing sleep_buf.tmp → daily JSON
+      //   • writing flutter.sleep_final_minutes + clearing is_sleeping
+      //   • queuing the sleep API call
+      //   • rescheduling itself for the next night
+      // Dart interfering here would cause race conditions and double-queuing.
     } else {
       await _restoreOrAutoStartSleepTracking(
         service: service,
@@ -381,10 +352,10 @@ Future<void> _restoreOrAutoStartSleepTracking({
 }) async {
   await prefs.reload();
 
-  final bedtimeMinutes = prefs.getInt("user_bedtime_ms");
+  final bedtimeMinutes  = prefs.getInt("user_bedtime_ms");
   final waketimeMinutes = prefs.getInt("user_waketime_ms");
-  final nowTime = DateTime.now();
-  final sleepWindow = _resolveSleepWindow(
+  final nowTime         = DateTime.now();
+  final sleepWindow     = _resolveSleepWindow(
     prefs: prefs,
     bedtimeMinutes: bedtimeMinutes,
     waketimeMinutes: waketimeMinutes,
@@ -394,22 +365,24 @@ Future<void> _restoreOrAutoStartSleepTracking({
   final isSleeping = prefs.getBool("is_sleeping") ?? false;
 
   if (isSleeping) {
-    // Past window end → auto-save and exit sleep mode
+    // Past window end: do NOT call _stopSleepAndSave() here.
+    // SleepCalcWorker.kt fires at the wake time and owns finalization:
+    //   flush → compute final total → write flutter.sleep_final_minutes
+    //   → clear is_sleeping → queue sleep API.
+    // If the BG isolate somehow wakes us after the window, just stop
+    // monitoring screen events and let SleepCalcWorker finish the job.
     if (sleepWindow != null && nowTime.isAfter(sleepWindow.end)) {
-      print("⏰ Service recovery detected window end. Auto-saving sleep...");
-      _sleepProgressTimer?.cancel();
-      _sleepProgressTimer = null;
-      await _stopSleepAndSave(service, prefs);
+      print("⏰ _restoreOrAutoStart: window passed — stopping screen monitor, SleepCalcWorker handles finalization.");
+      _sleepNoticingService.stopMonitoring();
       return;
     }
 
-    // Resume active sleep session
+    // Resume active sleep session (still within window)
     await _sleepNoticingService.initializeForSleepWindow();
     _sleepNoticingService.startMonitoring();
 
-    final goalMinutes = prefs.getInt("sleep_goal_minutes") ?? 480;
-    final totalSleepMinutes =
-        await _sleepNoticingService.getTotalSleepMinutes();
+    final goalMinutes       = prefs.getInt("sleep_goal_minutes") ?? 480;
+    final totalSleepMinutes = await _sleepNoticingService.getTotalSleepMinutes();
 
     service.invoke("sleep_update", {
       "elapsed_minutes": totalSleepMinutes,
@@ -432,7 +405,7 @@ Future<void> _restoreOrAutoStartSleepTracking({
     return;
   }
 
-  // Not sleeping — check if we should auto-start
+  // Not sleeping — check if we should auto-start the session
   if (sleepWindow == null) return;
 
   final blockedByManualStop = await _isManualStopBlockingThisWindow(
@@ -617,109 +590,36 @@ Future<void> _ensureCurrentDayStepState({
 // 💾 STOP SLEEP AND SAVE — writes to file storage, not Hive
 // ───────────────────────────────────────────────────────────────────
 
+/// Clears Dart-side sleep session state so the UI knows the session ended.
+///
+/// ⚠️  This is now a THIN UI-STATE CLEAR ONLY.
+/// All durable work (flush buffers, compute final total, update notification
+/// SharedPrefs, queue sleep API) is performed by SleepCalcWorker.kt which
+/// fires at the exact wake time — completely independently of the Dart UI.
+///
+/// This function MUST NOT:
+///   • flush sleep_buf.tmp
+///   • write flutter.sleep_elapsed_minutes or flutter.sleep_final_minutes
+///   • call FileStorageService().addToSyncQueue()
+///   • call FileStorageService().flushSleepToDaily()
+/// Doing any of those would race against SleepCalcWorker and cause
+/// double-queuing or stale data overwriting the Kotlin-computed final total.
 Future<void> _stopSleepAndSave(
   ServiceInstance service,
   SharedPreferences prefs,
 ) async {
-  final now = DateTime.now();
-  final startString = prefs.getString("sleep_start_time");
+  final windowKey    = prefs.getString("current_sleep_window_key");
+  final goalMinutes  = prefs.getInt("sleep_goal_minutes") ?? 480;
+  final startString  = prefs.getString("sleep_start_time");
+  final endString    = prefs.getString("current_sleep_window_end");
 
-  if (startString == null) {
-    print("⚠️ No sleep start time found");
-    await prefs.setBool("is_sleeping", false);
-    await prefs.remove("current_sleep_window_start");
-    await prefs.remove("current_sleep_window_end");
-    await prefs.remove("current_sleep_window_key");
-    return;
-  }
+  // Relay a best-effort UI update using the last known elapsed minutes.
+  // SleepCalcWorker will shortly overwrite flutter.sleep_elapsed_minutes
+  // with the true final total; the notification will self-correct on the
+  // next 1-min Kotlin tick.
+  final lastElapsed = prefs.getInt('sleep_elapsed_minutes') ?? 0;
 
-  final start = DateTime.parse(startString);
-  final goalMinutes = prefs.getInt("sleep_goal_minutes") ?? 480;
-  final windowKey = prefs.getString("current_sleep_window_key");
-  final windowStartString = prefs.getString("current_sleep_window_start");
-  final windowEndString = prefs.getString("current_sleep_window_end");
-
-  DateTime effectiveStart = start;
-  DateTime effectiveEnd = now;
-
-  if (windowStartString != null) {
-    try {
-      final windowStart = DateTime.parse(windowStartString);
-      if (effectiveStart.isBefore(windowStart)) effectiveStart = windowStart;
-    } catch (_) {}
-  }
-
-  if (windowEndString != null) {
-    try {
-      final windowEnd = DateTime.parse(windowEndString);
-      if (effectiveEnd.isAfter(windowEnd)) effectiveEnd = windowEnd;
-    } catch (_) {}
-  }
-
-  if (!effectiveEnd.isAfter(effectiveStart)) effectiveEnd = effectiveStart;
-
-  // ── Step 1: Close any open interval (screen still off at wake time) ─────
-  // If the screen is still off when the session ends, the open interval has
-  // NOT yet been written to sleep_buf.tmp. We compute and flush it now so
-  // that it is included in the final total.
-  if (windowKey != null) {
-    final openMins = await _sleepNoticingService.flushOpenInterval(windowKey);
-    if (openMins > 0) {
-      debugPrint('📱 Flushed open interval at session end: ${openMins}m');
-    }
-  }
-
-  // ── Step 2: Flush buffer → daily JSON BEFORE reading the total ──────────
-  // sleep_buf.tmp may contain intervals from earlier SCREEN_ON events that
-  // have never been merged into the daily JSON yet.  Reading the total before
-  // this flush caused those intervals to be silently ignored.
-  if (windowKey != null) {
-    await FileStorageService().flushSleepToDaily();
-    debugPrint('✅ Sleep buffer flushed before total read');
-  }
-
-  // ── Step 3: Read the TRUE final total from the daily JSON ───────────────
-  // Do NOT use _sleepNoticingService.getTotalSleepMinutes() here — that reads
-  // the in-memory _bufferedSleepMinutes cache which may undercount the full
-  // merged duration (e.g. the last open-interval contribution is not yet
-  // reflected in the in-memory counter after flushOpenInterval writes it to
-  // the file buffer and then flushSleepToDaily merges it into the JSON).
-  // Reading directly from the daily JSON after the flush gives us the ground
-  // truth that both the notification and the UI should show.
-  int totalSleepMinutes = 0;
-  if (windowKey != null) {
-    totalSleepMinutes = await FileStorageService().readDailySleepMinutes(windowKey);
-    debugPrint('📊 Final sleep total from daily JSON: ${totalSleepMinutes}m');
-  }
-  // Fallback: if the file read returns 0 (e.g. flush failed), use the
-  // in-memory estimate so we never display '0' to the user.
-  if (totalSleepMinutes == 0) {
-    totalSleepMinutes = await _sleepNoticingService.getTotalSleepMinutes();
-    debugPrint('⚠️ Fell back to in-memory sleep total: ${totalSleepMinutes}m');
-  }
-
-  print("💾 Saving sleep data:");
-  print("   Start: $effectiveStart");
-  print("   End: $effectiveEnd");
-  print("   Total sleep: $totalSleepMinutes mins");
-  print("   Goal: $goalMinutes mins");
-
-  // ── Step 4: Queue the day for API sync ──────────────────────────────────
-  if (windowKey != null) {
-    await FileStorageService().addToSyncQueue(windowKey);
-    debugPrint('✅ Sleep session saved to file storage: $windowKey');
-  }
-
-  // ── Step 5: Persist final total so Kotlin notification shows correct value ─
-  // The native StepCounterService 1-min ticker reads flutter.sleep_elapsed_minutes
-  // from SharedPrefs.  The heartbeat timer only wrote partial sleep time during
-  // the session (last screen-off accumulation).  We now overwrite it with the
-  // true merged total so the notification immediately shows e.g. "7h 03m"
-  // instead of the stale heartbeat value (e.g. "4h 47m").
-  await prefs.setInt('sleep_elapsed_minutes', totalSleepMinutes);
-  debugPrint('🔔 sleep_elapsed_minutes updated → ${totalSleepMinutes}m (notification fixed)');
-
-  // Clear sleep state
+  // Clear Dart-side session state (UI only)
   await prefs.setBool("is_sleeping", false);
   await prefs.remove("sleep_start_time");
   await prefs.remove("sleep_goal_minutes");
@@ -727,27 +627,15 @@ Future<void> _stopSleepAndSave(
   await prefs.remove("current_sleep_window_end");
   await prefs.remove("current_sleep_window_key");
 
-  // Clear sleep intervals from SharedPrefs (no longer the source of truth)
-  if (windowKey != null) {
-    await prefs.remove('sleep_intervals_$windowKey');
-    await prefs.remove('last_screen_off_$windowKey');
-  }
+  print("✅ Dart sleep state cleared (SleepCalcWorker owns finalization).");
 
-  print("✅ Sleep data saved successfully");
-
-  // Notify UI
+  // Notify UI so Sleep screen can display a result immediately
   service.invoke("sleep_saved", {
-    "duration": totalSleepMinutes,
+    "duration":     lastElapsed,
     "goal_minutes": goalMinutes,
-    "start_time": effectiveStart.toIso8601String(),
-    "end_time": effectiveEnd.toIso8601String(),
+    "start_time":   startString ?? DateTime.now().toIso8601String(),
+    "end_time":     endString   ?? DateTime.now().toIso8601String(),
   });
-
-  // Restore step notification — Kotlin will pick up new sleep_elapsed_minutes
-  // on its next 1-min tick; no extra call needed here.
-  await prefs.reload();
-  final steps = prefs.getInt("today_steps") ?? 0;
-  _updateStepNotification(service: service, steps: steps);
 }
 
 // ───────────────────────────────────────────────────────────────────

@@ -1,10 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:screen_state/screen_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/services/file_storage_service.dart';
 
 /// SleepNoticingService
@@ -172,22 +170,10 @@ class SleepNoticingService {
     }
 
     final now = DateTime.now();
-    if (!now.isBefore(window.end) &&
-        Get.context != null &&
-        Get.isRegistered<SleepController>()) {
-      final bedMin = prefs.getInt(_bedtimeKey);
-      final wakeMin = prefs.getInt(_waketimeKey);
-
-      if (bedMin != null && wakeMin != null) {
-        final bedTime = TimeOfDay(hour: bedMin ~/ 60, minute: bedMin % 60);
-        final wakeTime = TimeOfDay(hour: wakeMin ~/ 60, minute: wakeMin % 60);
-
-        await Get.find<SleepController>().updateSleepTimestoServer(
-          bedTime,
-          wakeTime,
-        );
-      }
-    }
+    // NOTE: Do NOT call SleepController.updateSleepTimestoServer() here.
+    // All sleep API calls are owned by SleepCalcWorker → ApiSyncWorker (Kotlin).
+    // Dart calling the API directly here would bypass the typed sync queue
+    // and cause duplicate / premature API submissions.
 
     final lastOffKey = 'last_screen_off_${window.dateKey}';
 
