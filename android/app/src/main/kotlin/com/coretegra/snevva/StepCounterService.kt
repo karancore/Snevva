@@ -111,6 +111,28 @@ class StepCounterService : Service(), SensorEventListener {
         // Dart hasn't run yet.
         ensureNotificationChannel()
 
+        // ── Post-logout user-switch guard ──────────────────────────────────────
+        // forceLogout() calls FlutterSharedPreferences.clear() which removes
+        // "flutter.today_steps". Our own steps_prefs is a different file and
+        // is NOT cleared on logout, so User B would inherit User A's step count.
+        // If the key is absent → fresh login → reset our counter to 0.
+        val flutterPrefs = applicationContext.getSharedPreferences(
+            "FlutterSharedPreferences", android.content.Context.MODE_PRIVATE
+        )
+        if (!flutterPrefs.contains("flutter.today_steps")) {
+            Log.d("StepService", "🔄 flutter.today_steps absent (post-logout). Resetting step counter for new user.")
+            prefs.edit()
+                .putInt(KEY_TODAY_STEPS, 0)
+                .remove(KEY_DATE)   // force a fresh date so day-reset logic is clean
+                .apply()
+            // Also zero out the Flutter-visible key immediately so the notification
+            // shows 0 right away, before any API seed arrives.
+            flutterPrefs.edit()
+                .putLong("flutter.today_steps", 0L)
+                .apply()
+        }
+        // ── End guard ──────────────────────────────────────────────────────────
+
         val stepsToday = prefs.getInt(KEY_TODAY_STEPS, 0)
         val notification = buildNotification(stepsToday)
 
