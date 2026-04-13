@@ -1,4 +1,5 @@
 import 'dart:math';
+
 import '../../Controllers/ProfileSetupAndQuestionnare/height_and_weight_controller.dart';
 import '../../consts/consts.dart';
 
@@ -18,7 +19,7 @@ class _WeightScaleState extends State<WeightScale>
   final double minWeight = 0;
   final double maxWeight = 150;
 
-  final controller = Get.put(HeightWeightController());
+  final controller = Get.find<HeightWeightController>();
 
   @override
   void initState() {
@@ -30,8 +31,8 @@ class _WeightScaleState extends State<WeightScale>
     );
 
     // Delay needle animation by 1 second to simulate "scale starting"
-    Future.delayed(const Duration(seconds: 1), () {
-      animateNeedleToWeight(controller.weightInKg.value);
+    ever(controller.weightInKg, (value) {
+      animateNeedleToWeight(value);
     });
   }
 
@@ -42,6 +43,8 @@ class _WeightScaleState extends State<WeightScale>
   }
 
   void animateNeedleToWeight(double targetWeight) {
+    _controller.stop();
+    _controller.reset(); // 👈 IMPORTANT
     _animation = Tween<double>(begin: _needleWeight, end: targetWeight).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
     )..addListener(() {

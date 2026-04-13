@@ -12,7 +12,7 @@ import '../../views/ProfileAndQuestionnaire/questionnaire_screen.dart';
 class HeightWeightController extends GetxController {
   // height
 
-  RxDouble heightInCm = 140.0.obs;
+  RxDouble heightInCm = 0.0.obs;
 
   double get heightInFeet => heightInCm.value / 30.48;
 
@@ -195,6 +195,7 @@ class HeightWeightController extends GetxController {
           message: 'Profile data saved successfully.',
         );
         if (context.mounted) {
+          return;
           Get.to(() => QuestionnaireScreen());
         }
       }
