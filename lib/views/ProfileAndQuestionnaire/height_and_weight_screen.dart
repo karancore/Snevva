@@ -185,7 +185,7 @@ class _HeightWeightScreenState extends State<HeightWeightScreen> {
                             children: [
                               Obx(() {
                                 return Text(
-                                  '${controller.weightInKg.toStringAsFixed(1)} kg',
+                                  '${controller.weightInKg.value.toStringAsFixed(1)} kg',
                                   style: TextStyle(
                                     fontSize: 22,
                                     fontWeight: FontWeight.bold,

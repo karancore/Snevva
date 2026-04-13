@@ -16,7 +16,7 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
   final TextEditingController _heightController = TextEditingController();
   final TextEditingController _weightController = TextEditingController();
   final localStorageManager = Get.find<LocalStorageManager>();
-  final controller = Get.put(HeightWeightController());
+  final controller = Get.find<HeightWeightController>();
 
   @override
   void dispose() {
