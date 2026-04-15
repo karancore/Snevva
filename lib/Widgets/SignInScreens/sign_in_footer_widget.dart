@@ -111,7 +111,7 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
                     final googleAuth = Get.find<GoogleAuthService>();
 
                     await googleAuth.init(context);
-                    await googleAuth.signIn(); // ✅ REQUIRED
+                    // await googleAuth.signIn(); // ✅ REQUIRED
                   } catch (e) {
                     debugPrint("❌ Google sign-in failed: $e");
 
