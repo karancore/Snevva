@@ -135,8 +135,14 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
         await prefs.setString("current_sleep_window_key", sleepWindow.dateKey);
       }
 
+      // Seed the screen-off anchor for the edge-case where screen is already
+      // off at bedtime (SCREEN_OFF never fired after window opened).
+      // Kotlin's ScreenStateReceiver overwrites this with the real timestamp.
       await _sleepNoticingService.initializeForSleepWindow();
-      _sleepNoticingService.startMonitoring();
+      // NOTE: startMonitoring() intentionally NOT called here.
+      // Screen ON/OFF events are now tracked natively by
+      // StepCounterService.ScreenStateReceiver (Kotlin).  Calling
+      // startMonitoring() would double-write intervals to sleep_buf.tmp.
 
       service.invoke("sleep_update", {
         "elapsed_minutes": 0,
@@ -148,8 +154,9 @@ Future<bool> unifiedBackgroundEntry(ServiceInstance service) async {
       print("   Goal: $goalMinutes mins");
       print("   Window: ${sleepWindow?.start} → ${sleepWindow?.end}");
 
-      // Seed elapsed minutes so Kotlin's ticker shows sleep data immediately.
-      await prefs.setInt('sleep_elapsed_minutes', 0);
+      // NOTE: sleep_elapsed_minutes is owned by Kotlin's handleScreenOn().
+      // SleepCalcWorker already reset it to 0 at the end of the previous
+      // session — do NOT overwrite it here.
       _startSleepProgressTimer(
         service: service,
         prefs: prefs,
@@ -298,16 +305,39 @@ void _startHeartbeatTimer({
 
     if (isSleeping) {
       final goalMinutes = prefs.getInt('sleep_goal_minutes') ?? 480;
-      final totalSleepMinutes =
-          await _sleepNoticingService.getTotalSleepMinutes();
-      final windowKey = prefs.getString('current_sleep_window_key');
-      final startTime = prefs.getString('sleep_start_time');
+      final windowKey  = prefs.getString('current_sleep_window_key');
+      final startTime  = prefs.getString('sleep_start_time');
 
-      // Write elapsed minutes so Kotlin's StepCounterService 1-min ticker can
-      // display CASE A (live progress) in the unified notification.
-      // SleepCalcWorker will overwrite this with the final value when the
-      // window ends — Dart must NOT call _stopSleepAndSave() for that.
-      await prefs.setInt('sleep_elapsed_minutes', totalSleepMinutes);
+      // ── Live sleep total: Kotlin closed intervals + current open interval ───
+      // sleep_elapsed_minutes is incremented by StepCounterService.handleScreenOn()
+      // each time the screen turns on during the sleep window.
+      final closedMinutes = prefs.getInt('sleep_elapsed_minutes') ?? 0;
+
+      // Estimate the currently-open interval (screen still off = user sleeping).
+      int openMinutes = 0;
+      if (windowKey != null) {
+        final lastOffStr = prefs.getString('last_screen_off_$windowKey');
+        if (lastOffStr != null) {
+          try {
+            final lastOff   = DateTime.parse(lastOffStr);
+            final wStartStr = prefs.getString('current_sleep_window_start');
+            final wEndStr   = prefs.getString('current_sleep_window_end');
+            final now       = DateTime.now();
+            final wStart    = wStartStr != null ? DateTime.tryParse(wStartStr) : null;
+            final wEnd      = wEndStr   != null ? DateTime.tryParse(wEndStr)   : null;
+            final clampStart = (wStart != null && lastOff.isBefore(wStart)) ? wStart : lastOff;
+            final clampEnd   = (wEnd   != null && now.isAfter(wEnd))        ? wEnd   : now;
+            final diff       = clampEnd.difference(clampStart).inMinutes;
+            if (diff >= SleepNoticingService.minSleepGap.inMinutes) openMinutes = diff;
+          } catch (_) {}
+        }
+      }
+
+      final totalSleepMinutes = closedMinutes + openMinutes;
+
+      // NOTE: We do NOT write sleep_elapsed_minutes from Dart.
+      // Kotlin's handleScreenOn() is the sole owner of that key.
+      // Writing here would race against Kotlin and corrupt the running total.
 
       service.invoke('sleep_update', {
         'elapsed_minutes': totalSleepMinutes,
@@ -377,12 +407,14 @@ Future<void> _restoreOrAutoStartSleepTracking({
       return;
     }
 
-    // Resume active sleep session (still within window)
+    // Resume active sleep session (still within window).
+    // Seed the anchor for the edge-case where screen was already off at bedtime.
     await _sleepNoticingService.initializeForSleepWindow();
-    _sleepNoticingService.startMonitoring();
+    // NOTE: startMonitoring() intentionally NOT called — Kotlin owns screen tracking.
 
     final goalMinutes       = prefs.getInt("sleep_goal_minutes") ?? 480;
-    final totalSleepMinutes = await _sleepNoticingService.getTotalSleepMinutes();
+    // Read Kotlin's running total — incremented by handleScreenOn().
+    final totalSleepMinutes = prefs.getInt('sleep_elapsed_minutes') ?? 0;
 
     service.invoke("sleep_update", {
       "elapsed_minutes": totalSleepMinutes,
@@ -393,9 +425,7 @@ Future<void> _restoreOrAutoStartSleepTracking({
       "start_time": prefs.getString("sleep_start_time"),
     });
 
-    // Seed elapsed minutes so Kotlin's ticker shows current sleep data
-    // immediately after a service restore/restart.
-    await prefs.setInt('sleep_elapsed_minutes', totalSleepMinutes);
+    // NOTE: Do NOT write sleep_elapsed_minutes — Kotlin's handleScreenOn() owns it.
 
     _startSleepProgressTimer(
       service: service,
@@ -484,10 +514,13 @@ Future<void> _startSleepTrackingSession({
     await prefs.setString(_lastAutoStartedSleepWindowKey, sleepWindow.dateKey);
   }
 
+  // Seed the anchor for the edge-case where screen was already off at bedtime.
+  // Kotlin's ScreenStateReceiver overwrites this with the real timestamp.
   await _sleepNoticingService.initializeForSleepWindow();
-  _sleepNoticingService.startMonitoring();
+  // NOTE: startMonitoring() intentionally NOT called — Kotlin owns screen tracking.
 
-  final totalSleepMinutes = await _sleepNoticingService.getTotalSleepMinutes();
+  // Read Kotlin's accumulated sleep total (0 at session start after SleepCalcWorker reset).
+  final totalSleepMinutes = prefs.getInt('sleep_elapsed_minutes') ?? 0;
   final startTime =
       prefs.getString("sleep_start_time") ?? nowTime.toIso8601String();
 
@@ -503,9 +536,8 @@ Future<void> _startSleepTrackingSession({
   print("   Goal: $goalMinutes mins");
   print("   Window: ${sleepWindow?.start} → ${sleepWindow?.end}");
 
-  // Seed elapsed minutes in SharedPrefs so Kotlin's 1-min ticker
-  // immediately picks up the correct value without waiting for the first heartbeat.
-  await prefs.setInt('sleep_elapsed_minutes', totalSleepMinutes);
+  // NOTE: Do NOT write sleep_elapsed_minutes — Kotlin's handleScreenOn() owns it.
+  // SleepCalcWorker reset it to 0 at the end of last session, so it is correct.
 
   _startSleepProgressTimer(
     service: service,

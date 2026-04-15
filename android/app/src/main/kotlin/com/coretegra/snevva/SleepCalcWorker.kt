@@ -141,7 +141,10 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
             prefs.edit()
                 .putLong("flutter.sleep_final_minutes", finalSleepMinutes.toLong())
                 .putString("flutter.sleep_final_date", wakeDate)
-                .putLong("flutter.sleep_elapsed_minutes", finalSleepMinutes.toLong())
+                // Reset to 0 so next night's accumulation in StepCounterService.handleScreenOn()
+                // starts from zero.  StepCounterService.computeSleepDisplayMinutes() will use
+                // sleep_final_minutes (while sleep_final_date == today) for today's display.
+                .putLong("flutter.sleep_elapsed_minutes", 0L)
                 .putBoolean("flutter.is_sleeping", false)
                 // Clear all session window keys so Dart's BG isolate knows the session ended
                 .remove("flutter.sleep_start_time")
