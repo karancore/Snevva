@@ -73,7 +73,7 @@ class StepCounterController extends GetxController {
   @override
   Future<void> onInit() async {
     super.onInit();
-    await _init();
+    _init();
     await buildStepsHistoryMap();
     await loadTodayStepsFromFile();
   }
@@ -86,8 +86,7 @@ class StepCounterController extends GetxController {
   }
 
   Future<void> _init() async {
-    _prefs = await SharedPreferences.getInstance();
-
+   _prefs = await SharedPreferences.getInstance();
     _checkDayReset();
     scheduleMidnightReset();
 
