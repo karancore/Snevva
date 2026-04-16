@@ -408,14 +408,11 @@ class AuthService {
       await prefs.clear();
 
       try {
-        await Hive.box<StepEntry>('step_history').clear();
+        final stepBox = await Hive.openBox<StepEntry>('step_history');
+        await stepBox.clear();
+        debugPrint('🗑️ step_history Hive box cleared');
       } catch (e) {
         debugPrint('❌ Failed to clear step_history on logout: $e');
-        try {
-          await Hive.box<StepEntry>('step_history').clear();
-        } catch (e2) {
-          debugPrint('❌ Second attempt to clear step_history failed: $e2');
-        }
       }
 
       final localStorageManager = Get.find<LocalStorageManager>();
