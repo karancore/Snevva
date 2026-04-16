@@ -1,3 +1,4 @@
+import 'package:alarm/alarm.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -9,6 +10,7 @@ import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
 import 'package:snevva/services/file_storage_service.dart';
 import 'package:snevva/services/notification_service.dart';
+import 'package:snevva/services/reminder/device_timezone_service.dart';
 import 'package:snevva/services/unified_background_service.dart';
 import 'package:timezone/data/latest.dart';
 import 'package:timezone/timezone.dart';
@@ -16,12 +18,16 @@ import 'package:timezone/timezone.dart';
 import '../common/agent_debug_logger.dart';
 import '../consts/consts.dart';
 
-
 // ====================================================================
 // 0️⃣ NOTIFICATION CHANNEL SETUP (CRITICAL FOR ANDROID 12+)
 // ====================================================================
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
+Future<void>? _alarmInitFuture;
+
+Future<void> ensureAlarmInitialized() {
+  return _alarmInitFuture ??= Alarm.init();
+}
 
 Future<void> createServiceNotificationChannel() async {
   // Single unified channel used by BOTH the native StepCounterService and the
@@ -229,7 +235,16 @@ Future<bool> initializeApp() async {
   try {
     // 🌍 Timezone
     initializeTimeZones();
-    setLocalLocation(getLocation('Asia/Kolkata'));
+    final timezoneId = await DeviceTimezoneService.instance.getTimeZoneId();
+    try {
+      setLocalLocation(getLocation(timezoneId));
+    } catch (_) {
+      setLocalLocation(local);
+    }
+
+    // The alarm plugin expects initialization before any alarm reads,
+    // restores, reconciliation, or scheduling happen in app startup flows.
+    await ensureAlarmInitialized();
 
     // 📦 One-time file path migration: copies any daily JSON files that were
     // written to the OLD app_flutter/fs/daily/ path into the NEW files/fs/daily/

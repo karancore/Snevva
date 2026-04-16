@@ -6,6 +6,7 @@ import 'package:snevva/Controllers/Reminder/water_controller.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart'
     as reminder_payload;
 import 'package:snevva/models/reminders/water_reminder_model.dart';
+import 'package:snevva/services/reminder/reminder_alarm_transaction.dart';
 
 import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
@@ -50,13 +51,15 @@ class ReminderScheduler {
 
         reminder.validate();
 
-        await _scheduleByCategory(
-          reminder,
-          deletedGroupIds: deletedGroupIds,
-          deletedAlarmIds: deletedAlarmIds,
+        final transaction = ReminderAlarmTransaction(
+          saveReminder:
+              (updated) => _reminderController.updateReminderLocalOnly(updated),
         );
+        await transaction.schedule(reminder);
 
-        debugPrint("✅ Reminder scheduled successfully ID:${reminder.id}");
+        debugPrint(
+          "✅ Reminder scheduled successfully via Pipeline ID:${reminder.id}",
+        );
       } catch (e, s) {
         debugPrint("❌ Invalid reminder skipped: $e");
         debugPrint("📍 StackTrace: $s");
@@ -207,6 +210,16 @@ class ReminderScheduler {
           "groupId": reminder.id.toString(),
           "category": ReminderCategory.medicine.toString(),
           "type": "times",
+          "startDate": reminder.startDate,
+          "endDate": reminder.endDate,
+          "remindBefore":
+              reminder.remindBefore == null
+                  ? null
+                  : {
+                    "time": reminder.remindBefore!.time,
+                    "unit": reminder.remindBefore!.unit,
+                  },
+          "scheduleMetadata": reminder.scheduleMetadata.toJson(),
         }),
         notificationSettings: NotificationSettings(
           title: reminder.title,
@@ -421,6 +434,16 @@ class ReminderScheduler {
         "category": category,
         "type": "before",
         "mainTime": mainTime.toIso8601String(),
+        "startDate": reminder.startDate,
+        "endDate": reminder.endDate,
+        "remindBefore":
+            reminder.remindBefore == null
+                ? null
+                : {
+                  "time": reminder.remindBefore!.time,
+                  "unit": reminder.remindBefore!.unit,
+                },
+        "scheduleMetadata": reminder.scheduleMetadata.toJson(),
       }),
       notificationSettings: NotificationSettings(
         title: "Upcoming ${category.capitalizeFirst} Reminder",

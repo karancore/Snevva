@@ -22,6 +22,11 @@ extension WaterToMedicineMapper on WaterReminderModel {
                 )
                 : null,
       ),
+      startWaterTime: waterReminderStartTime,
+      endWaterTime: waterReminderEndTime,
+      notes: notes,
+      updatedAt: updatedAt,
+      scheduleMetadata: scheduleMetadata,
     );
   }
 }

@@ -1,8 +1,15 @@
+import 'dart:async';
+
+import 'dart:convert';
+
 import 'package:alarm/alarm.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Controllers/Reminder/water_controller.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
+import 'package:snevva/models/reminder_schedule_metadata.dart';
+import 'package:snevva/services/reminder/reminder_identity.dart';
+import 'package:snevva/services/reminder/reminder_schedule_resolver.dart';
 
 import '../../common/custom_snackbar.dart';
 import '../../common/global_variables.dart';
@@ -18,153 +25,134 @@ class MealController extends GetxController {
 
   Future<void> addMealAlarm(
     DateTime scheduledTime,
-    BuildContext context,
-  ) async {
-    final id = alarmsId();
+    BuildContext context, {
+    int? reminderIdOverride,
+  }) async {
+    final id = reminderIdOverride ?? alarmsId();
     final title = reminderController.titleController.text.trim();
     final notes = reminderController.notesController.text.trim();
+    final metadata = await reminderController.buildScheduleMetadata(
+      category: 'meal',
+      semantics: ScheduleSemantics.wallClock,
+    );
     final mealData = ReminderPayloadModel(
       id: id,
-      category: "Meal",
+      category: "meal",
       title: title,
       notes: notes.isNotEmpty ? notes : "",
       customReminder: CustomReminder(
         type: Option.times,
         timesPerDay: TimesPerDay(
           count: 1.toString(),
-          list: [scheduledTime.toString()],
+          list: [canonicalLocalTime(scheduledTime.toIso8601String())],
         ),
       ),
+      startDate: canonicalLocalDate(scheduledTime.toIso8601String()),
+      scheduleMetadata: metadata,
     );
-    debugPrint("Meal Data: $mealData");
-    final alarmSettings = AlarmSettings(
-      id: id,
-      dateTime: scheduledTime,
-      assetAudioPath: mealSound,
-      loopAudio: true,
-      androidFullScreenIntent: true,
-      volumeSettings: VolumeSettings.fade(
-        volume: 0.8,
-        fadeDuration: Duration(seconds: 5),
-        volumeEnforced: true,
-      ),
+    final transaction = await reminderController.scheduleReminderLocally(
+      mealData,
+    );
+    final scheduledReminder = transaction.reminder;
 
-      notificationSettings: NotificationSettings(
-        title:
-            title.isNotEmpty
-                ? reminderController.titleController.text
-                : 'MEAL REMINDER',
-        body: notes,
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      ),
+    mealsList.value = await reminderController.loadReminderList("meals_list");
+    final displayTitle =
+        title.isNotEmpty
+            ? title
+            : transaction.mainAlarms.first.notificationSettings.title;
+
+    mealsList.add({displayTitle: transaction.mainAlarms.first});
+
+    await reminderController.saveReminderList(mealsList, "meals_list");
+    await reminderController.loadAllReminderLists();
+    unawaited(
+      reminderController
+          .addRemindertoAPI(scheduledReminder, context)
+          .catchError((_) {}),
     );
 
-    final success = await Alarm.set(alarmSettings: alarmSettings);
-    if (success) {
-      // Reload list from Hive to ensure we have the latest data and don't override
-      mealsList.value = await reminderController.loadReminderList("meals_list");
-
-      final reminderId = DateTime.now().millisecondsSinceEpoch;
-      final displayTitle = title.isNotEmpty ? title : 'MEAL REMINDER';
-
-      mealsList.add({displayTitle: alarmSettings});
-
-      await reminderController.saveReminderList(mealsList, "meals_list");
-
-      // Reload the combined list
-      await reminderController.loadAllReminderLists();
-      debugPrint("Meal data before API call: ${mealData.toJson()}");
-      reminderController.addRemindertoAPI(mealData, context);
-
-      // CustomSnackbar.showSuccess(
-      //   context: context,
-      //   title: 'Success',
-      //   message: 'Meal reminder set successfully!',
-      // );
-      reminderController.titleController.clear();
-      reminderController.notesController.clear();
-      CustomSnackbar().showReminderBar(context);
-      Get.back(result: true);
-    }
+    reminderController.titleController.clear();
+    reminderController.notesController.clear();
+    CustomSnackbar().showReminderBar(context);
+    Get.back(result: true);
   }
 
   Future<void> updateMealAlarm(
     DateTime scheduledTime,
     BuildContext context,
-    int alarmId,
+    int reminderId,
   ) async {
-    // Use same AlarmSettings logic as _addMealAlarm but with alarmId
-    final alarmSettings = AlarmSettings(
-      id: alarmId,
-      dateTime: scheduledTime,
-      assetAudioPath: mealSound,
-      androidFullScreenIntent: true,
-      loopAudio: true,
-      volumeSettings: VolumeSettings.fade(
-        volume: 0.8,
-        fadeDuration: const Duration(seconds: 5),
-        volumeEnforced: true,
-      ),
-      notificationSettings: NotificationSettings(
-        title:
-            reminderController.titleController.text.isNotEmpty
-                ? reminderController.titleController.text
-                : 'MEAL REMINDER',
-        body:
-            reminderController.notesController.text.isNotEmpty
-                ? reminderController.notesController.text
-                : '',
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      ),
-    );
-
-    await Alarm.set(alarmSettings: alarmSettings);
-
-    // Find and replace in List
     mealsList.value = await reminderController.loadReminderList("meals_list");
 
-    final id = alarmId;
     final title = reminderController.titleController.text.trim();
     final notes = reminderController.notesController.text.trim();
+    final matchedEntries = mealsList
+        .where(
+          (entry) => ReminderIdentity.matchesReminderId(
+            entry.values.first,
+            reminderId,
+          ),
+        )
+        .toList(growable: false);
+    final existingAlarm =
+        matchedEntries.isEmpty ? null : matchedEntries.last.values.first;
+    final payload =
+        existingAlarm?.payload == null
+            ? null
+            : jsonDecode(existingAlarm!.payload!) as Map<String, dynamic>;
+    final existingMetadata = ReminderScheduleMetadata.fromJson(
+      payload?['scheduleMetadata'] is Map
+          ? Map<String, dynamic>.from(payload!['scheduleMetadata'] as Map)
+          : null,
+      timezoneIdFallback: 'UTC',
+      semanticsFallback: ScheduleSemantics.wallClock,
+    );
 
     final newModel = ReminderPayloadModel(
-      id: id,
-      category: "Meal",
+      id: reminderId,
+      category: "meal",
       title: title,
       notes: notes.isNotEmpty ? notes : "",
       customReminder: CustomReminder(
         type: Option.times,
         timesPerDay: TimesPerDay(
           count: 1.toString(),
-          list: [scheduledTime.toString()],
+          list: [canonicalLocalTime(scheduledTime.toIso8601String())],
         ),
+      ),
+      startDate: canonicalLocalDate(scheduledTime.toIso8601String()),
+      scheduleMetadata: await reminderController.buildScheduleMetadata(
+        category: 'meal',
+        semantics: ScheduleSemantics.wallClock,
+        existing: existingMetadata,
       ),
     );
 
-    await reminderController.updateReminder(newModel, context);
-
-    int index = -1;
-    for (int i = 0; i < mealsList.length; i++) {
-      if (mealsList[i].values.first.id == alarmId) {
-        index = i;
-        break;
-      }
+    final staleAlarmIds =
+        matchedEntries.map((entry) => entry.values.first.id).toSet()
+          ..addAll(existingMetadata.alarmIds)
+          ..addAll(existingMetadata.preAlarmIds);
+    for (final staleAlarmId in staleAlarmIds) {
+      await Alarm.stop(staleAlarmId);
     }
+    mealsList.removeWhere(
+      (entry) =>
+          ReminderIdentity.matchesReminderId(entry.values.first, reminderId),
+    );
+    final transaction = await reminderController.scheduleReminderLocally(
+      newModel,
+    );
 
-    final newItem = {
-      reminderController.titleController.text.trim(): alarmSettings,
-    };
-    if (index != -1) {
-      mealsList[index] = newItem;
-    } else {
-      mealsList.add(newItem);
-    }
+    final newItem = {title: transaction.mainAlarms.first};
+    mealsList.add(newItem);
 
     await reminderController.finalizeUpdate(context, "meals_list", mealsList);
+
+    reminderController.updateReminder(transaction.reminder, context).catchError(
+      (e) {
+        debugPrint('⚠️ Background meal update API failed: $e');
+      },
+    );
   }
 
   void resetForm() {
