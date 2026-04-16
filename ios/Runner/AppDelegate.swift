@@ -6,6 +6,7 @@ import QuartzCore
 @main
 @objc class AppDelegate: FlutterAppDelegate {
   private let displayConfigChannelName = "com.coretegra.snevva/display_config"
+  private let timezoneChannelName = "com.coretegra.snevva/timezone"
 
   override func application(
     _ application: UIApplication,
@@ -22,6 +23,7 @@ import QuartzCore
 
     let didFinish = super.application(application, didFinishLaunchingWithOptions: launchOptions)
     configureDisplayConfigChannel()
+    configureTimezoneChannel()
     _ = requestHighRefreshRateIfAvailable()
     return didFinish
   }
@@ -60,6 +62,26 @@ import QuartzCore
         result(self.currentDisplayRefreshRate())
       case "requestHighestRefreshRate":
         result(self.requestHighRefreshRateIfAvailable())
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  private func configureTimezoneChannel() {
+    guard let controller = window?.rootViewController as? FlutterViewController else {
+      return
+    }
+
+    let channel = FlutterMethodChannel(
+      name: timezoneChannelName,
+      binaryMessenger: controller.binaryMessenger
+    )
+
+    channel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "getTimeZoneId":
+        result(TimeZone.current.identifier)
       default:
         result(FlutterMethodNotImplemented)
       }

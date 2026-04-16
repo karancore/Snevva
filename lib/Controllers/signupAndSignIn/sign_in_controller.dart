@@ -201,6 +201,7 @@ class SignInController extends GetxService {
           title: 'Error',
           message: 'Wrong Credentials',
         );
+
         return false;
       } else if (response.statusCode == 401 || response.statusCode == 403) {
         final responseBody = jsonDecode(response.body);

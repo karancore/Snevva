@@ -127,6 +127,7 @@ class _ReminderDetailsCardState extends State<ReminderDetailsCard>
         if (dosageValue != null) _infoRow('Dosage', "$dosageValue $dosageUnit"),
         if (notes != null && notes.isNotEmpty) _infoRow('Notes', notes),
 
+
         if (timesList.isNotEmpty)
           _infoRow(
             'Schedule',
@@ -216,15 +217,37 @@ class _ReminderDetailsCardState extends State<ReminderDetailsCard>
     final timesList = widget.reminder.customReminder?.timesPerDay?.list ?? [];
     final notes = widget.reminder.notes;
     final remindBefore = widget.reminder.remindBefore;
+    final reminderDate = widget.reminder.startDate;
 
+    String formattedDate = 'N/A';
+
+    DateTime parsedDate;
+
+    if (reminderDate != null && reminderDate.isNotEmpty) {
+      parsedDate = DateTime.tryParse(reminderDate)
+          ?? DateFormat('MMMM d, yyyy').parse(reminderDate);
+    } else {
+      parsedDate = DateTime.now();
+    }
+
+    print("Reminder date: $reminderDate, Parsed date: $parsedDate");
+
+    formattedDate = DateFormat('MMMM dd, yyyy')
+        .format(parsedDate.toLocal());
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+          _infoRow(
+            'Date',
+            formattedDate,
+          ),
         if (timesList.isNotEmpty)
           _infoRow(
             'Time',
             timesList.map((t) => _formatDateTimeString(t)).join(' • '),
           ),
+
+
         if (notes != null && notes.isNotEmpty) _infoRow('Notes', notes),
         if (remindBefore != null)
           _infoRow(

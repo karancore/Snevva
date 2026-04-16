@@ -52,6 +52,8 @@ extension MedicineToReminderMapper on MedicineReminderModel {
       startDate: startDate,
       endDate: endDate,
       notes: notes,
+      updatedAt: updatedAt,
+      scheduleMetadata: scheduleMetadata,
     );
   }
 }

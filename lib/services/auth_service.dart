@@ -216,7 +216,7 @@ class AuthService {
     localStorageManager.registerDeviceFCMIfNeeded();
 
     loginLog("Fetching reminders...");
-    await reminderController.getReminderFromAPI(context);
+    await reminderController.syncRemindersFromServer(context);
     loginLog("Reminders loaded");
 
     loginLog("Loading mood...");

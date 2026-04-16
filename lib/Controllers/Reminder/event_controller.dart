@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
@@ -6,11 +8,13 @@ import 'package:get/get.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Controllers/Reminder/water_controller.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
+import 'package:snevva/models/reminder_schedule_metadata.dart';
+import 'package:snevva/services/reminder/reminder_identity.dart';
+import 'package:snevva/services/reminder/reminder_schedule_resolver.dart';
 
 import '../../common/custom_snackbar.dart';
 import '../../common/global_variables.dart';
 import '../../consts/colors.dart';
-import '../../consts/images.dart';
 
 class EventController extends GetxController {
   ReminderController get reminderController =>
@@ -24,14 +28,25 @@ class EventController extends GetxController {
   final eventTimeBeforeController = TextEditingController();
   RxString eventUnit = 'minutes'.obs;
 
+  String _resolvedStartDate(DateTime scheduledTime) {
+    final startDateValue = reminderController.startDateString.value.trim();
+    final source =
+        (startDateValue.isEmpty || startDateValue == "Start Date")
+            ? scheduledTime.toIso8601String()
+            : startDateValue;
+    return canonicalLocalDate(source) ??
+        canonicalLocalDate(scheduledTime.toIso8601String())!;
+  }
+
   Future<void> addEventAlarm(
     DateTime scheduledTime,
-    BuildContext context,
-  ) async {
-    final id = alarmsId();
+    BuildContext context, {
+    int? reminderIdOverride,
+  }) async {
+    final id = reminderIdOverride ?? alarmsId();
     final title = reminderController.titleController.text.trim();
     final notes = reminderController.notesController.text.trim();
-    RemindBefore? remindBefore;
+    final remindBefore = buildRemindBefore();
 
     debugPrint('🚀 Starting addEventAlarm');
     debugPrint('🆔 Generated Alarm ID: $id');
@@ -78,27 +93,7 @@ class EventController extends GetxController {
         return;
       }
 
-      remindBefore = RemindBefore(
-        time: time,
-        unit: reminderController.selectedValue.value,
-      );
-      debugPrint('📦 RemindBefore Object created: ${remindBefore.toJson()}');
-
-      final timeOfDay = TimeOfDay(
-        hour: scheduledTime.hour,
-        minute: scheduledTime.minute,
-      );
-
-      // debugPrint('🔄 Calling add event alarm handleRemindMeBefore...');
-      // await reminderController.handleRemindMeBefore(
-      //   option: eventRemindMeBefore,
-      //   timeOfDay: timeOfDay,
-      //   timeController: eventTimeBeforeController,
-      //   unitController: reminderController.selectedValue,
-      //   title: "Reminder before your event",
-      //   body: "Your event is coming in ",
-      //   category: "event",
-      // );
+      debugPrint('📦 RemindBefore Object created: ${remindBefore?.toJson()}');
     } else {
       debugPrint(
         '⚠️ eventRemindMeBefore is NULL — skipping remindBefore logic',
@@ -109,78 +104,52 @@ class EventController extends GetxController {
     final startDateValue = reminderController.startDateString.value;
     debugPrint('📅 Payload startDate value: "$startDateValue"');
 
-    final payloadData = {
-      "startDate": startDateValue,
-      "remindBefore": remindBefore?.toJson(),
-    };
-    final encodedPayload = jsonEncode(payloadData);
-    debugPrint('📤 Encoded Payload: $encodedPayload');
-
-    final alarmSettings = AlarmSettings(
-      id: id,
-      dateTime: scheduledTime,
-      assetAudioPath: eventSound,
-      loopAudio: true,
-      volumeSettings: VolumeSettings.fade(
-        volume: 0.8,
-        fadeDuration: const Duration(seconds: 5),
-        volumeEnforced: true,
-      ),
-      payload: encodedPayload,
-      notificationSettings: NotificationSettings(
-        title: title.isNotEmpty ? title : 'EVENT REMINDER',
-        body: notes.isNotEmpty ? notes : '',
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      ),
+    final metadata = await reminderController.buildScheduleMetadata(
+      category: 'event',
+      semantics: ScheduleSemantics.absolute,
     );
 
-    debugPrint('📡 Setting alarm via Alarm.set...');
-    final success = await Alarm.set(alarmSettings: alarmSettings);
-
-    if (success) {
-      debugPrint('✅ Alarm set successfully!');
-
-      eventList.value = await reminderController.loadReminderList("event_list");
-      debugPrint('📚 Event list loaded. Current count: ${eventList.length}');
-
-      final displayTitle = title.isNotEmpty ? title : 'EVENT REMINDER';
-      eventList.add({displayTitle: alarmSettings});
-
-      await reminderController.saveReminderList(eventList, "event_list");
-      debugPrint('💾 Event list saved to storage');
-
-      await reminderController.loadAllReminderLists();
-
-      final eventData = ReminderPayloadModel(
-        id: id,
-        category: "Event",
-        title: title,
-        notes: notes,
-        customReminder: CustomReminder(
-          type: Option.times,
-          timesPerDay: TimesPerDay(
-            count: '1',
-            list: [scheduledTime.toString()],
-          ),
+    print("Resolved startDate: ${_resolvedStartDate(scheduledTime)}");
+    final eventData = ReminderPayloadModel(
+      id: id,
+      category: "event",
+      title: title,
+      notes: notes,
+      customReminder: CustomReminder(
+        type: Option.times,
+        timesPerDay: TimesPerDay(
+          count: '1',
+          list: [canonicalLocalTime(scheduledTime.toIso8601String())],
         ),
-        remindBefore: remindBefore,
-        startDate: startDateValue,
-      );
-      debugPrint(
-        '📦 Event ReminderPayloadModel created: ${eventData.toJson()}',
-      );
-      await reminderController.addRemindertoAPI(eventData, context);
+      ),
+      remindBefore: remindBefore,
+      startDate: _resolvedStartDate(scheduledTime),
+      scheduleMetadata: metadata,
+    );
+    final transaction = await reminderController.scheduleReminderLocally(
+      eventData,
+    );
 
-      // Cleaning up
-      debugPrint('🧹 UI Controllers cleared');
+    eventList.value = await reminderController.loadReminderList("event_list");
+    final displayTitle =
+        title.isNotEmpty
+            ? title
+            : transaction.mainAlarms.first.notificationSettings.title;
+    eventList.add({displayTitle: transaction.mainAlarms.first});
 
-      CustomSnackbar().showReminderBar(context);
-      Get.back(result: true);
-    } else {
-      debugPrint('❌ Alarm.set returned FALSE');
-    }
+    await reminderController.saveReminderList(eventList, "event_list");
+    await reminderController.loadAllReminderLists();
+    unawaited(
+      reminderController
+          .addRemindertoAPI(transaction.reminder, context)
+          .catchError((e) {
+            debugPrint('⚠️ Background event add API failed: $e');
+          }),
+    );
+
+    debugPrint('🧹 UI Controllers cleared');
+    CustomSnackbar().showReminderBar(context);
+    Get.back(result: true);
   }
 
   RemindBefore? buildRemindBefore() {
@@ -200,10 +169,8 @@ class EventController extends GetxController {
   Future<void> updateEventAlarm(
     DateTime scheduledTime,
     BuildContext context,
-    int alarmId,
+    int reminderId,
   ) async {
-    final startDateValue = reminderController.startDateString.value;
-
     if (eventRemindMeBefore.value != null && eventRemindMeBefore.value == 0) {
       debugPrint('🟢 Entered remindBefore block');
 
@@ -250,82 +217,81 @@ class EventController extends GetxController {
         '⚠️ eventRemindMeBefore is NULL — skipping remindBefore logic',
       );
     }
-    final remindBefore = buildRemindBefore();
-    final payloadData = {
-      "startDate": startDateValue,
-      "remindBefore": remindBefore?.toJson(),
-    };
-    final alarmSettings = AlarmSettings(
-      id: alarmId,
-      dateTime: scheduledTime,
-      assetAudioPath: eventSound,
-      loopAudio: true,
-      androidFullScreenIntent: true,
-      volumeSettings: VolumeSettings.fade(
-        volume: 0.8,
-        fadeDuration: const Duration(seconds: 5),
-        volumeEnforced: true,
-      ),
-      payload: jsonEncode(payloadData),
-      notificationSettings: NotificationSettings(
-        title:
-            reminderController.titleController.text.isNotEmpty
-                ? reminderController.titleController.text
-                : 'EVENT REMINDER',
-        body:
-            reminderController.notesController.text.isNotEmpty
-                ? reminderController.notesController.text
-                : '',
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      ),
-    );
-
-    await Alarm.set(alarmSettings: alarmSettings);
-
     eventList.value = await reminderController.loadReminderList("event_list");
 
-    final id = alarmId;
     final title = reminderController.titleController.text.trim();
     final notes = reminderController.notesController.text.trim();
+    final matchedEntries = eventList
+        .where(
+          (entry) => ReminderIdentity.matchesReminderId(
+            entry.values.first,
+            reminderId,
+          ),
+        )
+        .toList(growable: false);
+    final existingAlarm =
+        matchedEntries.isEmpty ? null : matchedEntries.last.values.first;
+    final payload =
+        existingAlarm?.payload == null
+            ? null
+            : jsonDecode(existingAlarm!.payload!) as Map<String, dynamic>;
+    final existingMetadata = ReminderScheduleMetadata.fromJson(
+      payload?['scheduleMetadata'] is Map
+          ? Map<String, dynamic>.from(payload!['scheduleMetadata'] as Map)
+          : null,
+      timezoneIdFallback: 'UTC',
+      semanticsFallback: ScheduleSemantics.absolute,
+    );
 
     final newModel = ReminderPayloadModel(
-      id: id,
-      category: "Event",
+      id: reminderId,
+      category: "event",
       title: title,
       notes: notes.isNotEmpty ? notes : "",
       customReminder: CustomReminder(
         type: Option.times,
         timesPerDay: TimesPerDay(
           count: 1.toString(),
-          list: [scheduledTime.toString()],
+          list: [canonicalLocalTime(scheduledTime.toIso8601String())],
         ),
       ),
       remindBefore: buildRemindBefore(),
-      startDate: startDateValue,
+      startDate: _resolvedStartDate(scheduledTime),
+      scheduleMetadata: await reminderController.buildScheduleMetadata(
+        category: 'event',
+        semantics: ScheduleSemantics.absolute,
+        existing: existingMetadata,
+      ),
     );
 
-    await reminderController.updateReminder(newModel, context);
-
-    int index = -1;
-    for (int i = 0; i < eventList.length; i++) {
-      if (eventList[i].values.first.id == alarmId) {
-        index = i;
-        break;
-      }
+    final staleAlarmIds =
+        matchedEntries.map((entry) => entry.values.first.id).toSet()
+          ..addAll(existingMetadata.alarmIds)
+          ..addAll(existingMetadata.preAlarmIds);
+    for (final staleAlarmId in staleAlarmIds) {
+      await Alarm.stop(staleAlarmId);
     }
+    eventList.removeWhere(
+      (entry) =>
+          ReminderIdentity.matchesReminderId(entry.values.first, reminderId),
+    );
+    final transaction = await reminderController.scheduleReminderLocally(
+      newModel,
+    );
 
     final newItem = {
-      reminderController.titleController.text.trim(): alarmSettings,
+      reminderController.titleController.text.trim():
+          transaction.mainAlarms.first,
     };
-    if (index != -1) {
-      eventList[index] = newItem;
-    } else {
-      eventList.add(newItem);
-    }
+    eventList.add(newItem);
 
     await reminderController.finalizeUpdate(context, "event_list", eventList);
+
+    reminderController.updateReminder(transaction.reminder, context).catchError(
+      (e) {
+        debugPrint('⚠️ Background event update API failed: $e');
+      },
+    );
   }
 
   void resetForm() {

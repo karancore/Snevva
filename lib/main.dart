@@ -44,6 +44,7 @@ import 'Controllers/WomenHealth/bottom_sheet_controller.dart';
 import 'Controllers/alerts/alerts_controller.dart';
 import 'Controllers/local_storage_manager.dart';
 import 'Controllers/signupAndSignIn/create_password_controller.dart';
+import 'services/reminder/reconciliation_engine.dart' as snevva_reconciliation;
 import 'common/ExceptionLogger.dart';
 import 'common/agent_debug_logger.dart';
 import 'common/global_variables.dart';
@@ -59,7 +60,7 @@ import 'views/SignUp/sign_in_screen.dart';
 import 'views/debug/high_fps_demo_screen.dart';
 import 'widgets/home_wrapper.dart';
 
-//Test User - 6284781425
+//Test User - 7814254444
 //Admin@1234
 const bool _kShowPerformanceOverlay = bool.fromEnvironment(
   'SHOW_PERFORMANCE_OVERLAY',
@@ -476,6 +477,20 @@ class _MyAppState extends State<MyApp> {
         await _cleanupExpiredStartupAlarms();
         await _mergeSleepHistoryInBackground();
         await _scanLargeSharedPreferences();
+        
+        try {
+          final engine = snevva_reconciliation.ReconciliationEngine(
+            saveReminder: (reminder) async {
+              if (Get.isRegistered<ReminderController>(tag: 'reminder')) {
+                final controller = Get.find<ReminderController>(tag: 'reminder');
+                await controller.updateReminderLocalOnly(reminder);
+              }
+            }
+          );
+          await engine.handleTimezoneStartupChecks();
+        } catch (e, s) {
+          logLong('RECONCILIATION ERROR', '$e\n$s');
+        }
 
         if (!hasSession) return;
 
