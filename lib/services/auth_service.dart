@@ -64,7 +64,7 @@ class AuthService {
       Get.find<BottomSheetController>();
   WomenHealthController get womenhealthController =>
       Get.find<WomenHealthController>();
-  SignInController get signInController => Get.find<SignInController>();
+  SignInController get signInController => Get.put(SignInController());
 
   Future<String> login(String username, String password) async {
     final response = await http.post(

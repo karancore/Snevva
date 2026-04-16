@@ -110,10 +110,14 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
                   try {
                     final googleAuth = Get.find<GoogleAuthService>();
 
-                    await googleAuth.init(context);
-                    // await googleAuth.signIn(); // ✅ REQUIRED
+                    final success = await googleAuth.init(context).catchError((_) => false);
+
+                    if (!success) {
+                      await googleAuth.signIn();
+                    }
+
                   } catch (e) {
-                    debugPrint("❌ Google sign-in failed: $e");
+                    debugPrint("Google sign-in FAILED: $e");
 
                     CustomSnackbar.showError(
                       context: context,
@@ -127,10 +131,10 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
                   }
                 },
 
-                icon:
-                    isSigningIn
-                        ? SizedBox(height: 28, width: 28, child: const Loader())
-                        : Image.asset(google, height: 28, width: 28),
+                icon: isSigningIn
+                    ? const SizedBox(height: 28, width: 28, child: Loader())
+                    : Image.asset(google, height: 28, width: 28),
+
                 padding: const EdgeInsets.all(12),
                 splashRadius: 28,
               ),
