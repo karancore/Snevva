@@ -11,6 +11,7 @@ import 'package:snevva/models/hive_models/reminder_payload_model.dart';
 import 'package:snevva/services/file_storage_service.dart';
 import 'package:snevva/services/notification_service.dart';
 import 'package:snevva/services/reminder/device_timezone_service.dart';
+import 'package:snevva/services/reminder/reminder_worker.dart';
 import 'package:snevva/services/unified_background_service.dart';
 import 'package:timezone/data/latest.dart';
 import 'package:timezone/timezone.dart';
@@ -245,6 +246,11 @@ Future<bool> initializeApp() async {
     // The alarm plugin expects initialization before any alarm reads,
     // restores, reconciliation, or scheduling happen in app startup flows.
     await ensureAlarmInitialized();
+
+    // ⏰ Register WorkManager periodic task for reminder rescheduling.
+    // Runs every ~6 hours even if the app is killed, ensuring the 36h
+    // scheduling window is continuously refreshed.
+    await initReminderWorker();
 
     // 📦 One-time file path migration: copies any daily JSON files that were
     // written to the OLD app_flutter/fs/daily/ path into the NEW files/fs/daily/

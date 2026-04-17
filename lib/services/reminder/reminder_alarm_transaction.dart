@@ -249,6 +249,7 @@ class ReminderAlarmTransaction {
       loopAudio:
           category == 'medicine' || category == 'event' || category == 'meal',
       vibrate: category == 'medicine',
+      warningNotificationOnKill: false,
       androidFullScreenIntent: true,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
@@ -298,6 +299,7 @@ class ReminderAlarmTransaction {
       assetAudioPath: remindBeforeSound,
       loopAudio: false,
       allowAlarmOverlap: true,
+      warningNotificationOnKill: false,
       androidFullScreenIntent: true,
       volumeSettings: VolumeSettings.fade(
         fadeDuration: const Duration(seconds: 2),

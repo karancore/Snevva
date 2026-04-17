@@ -177,9 +177,11 @@
             android:foregroundServiceType="dataSync"
             tools:replace="android:foregroundServiceType" />
 
-        <service
-            android:name="com.gdelataillade.alarm.services.NotificationOnKillService"
-            android:exported="false" />
+        <!-- NotificationOnKillService removed: WorkManager-based rescheduling
+             ensures reminders are refreshed every 6h even after app kill.
+             The misleading "Your alarms may not ring" notification is suppressed
+             both here (service removed) and via warningNotificationOnKill: false
+             on all AlarmSettings in Dart. -->
 
         <service
             android:name=".SleepNoticingService"

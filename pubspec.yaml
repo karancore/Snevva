@@ -94,6 +94,7 @@ dependencies:
 
   alarm: ^5.1.5
   get_storage: ^2.1.1
+  workmanager: ^0.5.2
 
   smart_auth: ^3.2.0
 

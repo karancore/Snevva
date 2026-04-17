@@ -200,6 +200,7 @@ class ReminderScheduler {
         assetAudioPath: medicineSound,
         loopAudio: true,
         vibrate: true,
+        warningNotificationOnKill: false,
         androidFullScreenIntent: true,
         volumeSettings: VolumeSettings.fade(
           volume: 0.8,
@@ -315,6 +316,7 @@ class ReminderScheduler {
           id: scheduledReminderId(reminderId: reminder.id, time: scheduledTime),
           dateTime: scheduledTime,
           assetAudioPath: waterSound,
+          warningNotificationOnKill: false,
           volumeSettings: VolumeSettings.fade(
             volume: 0.8,
             fadeDuration: Duration(seconds: 5),
@@ -361,6 +363,7 @@ class ReminderScheduler {
           id: scheduledReminderId(reminderId: reminder.id, time: scheduledTime),
           dateTime: scheduledTime,
           assetAudioPath: waterSound,
+          warningNotificationOnKill: false,
           volumeSettings: VolumeSettings.fade(
             volume: 0.8,
             fadeDuration: Duration(seconds: 5),
@@ -424,6 +427,7 @@ class ReminderScheduler {
       id: scheduledReminderId(reminderId: reminder.id, time: beforeTime),
       dateTime: beforeTime,
       assetAudioPath: remindBeforeSound,
+      warningNotificationOnKill: false,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
         fadeDuration: Duration(seconds: 5),
@@ -504,6 +508,7 @@ class ReminderScheduler {
         id: alarmId,
         dateTime: dateTime,
         assetAudioPath: _audioPathForCategory(category),
+        warningNotificationOnKill: false,
         volumeSettings: VolumeSettings.fade(
           volume: 0.8,
           fadeDuration: Duration(seconds: 5),

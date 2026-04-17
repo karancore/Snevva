@@ -60,9 +60,11 @@ class ReminderScheduleResolver {
 
     resolvedMainTimes.sort();
 
-    // PHASE F: Safe Generation Limits (Post-Sort for explict mapping)
+    // PHASE F: Safe Generation Limits (Post-Sort for explicit mapping)
+    // 36h window provides overlap with the 6-hour WorkManager reconciliation
+    // cycle. Even if a worker tick is delayed, alarms won't expire prematurely.
     var filteredMainTimes = <DateTime>[];
-    final limit = DateTime.now().add(const Duration(hours: 24));
+    final limit = DateTime.now().add(const Duration(hours: 36));
     
     for (final time in resolvedMainTimes) {
       if (filteredMainTimes.length >= 50) break;
@@ -156,7 +158,7 @@ class ReminderScheduleResolver {
       final results = <DateTime>[];
       var current = startMinutes + interval.hours * 60;
       final now = DateTime.now();
-      final limit = now.add(const Duration(hours: 24));
+      final limit = now.add(const Duration(hours: 36));
 
       while (current <= windowEndMinutes) {
         if (results.length >= 50) break;
@@ -231,7 +233,7 @@ class ReminderScheduleResolver {
       final results = <DateTime>[];
       var current = startMinutes + interval.hours * 60;
       final now = DateTime.now();
-      final limit = now.add(const Duration(hours: 24));
+      final limit = now.add(const Duration(hours: 36));
 
       while (current <= windowEndMinutes) {
         if (results.length >= 50) break;

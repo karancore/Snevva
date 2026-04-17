@@ -336,6 +336,23 @@ class ReminderController extends GetxController {
           ),
         );
         await updateReminderLocalOnly(updated);
+
+        // PHASE B: Self-Sustaining Reschedule Chain
+        // After recording the fire, reschedule this reminder for its next
+        // occurrence. This ensures recurring reminders (medicine daily,
+        // water intervals, etc.) automatically schedule the next day's
+        // alarms without needing the user to reopen the app.
+        try {
+          await scheduleReminderLocally(updated);
+          debugPrint(
+            '[ReminderTxn] ✅ Auto-rescheduled reminder ${updated.id} '
+            'after alarm fire',
+          );
+        } catch (e) {
+          debugPrint(
+            '[ReminderTxn] ⚠️ Auto-reschedule failed for ${updated.id}: $e',
+          );
+        }
       }
 
       final payload = alarmSettings.payload;
@@ -404,6 +421,7 @@ class ReminderController extends GetxController {
       loopAudio: false,
       allowAlarmOverlap: true,
       vibrate: soundVibrationToggle.value,
+      warningNotificationOnKill: false,
       androidFullScreenIntent: true,
       notificationSettings: NotificationSettings(
         title: title,
@@ -703,6 +721,7 @@ class ReminderController extends GetxController {
       id: alarmsId(),
       dateTime: nextTime,
       assetAudioPath: _audioPathForReminderCategory('water'),
+      warningNotificationOnKill: false,
       androidFullScreenIntent: true,
       loopAudio: true,
       vibrate: soundVibrationToggle.value,
@@ -1947,6 +1966,7 @@ class ReminderController extends GetxController {
       ),
       dateTime: scheduledTime,
       assetAudioPath: assetAudioPath,
+      warningNotificationOnKill: false,
       androidFullScreenIntent: true,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
@@ -2097,6 +2117,7 @@ class ReminderController extends GetxController {
             dateTime: t,
             assetAudioPath: waterSound,
             loopAudio: false,
+            warningNotificationOnKill: false,
             androidFullScreenIntent: true,
             volumeSettings: VolumeSettings.fade(
               volume: 0.8,
@@ -2151,6 +2172,7 @@ class ReminderController extends GetxController {
             dateTime: t,
             assetAudioPath: waterSound,
             loopAudio: false,
+            warningNotificationOnKill: false,
             androidFullScreenIntent: true,
             volumeSettings: VolumeSettings.fade(
               volume: 0.8,
