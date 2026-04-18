@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
+import 'package:snevva/services/reminder/native_alarm_bridge.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Controllers/Reminder/water_controller.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart'
@@ -200,8 +201,7 @@ class ReminderScheduler {
         assetAudioPath: medicineSound,
         loopAudio: true,
         vibrate: true,
-        warningNotificationOnKill: false,
-        androidFullScreenIntent: true,
+        androidFullScreenIntent: false,
         volumeSettings: VolumeSettings.fade(
           volume: 0.8,
           fadeDuration: const Duration(seconds: 5),
@@ -241,6 +241,16 @@ class ReminderScheduler {
 
       if (success) {
         alarms.add(alarmSettings);
+        // 📲 Also arm via native Kotlin layer (survives OEM kill + reboot)
+        final payload = jsonDecode(alarmSettings.payload ?? '{}');
+        await NativeAlarmBridge.armAlarm(
+          alarmId: alarmSettings.id,
+          epochMs: alarmSettings.dateTime.millisecondsSinceEpoch,
+          groupId: payload['groupId']?.toString() ?? reminder.id.toString(),
+          category: 'medicine',
+          title: alarmSettings.notificationSettings.title,
+          body: alarmSettings.notificationSettings.body,
+        );
       }
     }
 
@@ -338,6 +348,18 @@ class ReminderScheduler {
 
         final success = await Alarm.set(alarmSettings: alarmSettings);
         debugPrint("Water interval alarm set result: $success");
+        if (success) {
+          // 📲 Also arm via native Kotlin layer
+          await NativeAlarmBridge.armAlarm(
+            alarmId: alarmSettings.id,
+            epochMs: alarmSettings.dateTime.millisecondsSinceEpoch,
+            groupId: reminder.id.toString(),
+            category: 'water',
+            title: alarmSettings.notificationSettings.title,
+            body: alarmSettings.notificationSettings.body,
+            intervalMs: interval.hours * 3600 * 1000,
+          );
+        }
       }
       return;
     }
@@ -386,6 +408,17 @@ class ReminderScheduler {
         final success = await Alarm.set(alarmSettings: alarmSettings);
 
         debugPrint("Water alarm set result: $success");
+        if (success) {
+          // 📲 Also arm via native Kotlin layer
+          await NativeAlarmBridge.armAlarm(
+            alarmId: alarmSettings.id,
+            epochMs: alarmSettings.dateTime.millisecondsSinceEpoch,
+            groupId: reminder.id.toString(),
+            category: 'water',
+            title: alarmSettings.notificationSettings.title,
+            body: alarmSettings.notificationSettings.body,
+          );
+        }
       }
       return;
     }
@@ -461,6 +494,17 @@ class ReminderScheduler {
     final success = await Alarm.set(alarmSettings: alarmSettings);
 
     debugPrint("PreReminder scheduled: $success");
+    if (success) {
+      // 📲 Also arm via native Kotlin layer
+      await NativeAlarmBridge.armAlarm(
+        alarmId: alarmSettings.id,
+        epochMs: alarmSettings.dateTime.millisecondsSinceEpoch,
+        groupId: reminder.id.toString(),
+        category: category,
+        title: alarmSettings.notificationSettings.title,
+        body: alarmSettings.notificationSettings.body,
+      );
+    }
   }
 
   /// ==============================
@@ -531,6 +575,17 @@ class ReminderScheduler {
       final success = await Alarm.set(alarmSettings: alarmSettings);
 
       debugPrint("Alarm set result: $success");
+      if (success) {
+        // 📲 Also arm via native Kotlin layer
+        await NativeAlarmBridge.armAlarm(
+          alarmId: alarmSettings.id,
+          epochMs: alarmSettings.dateTime.millisecondsSinceEpoch,
+          groupId: reminder.id.toString(),
+          category: category,
+          title: alarmSettings.notificationSettings.title,
+          body: alarmSettings.notificationSettings.body,
+        );
+      }
     }
   }
 }

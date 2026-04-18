@@ -5,7 +5,6 @@ import android.app.NotificationManager
 import android.os.Build
 import androidx.multidex.MultiDexApplication
 
-// Ensures MultiDex is enabled for the application.
 class MyApplication : MultiDexApplication() {
     override fun onCreate() {
         super.onCreate()
@@ -14,9 +13,10 @@ class MyApplication : MultiDexApplication() {
 
     private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // Single unified tracker channel used by StepCounterService AND
-            // the flutter_background_service isolate.
-            val channel = NotificationChannel(
+            val manager = getSystemService(NotificationManager::class.java) ?: return
+
+            // Tracker channel — low importance, persistent foreground notification
+            val trackerChannel = NotificationChannel(
                 "tracker_channel",
                 "Health Tracking",
                 NotificationManager.IMPORTANCE_LOW
@@ -24,8 +24,24 @@ class MyApplication : MultiDexApplication() {
                 description = "Step & sleep tracking"
             }
 
-            val manager = getSystemService(NotificationManager::class.java)
-            manager?.createNotificationChannel(channel)
+            // Reminder/alarm channel — high importance, shown over lock screen.
+            // Sound is intentionally null: ReminderAlarmReceiver plays audio via
+            // MediaPlayer so the OS system sound doesn't double-fire.
+            val reminderChannel = NotificationChannel(
+                ReminderAlarmReceiver.CHANNEL_ID,
+                "Reminders & Alarms",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Reminder and alarm notifications"
+                setSound(null, null)
+                enableVibration(true)
+                enableLights(true)
+                setBypassDnd(true)
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+            }
+
+            manager.createNotificationChannel(trackerChannel)
+            manager.createNotificationChannel(reminderChannel)
         }
     }
 }

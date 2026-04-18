@@ -1,13 +1,11 @@
 package com.coretegra.snevva
 
-import android.app.KeyguardManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.Display
-import android.view.WindowManager
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -19,10 +17,10 @@ class MainActivity : FlutterActivity() {
     private val displayConfigChannelName = "com.coretegra.snevva/display_config"
     private val oemChannelName = "com.coretegra.snevva/oem_settings"
     private val timezoneChannelName = "com.coretegra.snevva/timezone"
+    private val reminderAlarmsChannelName = "com.coretegra.snevva/reminder_alarms"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        applyWakeScreenFlags()
 
         // Reset headless flag for pure UI run
         getSharedPreferences("steps_prefs", android.content.Context.MODE_PRIVATE)
@@ -31,46 +29,28 @@ class MainActivity : FlutterActivity() {
         startStepCounterService()
         AlarmHelper.cancelSleepAlarms(this)
         requestHighestRefreshRate()
+
+        // Copy flutter audio assets to internal storage so native MediaPlayer can read them.
+        // Done here (on main thread, before first frame) so they're ready when the first
+        // alarm fires — even if the app has never been opened since install.
+        Thread {
+            try {
+                ReminderArmingHelper.copyAudioAssetsIfNeeded(this)
+            } catch (e: Exception) {
+                Log.e("MainActivity", "copyAudioAssets failed", e)
+            }
+        }.start()
+
         Log.d("Lifecycle", "onCreate called")
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        applyWakeScreenFlags()
+        // No wake-screen flags: our reminder layer is BroadcastReceiver-based and
+        // never needs MainActivity to show over the lock screen.
     }
 
-    @Suppress("DEPRECATION")
-    private fun applyWakeScreenFlags() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
-            val keyguardManager = getSystemService(KeyguardManager::class.java)
-            keyguardManager?.requestDismissKeyguard(this, null)
-        }
-
-        window.addFlags(
-            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
-                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-                WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
-        )
-    }
-
-    @Suppress("DEPRECATION")
-    private fun clearWakeScreenFlags() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(false)
-            setTurnScreenOn(false)
-        }
-
-        window.clearFlags(
-            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
-                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-                WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
-        )
-    }
 
     private fun startStepCounterService(): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
@@ -101,6 +81,18 @@ class MainActivity : FlutterActivity() {
         // Give StepCounterService a reference to the live UI engine so sensor
         // events can be delivered via MethodChannel to the running Flutter app.
         StepCounterService.flutterEngine = flutterEngine
+
+        // Re-arm all native reminder alarms every time the Flutter engine attaches.
+        // This is idempotent and covers the case where the user opens the app after
+        // a background kill, ensuring AlarmManager entries are always up-to-date.
+        Thread {
+            try {
+                ReminderArmingHelper.armFromSharedPrefs(applicationContext)
+                Log.d("MainActivity", "✅ Native reminder alarms re-armed on engine attach")
+            } catch (e: Exception) {
+                Log.e("MainActivity", "armFromSharedPrefs failed: ${e.message}")
+            }
+        }.start()
 
         // MethodChannels setup
 
@@ -228,8 +220,6 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.coretegra.snevva/sync_manager")
             .setMethodCallHandler { call, result ->
                 when (call.method) {
-                    // Native code can call "flushAndSync" to force a buffer flush +
-                    // schedule an immediate Dart sync run
                     "flushAndSync" -> {
                         try {
                             BufferManager.flushStepsToDaily(applicationContext)
@@ -239,6 +229,62 @@ class MainActivity : FlutterActivity() {
                             result.error("FLUSH_ERROR", e.message, null)
                         }
                     }
+                    else -> result.notImplemented()
+                }
+            }
+
+        // Native reminder alarm channel (survives Flutter engine kill + device reboot)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, reminderAlarmsChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+
+                    "armAlarm" -> {
+                        val alarmId   = call.argument<Int>("alarmId") ?: -1
+                        val epochMs   = (call.argument<Long>("epochMs")
+                            ?: call.argument<Int>("epochMs")?.toLong()) ?: 0L
+                        val groupId   = call.argument<String>("groupId") ?: ""
+                        val category  = call.argument<String>("category") ?: ""
+                        val title     = call.argument<String>("title") ?: "Reminder"
+                        val body      = call.argument<String>("body") ?: ""
+                        val intervalMs = (call.argument<Long>("intervalMs")
+                            ?: call.argument<Int>("intervalMs")?.toLong()) ?: 0L
+                        ReminderArmingHelper.arm(
+                            this@MainActivity, alarmId, epochMs, groupId, category, title, body, intervalMs
+                        )
+                        result.success(true)
+                    }
+
+                    "cancelAlarm" -> {
+                        val alarmId = call.argument<Int>("alarmId") ?: -1
+                        if (alarmId != -1) ReminderArmingHelper.cancel(this@MainActivity, alarmId)
+                        result.success(true)
+                    }
+
+                    "saveSchedule" -> {
+                        val json = call.argument<String>("json") ?: "[]"
+                        val prefs = getSharedPreferences(
+                            "FlutterSharedPreferences", android.content.Context.MODE_PRIVATE
+                        )
+                        prefs.edit().putString("flutter.native_reminder_alarms", json).apply()
+                        Log.d("MainActivity", "💾 Saved native alarm schedule (${json.length} chars)")
+                        result.success(true)
+                    }
+
+                    "armAll" -> {
+                        val json = call.argument<String>("json") ?: "[]"
+                        ReminderArmingHelper.armAll(this@MainActivity, json)
+                        result.success(true)
+                    }
+
+                    "copyAudioAssets" -> {
+                        try {
+                            ReminderArmingHelper.copyAudioAssetsIfNeeded(this@MainActivity)
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.error("COPY_FAILED", e.message, null)
+                        }
+                    }
+
                     else -> result.notImplemented()
                 }
             }
@@ -269,7 +315,6 @@ class MainActivity : FlutterActivity() {
 
     override fun onStop() {
         super.onStop()
-        clearWakeScreenFlags()
         Log.d("Lifecycle", "onStop called")
     }
 

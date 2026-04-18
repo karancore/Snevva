@@ -63,21 +63,16 @@ class BootReceiver : BroadcastReceiver() {
             // 4. Keep AlarmHelper call for legacy alarm cancellation (it's a no-op stub now)
             AlarmHelper.scheduleSleepAlarms(context)
 
-            // 5. Enqueue one-shot WorkManager task to reschedule all reminders.
-            //    WorkManager spins up a Dart isolate and runs ReconciliationEngine
-            //    which reads Hive data and reschedules alarms for the next 36h window.
+            // 5. Re-arm all pending reminder alarms from Flutter SharedPreferences.
+            //    This ensures 1-week / 1-month alarms survive device reboot WITHOUT
+            //    requiring the app or Flutter engine to be open — pure Kotlin path.
             try {
-                androidx.work.OneTimeWorkRequest.Builder(
-                    androidx.work.impl.workers.ConstraintTrackingWorker::class.java
-                ).build().let { /* WorkManager will be initialized by Flutter on next launch */ }
-                // The actual rescheduling happens via the Dart WorkManager callback
-                // registered in reminder_worker.dart. Forcing an app launch via
-                // startActivity ensures the Flutter engine initializes and
-                // WorkManager's Dart dispatcher can run.
-                Log.d("BootReceiver", "Reminder rescheduling will run via WorkManager Dart callback")
+                ReminderArmingHelper.armFromSharedPrefs(context)
+                Log.d("BootReceiver", "✅ Native reminder alarms re-armed on boot")
             } catch (e: Exception) {
-                Log.e("BootReceiver", "Failed to enqueue reminder reschedule task", e)
+                Log.e("BootReceiver", "Failed to re-arm reminder alarms on boot: ${e.message}")
             }
         }
     }
 }
+

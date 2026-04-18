@@ -62,8 +62,26 @@ Future<void> _persistReminderToHive(ReminderPayloadModel reminder) async {
 
     // For now, just persist the schedule metadata update.
     // The main app will do a full reconciliation on next launch.
+    // Find the matching reminder by ID and replace it in-place.
+    bool found = false;
+    final updated = storedList.map((e) {
+      if (e is ReminderPayloadModel && e.id == reminder.id) {
+        found = true;
+        return reminder;
+      }
+      return e;
+    }).toList();
+
+    if (!found) {
+      debugPrint(
+        '[ReminderWorker] ⚠️ Reminder ${reminder.id} not found in $keyName — skipping persist',
+      );
+      return;
+    }
+
+    await box.put(keyName, updated);
     debugPrint(
-      '[ReminderWorker] Updated reminder ${reminder.id} metadata in background',
+      '[ReminderWorker] ✅ Persisted reminder ${reminder.id} to Hive key "$keyName"',
     );
   } catch (e) {
     debugPrint('[ReminderWorker] _persistReminderToHive failed: $e');

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
+import 'package:snevva/services/reminder/native_alarm_bridge.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';

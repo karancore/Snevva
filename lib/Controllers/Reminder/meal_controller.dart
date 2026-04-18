@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
+import 'package:snevva/services/reminder/native_alarm_bridge.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Controllers/Reminder/water_controller.dart';
 import 'package:snevva/consts/consts.dart';
@@ -50,31 +51,63 @@ class MealController extends GetxController {
       startDate: canonicalLocalDate(scheduledTime.toIso8601String()),
       scheduleMetadata: metadata,
     );
-    final transaction = await reminderController.scheduleReminderLocally(
-      mealData,
+    debugPrint("Meal Data: $mealData");
+    final alarmSettings = AlarmSettings(
+      id: id,
+      dateTime: scheduledTime,
+      assetAudioPath: mealSound,
+      loopAudio: true,
+      androidFullScreenIntent: false,
+      volumeSettings: VolumeSettings.fade(
+        volume: 0.8,
+        fadeDuration: Duration(seconds: 5),
+        volumeEnforced: true,
+      ),
+
+      notificationSettings: NotificationSettings(
+        title:
+            title.isNotEmpty
+                ? reminderController.titleController.text
+                : 'MEAL REMINDER',
+        body: notes,
+        stopButton: 'Stop',
+        icon: 'alarm',
+        iconColor: AppColors.primaryColor,
+      ),
     );
-    final scheduledReminder = transaction.reminder;
 
-    mealsList.value = await reminderController.loadReminderList("meals_list");
-    final displayTitle =
-        title.isNotEmpty
-            ? title
-            : transaction.mainAlarms.first.notificationSettings.title;
+    // Native AlarmManager is the sole scheduler — Alarm.set() is not called
+    // to prevent the flutter_alarm package from showing a duplicate notification.
+    const success = true;
+    if (success) {
+      // 📲 Arm via native Kotlin layer (survives OEM kill + reboot)
+      await NativeAlarmBridge.armAlarm(
+        alarmId: alarmSettings.id,
+        epochMs: alarmSettings.dateTime.millisecondsSinceEpoch,
+        groupId: id.toString(),
+        category: 'meal',
+        title: alarmSettings.notificationSettings.title,
+        body: alarmSettings.notificationSettings.body,
+      );
 
-    mealsList.add({displayTitle: transaction.mainAlarms.first});
+      mealsList.value = await reminderController.loadReminderList("meals_list");
+      final displayTitle = title.isNotEmpty ? title : 'MEAL REMINDER';
+      mealsList.add({displayTitle: alarmSettings});
 
-    await reminderController.saveReminderList(mealsList, "meals_list");
-    await reminderController.loadAllReminderLists();
-    unawaited(
-      reminderController
-          .addRemindertoAPI(scheduledReminder, context)
-          .catchError((_) {}),
-    );
+      await reminderController.saveReminderList(mealsList, "meals_list");
+      await reminderController.loadAllReminderLists();
 
-    reminderController.titleController.clear();
-    reminderController.notesController.clear();
-    CustomSnackbar().showReminderBar(context);
-    Get.back(result: true);
+      unawaited(
+        reminderController
+            .addRemindertoAPI(mealData, context)
+            .catchError((_) {}),
+      );
+
+      reminderController.titleController.clear();
+      reminderController.notesController.clear();
+      CustomSnackbar().showReminderBar(context);
+      Get.back(result: true);
+    }
   }
 
   Future<void> updateMealAlarm(

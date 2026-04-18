@@ -343,7 +343,7 @@ class _VitalScreenState extends State<VitalScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                             decoration: InputDecoration(
-                              hintText: heartRate > 0 ? '$heartRate' : '72',
+                              hintText: heartRate > 0 ? '$heartRate' : '--',
                               hintStyle: TextStyle(
                                 color: textColor.withOpacity(0.3),
                               ),

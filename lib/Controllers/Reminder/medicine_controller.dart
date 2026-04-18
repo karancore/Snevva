@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
+import 'package:snevva/services/reminder/native_alarm_bridge.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pinput/pinput.dart';
@@ -573,7 +574,7 @@ class MedicineController extends GetxController {
     // 1. Re-set the alarm with the SAME ID
     final alarmSettings = AlarmSettings(
       id: alarmId,
-      androidFullScreenIntent: true,
+      androidFullScreenIntent: false,
       dateTime: scheduledTime,
       assetAudioPath: medicineSound,
       loopAudio: true,
@@ -611,7 +612,8 @@ class MedicineController extends GetxController {
       ),
     );
 
-    await Alarm.set(alarmSettings: alarmSettings);
+    // Native AlarmManager is the sole scheduler — skip Alarm.set().
+
 
     // 2. Update the List in Hive
     final id = alarmId;

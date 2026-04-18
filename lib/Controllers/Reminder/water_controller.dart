@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
+import 'package:snevva/services/reminder/native_alarm_bridge.dart';
 import 'package:intl/intl.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/common/global_variables.dart';
@@ -106,7 +107,7 @@ class WaterController extends GetxController {
       dateTime: nextTime,
       assetAudioPath: waterSound,
       loopAudio: false,
-      androidFullScreenIntent: true,
+      androidFullScreenIntent: false,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
         fadeDuration: const Duration(seconds: 5),
@@ -127,7 +128,16 @@ class WaterController extends GetxController {
       ),
     );
 
-    await Alarm.set(alarmSettings: alarm);
+    // Native AlarmManager is the sole scheduler — skip Alarm.set().
+    // 📲 Arm via native Kotlin layer
+    await NativeAlarmBridge.armAlarm(
+      alarmId: alarm.id,
+      epochMs: alarm.dateTime.millisecondsSinceEpoch,
+      groupId: alarm.id.toString(),
+      category: 'water',
+      title: alarm.notificationSettings.title,
+      body: alarm.notificationSettings.body,
+    );
     debugPrint("✅ Initial water alarm scheduled");
   }
 
@@ -437,7 +447,7 @@ class WaterController extends GetxController {
           );
 
           /// Schedule again
-          await Alarm.set(alarmSettings: newAlarm);
+          // Native AlarmManager is the sole scheduler — skip Alarm.set().
 
           /// Replace inside map
           list[i][title] = newAlarm;

@@ -20,6 +20,7 @@ import 'package:snevva/models/mappers/reminder_api_mapper.dart';
 import 'package:snevva/models/mappers/reminder_payload_mapper.dart';
 import 'package:snevva/models/reminder_schedule_metadata.dart';
 import 'package:snevva/services/api_service.dart';
+import 'package:snevva/services/reminder/native_alarm_bridge.dart';
 import 'package:snevva/services/reminder/reminder_scheduler.dart';
 import 'package:snevva/services/reminder/device_timezone_service.dart';
 import 'package:snevva/services/reminder/reminder_alarm_transaction.dart';
@@ -422,7 +423,7 @@ class ReminderController extends GetxController {
       allowAlarmOverlap: true,
       vibrate: soundVibrationToggle.value,
       warningNotificationOnKill: false,
-      androidFullScreenIntent: true,
+      androidFullScreenIntent: false,
       notificationSettings: NotificationSettings(
         title: title,
         body: "$body $amount $unit",
@@ -441,10 +442,20 @@ class ReminderController extends GetxController {
 
     // 6️⃣ Set alarm
     debugPrint('   🚀 Setting "Before" Alarm at: ${alarmSettings.dateTime}');
-    final success = await Alarm.set(alarmSettings: alarmSettings);
+    // Native AlarmManager is the sole scheduler — skip Alarm.set().
+    const success = true;
 
     if (success) {
-      debugPrint('✅ [setBeforeReminderAlarm] Alarm set successfully');
+      debugPrint('✅ [setBeforeReminderAlarm] Alarm armed via native layer');
+      // 📲 Arm via native Kotlin layer
+      await NativeAlarmBridge.armAlarm(
+        alarmId: alarmSettings.id,
+        epochMs: alarmSettings.dateTime.millisecondsSinceEpoch,
+        groupId: alarmSettings.id.toString(),
+        category: category,
+        title: alarmSettings.notificationSettings.title,
+        body: alarmSettings.notificationSettings.body,
+      );
     } else {
       debugPrint('❌ [setBeforeReminderAlarm] Alarm.set FAILED');
     }
@@ -722,7 +733,7 @@ class ReminderController extends GetxController {
       dateTime: nextTime,
       assetAudioPath: _audioPathForReminderCategory('water'),
       warningNotificationOnKill: false,
-      androidFullScreenIntent: true,
+      androidFullScreenIntent: false,
       loopAudio: true,
       vibrate: soundVibrationToggle.value,
       volumeSettings: VolumeSettings.fade(
@@ -744,7 +755,7 @@ class ReminderController extends GetxController {
       ),
     );
 
-    await Alarm.set(alarmSettings: newAlarm);
+    // Native AlarmManager is the sole scheduler — skip Alarm.set().
   }
 
   Future<void> stopAlarm(
@@ -1967,7 +1978,7 @@ class ReminderController extends GetxController {
       dateTime: scheduledTime,
       assetAudioPath: assetAudioPath,
       warningNotificationOnKill: false,
-      androidFullScreenIntent: true,
+      androidFullScreenIntent: false,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
         fadeDuration: const Duration(seconds: 5),
@@ -2118,7 +2129,7 @@ class ReminderController extends GetxController {
             assetAudioPath: waterSound,
             loopAudio: false,
             warningNotificationOnKill: false,
-            androidFullScreenIntent: true,
+            androidFullScreenIntent: false,
             volumeSettings: VolumeSettings.fade(
               volume: 0.8,
               fadeDuration: const Duration(seconds: 5),
@@ -2173,7 +2184,7 @@ class ReminderController extends GetxController {
             assetAudioPath: waterSound,
             loopAudio: false,
             warningNotificationOnKill: false,
-            androidFullScreenIntent: true,
+            androidFullScreenIntent: false,
             volumeSettings: VolumeSettings.fade(
               volume: 0.8,
               fadeDuration: const Duration(seconds: 5),
