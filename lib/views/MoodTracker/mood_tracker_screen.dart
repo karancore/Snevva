@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
@@ -128,6 +129,16 @@ class MoodTrackerScreen extends StatelessWidget {
             // Save button
             ElevatedButton(
               onPressed: () {
+                DateTime now = DateTime.now();
+                String time24 = DateFormat('HH:mm').format(now);
+                controller.moodEntries.add({
+                  'Mood': controller.selectedUserMood,
+                  'Time': time24,
+                });
+                controller.storeMoodLocally({
+                  'Mood': controller.selectedUserMood,
+                  'Time': time24,
+                });
                 controller.updateMood(context);
 
                 Get.to(() => MoodQuestionnaire());

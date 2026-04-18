@@ -9,6 +9,7 @@ import 'package:snevva/services/api_service.dart';
 
 import '../../common/custom_snackbar.dart';
 import '../../common/global_variables.dart';
+import '../../consts/images.dart';
 
 class MoodController extends GetxService {
   List<String> moods = ['Pleasant', 'Good', 'Unpleasant'];
@@ -23,17 +24,20 @@ class MoodController extends GetxService {
     selectedMoodIndex.value = index;
   }
 
-  void swipeLeft() {
-    if (selectedMoodIndex.value < moods.length - 1) {
-      selectedMoodIndex.value++;
+  String getImage(String mood){
+    switch(mood){
+      case 'Pleasant':
+        return pleasant;
+      case 'Good':
+        return neutral;
+      case 'Unpleasant':
+        return unpleasant;
+      default:
+        return neutral; // Default to "Good" if something goes wrong
     }
   }
 
-  void swipeRight() {
-    if (selectedMoodIndex.value > 0) {
-      selectedMoodIndex.value--;
-    }
-  }
+  RxList<Map<String, String>> moodEntries = <Map<String, String>>[].obs;
 
   Future<void> loadmoodfromAPI({required int month, required int year}) async {
     try {
@@ -92,6 +96,49 @@ class MoodController extends GetxService {
       // Fail-safe default
       selectedMood.value = 'Good';
       selectedMoodIndex.value = moods.indexOf('Good');
+    }
+  }
+
+  Future<void> storeMoodLocally(Map<String, String> moodMap) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final today = DateTime.now().toIso8601String().split('T')[0];
+
+    // unique key per day
+    final key = "moods_$today";
+
+    String? storedList = prefs.getString(key);
+
+    List<Map<String, String>> tempList = [];
+
+    if (storedList != null) {
+      final decoded = jsonDecode(storedList) as List;
+      tempList = decoded.map((e) => Map<String, String>.from(e)).toList();
+    }
+
+    tempList.add(moodMap);
+
+    await prefs.setString(key, jsonEncode(tempList));
+
+    debugPrint("💾 Stored for $today → $moodMap");
+  }
+
+
+  Future<void> loadTodayMoods() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final today = DateTime.now().toIso8601String().split('T')[0];
+    final key = "moods_$today";
+
+    String? storedList = prefs.getString(key);
+
+    if (storedList != null) {
+      final decoded = jsonDecode(storedList) as List;
+
+      moodEntries.value =
+          decoded.map((e) => Map<String, String>.from(e)).toList();
+    } else {
+      moodEntries.value = [];
     }
   }
 

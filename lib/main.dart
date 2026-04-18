@@ -47,6 +47,7 @@ import 'Controllers/signupAndSignIn/create_password_controller.dart';
 import 'services/reminder/reconciliation_engine.dart' as snevva_reconciliation;
 import 'common/ExceptionLogger.dart';
 import 'common/agent_debug_logger.dart';
+import 'common/calendar_screen.dart';
 import 'common/global_variables.dart';
 import 'consts/consts.dart';
 import 'firebase_options.dart';
@@ -579,7 +580,7 @@ class _MyAppState extends State<MyApp> {
                   child: const InitializationSplash(),
                 )
                 : _initState == AppInitState.success
-                ? HomeWrapper()
+                ? CalendarScreen()
                 : ErrorPlaceholder(
                   onRetry: () {
                     _startTimeout();

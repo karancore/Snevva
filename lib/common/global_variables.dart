@@ -339,12 +339,22 @@ String formatReminderTime(List remindTimes) {
       if (time is String) {
         try {
           DateTime dateTime = DateTime.parse(time);
-          formattedTimes.add(DateFormat('hh:mm a').format(dateTime));
+          // ✅ Always display in device local time — avoids 5h offset on UTC emulators
+          final local = dateTime.isUtc ? dateTime.toLocal() : dateTime;
+          formattedTimes.add(DateFormat('hh:mm a').format(local));
+          // ✅ Always display in device local time.
+          // DateTime.parse has no timezone info → treated as local on device
+          // but as UTC on emulators whose system clock is UTC (+0). Force
+          // toLocal() so the displayed time is always in the user's timezone.
+          final local = dateTime.isUtc ? dateTime.toLocal() : dateTime;
+          formattedTimes.add(DateFormat('hh:mm a').format(local));
         } catch (e) {
+          // Not a parseable datetime string — show as-is (e.g. "09:30 AM")
           formattedTimes.add(time);
         }
       } else if (time is DateTime) {
-        formattedTimes.add(DateFormat('hh:mm a').format(time));
+        final local = time.isUtc ? time.toLocal() : time;
+        formattedTimes.add(DateFormat('hh:mm a').format(local));
       }
     } catch (e) {
       debugPrint('Error formatting time: $e');

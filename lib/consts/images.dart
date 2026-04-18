@@ -5,6 +5,13 @@ const doc3 = "assets/Images/Doc3.webp";
 const forgotpass = "assets/Images/forgotPassword.webp";
 const newPass = "assets/Images/newPassword.webp";
 const veriemail = "assets/Images/verifyEmail.webp";
+const noEntries = "assets/Images/MoodTracker/elly no entry 1.webp";
+const girlMood = "assets/Images/MoodTracker/Layer 4.webp";
+const face = "assets/Images/MoodTracker/Untitled design 1.webp";
+
+const pleasant = "assets/Images/MoodTracker/21ae66926bfb613aa809bda2b157ef880fe14c2b.webp";
+const neutral = "assets/Images/MoodTracker/New Project (1) 3.webp";
+const unpleasant = "assets/Images/MoodTracker/Layer 2.webp";
 
 const mascotAi = "assets/Images/eleAI.webp";
 const elemascot = "assets/Images/loginel.webp";
