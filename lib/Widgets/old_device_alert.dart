@@ -15,71 +15,129 @@ class OldDeviceAlert extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            )
+          ],
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// 🔰 Title with Active Device Indicator
+
+            /// 🔴 Icon + Title Section
             Row(
               children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    const Icon(
-                      Icons.phone_android,
-                      size: 28,
-                      color: Colors.black87,
-                    ),
-
-                    /// 🟢 Active session dot
-                    Positioned(
-                      right: -1,
-                      top: -1,
-                      child: Container(
-                        width: 9,
-                        height: 9,
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 1.5),
-                        ),
-                      ),
-                    ),
-                  ],
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.security,
+                    color: Colors.red,
+                    size: 26,
+                  ),
                 ),
-                const SizedBox(width: 10),
-                const Text(
-                  "Active Login Detected",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                const SizedBox(width: 12),
+
+                const Expanded(
+                  child: Text(
+                    "Active Session Detected",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 14),
+            const SizedBox(height: 8),
 
-            _infoRow("OS", deviceInfo['brand'] ?? 'Unknown'),
-            _infoRow("Device", deviceInfo['device'] ?? 'Unknown'),
-            _infoRow("Model", deviceInfo['model'] ?? 'Unknown'),
-            _infoRow("Version", deviceInfo['androidVersion'] ?? 'Unknown'),
+            /// 🧠 Subtitle
+            Text(
+              "You're already logged in on another device. Review the details below.",
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade600,
+                height: 1.4,
+              ),
+            ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
 
+            /// 📦 Device Info Card
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Column(
+                children: [
+                  _infoTile(Icons.android, "OS", deviceInfo['brand']),
+                  _divider(),
+                  _infoTile(Icons.phone_iphone, "Device", deviceInfo['device']),
+                  _divider(),
+                  _infoTile(Icons.memory, "Model", deviceInfo['model']),
+                  _divider(),
+                  _infoTile(Icons.system_update, "Version",
+                      deviceInfo['androidVersion']),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 22),
+
+            /// 🎯 Actions
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
+                  child: TextButton(
                     onPressed: onRejectDevice,
-                    child: const Text("Cancel"),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: Colors.grey.shade100,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      "Keep Session",
+                      style: TextStyle(color: Colors.black87),
+                    ),
                   ),
                 ),
+
                 const SizedBox(width: 12),
+
                 Expanded(
                   child: ElevatedButton(
                     onPressed: onConfirmDevice,
-                    child: const Text("Logout"),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: Colors.red,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      "Logout Device",
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
                 ),
               ],
@@ -90,21 +148,36 @@ class OldDeviceAlert extends StatelessWidget {
     );
   }
 
-  Widget _infoRow(String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.w500),
+  Widget _infoTile(IconData icon, String title, dynamic value) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.grey.shade600),
+        const SizedBox(width: 10),
+        Text(
+          "$title:",
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            value?.toString() ?? "Unknown",
+            style: TextStyle(
+              color: Colors.grey.shade700,
+              fontSize: 13,
             ),
           ),
-          Expanded(flex: 5, child: Text(value)),
-        ],
-      ),
+        ),
+      ],
+    );
+  }
+
+  Widget _divider() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Divider(color: Colors.grey.shade200, height: 1),
     );
   }
 }
