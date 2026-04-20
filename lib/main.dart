@@ -578,7 +578,7 @@ class _MyAppState extends State<MyApp> {
                   child: const InitializationSplash(),
                 )
                 : _initState == AppInitState.success
-                ? MoodTrackerScreen()
+                ? HomeWrapper()
                 : ErrorPlaceholder(
                   onRetry: () {
                     _startTimeout();
