@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:snevva/models/mood_model.dart';
+
+import '../consts/images.dart';
+import '../views/MoodTracker/mood_details_card.dart';
 
 class CustomCalendar extends StatefulWidget {
   final int year;
+  final List<MoodModel> mood; // Map of date to mood
 
-  const CustomCalendar({super.key, required this.year});
+  const CustomCalendar({super.key, required this.year, required this.mood});
 
   @override
   State<CustomCalendar> createState() => _CustomCalendarState();
@@ -15,6 +20,10 @@ int getDaysInMonth(int year, int month) {
 
 int getFirstWeekday(int year, int month) {
   return DateTime(year, month, 1).weekday;
+}
+
+DateTime normalize(DateTime d) {
+  return DateTime(d.year, d.month, d.day);
 }
 
 String monthName(int month) {
@@ -91,20 +100,10 @@ class _CustomCalendarState extends State<CustomCalendar> {
 
             return Row(
               children: List.generate(7, (index) {
-                final days = [
-                  'Sun',
-                  'Mon',
-                  'Tue',
-                  'Wed',
-                  'Thu',
-                  'Fri',
-                  'Sat',
-                ];
+                final days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
                 return Padding(
-                  padding: EdgeInsets.only(
-                    right: index == 6 ? 0 : spacing,
-                  ),
+                  padding: EdgeInsets.only(right: index == 6 ? 0 : spacing),
                   child: SizedBox(
                     width: itemWidth,
                     child: Center(
@@ -129,12 +128,26 @@ class _CustomCalendarState extends State<CustomCalendar> {
             itemCount: 12,
             itemBuilder: (context, index) {
               final month = index + 1;
+              print("📅 Building month: $month");
               return buildMonth(month);
             },
           ),
         ),
       ],
     );
+  }
+
+  String getImage(String mood) {
+    switch (mood) {
+      case 'Pleasant':
+        return pleasant;
+      case 'Good':
+        return neutral;
+      case 'Unpleasant':
+        return unpleasant;
+      default:
+        return neutral;
+    }
   }
 
   Widget buildMonth(int month) {
@@ -196,13 +209,72 @@ class _CustomCalendarState extends State<CustomCalendar> {
               itemBuilder: (context, index) {
                 if (index < startOffset) return const SizedBox();
 
+                final int day = index - startOffset + 1;
+                final currentDate = DateTime(widget.year, month, day);
+
+
+                MoodModel? matchedMood;
+
+                for (var m in widget.mood) {
+                  final apiDate = DateTime(m.year, m.month, m.day);
+
+                  if (apiDate.year == currentDate.year &&
+                      apiDate.month == currentDate.month &&
+                      apiDate.day == currentDate.day) {
+                    debugPrint("✅ MATCH FOUND");
+                    matchedMood = m;
+                    break;
+                  }
+                }
+
+                if (matchedMood == null) {
+                  debugPrint(" No match for $day-$month-${widget.year}");
+                }
+
+                String? imagePath;
+
+                if (matchedMood != null) {
+                  imagePath = getImage(matchedMood.mood);
+                }
+
                 return Center(
                   child: Container(
-                    width: 22 * scale,
-                    height: 22 * scale,
-                    decoration: const BoxDecoration(
-                      color: Color(0xffD9D9D9),
-                      shape: BoxShape.circle,
+                    width: 26 * scale,
+                    height: 26 * scale,
+                    decoration: const BoxDecoration(shape: BoxShape.circle),
+                    child:
+                    imagePath != null
+                        ? InkWell(
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          barrierColor: Colors.black.withOpacity(0.3),
+                          builder: (context) {
+                            return MoodDetailsCard(mood: widget.mood[index]);
+                          },
+                        );
+                      },
+                      child: ClipOval(
+                        child: Image.asset(
+                          imagePath,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    )
+                        : Container(
+                      decoration: const BoxDecoration(
+                        color: Color(0xffD9D9D9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          day.toString(),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.black.withOpacity(0.6),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 );

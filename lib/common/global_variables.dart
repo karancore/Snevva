@@ -346,7 +346,6 @@ String formatReminderTime(List remindTimes) {
           // DateTime.parse has no timezone info → treated as local on device
           // but as UTC on emulators whose system clock is UTC (+0). Force
           // toLocal() so the displayed time is always in the user's timezone.
-          final local = dateTime.isUtc ? dateTime.toLocal() : dateTime;
           formattedTimes.add(DateFormat('hh:mm a').format(local));
         } catch (e) {
           // Not a parseable datetime string — show as-is (e.g. "09:30 AM")

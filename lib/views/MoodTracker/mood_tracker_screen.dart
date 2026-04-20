@@ -139,7 +139,7 @@ class MoodTrackerScreen extends StatelessWidget {
                   'Mood': controller.selectedUserMood,
                   'Time': time24,
                 });
-                controller.updateMood(context);
+                controller.updateMood(context: context, time: time24);
 
                 Get.to(() => MoodQuestionnaire());
               },

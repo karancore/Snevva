@@ -29,7 +29,6 @@ import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/update_old_password_controller.dart';
 import 'package:snevva/services/firebase_init.dart';
 import 'package:snevva/services/google_auth.dart';
-
 import 'package:snevva/utils/theme_controller.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
@@ -44,10 +43,8 @@ import 'Controllers/WomenHealth/bottom_sheet_controller.dart';
 import 'Controllers/alerts/alerts_controller.dart';
 import 'Controllers/local_storage_manager.dart';
 import 'Controllers/signupAndSignIn/create_password_controller.dart';
-import 'services/reminder/reconciliation_engine.dart' as snevva_reconciliation;
 import 'common/ExceptionLogger.dart';
 import 'common/agent_debug_logger.dart';
-import 'common/calendar_screen.dart';
 import 'common/global_variables.dart';
 import 'consts/consts.dart';
 import 'firebase_options.dart';
@@ -55,6 +52,7 @@ import 'performance/frame_timing_monitor.dart';
 import 'performance/refresh_rate_bootstrap.dart';
 import 'services/app_initializer.dart';
 import 'services/notification_channel.dart';
+import 'services/reminder/reconciliation_engine.dart' as snevva_reconciliation;
 import 'utils/theme.dart';
 import 'views/Reminder/reminder_screen.dart';
 import 'views/SignUp/sign_in_screen.dart';
@@ -580,7 +578,7 @@ class _MyAppState extends State<MyApp> {
                   child: const InitializationSplash(),
                 )
                 : _initState == AppInitState.success
-                ? CalendarScreen()
+                ? MoodTrackerScreen()
                 : ErrorPlaceholder(
                   onRetry: () {
                     _startTimeout();

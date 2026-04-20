@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_instance/src/extension_instance.dart';
 import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:snevva/Widgets/WomenHealth/calender.dart';
+import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/common/calendar_widget.dart';
+import 'package:snevva/models/mood_model.dart';
 
 import '../consts/colors.dart';
 
@@ -14,6 +16,39 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
+
+  List<MoodModel> moodData = [];
+
+  @override
+  void initState() {
+    super.initState();
+
+    getMood();
+  }
+
+
+  Future<void> getMood() async {
+    // Simulate a delay to mimic data fetching
+    final currentMonth = DateTime
+        .now()
+        .month;
+    final currentYear = DateTime
+        .now()
+        .year;
+
+    moodData = await Get.find<MoodController>().loadMoodFromAPI(
+        month: currentMonth, year: currentYear);
+
+    if (!mounted) return;
+    setState(() {});
+    for (var mood in moodData) {
+      debugPrint("📅 Mood Entry: ${mood.displayText}");
+      final date = DateTime(mood.year, mood.month, mood.day);
+      print("📅 Date: $date, Mood: ${mood.mood}");
+    }
+    print("Mood data fetched successfully!");
+  }
+
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
@@ -107,7 +142,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
                 SizedBox(height: 30 * scale),
 
-                Expanded(child: CustomCalendar(year: 2025)),
+                Expanded(child: CustomCalendar(year: DateTime
+                    .now()
+                    .year, mood: moodData,)),
               ],
             ),
           ),

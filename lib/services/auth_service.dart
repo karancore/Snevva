@@ -221,7 +221,7 @@ class AuthService {
     loginLog("Reminders loaded");
 
     loginLog("Loading mood...");
-    await moodcontroller.loadmoodfromAPI(
+    await moodcontroller.loadMoodFromAPI(
       month: DateTime.now().month,
       year: DateTime.now().year,
     );
