@@ -250,15 +250,15 @@ class _CustomCalendarState extends State<CustomCalendar> {
                           context: context,
                           barrierColor: Colors.black.withOpacity(0.3),
                           builder: (context) {
-                            return MoodDetailsCard(mood: widget.mood[index]);
-                          },
+                                    return MoodDetailsCard(mood: matchedMood!);
+                                  },
                         );
                       },
                       child: ClipOval(
                         child: Image.asset(
                           imagePath,
-                          fit: BoxFit.cover,
-                        ),
+                                  fit: BoxFit.contain,
+                                ),
                       ),
                     )
                         : Container(
