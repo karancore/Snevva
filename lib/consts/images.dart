@@ -10,9 +10,8 @@ const girlMood = "assets/Images/MoodTracker/Layer 4.webp";
 const face = "assets/Images/MoodTracker/Untitled design 1.webp";
 
 const pleasant = "assets/Images/MoodTracker/pleasnt.svg.webp";
-const neutral =
-    "assets/Images/MoodTracker/21ae66926bfb613aa809bda2b157ef880fe14c2b.webp";
-const unpleasant = "assets/Images/MoodTracker/Layer 2.webp";
+const neutral = "assets/Images/MoodTracker/good 1.svg.webp";
+const unpleasant = "assets/Images/MoodTracker/unpleasant.svg.webp";
 
 const mascotAi = "assets/Images/eleAI.webp";
 const elemascot = "assets/Images/loginel.webp";
