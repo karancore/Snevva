@@ -1,12 +1,14 @@
-import 'package:linear_progress_bar/linear_progress_bar.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_instance/src/extension_instance.dart';
+import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
+import 'package:intl/intl.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
-import 'package:snevva/Controllers/MoodTracker/mood_questions_controller.dart';
-import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
+import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
+import 'package:snevva/consts/images.dart';
 
-import '../../consts/consts.dart';
-import '../../models/mood_questionnaire_model.dart';
-import '../../widgets/CommonWidgets/custom_appbar.dart';
-import '../../widgets/MoodTracker/mood_answer_selection_widget.dart';
+import '../../common/calendar_screen.dart';
+import '../../consts/colors.dart';
 
 class MoodQuestionnaire extends StatefulWidget {
   const MoodQuestionnaire({super.key});
@@ -16,332 +18,218 @@ class MoodQuestionnaire extends StatefulWidget {
 }
 
 class _MoodQuestionnaireState extends State<MoodQuestionnaire> {
-  late final MoodQuestionController moodQuestionController;
+  String getCurrentDay() {
+    final now = DateTime.now();
+    return DateFormat('dd MMM').format(now);
+  }
+
   final moodController = Get.find<MoodController>();
 
   @override
   void initState() {
     super.initState();
-
-    moodQuestionController =
-        Get.isRegistered<MoodQuestionController>()
-            ? Get.find<MoodQuestionController>()
-            : Get.put(MoodQuestionController());
+    WidgetsBinding.instance.addPostFrameCallback((_){
+      moodController.loadTodayMoods();
+    });
   }
-
-
-  final Map<String, Map<String, MoodQuestion>> questions = {
-    'Unpleasant': {
-      'q1': MoodQuestion(
-        id: 'q1',
-        questionText: "How would you describe your daily water intake?",
-        options: [
-          MoodAnswerOption(heading: '🚰 Low', subHeading: 'Very little water'),
-          MoodAnswerOption(heading: '🥤 Moderate', subHeading: 'Occasionally'),
-          MoodAnswerOption(heading: '💦 High', subHeading: 'Regularly'),
-        ],
-        nextQuestionId: {
-          '🚰 Low': 'q2a',
-          '🥤 Moderate': 'q2b',
-          '💦 High': 'q2b',
-        },
-      ),
-
-      'q2a': MoodQuestion(
-        id: 'q2a',
-        questionText: "Are you feeling headaches or fatigue?",
-        options: [
-          MoodAnswerOption(heading: '🤕 Yes', subHeading: 'Often tired'),
-          MoodAnswerOption(heading: '🙂 No', subHeading: 'Not really'),
-        ],
-        nextQuestionId: {'🤕 Yes': 'q3', '🙂 No': 'q3'},
-      ),
-
-      'q2b': MoodQuestion(
-        id: 'q2b',
-        questionText: "How active are you during the day?",
-        options: [
-          MoodAnswerOption(heading: '🛋 Inactive', subHeading: 'No movement'),
-          MoodAnswerOption(heading: '🚶 Moderate', subHeading: 'Some activity'),
-          MoodAnswerOption(heading: '🏃 Active', subHeading: 'Very active'),
-        ],
-        nextQuestionId: {
-          '🛋 Inactive': 'q3',
-          '🚶 Moderate': 'q3',
-          '🏃 Active': null, // 👈 early end
-        },
-      ),
-
-      'q3': MoodQuestion(
-        id: 'q3',
-        questionText: "How balanced is your diet?",
-        options: [
-          MoodAnswerOption(heading: '🍔 Poor', subHeading: 'Mostly junk'),
-          MoodAnswerOption(heading: '🥗 Moderate', subHeading: 'Some healthy'),
-          MoodAnswerOption(heading: '🍎 Good', subHeading: 'Balanced'),
-        ],
-        nextQuestionId: {'🍔 Poor': null, '🥗 Moderate': null, '🍎 Good': null},
-      ),
-    },
-
-    'Pleasant': {
-      'q1': MoodQuestion(
-        id: 'q1',
-        questionText: "How relaxed do you feel?",
-        options: [
-          MoodAnswerOption(heading: '😟 Stressed', subHeading: 'Tense'),
-          MoodAnswerOption(heading: '🙂 Calm', subHeading: 'Okay'),
-          MoodAnswerOption(heading: '😌 Very relaxed', subHeading: 'Peaceful'),
-        ],
-        nextQuestionId: {
-          '😟 Stressed': 'q2a',
-          '🙂 Calm': 'q2b',
-          '😌 Very relaxed': 'q2b',
-        },
-      ),
-
-      'q2a': MoodQuestion(
-        id: 'q2a',
-        questionText: "What’s causing stress?",
-        options: [
-          MoodAnswerOption(heading: '💼 Work', subHeading: 'Job pressure'),
-          MoodAnswerOption(
-            heading: '👨‍👩‍👧 Personal',
-            subHeading: 'Life issues',
-          ),
-        ],
-        nextQuestionId: {'💼 Work': 'q3', '👨‍👩‍👧 Personal': 'q3'},
-      ),
-
-      'q2b': MoodQuestion(
-        id: 'q2b',
-        questionText: "How social are you feeling?",
-        options: [
-          MoodAnswerOption(heading: '😶 Reserved', subHeading: 'Alone'),
-          MoodAnswerOption(
-            heading: '😊 Friendly',
-            subHeading: 'Some interaction',
-          ),
-          MoodAnswerOption(heading: '🥳 Social', subHeading: 'Very social'),
-        ],
-        nextQuestionId: {
-          '😶 Reserved': 'q3',
-          '😊 Friendly': null,
-          '🥳 Social': null,
-        },
-      ),
-
-      'q3': MoodQuestion(
-        id: 'q3',
-        questionText: "How motivated are you?",
-        options: [
-          MoodAnswerOption(heading: '😔 Low', subHeading: 'Hard to start'),
-          MoodAnswerOption(heading: '🙂 Moderate', subHeading: 'Manageable'),
-          MoodAnswerOption(heading: '💪 High', subHeading: 'Driven'),
-        ],
-        nextQuestionId: {'😔 Low': null, '🙂 Moderate': null, '💪 High': null},
-      ),
-    },
-
-    'Good': {
-      'q1': MoodQuestion(
-        id: 'q1',
-        questionText: "How productive do you feel?",
-        options: [
-          MoodAnswerOption(heading: '😴 Low', subHeading: 'Struggling'),
-          MoodAnswerOption(heading: '🙂 Moderate', subHeading: 'Some work'),
-          MoodAnswerOption(heading: '🏆 High', subHeading: 'Very productive'),
-        ],
-        nextQuestionId: {
-          '😴 Low': 'q2a',
-          '🙂 Moderate': 'q2b',
-          '🏆 High': 'q2b',
-        },
-      ),
-
-      'q2a': MoodQuestion(
-        id: 'q2a',
-        questionText: "How well did you sleep?",
-        options: [
-          MoodAnswerOption(heading: '😴 Poor', subHeading: 'Bad sleep'),
-          MoodAnswerOption(heading: '🙂 Average', subHeading: 'Okay'),
-        ],
-        nextQuestionId: {'😴 Poor': 'q3', '🙂 Average': 'q3'},
-      ),
-
-      'q2b': MoodQuestion(
-        id: 'q2b',
-        questionText: "How energetic are you?",
-        options: [
-          MoodAnswerOption(heading: '😪 Low', subHeading: 'Tired'),
-          MoodAnswerOption(heading: '⚡ High', subHeading: 'Full energy'),
-        ],
-        nextQuestionId: {'😪 Low': 'q3', '⚡ High': null},
-      ),
-
-      'q3': MoodQuestion(
-        id: 'q3',
-        questionText: "How is your self-care today?",
-        options: [
-          MoodAnswerOption(heading: '😔 Low', subHeading: 'Neglecting'),
-          MoodAnswerOption(heading: '💖 High', subHeading: 'Taking care'),
-        ],
-        nextQuestionId: {'😔 Low': null, '💖 High': null},
-      ),
-    },
-  };
-
-  String currentQuestionId = 'q1';
-  List<String> questionFlow = ['q1']; // for progress
-  late final Map<String, MoodQuestion>? filteredQuestions =
-      questions[moodController.selectedUserMood];
-
-  final List<String> headings = [
-    "Let's Start",
-    "You are very close...",
-    "One More",
-    "And we are done",
-  ];
+  // Example mood entries
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    final height = mediaQuery.size.height;
-    final width = mediaQuery.size.width;
-    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    double screenWidth = MediaQuery.of(context).size.width;
+
+    double scale = screenWidth / 360;
+
+    double itemHeight = 42 * scale;
+
     return Scaffold(
-      drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
-      appBar: CustomAppBar(appbarText: "Mood Tracker"),
       body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  headings[(questionFlow.length - 1).clamp(
-                      0, headings.length - 1)],
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
+        padding: const EdgeInsets.all(12.0),
+        child: SafeArea(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    "Today, ${getCurrentDay()}",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
                   ),
-                ),
-                const SizedBox(height: 20),
-                LinearProgressBar(
-                  maxSteps: 4,
-                  progressType: LinearProgressBar.progressTypeLinear,
-                  currentStep: questionFlow.length,
-                  progressColor: AppColors.primaryColor,
-                  backgroundColor: mediumGrey,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: Builder(
-                builder: (context) {
-                  final question = filteredQuestions![currentQuestionId]!;
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        question.questionText,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w600,
+                  Spacer(),
+                  Container(
+                    height: 38,
+                    width: 38,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: white,
+                      borderRadius: BorderRadius.circular(6),
+          
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: Offset(2, 2),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      Obx(() {
-                        final selected = moodQuestionController
-                            .getSelectedAnswer(questionFlow.length - 1);
-
-                        return Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children:
-                          question.options.map((option) {
-                            return MoodAnswerSelectionWidget(
-                              onTap: () {
-                                moodQuestionController.selectAnswer(
-                                  questionFlow.length - 1,
-                                  option.heading,
-                                );
-
-                                final nextId =
-                                question.nextQuestionId[option.heading];
-
-                                Future.delayed(
-                                  const Duration(milliseconds: 300),
-                                      () {
-                                    if (nextId == null) {
-                                      Get.until((route) => route.isFirst);
-                                      Get.snackbar(
-                                        '🌿 You matter',
-                                        'Thanks for sharing how you feel. We’re here with you.',
-                                        snackPosition: SnackPosition.TOP,
-                                        backgroundColor: Colors.pink.shade200,
-                                        colorText: Colors.white,
-                                        duration: const Duration(seconds: 3),
-                                      );
-                                    } else {
-                                      setState(() {
-                                        currentQuestionId = nextId;
-                                        questionFlow.add(nextId);
-                                      });
-                                    }
-                                  },
-                                );
-                              },
-                              isDarkMode: isDarkMode,
-                              height: height,
-                              isSelected: selected == option.heading,
-                              // ✅ FIXED
-                              heading: option.heading,
-                              subHeading: option.subHeading,
-                              index: questionFlow.length - 1,
-                            );
-                          }).toList(),
+                      ],
+                    ),
+                    child: InkWell(
+                      onTap: () {
+                        // Navigate to calendar screen
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CalendarScreen(),
+                          ),
                         );
-                      }),
-
-                      const Spacer(),
-
-                      /// 🔙 BACK BUTTON
-                      if (questionFlow.length > 1)
-                        SafeArea(
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton(
-
-                              onPressed: () {
-                                setState(() {
-                                  questionFlow.removeLast();
-                                  currentQuestionId = questionFlow.last;
-                                });
-                              },
-                              style: OutlinedButton.styleFrom(
-                                side: BorderSide(color: AppColors.primaryColor),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-
-                              child: const Text('< Previous'),
+                      },
+                      child: Icon(
+                        Icons.calendar_month_outlined,
+                        size: 26,
+                        color: Colors.black.withOpacity(0.6),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 22.0),
+                child: Container(
+                  width: 360 * scale,
+                  height: 372 * scale,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Color(0xff912DFF),
+                        Color(0xffae65ff).withOpacity(0.64),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Obx(() {
+                    return Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Text(
+                            "DAILY MOOD",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: white,
                             ),
                           ),
-                        ),
-                    ],
-                  );
-                },
+                          moodController.moodEntries.isNotEmpty
+                              ? Image.asset(
+                            face,
+                            width: 164 * scale,
+                            height: 164 * scale,
+                            fit: BoxFit.contain,
+                          )
+                              : Image.asset(
+                            noEntries,
+                            width: 282 * scale,
+                            height: 282 * scale,
+                            fit: BoxFit.contain,
+                          ),
+                          moodController.moodEntries.isNotEmpty
+                              ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Momentary Emotions",
+                                style: const TextStyle(
+                                  color: white,
+                                  fontWeight: FontWeight.w400,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              SizedBox(height: 6, child: Divider(color: white, thickness: 2.5)),
+                            ],
+                          )
+                              : SizedBox.shrink(),
+                          moodController.moodEntries.isNotEmpty
+                              ? SizedBox(
+                            height: itemHeight * 3,
+                                child: ListView.builder(
+                                  padding: EdgeInsets.zero,
+                                  itemCount: moodController.moodEntries.length,
+                                  itemBuilder: (context, index) {
+                                    final mood = moodController.moodEntries[index];
+                                    return ListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      dense: true,
+                                      leading: Image.asset(
+                                        moodController.getImage(moodController.selectedUserMood),
+                                        width: 28 * scale,
+                                        height: 28 * scale,
+                                        fit: BoxFit.contain,
+                                      ),
+                                      title: Row(
+                                        mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            mood['Mood'] ?? '',
+                                            style: TextStyle(
+                                              color: white.withOpacity(0.8),
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          Text(
+                                            mood['Time'] ?? '',
+                                            style: TextStyle(
+                                              color: white.withOpacity(0.8),
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              )
+                              : SizedBox.shrink(),
+                        ],
+                      ),
+                    );
+                  }),
+                ),
               ),
-            ),
-          ],
+              Text(
+                "About Mood Tracker",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: black,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                "Take a moment for yourself.\n Log your mood and reflect.\n Your feelings matter—every single day.",
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: black,
+                  height: 1.5,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              SizedBox(height: 15 * scale),
+              Align(
+                alignment: Alignment.center,
+                child: Image.asset(
+                  girlMood,
+                  width: 177 * scale,
+                  height: 173 * scale,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

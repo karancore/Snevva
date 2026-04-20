@@ -5,10 +5,11 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/env/env.dart';
+import 'package:snevva/models/mood_model.dart';
 import 'package:snevva/services/api_service.dart';
 
 import '../../common/custom_snackbar.dart';
-import '../../common/global_variables.dart';
+import '../../consts/images.dart';
 
 class MoodController extends GetxService {
   List<String> moods = ['Pleasant', 'Good', 'Unpleasant'];
@@ -23,21 +24,27 @@ class MoodController extends GetxService {
     selectedMoodIndex.value = index;
   }
 
-  void swipeLeft() {
-    if (selectedMoodIndex.value < moods.length - 1) {
-      selectedMoodIndex.value++;
+  String getImage(String mood){
+    switch(mood){
+      case 'Pleasant':
+        return pleasant;
+      case 'Good':
+        return neutral;
+      case 'Unpleasant':
+        return unpleasant;
+      default:
+        return neutral; // Default to "Good" if something goes wrong
     }
   }
 
-  void swipeRight() {
-    if (selectedMoodIndex.value > 0) {
-      selectedMoodIndex.value--;
-    }
-  }
+  RxList<Map<String, String>> moodEntries = <Map<String, String>>[].obs;
 
-  Future<void> loadmoodfromAPI({required int month, required int year}) async {
+  Future<List<MoodModel>> loadMoodFromAPI(
+      {required int month, required int year}) async {
     try {
       final payload = {"Month": month, "Year": year};
+
+      debugPrint("📤 API Request Payload: $payload");
 
       final response = await ApiService.post(
         moodTrackData,
@@ -46,32 +53,44 @@ class MoodController extends GetxService {
         encryptionRequired: true,
       );
 
+      debugPrint("📥 Raw API Response: $response");
+
       if (response is http.Response) {
+        debugPrint("❌ API returned http.Response instead of decoded body");
+        debugPrint("❌ Status Code: ${response.statusCode}");
+        debugPrint("❌ Body: ${response.body}");
+
         CustomSnackbar.showError(
           context: Get.context!,
           title: 'Error',
           message: 'Failed to load mood data',
         );
-        return;
+        return [];
       }
 
       final resbody = jsonDecode(jsonEncode(response));
-      debugPrint('✅ Mood data loaded: $resbody');
+
+      debugPrint("✅ Parsed Response Body: $resbody");
 
       final List moodList = resbody['data']?['MoodTrackerData'] ?? [];
 
+      debugPrint("📊 Mood List Length: ${moodList.length}");
+      debugPrint("📊 Mood List Data: $moodList");
+
       // ✅ NO DATA → DEFAULT MOOD
       if (moodList.isEmpty) {
-        selectedMood.value = 'All Good?'; // or "All Good"
+        selectedMood.value = 'All Good?';
         selectedMoodIndex.value = moods.indexOf('Good');
 
         debugPrint('🙂 No mood data → Default set to Good');
-        return;
+        return [];
       }
 
       // ✅ DATA EXISTS → TAKE LATEST ENTRY
       final latestMood = moodList.last['Mood'];
-      debugPrint('Latest mood from API: $latestMood');
+
+      debugPrint("🎯 Latest Mood Object: ${moodList.last}");
+      debugPrint("🎯 Latest Mood Value: $latestMood");
 
       if (moods.contains(latestMood)) {
         selectedMood.value = latestMood;
@@ -82,37 +101,97 @@ class MoodController extends GetxService {
 
         debugPrint('😄 Mood mapped from API → $latestMood');
       } else {
-        // Safety fallback
+        debugPrint("⚠️ Mood not found in local list → fallback to Good");
+
         selectedMood.value = 'Good';
         selectedMoodIndex.value = moods.indexOf('Good');
       }
-    } catch (e) {
+      final modelList = moodList.map((e) => MoodModel.fromJson(e)).toList();
+      debugPrint("✅ Converted to MoodModel List: $modelList");
+      return modelList;
+    } catch (e, stackTrace) {
       debugPrint('❌ Exception while loading mood data: $e');
+      debugPrint('❌ StackTrace: $stackTrace');
 
       // Fail-safe default
       selectedMood.value = 'Good';
       selectedMoodIndex.value = moods.indexOf('Good');
+      return [];
     }
   }
 
-  Future<bool> updateMood(BuildContext context) async {
+  Future<void> storeMoodLocally(Map<String, String> moodMap) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final today = DateTime.now().toIso8601String().split('T')[0];
+
+    // unique key per day
+    final key = "moods_$today";
+
+    String? storedList = prefs.getString(key);
+
+    List<Map<String, String>> tempList = [];
+
+    if (storedList != null) {
+      final decoded = jsonDecode(storedList) as List;
+      tempList = decoded.map((e) => Map<String, String>.from(e)).toList();
+    }
+
+    tempList.add(moodMap);
+
+    await prefs.setString(key, jsonEncode(tempList));
+
+    debugPrint("💾 Stored for $today → $moodMap");
+  }
+
+
+  Future<void> loadTodayMoods() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final today = DateTime.now().toIso8601String().split('T')[0];
+    final key = "moods_$today";
+
+    String? storedList = prefs.getString(key);
+
+    if (storedList != null) {
+      final decoded = jsonDecode(storedList) as List;
+
+      moodEntries.value =
+          decoded.map((e) => Map<String, String>.from(e)).toList();
+    } else {
+      moodEntries.value = [];
+    }
+  }
+
+  Future<bool> updateMood(
+      {required BuildContext context, required String time}) async {
     if (selectedMoodIndex.value == -1) {
+      debugPrint("⚠️ No mood selected");
       Get.snackbar('No Mood Selected', 'Please select your mood first');
       return false;
     }
 
     try {
       selectedMood.value = moods[selectedMoodIndex.value];
+
+      debugPrint("🎯 Selected Mood Index: ${selectedMoodIndex.value}");
+      debugPrint("🎯 Selected Mood Value: ${selectedMood.value}");
+
       SharedPreferences prefs = await SharedPreferences.getInstance();
       prefs.setString('selectedMood', selectedMood.value);
 
+      print("Time being sent to API: $time");
+
+      final DateTime now = DateTime.now();
       final payload = {
         "Mood": moods[selectedMoodIndex.value],
         "Day": now.day,
         "Month": now.month,
         "Year": now.year,
-        "Time": TimeOfDay.now().format(Get.context!),
+        "Time": time,
       };
+
+      debugPrint("📤 API Payload: $payload");
 
       final response = await ApiService.post(
         logmood,
@@ -121,7 +200,18 @@ class MoodController extends GetxService {
         encryptionRequired: true,
       );
 
+      debugPrint("📥 Raw API Response: $response");
+
+      if (response is http.Response) {
+        debugPrint("📥 Status Code: ${response.statusCode}");
+        debugPrint("📥 Response Body: ${response.body}");
+      } else {
+        debugPrint("📥 Decoded Response: $response");
+      }
+
       if (response is http.Response && response.statusCode >= 400) {
+        debugPrint("❌ API Error: ${response.statusCode}");
+
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
@@ -129,6 +219,8 @@ class MoodController extends GetxService {
         );
         return false;
       } else {
+        debugPrint("✅ Mood saved successfully");
+
         CustomSnackbar.showSuccess(
           context: context,
           title: 'Success',
@@ -136,7 +228,10 @@ class MoodController extends GetxService {
         );
         return true;
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint("❌ Exception: $e");
+      debugPrint("❌ StackTrace: $stackTrace");
+
       CustomSnackbar.showError(
         context: context,
         title: 'Error',
