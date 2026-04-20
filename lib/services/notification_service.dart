@@ -118,10 +118,26 @@ class NotificationService {
   // Daily reminders at 10 AM and 10 PM
   // -------------------------------------------------
   Future<void> scheduleReminder({required int id}) async {
-    final now = tz.TZDateTime.now(tz.local);
+    // ⚠️  Do NOT use tz.local directly — it may have been set to UTC at startup
+    // if the MethodChannel call failed and _fallbackTimeZoneId() returned 'UTC'
+    // (e.g. because Android reported the timezone as 'IST' which has no '/').
+    // Fetch the real IANA ID with forceRefresh to bypass any stale cache.
+    final tzId = await DeviceTimezoneService.instance
+        .getTimeZoneId(forceRefresh: true);
+    tz.Location location;
+    try {
+      location = tz.getLocation(tzId);
+    } catch (_) {
+      // Last resort: fall back to whatever tz.local currently is.
+      location = tz.local;
+      debugPrint('⚠️ scheduleReminder: could not resolve "$tzId", '
+          'using tz.local (${tz.local.name}) as fallback.');
+    }
+
+    final now = tz.TZDateTime.now(location);
 
     tz.TZDateTime morningTime = tz.TZDateTime(
-      tz.local,
+      location,
       now.year,
       now.month,
       now.day,
@@ -129,7 +145,7 @@ class NotificationService {
       0,
     );
     tz.TZDateTime nightTime = tz.TZDateTime(
-      tz.local,
+      location,
       now.year,
       now.month,
       now.day,

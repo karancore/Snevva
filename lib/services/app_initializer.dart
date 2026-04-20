@@ -264,12 +264,13 @@ Future<bool> initializeApp() async {
     final notifService = NotificationService();
     await notifService.init();
 
-    // ⏰ One-time reminder
+    // ⏰ Schedule daily reminders (morning + night).
+    // We intentionally run this on every startup — zonedSchedule with a fixed
+    // ID is idempotent (overwrites the previous entry), so there is no
+    // duplication risk.  This also self-heals any notification that was
+    // previously scheduled in UTC due to the timezone-fallback bug.
     final prefs = await SharedPreferences.getInstance();
-    if (!(prefs.getBool('reminder_scheduled') ?? false)) {
-      await notifService.scheduleReminder(id: 100);
-      await prefs.setBool('reminder_scheduled', true);
-    }
+    await notifService.scheduleReminder(id: 100);
 
     _isInitialized = true;
     debugPrint("✅ App initialization complete");
