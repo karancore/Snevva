@@ -4,7 +4,6 @@ import 'package:snevva/Controllers/BMI/bmi_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/consts/colors.dart';
 import 'package:snevva/consts/images.dart';
-
 import '../../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../Health Tips/Nutrition_tips.dart/nutrition_tips.dart';
 

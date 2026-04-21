@@ -1,8 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-import 'package:snevva/views/Information/BMI/bmi_calculator_screen.dart';
+import 'package:snevva/Widgets/home_wrapper.dart';
+import 'package:snevva/views/Dashboard/dashboard.dart';
+import 'package:snevva/views/Information/BMI/bmi_cal.dart';
 import 'package:snevva/views/Information/StepCounter/step_counter.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
 import 'package:snevva/views/Reminder/add_reminder_screen.dart';

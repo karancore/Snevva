@@ -1,57 +1,46 @@
-import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_svg/svg.dart';
-import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
+import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
 
-import 'bmi_update_result.dart';
+import 'bmi_result.dart';
 
-class BmiUpdateScreen extends StatefulWidget {
-  const BmiUpdateScreen({super.key});
+class BmiCal extends StatefulWidget {
+  const BmiCal({super.key});
 
   @override
-  State<BmiUpdateScreen> createState() => _BmiUpdateScreenState();
+  State<BmiCal> createState() => _BmiCalState();
 }
 
-class _BmiUpdateScreenState extends State<BmiUpdateScreen> {
+class _BmiCalState extends State<BmiCal> {
   bool isMale = true;
   int age = 19;
   double weight = 52;
   double height = 158;
 
-  // smaller virtual list to lower layout cost
-  static const int _virtualItemCount = 200;
-  static const int _realItemCount = 100;
+  bool isSelected = false;
 
   late FixedExtentScrollController weightController;
-
-  final List<int> weights = List.generate(100, (i) => i + 1); // 1–120 kg
-  int selectedWeight = 52;
-
-  // visual dimensions (keep them consistent)
-  static const double _visibleItemWidth = 32.0;
-  static const double _itemSpacing = 8.0;
-  static const double _itemExtent = _visibleItemWidth + _itemSpacing;
-
-  // keeps track of last computed viewport (set inside LayoutBuilder)
-  double _currentViewportWidth = 220.0;
-
-  late int _middleIndex;
   late ScrollController _scrollController;
 
-  // guard to avoid feedback loop when we animate programmatically
-  bool _isAutoScrolling = false;
+  final List<int> weights = List.generate(100, (i) => i + 1); // 1–120 kg
+  int selectedWeight = 70;
 
-  // controller (keep as you had it)
-  final bmicontroller = Get.put(BmiUpdateController());
+  static const int _virtualItemCount = 500; // BIG list (infinite illusion)
+  static const int _realItemCount = 100;
 
+  late int _middleIndex;
+
+  final double itemWidth = 38; // 30 width + 8 separator spacing
+  final double viewportWidth = 220; // your SizedBox width
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+
     _scrollController.addListener(_onScroll);
 
     _middleIndex = _virtualItemCount ~/ 2;
@@ -59,66 +48,62 @@ class _BmiUpdateScreenState extends State<BmiUpdateScreen> {
     weightController = FixedExtentScrollController(
       initialItem: selectedWeight - 1,
     );
-    // wait for first layout then scroll (small delay avoids heavy layout + animate overlap)
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 200), () {
-        if (mounted) _scrollToWeight(weight);
+      Future.delayed(const Duration(milliseconds: 50), () {
+        _scrollToWeight(weight);
       });
     });
   }
 
   void _onScroll() {
-    if (!_scrollController.hasClients || _isAutoScrolling) return;
+    if (!_scrollController.hasClients) return;
 
-    // center point inside the list view (accounting for left padding)
-    final center = _scrollController.offset + (_currentViewportWidth / 2);
+    const double itemWidth = 32;
+    const double spacing = 8;
+    const double itemExtent = itemWidth + spacing;
 
-    final int index = (center / _itemExtent).round();
-    final int newNumber = (index % _realItemCount) + 1;
+    final center = _scrollController.offset + (viewportWidth / 2);
 
-    if (newNumber != weight.round()) {
-      // only update when changed
+    int index = (center / itemExtent).round();
+
+    int number = (index % _realItemCount) + 1;
+
+    if (number != weight.round()) {
       setState(() {
-        weight = newNumber.toDouble();
+        weight = number.toDouble();
       });
     }
   }
 
-  @override
-  void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
-    weightController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _scrollToWeight(double number) async {
+  void _scrollToWeight(double number) {
     if (!_scrollController.hasClients) return;
 
+    const double itemWidth = 32;
+    const double spacing = 8;
+    const double itemExtent = itemWidth + spacing;
+
     // Find the nearest cycle around middle
-    final int baseIndex = _middleIndex - (_middleIndex % _realItemCount);
-    final int targetIndex = baseIndex + number.round() - 1;
+    int baseIndex = _middleIndex - (_middleIndex % _realItemCount);
+    int targetIndex = baseIndex + number.round() - 1;
 
-    // compute the left offset so that target item is centered
-    final double screenCenter = _currentViewportWidth / 2;
-    final double itemCenter = _itemExtent / 2;
-    final double offset =
-        (targetIndex * _itemExtent) - (screenCenter - itemCenter);
+    // center correction
+    final screenCenter = viewportWidth / 2;
+    final itemCenter = itemExtent / 2;
 
-    _isAutoScrolling = true;
-    try {
-      await _scrollController.animateTo(
-        offset,
-        duration: const Duration(milliseconds: 330),
-        curve: Curves.easeOut,
-      );
-    } catch (_) {
-      // animateTo can throw if controller disposed — ignore safely
-    } finally {
-      // small delay to ensure the scroll metrics settle before turning the guard off
-      await Future.delayed(const Duration(milliseconds: 30));
-      if (mounted) _isAutoScrolling = false;
-    }
+    double offset = (targetIndex * itemExtent) - (screenCenter - itemCenter);
+
+    _scrollController.animateTo(
+      offset,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -126,6 +111,7 @@ class _BmiUpdateScreenState extends State<BmiUpdateScreen> {
     final mediaQuery = MediaQuery.of(context);
     final heightDevice = mediaQuery.size.height;
     final width = mediaQuery.size.width;
+    // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final bottomButtonHeight = 80.0;
 
@@ -137,14 +123,16 @@ class _BmiUpdateScreenState extends State<BmiUpdateScreen> {
       appBar: AppBar(
         backgroundColor: transparent,
         centerTitle: true,
-        title: const Text(
-          "Update Your BMI",
+        title: Text(
+          "BMI Calculator",
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: white,
           ),
         ),
+
+        // Conditionally show leading drawer icon
         leading: Builder(
           builder:
               (context) => IconButton(
@@ -152,15 +140,21 @@ class _BmiUpdateScreenState extends State<BmiUpdateScreen> {
                 onPressed: () => Scaffold.of(context).openDrawer(),
               ),
         ),
+
+        // Conditionally show close (cross) icon
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 20),
             child: InkWell(
               onTap: () => Navigator.pop(context),
-              child: const SizedBox(
+              child: SizedBox(
                 height: 24,
                 width: 24,
-                child: Icon(Icons.clear, size: 21, color: Colors.white),
+                child: Icon(
+                  Icons.clear,
+                  size: 21,
+                  color: white, // Adapt to theme
+                ),
               ),
             ),
           ),
@@ -174,7 +168,7 @@ class _BmiUpdateScreenState extends State<BmiUpdateScreen> {
             child: Image.asset(bmiCalculator, fit: BoxFit.fill),
           ),
           Padding(
-            padding: const EdgeInsets.only(top: 270),
+            padding: const EdgeInsets.only(top: 260),
             child: SingleChildScrollView(
               padding: EdgeInsets.only(
                 left: 16,
@@ -184,6 +178,124 @@ class _BmiUpdateScreenState extends State<BmiUpdateScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Gender and Age in Cards
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 4,
+                          color: isDarkMode ? darkGray : white,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              children: [
+                                const Text("Gender"),
+                                Divider(color: Colors.grey, thickness: 1),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    Column(
+                                      children: [
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.female,
+                                            color:
+                                                !isMale
+                                                    ? AppColors.primaryColor
+                                                    : mediumGrey,
+                                          ),
+                                          onPressed:
+                                              () => setState(
+                                                () => isMale = false,
+                                              ),
+                                        ),
+                                        const Text("Female"),
+                                      ],
+                                    ),
+                                    Column(
+                                      children: [
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.male,
+                                            color:
+                                                isMale
+                                                    ? AppColors.primaryColor
+                                                    : mediumGrey,
+                                          ),
+                                          onPressed:
+                                              () =>
+                                                  setState(() => isMale = true),
+                                        ),
+                                        const Text("Male"),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 4,
+                          color: isDarkMode ? darkGray : white,
+                          child: Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Column(
+                              children: [
+                                const Text("Age"),
+                                Divider(color: mediumGrey, thickness: 1),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.remove_circle_outline,
+                                      ),
+                                      onPressed:
+                                          () => setState(
+                                            () => age = age > 0 ? age - 1 : 0,
+                                          ),
+                                    ),
+                                    AutoSizeText(
+                                      "$age",
+                                      minFontSize: 16,
+                                      maxLines: 1,
+                                      style: const TextStyle(
+                                        fontSize: 20,
+                                        color: AppColors.primaryColor,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.add_circle_outline,
+                                      ),
+                                      onPressed: () => setState(() => age++),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 32),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
                   // Weight Card
                   Card(
                     shape: RoundedRectangleBorder(
@@ -208,9 +320,8 @@ class _BmiUpdateScreenState extends State<BmiUpdateScreen> {
                               //   icon: const Icon(Icons.remove_circle_outline),
                               //   onPressed: () {
                               //     if (weight <= 1) return;
-                              //     weight = max(1, weight - 1);
+                              //     setState(() => weight--);
                               //     _scrollToWeight(weight);
-                              //     setState(() {});
                               //   },
                               // ),
 
@@ -228,10 +339,8 @@ class _BmiUpdateScreenState extends State<BmiUpdateScreen> {
                                       physics: const FixedExtentScrollPhysics(),
                                       perspective: 0.003,
                                       onSelectedItemChanged: (index) {
-                                        final newWeight = weights[index];
                                         setState(() {
-                                          selectedWeight = newWeight;
-                                          weight = newWeight.toDouble();
+                                          selectedWeight = weights[index];
                                         });
                                       },
                                       childDelegate:
@@ -279,10 +388,9 @@ class _BmiUpdateScreenState extends State<BmiUpdateScreen> {
                               // IconButton(
                               //   icon: const Icon(Icons.add_circle_outline),
                               //   onPressed: () {
-                              //     if (weight >= _realItemCount) return;
-                              //     weight = min(_realItemCount.toDouble(), weight + 1);
+                              //     if (weight >= 100) return;
+                              //     setState(() => weight++);
                               //     _scrollToWeight(weight);
-                              //     setState(() {});
                               //   },
                               // ),
                             ],
@@ -331,6 +439,8 @@ class _BmiUpdateScreenState extends State<BmiUpdateScreen> {
                     ),
                   ),
                   const SizedBox(height: 30),
+
+                  // Calculate BMI Button
                 ],
               ),
             ),
@@ -345,18 +455,9 @@ class _BmiUpdateScreenState extends State<BmiUpdateScreen> {
             isDarkMode: isDarkMode,
             buttonName: "Calculate BMI",
             backgroundColor: AppColors.primaryColor,
-            onTap: () async {
-              final double bmi = weight / pow(height / 100, 2);
-
-              bool flag = await bmicontroller.setHeightAndWeight(
-                context,
-                age,
-                height,
-                weight,
-              );
-              if (flag) {
-                Get.to(() => BMIUpdateResultScreen(bmi: bmi, age: age));
-              }
+            onTap: () {
+              double bmi = weight / pow(height / 100, 2);
+              Get.to(() => BmiResultPage(bmi: bmi, age: age));
             },
           ),
         ),

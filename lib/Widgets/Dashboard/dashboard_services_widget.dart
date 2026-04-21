@@ -6,7 +6,7 @@ import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/Widgets/Dashboard/dashboard_service_widget_items.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/views/DietPlan/diet_plan_screen.dart';
-import 'package:snevva/views/Information/BMI/bmi_calculator_screen.dart';
+import 'package:snevva/views/Information/BMI/bmi_cal.dart';
 import 'package:snevva/views/Information/Health%20Tips/health_tips.dart';
 import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.dart';
 import 'package:snevva/views/Information/mental_wellness_screen.dart';
