@@ -10,13 +10,12 @@ class CustomCalendar extends StatefulWidget {
   const CustomCalendar({super.key, required this.year, required this.mood});
 
   @override
-  State<CustomCalendar> createState() => _CustomCalendarState();
+  CustomCalendarState createState() => CustomCalendarState(); // ✅ public
 }
 
-// ─── Pure helpers (top-level, never rebuilt) ────────────────────────────────
+// ─── Pure helpers ────────────────────────────────────────────────────────────
 
 int getDaysInMonth(int year, int month) => DateTime(year, month + 1, 0).day;
-
 int getFirstWeekday(int year, int month) => DateTime(year, month, 1).weekday;
 
 String monthName(int month) {
@@ -28,8 +27,6 @@ String monthName(int month) {
 }
 
 const _weekDayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-
-// ─── Image resolver (top-level, avoids closure allocation per cell) ──────────
 
 String _moodImage(String mood) {
   switch (mood) {
@@ -44,25 +41,21 @@ String _moodImage(String mood) {
   }
 }
 
-// ────────────────────────────────────────────────────────────────────────────
+// ─── State class (PUBLIC so GlobalKey<CustomCalendarState> works) ─────────────
 
-class _CustomCalendarState extends State<CustomCalendar> {
+class CustomCalendarState extends State<CustomCalendar> {
   final ScrollController _scrollController = ScrollController();
   static const double _monthHeight = 300;
 
-  /// KEY FIX: O(1) lookup map, rebuilt only when mood list actually changes.
   late Map<DateTime, MoodModel> _moodMap;
 
   @override
   void initState() {
     super.initState();
     _moodMap = _buildMoodMap(widget.mood);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) =>
-        _scrollToCurrentMonth());
+    WidgetsBinding.instance.addPostFrameCallback((_) => scrollToCurrentMonth());
   }
 
-  /// Rebuild the map when the parent passes a new mood list.
   @override
   void didUpdateWidget(CustomCalendar oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -77,15 +70,14 @@ class _CustomCalendarState extends State<CustomCalendar> {
     super.dispose();
   }
 
-  // Build the map once → O(N) total, instead of O(N) per cell
   Map<DateTime, MoodModel> _buildMoodMap(List<MoodModel> moods) {
     return {
       for (final m in moods) DateTime(m.year, m.month, m.day): m,
     };
-  }
+  }/ ✅ PUBLIC — called from CalendarScreen via GlobalKey on "Today" tap
+  void scrollToCurrentMonth() {
+    iif (!_scrollController.hasClients) return;
 
-  void _scrollToCurrentMonth() {
-    if (!_scrollController.hasClients) return;
     final currentMonth = DateTime
         .now()
         .month;
@@ -102,8 +94,10 @@ class _CustomCalendarState extends State<CustomCalendar> {
             (_monthHeight / 2) +
             adjustment;
 
-    _scrollController.jumpTo(
+    _scrollController.animateTo(
       targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent),
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
     );
   }
 
@@ -111,7 +105,7 @@ class _CustomCalendarState extends State<CustomCalendar> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _WeekDayHeader(), // const widget — never rebuilds
+        const _WeekDayHeader(),
         const SizedBox(height: 4),
         Expanded(
           child: ListView.builder(
@@ -122,7 +116,7 @@ class _CustomCalendarState extends State<CustomCalendar> {
                 _MonthGrid(
                   year: widget.year,
                   month: index + 1,
-                  moodMap: _moodMap, // pass the pre-built map, NOT the list
+                  moodMap: _moodMap,
                 ),
           ),
         ),
@@ -131,8 +125,7 @@ class _CustomCalendarState extends State<CustomCalendar> {
   }
 }
 
-// ─── Stateless week-day header ───────────────────────────────────────────────
-// Extracted so it NEVER rebuilds when mood data changes.
+// ─── Stateless widgets below ─────────────────────────────────────────────────
 
 class _WeekDayHeader extends StatelessWidget {
   const _WeekDayHeader();
@@ -142,7 +135,6 @@ class _WeekDayHeader extends StatelessWidget {
     return LayoutBuilder(builder: (context, constraints) {
       const double spacing = 12;
       final double itemWidth = (constraints.maxWidth - 6 * spacing) / 7;
-
       return Row(
         children: List.generate(7, (i) {
           return Padding(
@@ -166,14 +158,10 @@ class _WeekDayHeader extends StatelessWidget {
   }
 }
 
-// ─── Per-month grid (stateless) ──────────────────────────────────────────────
-// Extracted into its own widget so Flutter can skip rebuilding months
-// that haven't changed (when only one month's data updates).
-
 class _MonthGrid extends StatelessWidget {
   final int year;
   final int month;
-  final Map<DateTime, MoodModel> moodMap; // O(1) lookup
+  final Map<DateTime, MoodModel> moodMap;
 
   const _MonthGrid({
     required this.year,
@@ -216,20 +204,15 @@ class _MonthGrid extends StatelessWidget {
             if (index < startOffset) return const SizedBox.shrink();
 
             final int day = index - startOffset + 1;
-            final DateTime date = DateTime(year, month, day);
-
-            // ✅ O(1) lookup — no loop here
-            final MoodModel? matched = moodMap[date];
+            final MoodModel? matched = moodMap[DateTime(year, month, day)];
 
             if (matched != null) {
-              final String imagePath = _moodImage(matched.mood);
               return _MoodCell(
-                imagePath: imagePath,
+                imagePath: _moodImage(matched.mood),
                 mood: matched,
                 scale: scale,
               );
             }
-
             return _EmptyCell(day: day, scale: scale);
           },
         ),
@@ -238,8 +221,6 @@ class _MonthGrid extends StatelessWidget {
     );
   }
 }
-
-// ─── Leaf cells (stateless, minimal rebuild surface) ────────────────────────
 
 class _MoodCell extends StatelessWidget {
   final String imagePath;
@@ -296,8 +277,8 @@ class _EmptyCell extends StatelessWidget {
         Expanded(
           child: Center(
             child: SizedBox(
-              width: 20 * scale,
-              height: 20 * scale,
+              width: 26 * scale,
+              height: 26 * scale,
               child: DecoratedBox(
                 decoration: const BoxDecoration(
                   color: Color(0xffD9D9D9),
