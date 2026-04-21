@@ -1,14 +1,12 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:get/get.dart';
 import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
-import 'bmi_result.dart';
+
 import 'bmi_update_result.dart';
 
 class BmiUpdatecal extends StatefulWidget {
@@ -356,6 +354,10 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
                 height,
                 weight,
               );
+
+              print("Calculated BMI: $bmi");
+              print("Height : ${height}");
+              print("Weight: $weight kg");
               if (flag) {
                 Get.to(() => BMIUpdateResultScreen(bmi: bmi, age: age));
               }
