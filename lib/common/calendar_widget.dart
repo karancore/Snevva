@@ -11,7 +11,7 @@ class CustomCalendar extends StatefulWidget {
   const CustomCalendar({super.key, required this.year, required this.mood});
 
   @override
-  State<CustomCalendar> createState() => _CustomCalendarState();
+  State<CustomCalendar> createState() => CustomCalendarState();
 }
 
 // ─── Pure helpers (top-level, never rebuilt) ────────────────────────────────
@@ -47,7 +47,7 @@ String _moodImage(String mood) {
 
 // ────────────────────────────────────────────────────────────────────────────
 
-class _CustomCalendarState extends State<CustomCalendar> {
+class CustomCalendarState extends State<CustomCalendar> {
   final ScrollController _scrollController = ScrollController();
   static const double _monthHeight = 300;
 
@@ -84,6 +84,9 @@ class _CustomCalendarState extends State<CustomCalendar> {
       for (final m in moods) DateTime(m.year, m.month, m.day): m,
     };
   }
+
+  /// Public entry-point called from [CalendarScreen] via [GlobalKey].
+  void scrollToCurrentMonth() => _scrollToCurrentMonth();
 
   void _scrollToCurrentMonth() {
     if (!_scrollController.hasClients) return;
