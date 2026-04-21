@@ -4,7 +4,6 @@ import 'package:get/get_instance/src/extension_instance.dart';
 import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
 import 'package:intl/intl.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
-import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/consts/images.dart';
 
 import '../../common/calendar_screen.dart';
@@ -205,7 +204,7 @@ class _MoodQuestionnaireState extends State<MoodQuestionnaire> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w500,
-                  color: black,
+
                 ),
               ),
               SizedBox(height: 8),
@@ -213,7 +212,7 @@ class _MoodQuestionnaireState extends State<MoodQuestionnaire> {
                 "Take a moment for yourself.\n Log your mood and reflect.\n Your feelings matter—every single day.",
                 style: const TextStyle(
                   fontSize: 14,
-                  color: black,
+
                   height: 1.5,
                   fontWeight: FontWeight.w400,
                 ),

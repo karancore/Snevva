@@ -6,8 +6,6 @@ import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/common/calendar_widget.dart';
 import 'package:snevva/models/mood_model.dart';
 
-import '../consts/colors.dart';
-
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
 
@@ -59,8 +57,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
         padding: const EdgeInsets.only(top: 59.0),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: const BorderRadius.only(
+
+          borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(16),
               topRight: Radius.circular(16),
             ),
@@ -87,7 +85,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       width: 24 * scale,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.28),
@@ -118,7 +115,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       width: 76 * scale,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
-                        color: white,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.26),

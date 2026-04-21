@@ -5,6 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../common/global_variables.dart';
 import '../env/env.dart';
 import '../services/api_service.dart';
 
@@ -98,6 +99,8 @@ class DeviceTokenService {
   /// ✅ Register device token
   Future<bool> registerDeviceToken({required String fcmToken}) async {
     final payload = {"FCMToken": fcmToken};
+
+    logLong("Registering device token with payload:", "$payload");
 
     final response = await ApiService.post(
       fcmTokenApi,
