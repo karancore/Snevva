@@ -1,45 +1,49 @@
 import 'package:flutter/widgets.dart';
-import 'package:get/get.dart';
 
-class CalendarController extends GetxController {
-  static const int initialPage = 1200; // Large enough to scroll far back/forward
+class CalendarController {
+  static const int initialPage = 1200;
 
-  var currentMonth = DateTime.now().obs;
-  var pageIndex = initialPage.obs;
+  var currentMonth = DateTime.now();
+  var pageIndex = initialPage;
 
   late final PageController pageController;
 
-  @override
   void onInit() {
-    super.onInit();
     pageController = PageController(initialPage: initialPage);
   }
 
-  @override
-  void onClose() {
+  void onDispose() {
     pageController.dispose();
-    super.onClose();
   }
 
-  /// Called when the user swipes to a new page.
   void onPageChanged(int index) {
-    pageIndex.value = index;
+    pageIndex = index;
     final offset = index - initialPage;
-    final now = DateTime.now();
-    currentMonth.value = DateTime(now.year, now.month + offset);
+    currentMonth = DateTime(DateTime.now().year, DateTime.now().month + offset);
   }
 
   void nextMonth() {
-    pageIndex.value = pageIndex.value + 1;
-    final offset = pageIndex.value - initialPage;
-    final now = DateTime.now();
-    currentMonth.value = DateTime(now.year, now.month + offset);
+    pageIndex++;
+    _syncMonth();
+    pageController.animateToPage(
+      pageIndex,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   void prevMonth() {
-    pageIndex.value = pageIndex.value - 1;
-    final offset = pageIndex.value - initialPage;
-    final now = DateTime.now();
-    currentMonth.value = DateTime(now.year, now.month + offset);
+    pageIndex--;
+    _syncMonth();
+    pageController.animateToPage(
+      pageIndex,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  void _syncMonth() {
+    final offset = pageIndex - initialPage;
+    currentMonth = DateTime(DateTime.now().year, DateTime.now().month + offset);
   }
 }

@@ -74,9 +74,10 @@ class CustomCalendarState extends State<CustomCalendar> {
     return {
       for (final m in moods) DateTime(m.year, m.month, m.day): m,
     };
-  }/ ✅ PUBLIC — called from CalendarScreen via GlobalKey on "Today" tap
-  void scrollToCurrentMonth() {
-    iif (!_scrollController.hasClients) return;
+
+  // ✅ PUBLIC — called from CalendarScreen via GlobalKey on "Today" tap
+  vvoid scrollToCurrentMonth() {
+    if (!_scrollController.hasClients) return;
 
     final currentMonth = DateTime
         .now()

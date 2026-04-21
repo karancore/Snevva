@@ -33,7 +33,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     moodData = await Get.find<MoodController>().loadMoodFromAPI(
       month: currentMonth,
       year: currentYear,
-    )if (!mounted) return;
+    );
+    if (!mounted) return;
     setState(() {});
   }
 

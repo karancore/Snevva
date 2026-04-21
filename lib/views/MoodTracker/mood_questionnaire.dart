@@ -7,6 +7,7 @@ import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/consts/images.dart';
 
+import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../common/calendar_screen.dart';
 import '../../consts/colors.dart';
 
@@ -42,8 +43,15 @@ class _MoodQuestionnaireState extends State<MoodQuestionnaire> {
 
     double itemHeight = 42 * scale;
 
+    final media = MediaQuery.of(context);
+    final bool isDarkMode = Theme
+        .of(context)
+        .brightness == Brightness.dark;
+    final height = media.size.height;
+    final width = media.size.width;
     return Scaffold(
       appBar: CustomAppBar(appbarText: "Mood Journal"),
+      drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 24.0),
