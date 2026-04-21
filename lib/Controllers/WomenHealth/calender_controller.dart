@@ -1,25 +1,34 @@
 import 'package:flutter/widgets.dart';
+import 'package:get/get.dart';
 
-class CalendarController {
+class CalendarController extends GetxController {
   static const int initialPage = 1200;
 
-  var currentMonth = DateTime.now();
-  var pageIndex = initialPage;
+  // ✅ Observable — any change automatically rebuilds Obx widgets
+  final currentMonth = DateTime.now().obs;
+  int pageIndex = initialPage;
 
   late final PageController pageController;
 
+  @override
   void onInit() {
+    super.onInit();
     pageController = PageController(initialPage: initialPage);
   }
 
-  void onDispose() {
+  @override
+  void onClose() {
     pageController.dispose();
+    super.onClose();
   }
 
+  /// Called when the user SWIPES to a new page.
   void onPageChanged(int index) {
     pageIndex = index;
     final offset = index - initialPage;
-    currentMonth = DateTime(DateTime.now().year, DateTime.now().month + offset);
+    final now = DateTime.now();
+    // Writing to .value triggers Obx rebuild → header updates on swipe
+    currentMonth.value = DateTime(now.year, now.month + offset);
   }
 
   void nextMonth() {
@@ -44,6 +53,7 @@ class CalendarController {
 
   void _syncMonth() {
     final offset = pageIndex - initialPage;
-    currentMonth = DateTime(DateTime.now().year, DateTime.now().month + offset);
+    final now = DateTime.now();
+    currentMonth.value = DateTime(now.year, now.month + offset);
   }
 }
