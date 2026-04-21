@@ -42,8 +42,6 @@ class WomenHealthController extends GetxService {
   var periodDataStartYear = 0.obs;
   var hasPeriodData = false.obs;
 
-  DateTime _selectedDate = DateTime.now();
-  final DateTime _currentDate = DateTime.now();
 
   @override
   void onInit() {
@@ -86,7 +84,7 @@ class WomenHealthController extends GetxService {
   }
 
   void formattedDate() {
-    formattedCurrentDate.value = DateFormat('EEE dd MMM').format(_currentDate);
+    formattedCurrentDate.value = DateFormat('EEE dd MMM').format(DateTime.now());
   }
 
   void onDateChanged(DateTime newDate) {
@@ -115,8 +113,21 @@ class WomenHealthController extends GetxService {
     saveWomenHealthToLocalStorage();
     final lastPeriodDate = DateTime(periodYear, periodMonth, periodDay);
 
-    final cycleLength = int.parse(periodCycleDays.value);
-    final predictedDate = lastPeriodDate.add(Duration(days: cycleLength));
+    // ✅ Use the rolled-forward nextPeriodDay that _calculateNextDates already
+    // computed, so the API prediction always matches what is shown in the UI.
+    DateTime predictedDate;
+    try {
+      predictedDate = DateFormat("d MMM").parse(nextPeriodDay.value)
+          .copyWith(year: DateTime.now().year);
+      // Handle year rollover (e.g. next period is in January next year)
+      if (predictedDate.isBefore(DateTime.now())) {
+        predictedDate = DateTime(predictedDate.year + 1, predictedDate.month, predictedDate.day);
+      }
+    } catch (_) {
+      // Fallback: single-cycle addition if parse fails
+      final cycleLength = int.parse(periodCycleDays.value);
+      predictedDate = lastPeriodDate.add(Duration(days: cycleLength));
+    }
 
     _apiDebounce?.cancel();
     _apiDebounce = Timer(const Duration(seconds: 1), () {
@@ -149,13 +160,25 @@ class WomenHealthController extends GetxService {
     }
 
     try {
-      final lastPeriodDate = DateFormat(
+      DateTime cycleStart = DateFormat(
         "dd/MM/yyyy",
       ).parse(periodLastPeriodDay.value);
       final cycleLength = int.tryParse(periodCycleDays.value) ?? 28;
+      // ✅ Always use a fresh "today" so the logic is correct even if the
+      // controller was created on a previous day (app kept alive overnight).
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
 
-      final nextPeriod = lastPeriodDate.add(Duration(days: cycleLength));
-      final ovulationDay = nextPeriod.subtract(const Duration(days: 14));
+      // ✅ Roll forward until we find the NEXT upcoming period start
+      // This ensures dates are always based on the active (current) cycle.
+      DateTime nextPeriod = cycleStart.add(Duration(days: cycleLength));
+      while (nextPeriod.isBefore(today) || nextPeriod.isAtSameMomentAs(today)) {
+        cycleStart = nextPeriod;
+        nextPeriod = cycleStart.add(Duration(days: cycleLength));
+      }
+
+      // Ovulation & fertile window are relative to the CURRENT cycle start
+      final ovulationDay = cycleStart.add(Duration(days: cycleLength - 14));
       final fertilityStart = ovulationDay.subtract(const Duration(days: 5));
 
       final format = DateFormat("d MMM");
@@ -163,10 +186,11 @@ class WomenHealthController extends GetxService {
       nextPeriodDay.value = format.format(nextPeriod);
       nextOvulationDay.value = format.format(ovulationDay);
       nextFertilityDay.value = format.format(fertilityStart);
-      dayLeftNextPeriod.value =
-          _currentDate.difference(nextPeriod).inDays.abs().toString();
+      // Days from today to the next period (always positive)
+      dayLeftNextPeriod.value = nextPeriod.difference(today).inDays.toString();
     } catch (e) {
       // parsing failed
+      debugPrint('❌ _calculateNextDates error: $e');
     }
   }
 
@@ -327,26 +351,15 @@ class WomenHealthController extends GetxService {
             periodData['StartYear'] ?? DateTime.now().year;
         hasPeriodData.value = true;
 
-        final DateTime predictedDate = DateTime(
-          periodData['PredictedYear'],
-          periodData['PredictedMonth'],
-          periodData['PredictedDay'],
-        );
+        // ✅ Use WomenHealthData lastPeriodDay as cycle base for rolling forward
+        // so that we always land on the CURRENT active cycle's dates.
+        periodLastPeriodDay.value =
+            "${periodDataStartDay.value.toString().padLeft(2, '0')}/${periodDataStartMonth.value.toString().padLeft(2, '0')}/${periodDataStartYear.value}";
 
-        final DateFormat format = DateFormat("d MMM");
-        nextPeriodDay.value = format.format(predictedDate);
+        // Delegate to _calculateNextDates so the roll-forward logic is reused
+        _calculateNextDates();
 
-        // Optional derived values
-        final ovulationDay = predictedDate.subtract(const Duration(days: 14));
-        final fertilityStart = ovulationDay.subtract(const Duration(days: 5));
-
-        nextOvulationDay.value = format.format(ovulationDay);
-        nextFertilityDay.value = format.format(fertilityStart);
-
-        dayLeftNextPeriod.value =
-            DateTime.now().difference(predictedDate).inDays.abs().toString();
-
-        // 🚫 Skip _calculateNextDates() because PeriodData is accurate
+        // 🚫 Skip redundant save — _calculateNextDates doesn't save, so save here
         await saveWomenHealthToLocalStorage();
         return;
       }

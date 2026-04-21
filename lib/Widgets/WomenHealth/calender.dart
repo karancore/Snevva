@@ -58,35 +58,22 @@ class CalendarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
     // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final DateTime today = DateTime.now();
 
     return Obx(() {
-      final month = controller.currentMonth.value;
-      final days = _getCalendarDays(month);
-      final formatter = DateFormat('MMMM yyyy');
-
-      final firstWeekday =
-          DateTime(month.year, month.month, 1).weekday % 7; // Sunday = 0
-      final totalCells = firstWeekday + days.length;
-
-      // Parse user inputs
       final int periodLength =
           int.tryParse(womenController.periodDays.value) ?? 5;
       final int cycleLength =
           int.tryParse(womenController.periodCycleDays.value) ?? 28;
 
-      // Parse last period date
-      // 🔥 PRIORITY: Use PeriodData if available, else use WomenHealthData
+      // Parse last period date – PeriodData takes priority
       DateTime? lastPeriodDate;
-
       if (womenController.hasPeriodData.value &&
           womenController.periodDataStartDay.value != 0 &&
           womenController.periodDataStartMonth.value != 0 &&
           womenController.periodDataStartYear.value != 0) {
-        // Use PeriodData from API
         lastPeriodDate = DateTime(
           womenController.periodDataStartYear.value,
           womenController.periodDataStartMonth.value,
@@ -94,7 +81,6 @@ class CalendarWidget extends StatelessWidget {
         );
         debugPrint("🟢 Calendar using PeriodData: $lastPeriodDate");
       } else {
-        // Fallback to WomenHealthData
         try {
           final parts = womenController.periodLastPeriodDay.value.split('/');
           if (parts.length == 3) {
@@ -110,7 +96,7 @@ class CalendarWidget extends StatelessWidget {
         }
       }
 
-      // Pre-compute all cycles (backward + forward months)
+      // Pre-compute all cycles
       List<Map<String, dynamic>> cycles = [];
       if (lastPeriodDate != null) {
         cycles = generateCycles(
@@ -125,26 +111,42 @@ class CalendarWidget extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Month Selector
+          // Month Selector Header
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 IconButton(
                   icon: const Icon(Icons.chevron_left),
-                  onPressed: controller.prevMonth,
+                  onPressed: () {
+                    controller.prevMonth();
+                    controller.pageController.animateToPage(
+                      controller.pageIndex.value,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  },
                 ),
-                Text(
-                  formatter.format(month),
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Expanded(
+                  child: Obx(() => Text(
+                        DateFormat('MMMM yyyy').format(controller.currentMonth.value),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )),
                 ),
                 IconButton(
                   icon: const Icon(Icons.chevron_right),
-                  onPressed: controller.nextMonth,
+                  onPressed: () {
+                    controller.nextMonth();
+                    controller.pageController.animateToPage(
+                      controller.pageIndex.value,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  },
                 ),
               ],
             ),
@@ -154,116 +156,139 @@ class CalendarWidget extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 15),
             child: Row(
-              children:
-                  weekDays
-                      .map(
-                        (day) => Expanded(
-                          child: Center(
-                            child: Text(
-                              day,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+              children: weekDays
+                  .map(
+                    (day) => Expanded(
+                      child: Center(
+                        child: Text(
+                          day,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
-                      )
-                      .toList(),
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
           ),
 
           const SizedBox(height: 8),
 
-          // Calendar Grid
-          GridView.builder(
-            shrinkWrap: true,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: totalCells,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-            ),
-            itemBuilder: (context, index) {
-              if (index < firstWeekday) {
-                return Container();
-              }
+          // ✅ Horizontally swipeable PageView calendar
+          SizedBox(
+            // Enough height to show a full 6-row month grid
+            height: 300,
+            child: PageView.builder(
+              controller: controller.pageController,
+              onPageChanged: (index) {
+                controller.onPageChanged(index);
+              },
+              itemBuilder: (context, index) {
+                // Determine which month this page represents
+                final monthOffset = index - CalendarController.initialPage;
+                final pageMonth = DateTime(
+                  DateTime.now().year,
+                  DateTime.now().month + monthOffset,
+                );
 
-              final day = days[index - firstWeekday];
-              Color bgColor = Colors.transparent;
-              String emoji = '';
-              Color textColor = isDarkMode ? white : black;
+                final days = _getCalendarDays(pageMonth);
+                final firstWeekday =
+                    DateTime(pageMonth.year, pageMonth.month, 1).weekday % 7;
+                final totalCells = firstWeekday + days.length;
 
-              // Check against all cycle ranges
-              for (final cycle in cycles) {
-                final periodRange = cycle['periodRange'] as DateTimeRange;
-                final ovulationDay = cycle['ovulationDay'] as DateTime;
-                final fertileWindow = cycle['fertileWindow'] as DateTimeRange;
-
-                // Period days
-                if (!day.isBefore(periodRange.start) &&
-                    !day.isAfter(periodRange.end)) {
-                  textColor = periodHighlighted;
-                  bgColor = periodHighlighted.withOpacity(0.2);
-                }
-
-                // Fertile window
-                if (!day.isBefore(fertileWindow.start) &&
-                    !day.isAfter(fertileWindow.end)) {
-                  bgColor = Colors.green.withOpacity(0.2);
-                  textColor = Colors.green.withOpacity(0.9);
-                  emoji = cyclePhaseIcon2;
-                }
-
-                // Ovulation day (overrides fertile)
-                if (day.year == ovulationDay.year &&
-                    day.month == ovulationDay.month &&
-                    day.day == ovulationDay.day) {
-                  bgColor = yellow.withOpacity(0.2);
-                  emoji = cyclePhaseIcon3;
-                  textColor = yellow.withOpacity(0.9);
-                }
-              }
-
-              // Today highlight
-              if (day.day == today.day &&
-                  day.month == today.month &&
-                  day.year == today.year) {
-                textColor = AppColors.primaryColor;
-                bgColor = AppColors.primaryColor.withOpacity(0.2);
-              }
-
-              return InkWell(
-                onTap: () {
-                  final selected = DateTime(day.year, day.month, day.day);
-                  bottomsheetcontroller.setSelectedDate(selected);
-                },
-                child: Container(
-                  margin: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(4),
+                return GridView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: totalCells,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 7,
                   ),
-                  child: Stack(
-                    children: [
-                      Center(
-                        child: Text(
-                          '${day.day}',
-                          style: TextStyle(color: textColor),
+                  itemBuilder: (context, gridIndex) {
+                    if (gridIndex < firstWeekday) {
+                      return Container();
+                    }
+
+                    final day = days[gridIndex - firstWeekday];
+                    Color bgColor = Colors.transparent;
+                    String emoji = '';
+                    Color textColor = isDarkMode ? white : black;
+
+                    // Check against all cycle ranges
+                    for (final cycle in cycles) {
+                      final periodRange =
+                          cycle['periodRange'] as DateTimeRange;
+                      final ovulationDay = cycle['ovulationDay'] as DateTime;
+                      final fertileWindow =
+                          cycle['fertileWindow'] as DateTimeRange;
+
+                      // Period days
+                      if (!day.isBefore(periodRange.start) &&
+                          !day.isAfter(periodRange.end)) {
+                        textColor = periodHighlighted;
+                        bgColor = periodHighlighted.withOpacity(0.2);
+                      }
+
+                      // Fertile window
+                      if (!day.isBefore(fertileWindow.start) &&
+                          !day.isAfter(fertileWindow.end)) {
+                        bgColor = Colors.green.withOpacity(0.2);
+                        textColor = Colors.green.withOpacity(0.9);
+                        emoji = cyclePhaseIcon2;
+                      }
+
+                      // Ovulation day (overrides fertile)
+                      if (day.year == ovulationDay.year &&
+                          day.month == ovulationDay.month &&
+                          day.day == ovulationDay.day) {
+                        bgColor = yellow.withOpacity(0.2);
+                        emoji = cyclePhaseIcon3;
+                        textColor = yellow.withOpacity(0.9);
+                      }
+                    }
+
+                    // Today highlight
+                    if (day.day == today.day &&
+                        day.month == today.month &&
+                        day.year == today.year) {
+                      textColor = AppColors.primaryColor;
+                      bgColor = AppColors.primaryColor.withOpacity(0.2);
+                    }
+
+                    return InkWell(
+                      onTap: () {
+                        final selected =
+                            DateTime(day.year, day.month, day.day);
+                        bottomsheetcontroller.setSelectedDate(selected);
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: bgColor,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Stack(
+                          children: [
+                            Center(
+                              child: Text(
+                                '${day.day}',
+                                style: TextStyle(color: textColor),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 2,
+                              right: 4,
+                              child: emoji.isNotEmpty
+                                  ? SvgPicture.asset(emoji,
+                                      height: 12, width: 12)
+                                  : const SizedBox.shrink(),
+                            ),
+                          ],
                         ),
                       ),
-                      Positioned(
-                        bottom: 2,
-                        right: 4,
-                        child:
-                            emoji.isNotEmpty
-                                ? SvgPicture.asset(emoji, height: 12, width: 12)
-                                : const SizedBox.shrink(),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+                    );
+                  },
+                );
+              },
+            ),
           ),
 
           const SizedBox(height: 20),
@@ -275,7 +300,6 @@ class CalendarWidget extends StatelessWidget {
   /// Get all days in a month
   List<DateTime> _getCalendarDays(DateTime month) {
     final lastDayOfMonth = DateTime(month.year, month.month + 1, 0);
-
     return List.generate(
       lastDayOfMonth.day,
       (index) => DateTime(month.year, month.month, index + 1),
