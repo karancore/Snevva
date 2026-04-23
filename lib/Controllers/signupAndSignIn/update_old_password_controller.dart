@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 
@@ -92,11 +93,12 @@ class UpdateOldPasswordController extends GetxService {
     String password,
     BuildContext context,
   ) async {
+    final hashedPassword = encryptPasswordRuntime(password);
     final newPlanePassword = jsonEncode({
       'Gmail': email,
       'Otp': otp,
       'IsVerified': verificationStatus,
-      'Password': password,
+      'Password': hashedPassword,
     });
 
     try {
@@ -147,11 +149,12 @@ class UpdateOldPasswordController extends GetxService {
     String password,
     BuildContext context,
   ) async {
+    final hashedPassword = encryptPasswordRuntime(password);
     final newPlanePassword = jsonEncode({
       'PhoneNumber': phone,
       'Otp': otp,
       'IsVerified': verificationStatus,
-      'Password': password,
+      'Password': hashedPassword,
     });
 
     try {

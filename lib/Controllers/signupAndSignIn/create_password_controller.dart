@@ -14,6 +14,7 @@ import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart'
 
 import '../../../consts/consts.dart';
 import '../../../env/env.dart';
+import '../../common/global_variables.dart';
 
 class CreatePasswordController extends GetxService {
   var password = ''.obs;
@@ -69,16 +70,19 @@ class CreatePasswordController extends GetxService {
     String password,
     BuildContext context,
   ) async {
+
     final newPlanePassword = jsonEncode({
       'Gmail': email,
       'Otp': otp,
       'IsVerified': verificationStatus,
-      'Password': password,
+      'Password': encryptPasswordRuntime(password),
     });
+
 
     try {
       final uri = Uri.parse("$baseUrl$createPswdEmailEndpoint");
       final encryptedPassword = EncryptionService.encryptData(newPlanePassword);
+      print("👉 Encrypted password: ${encryptedPassword['encryptedData']}");
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
 
       headers['x-data-hash'] = encryptedPassword['Hash']!;
@@ -162,7 +166,7 @@ class CreatePasswordController extends GetxService {
 
         await AuthService().ensurePostLoginPermissionsAndStartTracking();
 
-        Get.offAll(() => ProfileSetupInitial());
+        Get.to(() => ProfileSetupInitial());
       }
     } catch (e) {
       CustomSnackbar.showError(
@@ -180,16 +184,18 @@ class CreatePasswordController extends GetxService {
     String password,
     BuildContext context,
   ) async {
+
     final newPlanePassword = jsonEncode({
       'PhoneNumber': phone,
       'Otp': otp,
       'IsVerified': verificationStatus,
-      'Password': password,
+      'Password': encryptPasswordRuntime(password),
     });
 
     try {
       final uri = Uri.parse("$baseUrl$createPswdPhoneEndpoint");
       final encryptedPassword = EncryptionService.encryptData(newPlanePassword);
+      print("👉 Encrypted password: ${encryptedPassword['encryptedData']}");
       final headers = await AuthHeaderHelper.getHeaders(withAuth: false);
 
       headers['x-data-hash'] = encryptedPassword['Hash']!;
@@ -273,7 +279,7 @@ class CreatePasswordController extends GetxService {
 
         await AuthService().ensurePostLoginPermissionsAndStartTracking();
 
-        Get.offAll(() => ProfileSetupInitial());
+        Get.to(() => ProfileSetupInitial());
       } else {
         final decryptedError = EncryptionService.decryptData(
           response.body,

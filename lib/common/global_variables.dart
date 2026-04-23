@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -411,6 +414,12 @@ double widthFactor = 1.047;
 TimeOfDay parseTime(String timeString) {
   final format = DateFormat("hh:mm a");
   return TimeOfDay.fromDateTime(format.parse(timeString));
+}
+
+String encryptPasswordRuntime(String password) {
+  final bytes = utf8.encode(password);
+  final digest = md5.convert(bytes);
+  return digest.toString();
 }
 
 TimeOfDay parseTimeNew(String input) {

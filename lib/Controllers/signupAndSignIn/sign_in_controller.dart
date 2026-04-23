@@ -10,6 +10,7 @@ import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 
+import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
 import '../../env/env.dart';
 import '../../services/auth_header_helper.dart';
@@ -36,7 +37,12 @@ class SignInController extends GetxService {
       return false;
     }
 
-    final plainEmail = jsonEncode({'Gmail': email, 'Password': password});
+    final hashedPassword = encryptPasswordRuntime(password);
+
+    final plainEmail = jsonEncode({
+      'Gmail': email,
+      'Password': hashedPassword,
+    });
 
     try {
       final uri = Uri.parse("$baseUrl$signInEmailEndpoint");
@@ -332,8 +338,12 @@ class SignInController extends GetxService {
       return false;
     }
 
-    final plainPhone = jsonEncode({'PhoneNumber': phone, 'Password': password});
+    final hashedPassword = encryptPasswordRuntime(password);
 
+    final plainPhone = jsonEncode({
+      'PhoneNumber': phone,
+      'Password': hashedPassword,
+    });
     try {
       final uri = Uri.parse("$baseUrl$signInPhoneEndpoint");
       final encryptedPhone = EncryptionService.encryptData(plainPhone);
