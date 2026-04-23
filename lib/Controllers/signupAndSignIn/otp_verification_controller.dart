@@ -20,11 +20,6 @@ class OTPVerificationController extends GetxService {
   //   super.onInit();
   //   _startSmsAutofill();
   // }
-  @override
-  void onReady() {
-    super.onReady();
-    //_startSmsAutofill();
-  }
 
   @override
   void onClose() {
@@ -42,16 +37,13 @@ class OTPVerificationController extends GetxService {
   //   }
   // }
 
-  bool verifyOtp(String enteredOtp, String responseOtpp, BuildContext context) {
+  bool verifyOtp(String enteredOtp,
+      String responseOtpp,
+      BuildContext context,) {
     debugPrint('🔐 [verifyOtp] CALLED');
 
     final normalizedEnteredOtp = enteredOtp.trim();
     final normalizedResponseOtp = responseOtpp.trim();
-
-    debugPrint('🧪 Entered OTP (raw): "$enteredOtp"');
-    debugPrint('🧪 Entered OTP (normalized): "$normalizedEnteredOtp"');
-    debugPrint('🧪 Response OTP (raw): "$responseOtpp"');
-    debugPrint('🧪 Response OTP (normalized): "$normalizedResponseOtp"');
 
     if (isVerifying.value) {
       debugPrint('⏳ OTP verification already in progress — skipping');
@@ -59,54 +51,48 @@ class OTPVerificationController extends GetxService {
     }
 
     isVerifying.value = true;
-    debugPrint('🔄 isVerifying set to TRUE');
 
-    if (normalizedEnteredOtp != normalizedResponseOtp) {
-      debugPrint('❌ OTP MISMATCH');
+    try {
+      if (normalizedEnteredOtp != normalizedResponseOtp) {
+        debugPrint('❌ OTP MISMATCH');
 
-      CustomSnackbar.showError(
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Wrong OTP',
+          message: 'Verification failed.',
+        );
+
+        return false;
+      }
+
+      debugPrint('✅ OTP MATCHED — verification successful');
+
+      CustomSnackbar.showSuccess(
         context: context,
-        title: 'Wrong OTP',
-        message: 'Verification failed.',
+        title: 'Success',
+        message: 'Verification successful.',
       );
 
+      Get.to(
+            () =>
+        isForgotPasswordScreen.value
+            ? UpdateOldPassword(
+          otpVerificationStatus: true,
+          otp: normalizedResponseOtp,
+          emailOrPhoneText: emailOrPasswordText.value,
+        )
+            : CreateNewPassword(
+          otpVerificationStatus: true,
+          otp: normalizedResponseOtp,
+          emailOrPhoneText: emailOrPasswordText.value,
+        ),
+      );
+
+      return true;
+    } finally {
+      // ✅ ALWAYS RESET (this is the key fix)
       isVerifying.value = false;
       debugPrint('🔄 isVerifying reset to FALSE');
-
-      return false;
     }
-
-    debugPrint('✅ OTP MATCHED — verification successful');
-
-    CustomSnackbar.showSuccess(
-      context: context,
-      title: 'Success',
-      message: 'Verification successful.',
-    );
-
-    debugPrint(
-      '➡️ Navigating to ${isForgotPasswordScreen.value ? "UpdateOldPassword" : "CreateNewPassword"}',
-    );
-
-    debugPrint("$emailOrPasswordText");
-    debugPrint("isForgotPasswordScreen.value ${isForgotPasswordScreen.value}");
-
-    Get.to(
-      () =>
-          isForgotPasswordScreen.value
-              ? UpdateOldPasword(
-                otpVerificationStatus: true,
-                otp: normalizedResponseOtp,
-                emailOrPhoneText: emailOrPasswordText.value,
-              )
-              : CreateNewPassword(
-                otpVerificationStatus: true,
-                otp: normalizedResponseOtp,
-                emailOrPhoneText: emailOrPasswordText.value,
-              ),
-    );
-
-    debugPrint('🏁 [verifyOtp] COMPLETED SUCCESSFULLY');
-    return true;
   }
 }

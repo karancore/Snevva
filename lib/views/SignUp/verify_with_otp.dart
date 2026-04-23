@@ -39,7 +39,11 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
     super.initState();
     debugPrint("emailOrPasswordText ${widget.emailOrPasswordText}");
 
-    otpController = Get.put(OTPVerificationController());
+    otpController = Get.put(
+      OTPVerificationController(
+        isForgotPasswordScreen: widget.isForgotPasswordScreen,
+      ),
+    );
     otpController.emailOrPasswordText.value = widget.emailOrPasswordText;
 
     _listenForSms();
@@ -60,7 +64,9 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
 
     if (!otpController.isVerifying.value &&
         code.trim() == widget.responseOtp.trim()) {
-      otpController.verifyOtp(code, widget.responseOtp, context);
+      otpController.verifyOtp(code, otpController.responseOtp.value.isNotEmpty
+          ? otpController.responseOtp.value
+          : widget.responseOtp, context);
     }
   }
 
@@ -86,17 +92,12 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
       return;
     }
 
-    final success = otpController.verifyOtp(pin, widget.responseOtp, context);
+    final success = otpController.verifyOtp(
+        pin, otpController.responseOtp.value.isNotEmpty
+        ? otpController.responseOtp.value
+        : widget.responseOtp, context);
 
     setState(() => _isLoading = false);
-
-    if (!success) {
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'OTP Verification Failed',
-      );
-    }
   }
 
   @override
@@ -169,7 +170,10 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
               followingPinTheme: followingPinTheme,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               onCompleted: (pin) {
-                otpController.verifyOtp(pin, widget.responseOtp, context);
+                otpController.verifyOtp(
+                    pin, otpController.responseOtp.value.isNotEmpty
+                    ? otpController.responseOtp.value
+                    : widget.responseOtp, context);
               },
             ),
 
