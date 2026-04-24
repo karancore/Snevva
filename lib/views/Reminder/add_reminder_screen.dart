@@ -977,7 +977,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             medicineGetxController.startDateString.value ==
                                     "Start Date"
                                 ? grey
-                                : black,
+                                : (Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? white
+                                    : black),
                       ),
                     ),
                   ),
@@ -1017,7 +1020,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             medicineGetxController.endDateString.value ==
                                     "End Date"
                                 ? grey
-                                : black,
+                                : (Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? white
+                                    : black),
                       ),
                     ),
                   ),
@@ -1543,7 +1549,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   color:
                       reminderController.startDateString.value == "Start Date"
                           ? grey
-                          : black,
+                          : (Theme.of(context).brightness == Brightness.dark
+                              ? white
+                              : black),
                 ),
               ),
             ),

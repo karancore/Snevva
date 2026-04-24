@@ -12,6 +12,15 @@ val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {
     FileInputStream(keystorePropertiesFile).use { keystoreProperties.load(it) }
 }
+val configuredStoreFile = keystoreProperties.getProperty("storeFile")
+val resolvedStoreFile = configuredStoreFile?.let { configuredPath ->
+    val rootLevelFile = rootProject.file(configuredPath)
+    when {
+        rootLevelFile.exists() -> rootLevelFile
+        rootProject.file("app/$configuredPath").exists() -> rootProject.file("app/$configuredPath")
+        else -> rootLevelFile
+    }
+}
 android {
     namespace = "com.coretegra.snevva"
     compileSdk = flutter.compileSdkVersion
@@ -32,9 +41,7 @@ android {
         create("release") {
             keyAlias = keystoreProperties.getProperty("keyAlias")
             keyPassword = keystoreProperties.getProperty("keyPassword")
-            keystoreProperties.getProperty("storeFile")?.let {
-                storeFile = file(it)
-            }
+            resolvedStoreFile?.let { storeFile = it }
             storePassword = keystoreProperties.getProperty("storePassword")
         }
     }
