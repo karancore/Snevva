@@ -288,11 +288,11 @@ class WaterController extends GetxController {
       await reminderController.saveReminderList(waterList, "water_list");
       await reminderController.loadAllReminderLists();
       unawaited(
-        reminderController.addRemindertoAPI(transaction.reminder, context).catchError(
-          (e) {
-            debugPrint('⚠️ Background water add API failed: $e');
-          },
-        ),
+        reminderController
+            .addRemindertoAPI(transaction.reminder, context)
+            .catchError((e) {
+              debugPrint('⚠️ Background water add API failed: $e');
+            }),
       );
 
       CustomSnackbar().showReminderBar(context);
@@ -502,11 +502,11 @@ class WaterController extends GetxController {
       await reminderController.loadAllReminderLists();
       if (context != null) {
         unawaited(
-          reminderController.addRemindertoAPI(transaction.reminder, context).catchError(
-            (e) {
-              debugPrint('⚠️ Background water interval add API failed: $e');
-            },
-          ),
+          reminderController
+              .addRemindertoAPI(transaction.reminder, context)
+              .catchError((e) {
+                debugPrint('⚠️ Background water interval add API failed: $e');
+              }),
         );
         CustomSnackbar().showReminderBar(context);
       }
@@ -548,14 +548,17 @@ class WaterController extends GetxController {
 
       ReminderAlarmTransactionResult? transaction;
       try {
-        transaction = await reminderController.scheduleReminderLocally(waterData);
+        transaction = await reminderController.scheduleReminderLocally(
+          waterData,
+        );
         final updatedModel = _buildWaterModel(
           transaction.reminder,
           transaction,
         );
 
         waterList[index] = updatedModel;
-        savedTimes.value = int.tryParse(updatedModel.timesPerDay) ?? savedTimes.value;
+        savedTimes.value =
+            int.tryParse(updatedModel.timesPerDay) ?? savedTimes.value;
 
         await reminderController.saveReminderList(waterList, "water_list");
 
@@ -566,23 +569,23 @@ class WaterController extends GetxController {
           ...transaction.reminder.scheduleMetadata.alarmIds,
           ...transaction.reminder.scheduleMetadata.preAlarmIds,
         });
-        for (final alarmId in obsoleteIds) {
-          await Alarm.stop(alarmId);
-        }
+        await reminderController.stopReminderAlarmIds(obsoleteIds);
 
         await reminderController.loadAllReminderLists();
         CustomSnackbar().showReminderBar(context);
         Get.back(result: true);
         unawaited(
-          reminderController.updateReminder(transaction.reminder, context).catchError(
-            (e) {
-              debugPrint('⚠️ Background water update API failed: $e');
-            },
-          ),
+          reminderController
+              .updateReminder(transaction.reminder, context)
+              .catchError((e) {
+                debugPrint('⚠️ Background water update API failed: $e');
+              }),
         );
       } catch (e) {
         if (transaction != null) {
-          await reminderController.rollbackReminderSchedule(transaction.reminder);
+          await reminderController.rollbackReminderSchedule(
+            transaction.reminder,
+          );
         }
         rethrow;
       }
@@ -623,13 +626,19 @@ class WaterController extends GetxController {
                             int.tryParse(timesPerDayController.text.trim()) ??
                             0)
                         .toString(),
-                list: generateTimesBetween(
-                  startTime: startWaterTimeController.text.trim(),
-                  endTime: endWaterTimeController.text.trim(),
-                  times:
-                      timesOverride ??
-                      (int.tryParse(timesPerDayController.text.trim()) ?? 0),
-                ).map((dateTime) => DateFormat('HH:mm').format(dateTime)).toList(),
+                list:
+                    generateTimesBetween(
+                          startTime: startWaterTimeController.text.trim(),
+                          endTime: endWaterTimeController.text.trim(),
+                          times:
+                              timesOverride ??
+                              (int.tryParse(
+                                    timesPerDayController.text.trim(),
+                                  ) ??
+                                  0),
+                        )
+                        .map((dateTime) => DateFormat('HH:mm').format(dateTime))
+                        .toList(),
               ),
             );
 
@@ -657,7 +666,8 @@ class WaterController extends GetxController {
     final type = reminder.customReminder.type ?? Option.times;
     return WaterReminderModel(
       id: reminder.id,
-      title: reminder.title.trim().isNotEmpty ? reminder.title : 'WATER REMINDER',
+      title:
+          reminder.title.trim().isNotEmpty ? reminder.title : 'WATER REMINDER',
       category: ReminderCategory.water.toString(),
       type: type,
       alarms: transaction.mainAlarms,

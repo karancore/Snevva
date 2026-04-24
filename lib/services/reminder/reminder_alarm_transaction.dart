@@ -6,6 +6,7 @@ import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
 import '../../models/hive_models/reminder_payload_model.dart';
 import '../../models/reminder_schedule_metadata.dart';
+import 'reminder_alarm_platform.dart';
 import 'reminder_schedule_resolver.dart';
 
 typedef ReminderSaveCallback =
@@ -32,8 +33,7 @@ class ReminderAlarmTransaction {
     AlarmStopCallback? stopAlarm,
     ReminderSaveCallback? saveReminder,
   }) : _resolver = resolver ?? const ReminderScheduleResolver(),
-       _setAlarm =
-           setAlarm ?? ((settings) => Alarm.set(alarmSettings: settings)),
+       _setAlarm = setAlarm ?? scheduleReminderAlarm,
        _stopAlarm = stopAlarm ?? Alarm.stop,
        _saveReminder = saveReminder;
 
@@ -67,7 +67,7 @@ class ReminderAlarmTransaction {
         ),
       );
       if (_saveReminder != null) {
-        await _saveReminder!(currentReminder);
+        await _saveReminder(currentReminder);
       }
 
       try {
@@ -115,7 +115,9 @@ class ReminderAlarmTransaction {
               pendingAlarmIds: List.of(newPendingIds),
             ),
           );
-          if (_saveReminder != null) await _saveReminder!(currentReminder);
+          if (_saveReminder != null) {
+            await _saveReminder(currentReminder);
+          }
         }
 
         for (var index = 0; index < resolved.preReminderTimes.length; index++) {
@@ -145,8 +147,9 @@ class ReminderAlarmTransaction {
               '[ReminderTxn] SCHEDULE reminder ${currentReminder.id} alarmId=$alarmId (pre)',
             );
             final success = await _setAlarm(preAlarm);
-            if (!success)
+            if (!success) {
               throw StateError('Failed to schedule pre-alarm $alarmId');
+            }
             existingIds.add(alarmId);
           } else {
             debugPrint(
@@ -160,7 +163,9 @@ class ReminderAlarmTransaction {
               pendingAlarmIds: List.of(newPendingIds),
             ),
           );
-          if (_saveReminder != null) await _saveReminder!(currentReminder);
+          if (_saveReminder != null) {
+            await _saveReminder(currentReminder);
+          }
         }
 
         // STEP 3 - Commit
@@ -190,7 +195,7 @@ class ReminderAlarmTransaction {
         );
 
         if (_saveReminder != null) {
-          await _saveReminder!(currentReminder);
+          await _saveReminder(currentReminder);
         }
 
         finalResult = ReminderAlarmTransactionResult(
@@ -230,7 +235,7 @@ class ReminderAlarmTransaction {
         ),
       );
       if (_saveReminder != null) {
-        await _saveReminder!(rolledBack);
+        await _saveReminder(rolledBack);
       }
     }
   }
@@ -249,6 +254,7 @@ class ReminderAlarmTransaction {
       loopAudio:
           category == 'medicine' || category == 'event' || category == 'meal',
       vibrate: category == 'medicine',
+      warningNotificationOnKill: false,
       androidFullScreenIntent: false,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,

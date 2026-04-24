@@ -126,6 +126,16 @@ void main() {
           result.reminder.scheduleMetadata.lastResolutionStatus,
           ReminderResolutionStatus.scheduled,
         );
+        expect(
+          DateTime.parse(result.reminder.scheduleMetadata.nextFireAt!).isUtc,
+          isTrue,
+        );
+        expect(
+          DateTime.parse(
+            result.reminder.scheduleMetadata.lastResolvedAt!,
+          ).isUtc,
+          isTrue,
+        );
       },
     );
 

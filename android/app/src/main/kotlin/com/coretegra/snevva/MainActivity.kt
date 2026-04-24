@@ -271,8 +271,13 @@ class MainActivity : FlutterActivity() {
                     }
 
                     "armAll" -> {
-                        val json = call.argument<String>("json") ?: "[]"
-                        ReminderArmingHelper.armAll(this@MainActivity, json)
+                        val json = call.argument<String>("json")
+                        if (json.isNullOrBlank() || json == "[]") {
+                            ReminderArmingHelper.armFromSharedPrefs(this@MainActivity)
+                            Log.d("MainActivity", "✅ armAll fell back to SharedPreferences schedule")
+                        } else {
+                            ReminderArmingHelper.armAll(this@MainActivity, json)
+                        }
                         result.success(true)
                     }
 

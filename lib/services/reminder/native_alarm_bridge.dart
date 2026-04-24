@@ -105,8 +105,7 @@ class NativeAlarmEntry {
 class NativeAlarmBridge {
   NativeAlarmBridge._();
 
-  static const _channel =
-      MethodChannel('com.coretegra.snevva/reminder_alarms');
+  static const _channel = MethodChannel('com.coretegra.snevva/reminder_alarms');
 
   /// SharedPrefs key — must match PREFS_KEY in ReminderArmingHelper.kt.
   /// Kotlin reads this as "flutter.native_reminder_alarms" because the Dart
@@ -150,7 +149,9 @@ class NativeAlarmBridge {
         '${intervalMs != null ? ' interval=${intervalMs}ms' : ''}',
       );
     } catch (e) {
-      debugPrint('[NativeAlarm] ⚠️ armAlarm channel failed (ok in background): $e');
+      debugPrint(
+        '[NativeAlarm] ⚠️ armAlarm channel failed (ok in background): $e',
+      );
     }
   }
 
@@ -226,12 +227,20 @@ class NativeAlarmBridge {
   }) async {
     if (alarms.isEmpty) return;
 
-    final entries = alarms
-        .map((a) => NativeAlarmEntry.fromAlarmSettings(a, intervalMs: intervalMs))
-        .whereType<NativeAlarmEntry>()
-        .toList();
+    final entries =
+        alarms
+            .map(
+              (a) =>
+                  NativeAlarmEntry.fromAlarmSettings(a, intervalMs: intervalMs),
+            )
+            .whereType<NativeAlarmEntry>()
+            .toList();
 
     if (entries.isEmpty) return;
+
+    final scheduleJson = entries
+        .map((entry) => entry.toJson())
+        .toList(growable: false);
 
     // Step 1 — persist to SharedPrefs (always works, even in background isolates)
     try {
@@ -242,8 +251,12 @@ class NativeAlarmBridge {
 
     // Step 2 — signal Kotlin to arm immediately (best-effort, UI context only)
     try {
-      await _channel.invokeMethod<bool>('armAll');
-      debugPrint('[NativeAlarm] ✅ saveAndArm armAll triggered (${entries.length} alarms)');
+      await _channel.invokeMethod<bool>('armAll', {
+        'json': jsonEncode(scheduleJson),
+      });
+      debugPrint(
+        '[NativeAlarm] ✅ saveAndArm armAll triggered (${entries.length} alarms)',
+      );
     } catch (_) {
       // Normal in WorkManager isolates — Kotlin will arm on next boot/app-open.
       debugPrint('[NativeAlarm] ⚠️ armAll skipped (background isolate)');
@@ -333,9 +346,10 @@ class NativeAlarmBridge {
     }
 
     // Prune stale entries (more than 5 min in the past)
-    final cutoff = DateTime.now()
-        .subtract(const Duration(minutes: 5))
-        .millisecondsSinceEpoch;
+    final cutoff =
+        DateTime.now()
+            .subtract(const Duration(minutes: 5))
+            .millisecondsSinceEpoch;
     existing.removeWhere((_, v) => v.epochMs < cutoff);
 
     await prefs.setString(

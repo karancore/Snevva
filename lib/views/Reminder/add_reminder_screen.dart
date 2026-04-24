@@ -323,8 +323,6 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
     final savedStartDate = (reminder.startDate ?? '').trim();
     final savedEndDate = (reminder.endDate ?? '').trim();
-    
-
 
     medicineGetxController.startDateString.value =
         savedStartDate.isEmpty ? 'Start Date' : formatDate(savedStartDate);
@@ -710,11 +708,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       );
                     }
                     : () async {
-                      await reminderController.validateAndUpdate(
+                      final result = await reminderController.validateAndUpdate(
                         context: context,
                         reminder: widget.reminder!,
                         dosage: dosage,
                       );
+                      debugPrint("Update $result");
                     },
           ),
         ),

@@ -8,6 +8,7 @@ import 'package:snevva/models/hive_models/reminder_payload_model.dart'
     as reminder_payload;
 import 'package:snevva/models/reminders/water_reminder_model.dart';
 import 'package:snevva/services/reminder/reminder_alarm_transaction.dart';
+import 'package:snevva/services/reminder/reminder_alarm_platform.dart';
 
 import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
@@ -56,7 +57,13 @@ class ReminderScheduler {
           saveReminder:
               (updated) => _reminderController.updateReminderLocalOnly(updated),
         );
-        await transaction.schedule(reminder);
+        final result = await transaction.schedule(reminder);
+        if (usesNativeReminderScheduling) {
+          await NativeAlarmBridge.saveAndArm([
+            ...result.mainAlarms,
+            ...result.preAlarms,
+          ]);
+        }
 
         debugPrint(
           "✅ Reminder scheduled successfully via Pipeline ID:${reminder.id}",
@@ -235,7 +242,7 @@ class ReminderScheduler {
         ),
       );
 
-      final success = await Alarm.set(alarmSettings: alarmSettings);
+      final success = await scheduleReminderAlarm(alarmSettings);
 
       debugPrint("Alarm set result: $success");
 
@@ -346,7 +353,7 @@ class ReminderScheduler {
           ),
         );
 
-        final success = await Alarm.set(alarmSettings: alarmSettings);
+        final success = await scheduleReminderAlarm(alarmSettings);
         debugPrint("Water interval alarm set result: $success");
         if (success) {
           // 📲 Also arm via native Kotlin layer
@@ -405,7 +412,7 @@ class ReminderScheduler {
           ),
         );
 
-        final success = await Alarm.set(alarmSettings: alarmSettings);
+        final success = await scheduleReminderAlarm(alarmSettings);
 
         debugPrint("Water alarm set result: $success");
         if (success) {
@@ -470,7 +477,7 @@ class ReminderScheduler {
         "groupId": reminder.id.toString(),
         "category": category,
         "type": "before",
-        "mainTime": mainTime.toIso8601String(),
+        "mainTime": mainTime.toLocal().toString(),
         "startDate": reminder.startDate,
         "endDate": reminder.endDate,
         "remindBefore":
@@ -491,7 +498,7 @@ class ReminderScheduler {
       ),
     );
 
-    final success = await Alarm.set(alarmSettings: alarmSettings);
+    final success = await scheduleReminderAlarm(alarmSettings);
 
     debugPrint("PreReminder scheduled: $success");
     if (success) {
@@ -572,7 +579,7 @@ class ReminderScheduler {
         ),
       );
 
-      final success = await Alarm.set(alarmSettings: alarmSettings);
+      final success = await scheduleReminderAlarm(alarmSettings);
 
       debugPrint("Alarm set result: $success");
       if (success) {
