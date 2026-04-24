@@ -130,8 +130,6 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       parsedDate = DateTime.now();
     }
 
-    print("Raw start date: '$rawStartDate'");
-
     // ✅ FORMAT PROPERLY (THIS IS THE FIX)
     reminderController.startDateString.value = DateFormat(
       'MMMM dd, yyyy',

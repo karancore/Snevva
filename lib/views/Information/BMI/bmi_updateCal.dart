@@ -355,9 +355,6 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
                 weight,
               );
 
-              print("Calculated BMI: $bmi");
-              print("Height : ${height}");
-              print("Weight: $weight kg");
               if (flag) {
                 Get.to(() => BMIUpdateResultScreen(bmi: bmi, age: age));
               }

@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:workmanager/workmanager.dart';
 
+
 import '../../models/hive_models/reminder_payload_model.dart';
 import '../app_initializer.dart';
 import '../hive_service.dart';
@@ -117,13 +118,13 @@ Future<void> initReminderWorker() async {
     kReminderReconcileTask,
     frequency: const Duration(hours: 6),
     constraints: Constraints(
-      networkType: NetworkType.not_required,
+      networkType: NetworkType.notRequired,
       requiresBatteryNotLow: false,
       requiresCharging: false,
       requiresDeviceIdle: false,
       requiresStorageNotLow: false,
     ),
-    existingWorkPolicy: ExistingWorkPolicy.keep,
+    existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
     backoffPolicy: BackoffPolicy.exponential,
     backoffPolicyDelay: const Duration(minutes: 10),
   );
@@ -137,7 +138,7 @@ Future<void> triggerImmediateReconciliation() async {
     kReminderOneShotTask,
     kReminderOneShotTask,
     constraints: Constraints(
-      networkType: NetworkType.not_required,
+      networkType: NetworkType.notRequired,
       requiresBatteryNotLow: false,
       requiresCharging: false,
       requiresDeviceIdle: false,

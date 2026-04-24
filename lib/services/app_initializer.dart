@@ -68,7 +68,7 @@ Future<void> requestAllPermissions() async {
 
   // For reliable background step counting, battery optimization must be ignored.
   if (statuses[Permission.ignoreBatteryOptimizations]?.isDenied ?? true) {
-    print(
+    debugPrint(
       "⚠️ Ignoring battery optimizations is NOT granted, background isolate might drop.",
     );
     // Note: If you want 100% 24/7 reliability, you must prompt the user

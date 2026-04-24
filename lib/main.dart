@@ -66,6 +66,34 @@ const bool _kShowPerformanceOverlay = bool.fromEnvironment(
   defaultValue: false,
 );
 
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  Future<bool> _hasValidSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    return token != null && token.isNotEmpty;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: _hasValidSession(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const InitializationSplash();
+        }
+
+        if (snapshot.data == false) {
+          return SignInScreen(); // ❌ No token → ONLY LOGIN
+        }
+
+        return HomeWrapper(); // ✅ Valid session
+      },
+    );
+  }
+}
+
 Future<void> ensureFirebaseInitialized() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -439,11 +467,14 @@ class _MyAppState extends State<MyApp> {
       final prefs = await SharedPreferences.getInstance();
       final hasSession = (prefs.getString('auth_token') ?? '').isNotEmpty;
 
-      if (!hasSession) {
-        _runStage3BackgroundTasks(hasSession: false);
-        Get.offAll(() => SignInScreen());
-        return;
+      _timeoutTimer?.cancel();
+
+      if (mounted) {
+        setState(() => _initState = AppInitState.success);
       }
+
+      // 🚀 Only control background tasks here
+      _runStage3BackgroundTasks(hasSession: hasSession);
 
       if (!Get.isRegistered<AlertsController>()) {
         Get.lazyPut(() => AlertsController(), fenix: true);
@@ -578,7 +609,7 @@ class _MyAppState extends State<MyApp> {
                   child: const InitializationSplash(),
                 )
                 : _initState == AppInitState.success
-                ? HomeWrapper()
+                ? const AuthGate()
                 : ErrorPlaceholder(
                   onRetry: () {
                     _startTimeout();
