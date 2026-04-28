@@ -280,7 +280,7 @@ Future<bool> initializeApp() async {
     return prefs.getBool('remember_me') ?? false;
   } catch (e, stackTrace) {
     debugPrint("❌ App initialization failed: $e");
-    debugPrint(stackTrace as String?);
+    debugPrint(stackTrace.toString());
     return false;
   }
 }
