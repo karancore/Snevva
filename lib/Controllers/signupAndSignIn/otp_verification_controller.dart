@@ -39,7 +39,10 @@ class OTPVerificationController extends GetxService {
 
   bool verifyOtp(String enteredOtp,
       String responseOtpp,
-      BuildContext context,) {
+
+    BuildContext context, {
+    bool? isEditPassword,
+  }) {
     debugPrint('🔐 [verifyOtp] CALLED');
 
     final normalizedEnteredOtp = enteredOtp.trim();
@@ -72,6 +75,10 @@ class OTPVerificationController extends GetxService {
         title: 'Success',
         message: 'Verification successful.',
       );
+
+      if (isEditPassword == true) {
+        return true;
+      }
 
       Get.to(
             () =>
