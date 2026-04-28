@@ -33,7 +33,7 @@ const calenderIcon = 'assets/Icons/Profile/calendar-2-line.svg';
 
 const editIcon = "assets/Icons/Common_Icons/editIcon.svg";
 const phoneIcon = "assets/Icons/Common_Icons/phone-line.svg";
-
+const strokeAndHeart = "assets/Icons/vitals/stroke.webp";
 const appbarActionCross = "assets/Icons/Common_Icons/appBarActionCross.svg";
 
 const drawerIconWhite = "assets/Icons/Common_Icons/whiteDrawerIcon.svg";
