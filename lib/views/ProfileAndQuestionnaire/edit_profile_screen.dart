@@ -643,7 +643,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   );
                                   if (height != null) {
                                     localStorageManager
-                                            .userGoalDataMap['HeightData']?['Value'] =
+                                        .userGoalDataMap['HeightData']?['Value'] =
                                         double.parse(height.toStringAsFixed(2));
                                   }
                                 }),
@@ -717,14 +717,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 "We know it’s a sensitive one, but it helps us tailor things to you. Don’t worry, this is just for your profile!",
                             fieldKey: "Weight",
                             initialValue: controller.weightValue,
-                            onUpdated:
-                                () => setState(() {
-                                  controller.weightValue =
-                                      controller
-                                          .weightValue; // redundant but consistent
-                                  localStorageManager
-                                          .userMap['WeightData']?['Value'] =
-                                      controller.weightValue;
+                            onUpdated: () =>
+                                setState(() {
+                                  final weight = double.tryParse(
+                                    controller.weightValue.toString(),
+                                  );
+
+                                  if (weight != null) {
+                                    localStorageManager
+                                        .userGoalDataMap['WeightData']?['Value'] =
+                                    weight % 1 == 0
+                                        ? weight.toInt() // 185
+                                        : double.parse(
+                                        weight.toStringAsFixed(2)); // 185.50
+                                  }
                                 }),
                           ),
                       child: Material(
