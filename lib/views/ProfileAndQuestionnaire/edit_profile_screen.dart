@@ -235,7 +235,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     imageProvider == null
                                         ? Icon(
                                           Icons.person,
-                                          size: 200 * 0.75,
+                                      size: 140 * 0.75,
                                           color: white,
                                         )
                                         : null,
@@ -669,10 +669,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             children: [
                               Text(
                                 controller.heightValue.toString().isNotEmpty
-                                    ? double.tryParse(
-                                          controller.heightValue.toString(),
-                                        )?.toStringAsFixed(2) ??
-                                        'Enter your height'
+                                    ? (() {
+                                  final value = double.tryParse(
+                                      controller.heightValue.toString());
+                                  if (value == null) return 'Enter your height';
+
+                                  // check if decimal part is zero
+                                  return value % 1 == 0
+                                      ? value.toInt().toString() // 185
+                                      : value.toStringAsFixed(2); // 185.50
+                                })()
                                     : 'Enter your height',
                                 style: TextStyle(
                                   fontSize: 14,
@@ -740,10 +746,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                controller.weightValue.toString().isNotEmpty ==
-                                        true
-                                    ? controller.weightValue.toString()
-                                    : 'Enter your weight',
+                                controller.weightValue
+                                    .toString()
+                                    .isNotEmpty
+                                    ? (() {
+                                  final value = double.tryParse(
+                                      controller.weightValue.toString());
+                                  if (value == null) return 'Enter your height';
+
+                                  // check if decimal part is zero
+                                  return value % 1 == 0
+                                      ? value.toInt().toString() // 185
+                                      : value.toStringAsFixed(2); // 185.50
+                                })()
+                                    : 'Enter your height',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color:
