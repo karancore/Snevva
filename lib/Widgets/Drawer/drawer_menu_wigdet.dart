@@ -24,8 +24,10 @@ import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/services/app_initializer.dart';
 import 'package:snevva/services/background_pedometer_service.dart';
+import 'package:snevva/services/file_storage_service.dart';
 import 'package:snevva/services/decisiontree_service.dart';
 import 'package:snevva/services/hive_service.dart';
+import 'package:snevva/services/tracking_service_manager.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
 import 'package:snevva/views/Settings/in_app_downloads.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
@@ -61,6 +63,7 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
       await Future.wait([
         stopUnifiedBackgroundService(),
         stopBackgroundService(),
+        TrackingServiceManager.instance.stopNativeStepService(),
       ]);
 
       AgentDebugLogger.log(
@@ -123,6 +126,48 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
     debugPrint('✅ SharedPreferences cleared');
   }
 
+  /// Flushes local buffers to daily JSON files and pushes today's steps to the
+  /// server API while the auth token is still valid.
+  /// Must be called BEFORE [_clearAuthPrefs] so the token is available.
+  Future<void> _syncHealthDataBeforeLogout() async {
+    debugPrint('📤 Logout: syncing health data before token clear...');
+
+    // 1. Flush in-memory step + sleep buffers → daily JSON (no network needed)
+    try {
+      await FileStorageService().flushStepsToDaily();
+      await FileStorageService().flushSleepToDaily();
+      debugPrint('✅ Logout: step + sleep buffers flushed to daily files');
+    } catch (e) {
+      debugPrint('⚠️ Logout: buffer flush failed (non-fatal): $e');
+    }
+
+    // 2. Sync today's steps to the API
+    // Token is still valid here so the HTTP call will succeed.
+    try {
+      if (Get.isRegistered<StepCounterController>()) {
+        final ctrl = Get.find<StepCounterController>();
+        if (ctrl.todaySteps.value > 0) {
+          debugPrint(
+            '📤 Logout: syncing ${ctrl.todaySteps.value} steps before token clear...'
+          );
+          await ctrl.saveStepRecordToServer();
+          debugPrint('✅ Logout: step sync done');
+        } else {
+          debugPrint('ℹ️ Logout: no steps today — skipping step sync');
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Logout: step sync failed (non-fatal): $e');
+    }
+
+    // Note on sleep: last night's sleep is already synced by SleepCalcWorker
+    // (Kotlin) at the configured wake time via ApiSyncWorker.  Tonight's sleep
+    // data (if mid-session) is buffered in sleep_buf.tmp, which we flushed
+    // above to the daily JSON.  SleepCalcWorker and ApiSyncWorker run
+    // independently of the app and will sync the nightly total at wake time.
+    debugPrint('📤 Logout: health data sync complete');
+  }
+
   void _resetLocalStorageManager() {
     debugPrint('🧠 Resetting LocalStorageManager...');
     if (Get.isRegistered<LocalStorageManager>()) {
@@ -177,10 +222,16 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
     setState(() => isLoading = true);
 
     try {
-      // Start slow cleanup immediately, but don't block UI navigation on it.
+      // ── 1. Flush buffers + sync health data BEFORE clearing the auth token ──
+      // The token is still valid at this point.  Once prefs.clear() runs, it is
+      // gone and any API call will be rejected.  This is the ONLY safe window.
+      await _syncHealthDataBeforeLogout();
+
+      // ── 2. Start heavy background cleanup (does not need the token) ──────────
       final stopAndHiveFuture = _stopServicesAndClearHive();
       final apiSuccess = await _callLogoutApiBestEffort();
 
+      // ── 3. Clear auth credentials (token wiped here) ─────────────────────────
       await _clearAuthPrefs();
       _resetLocalStorageManager();
 

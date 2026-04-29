@@ -3,9 +3,14 @@ import 'package:path_provider/path_provider.dart';
 
 import '../consts/consts.dart';
 import '../models/hive_models/reminder_payload_model.dart';
-import '../models/hive_models/sleep_log.dart';
-import '../models/hive_models/sleep_log_g.dart';
-import '../models/hive_models/steps_model.dart';
+
+// Step and sleep Hive boxes have been migrated to FileStorageService (daily JSON
+// files). HiveService now only manages the Reminders and Medicine boxes.
+//
+// Intentionally kept:
+//   • remindersBox() — ReminderPayloadModel objects (low-frequency, tiny)
+//   • medicineBox()  — medicine_list (low-frequency, tiny)
+//   • resetAppData() — still clears reminders/medicine on logout
 
 class HiveService {
   HiveService._internal();
@@ -17,7 +22,7 @@ class HiveService {
   bool _initialized = false;
   Future<void>? _initFuture;
 
-  // UI isolate init
+  // UI isolate init — only reminders/medicine boxes are needed
   Future<void> initMain() async {
     await _initializeCore(label: "MAIN");
   }
@@ -36,7 +41,7 @@ class HiveService {
       Hive.init(dir.path);
       _registerAdapters();
       _initialized = true;
-      debugPrint("✅ Hive initialized ($label) - adapters registered");
+      debugPrint("✅ Hive initialized ($label) — reminders/medicine only");
     }();
 
     await _initFuture;
@@ -48,12 +53,6 @@ class HiveService {
   }
 
   void _registerAdapters() {
-    if (!Hive.isAdapterRegistered(StepEntryAdapter().typeId)) {
-      Hive.registerAdapter(StepEntryAdapter());
-    }
-    if (!Hive.isAdapterRegistered(SleepLogAdapter().typeId)) {
-      Hive.registerAdapter(SleepLogAdapter());
-    }
     if (!Hive.isAdapterRegistered(ReminderPayloadModelAdapter().typeId)) {
       Hive.registerAdapter(ReminderPayloadModelAdapter());
     }
@@ -74,21 +73,9 @@ class HiveService {
     }
   }
 
-  Future<Box<StepEntry>> stepHistoryBox() async {
-    await _ensureInitialized();
-    if (Hive.isBoxOpen('step_history')) {
-      return Hive.box<StepEntry>('step_history');
-    }
-    return Hive.openBox<StepEntry>('step_history');
-  }
-
-  Future<Box<SleepLog>> sleepLogBox() async {
-    await _ensureInitialized();
-    if (Hive.isBoxOpen('sleep_log')) {
-      return Hive.box<SleepLog>('sleep_log');
-    }
-    return Hive.openBox<SleepLog>('sleep_log');
-  }
+  // ──────────────────────────────────────────────
+  // ACTIVE BOXES — reminders & medicine only
+  // ──────────────────────────────────────────────
 
   Future<Box> remindersBox() async {
     await _ensureInitialized();
@@ -106,19 +93,19 @@ class HiveService {
     return Hive.openBox('medicine_list');
   }
 
+  // ──────────────────────────────────────────────
+  // RESET — clears reminders/medicine on logout
+  // ──────────────────────────────────────────────
+
   Future<void> resetAppData() async {
     try {
-      final step = await stepHistoryBox();
-      final sleep = await sleepLogBox();
       final reminders = await remindersBox();
       final medicine = await medicineBox();
 
-      await step.clear();
-      await sleep.clear();
       await reminders.clear();
       await medicine.clear();
 
-      debugPrint("🔥 All Hive data cleared (Logout Reset)");
+      debugPrint("🔥 Reminders/medicine Hive data cleared (Logout Reset)");
     } catch (e) {
       debugPrint("❌ App reset failed: $e");
       rethrow;

@@ -1,13 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Hive -->
+    <!-- File-based storage (internal app dir — no external-storage permissions needed) -->
+    <!-- External storage permissions below are kept only for legacy compatibility -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
-    <!-- 🌐 Internet & basic -->
+    <!-- 🌐 Internet & network state -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
@@ -15,6 +17,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <!-- 📲 Notifications (Android 13+) -->
@@ -32,6 +35,7 @@
 
     <!-- ⚙️ Foreground service types -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
 
@@ -60,8 +64,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:showOnLockScreen="true"
-            android:turnScreenOn="true"
+            android:showWhenLocked="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
             android:theme="@style/LaunchTheme"
@@ -173,6 +176,12 @@
             android:foregroundServiceType="dataSync"
             tools:replace="android:foregroundServiceType" />
 
+        <!-- NotificationOnKillService removed: WorkManager-based rescheduling
+             ensures reminders are refreshed every 6h even after app kill.
+             The misleading "Your alarms may not ring" notification is suppressed
+             both here (service removed) and via warningNotificationOnKill: false
+             on all AlarmSettings in Dart. -->
+
         <service
             android:name=".SleepNoticingService"
             android:exported="false"
@@ -180,6 +189,33 @@
 
         <receiver android:name=".StartSleepReceiver" android:exported="false" />
         <receiver android:name=".StopSleepReceiver" android:exported="false" />
+
+        <!-- 📡 Network connectivity receiver (triggers file-based sync queue on reconnect) -->
+        <receiver
+            android:name=".ConnectivityReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- 🔔 Native Reminder Alarm Receiver (survives OEM kill + reboot) -->
+        <receiver
+            android:name=".ReminderAlarmReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.coretegra.snevva.REMINDER_FIRE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Stop action receiver for reminder notification -->
+        <receiver
+            android:name=".ReminderStopReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.coretegra.snevva.REMINDER_STOP" />
+            </intent-filter>
+        </receiver>
 
         <!-- Worker Initialization (if needed, usually auto-inits) -->
     </application>

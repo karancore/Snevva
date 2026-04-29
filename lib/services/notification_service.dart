@@ -3,6 +3,7 @@ import 'package:timezone/data/latest.dart' as tzd;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../consts/consts.dart';
+import 'reminder/device_timezone_service.dart';
 
 const int NOTIFICATION_ID = 999;
 const int WAKE_NOTIFICATION_ID = 998;
@@ -28,7 +29,10 @@ class NotificationService {
 
     // Initialize timezone (very important for scheduling)
     tzd.initializeTimeZones();
-    tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
+    final timezoneId = await DeviceTimezoneService.instance.getTimeZoneId();
+    try {
+      tz.setLocalLocation(tz.getLocation(timezoneId));
+    } catch (_) {}
   }
 
   Future<void> showInstantNotification({
@@ -175,7 +179,8 @@ class NotificationService {
       "If today is even half as amazing as you are, it's going to be a good one. 🌻",
       morningTime,
       morningDetails,
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      
       matchDateTimeComponents: DateTimeComponents.time,
     );
     hasNewNotification.value = true;
@@ -187,7 +192,7 @@ class NotificationService {
       'Before you close your eyes, remember you did great today! ✨',
       nightTime,
       nightDetails,
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
     );
     hasNewNotification.value = true;

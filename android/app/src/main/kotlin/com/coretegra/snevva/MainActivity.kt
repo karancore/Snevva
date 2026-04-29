@@ -16,6 +16,8 @@ class MainActivity : FlutterActivity() {
     private val stepServiceChannelName = "com.coretegra.snevva/step_service"
     private val displayConfigChannelName = "com.coretegra.snevva/display_config"
     private val oemChannelName = "com.coretegra.snevva/oem_settings"
+    private val timezoneChannelName = "com.coretegra.snevva/timezone"
+    private val reminderAlarmsChannelName = "com.coretegra.snevva/reminder_alarms"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,8 +29,28 @@ class MainActivity : FlutterActivity() {
         startStepCounterService()
         AlarmHelper.cancelSleepAlarms(this)
         requestHighestRefreshRate()
+
+        // Copy flutter audio assets to internal storage so native MediaPlayer can read them.
+        // Done here (on main thread, before first frame) so they're ready when the first
+        // alarm fires — even if the app has never been opened since install.
+        Thread {
+            try {
+                ReminderArmingHelper.copyAudioAssetsIfNeeded(this)
+            } catch (e: Exception) {
+                Log.e("MainActivity", "copyAudioAssets failed", e)
+            }
+        }.start()
+
         Log.d("Lifecycle", "onCreate called")
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        // No wake-screen flags: our reminder layer is BroadcastReceiver-based and
+        // never needs MainActivity to show over the lock screen.
+    }
+
 
     private fun startStepCounterService(): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
@@ -60,6 +82,18 @@ class MainActivity : FlutterActivity() {
         // events can be delivered via MethodChannel to the running Flutter app.
         StepCounterService.flutterEngine = flutterEngine
 
+        // Re-arm all native reminder alarms every time the Flutter engine attaches.
+        // This is idempotent and covers the case where the user opens the app after
+        // a background kill, ensuring AlarmManager entries are always up-to-date.
+        Thread {
+            try {
+                ReminderArmingHelper.armFromSharedPrefs(applicationContext)
+                Log.d("MainActivity", "✅ Native reminder alarms re-armed on engine attach")
+            } catch (e: Exception) {
+                Log.e("MainActivity", "armFromSharedPrefs failed: ${e.message}")
+            }
+        }.start()
+
         // MethodChannels setup
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, oemChannelName)
@@ -74,6 +108,14 @@ class MainActivity : FlutterActivity() {
                 }
             }
 
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, timezoneChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "getTimeZoneId" -> result.success(java.util.TimeZone.getDefault().id)
+                    else -> result.notImplemented()
+                }
+            }
+
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             stepServiceChannelName
@@ -81,6 +123,53 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "startStepService" -> result.success(startStepCounterService())
+
+                    // ── Seed today's step count from the API ──────────────────────────
+                    // Called right after login when the server returns the current-day
+                    // step total (e.g. 644 from a previous install).  We write it to:
+                    //   • steps_prefs/today_steps  → sensor increments from this base
+                    //   • FlutterSharedPreferences/flutter.today_steps → notification
+                    "seedTodaySteps" -> {
+                        val steps = (call.arguments as? Int) ?: 0
+                        val nativePrefs = getSharedPreferences("steps_prefs", android.content.Context.MODE_PRIVATE)
+                        val flutterPrefs = applicationContext.getSharedPreferences(
+                            "FlutterSharedPreferences", android.content.Context.MODE_PRIVATE
+                        )
+                        // Only update if the incoming value is strictly larger (never go backward)
+                        val currentNative = nativePrefs.getInt("today_steps", 0)
+                        val currentFlutter = flutterPrefs.getLong("flutter.today_steps", 0L).toInt()
+                        if (steps > currentNative) {
+                            nativePrefs.edit().putInt("today_steps", steps).apply()
+                            Log.d("MainActivity", "🌱 Seeded native today_steps → $steps")
+                        }
+                        if (steps > currentFlutter) {
+                            flutterPrefs.edit().putLong("flutter.today_steps", steps.toLong()).apply()
+                            Log.d("MainActivity", "🌱 Seeded flutter.today_steps → $steps")
+                        }
+                        // Refresh notification immediately so the user sees the correct count
+                        val notifIntent = Intent(applicationContext, StepCounterService::class.java)
+                        notifIntent.action = "REFRESH_NOTIFICATION"
+                        try { applicationContext.startService(notifIntent) } catch (_: Exception) {}
+                        result.success(true)
+                    }
+
+                    // ── Stop the native foreground service on logout ───────────────────
+                    // Stopping the service also removes the persistent notification.
+                    "stopStepService" -> {
+                        try {
+                            val stopIntent = Intent(applicationContext, StepCounterService::class.java)
+                            applicationContext.stopService(stopIntent)
+                            // Belt-and-suspenders: explicitly cancel notification ID 1
+                            val nm = getSystemService(android.app.NotificationManager::class.java)
+                            nm?.cancel(1)
+                            Log.d("MainActivity", "🛑 StepCounterService stopped and notification cleared")
+                            result.success(true)
+                        } catch (e: Exception) {
+                            Log.e("MainActivity", "stopStepService failed: ${e.message}")
+                            result.success(false)
+                        }
+                    }
+
                     else -> result.notImplemented()
                 }
             }
@@ -126,6 +215,79 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        // Sync manager channel: Kotlin → Dart trigger for file-based sync queue
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.coretegra.snevva/sync_manager")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "flushAndSync" -> {
+                        try {
+                            BufferManager.flushStepsToDaily(applicationContext)
+                            BufferManager.flushSleepToDaily(applicationContext)
+                            result.success("flushed")
+                        } catch (e: Exception) {
+                            result.error("FLUSH_ERROR", e.message, null)
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        // Native reminder alarm channel (survives Flutter engine kill + device reboot)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, reminderAlarmsChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+
+                    "armAlarm" -> {
+                        val alarmId   = call.argument<Int>("alarmId") ?: -1
+                        val epochMs   = (call.argument<Long>("epochMs")
+                            ?: call.argument<Int>("epochMs")?.toLong()) ?: 0L
+                        val groupId   = call.argument<String>("groupId") ?: ""
+                        val category  = call.argument<String>("category") ?: ""
+                        val title     = call.argument<String>("title") ?: "Reminder"
+                        val body      = call.argument<String>("body") ?: ""
+                        val intervalMs = (call.argument<Long>("intervalMs")
+                            ?: call.argument<Int>("intervalMs")?.toLong()) ?: 0L
+                        ReminderArmingHelper.arm(
+                            this@MainActivity, alarmId, epochMs, groupId, category, title, body, intervalMs
+                        )
+                        result.success(true)
+                    }
+
+                    "cancelAlarm" -> {
+                        val alarmId = call.argument<Int>("alarmId") ?: -1
+                        if (alarmId != -1) ReminderArmingHelper.cancel(this@MainActivity, alarmId)
+                        result.success(true)
+                    }
+
+                    "saveSchedule" -> {
+                        val json = call.argument<String>("json") ?: "[]"
+                        val prefs = getSharedPreferences(
+                            "FlutterSharedPreferences", android.content.Context.MODE_PRIVATE
+                        )
+                        prefs.edit().putString("flutter.native_reminder_alarms", json).apply()
+                        Log.d("MainActivity", "💾 Saved native alarm schedule (${json.length} chars)")
+                        result.success(true)
+                    }
+
+                    "armAll" -> {
+                        val json = call.argument<String>("json") ?: "[]"
+                        ReminderArmingHelper.armAll(this@MainActivity, json)
+                        result.success(true)
+                    }
+
+                    "copyAudioAssets" -> {
+                        try {
+                            ReminderArmingHelper.copyAudioAssetsIfNeeded(this@MainActivity)
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.error("COPY_FAILED", e.message, null)
+                        }
+                    }
+
+                    else -> result.notImplemented()
+                }
+            }
     }
 
     override fun onStart() {
@@ -136,6 +298,13 @@ class MainActivity : FlutterActivity() {
     override fun onResume() {
         super.onResume()
         requestHighestRefreshRate()
+        // ✅ Off main thread — flushStepsToDaily does file I/O (read+parse+write)
+        // which would block the Android main thread and delay the first Flutter frame.
+        Thread {
+            try {
+                BufferManager.flushStepsToDaily(applicationContext)
+            } catch (_: Exception) {}
+        }.start()
         Log.d("Lifecycle", "onResume called")
     }
 

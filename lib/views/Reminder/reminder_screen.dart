@@ -74,7 +74,8 @@ class _ReminderScreenState extends State<ReminderScreen>
 
   Future<void> _loadData() async {
     await controller.loadAllReminderLists();
-    await controller.getReminderFromAPI(context);
+    final reminders = await controller.getReminderFromAPI(context);
+    logLong("REMINDERS", reminders.toString());
   }
 
   @override
@@ -253,12 +254,9 @@ class _ReminderScreenState extends State<ReminderScreen>
               // );
               // return;
               final result = await Get.to(() => AddReminderScreen());
-              // Always reload data when returning, regardless of result
-              // The controller already handles the update, but this ensures consistency
+              // Always reload data when returning - both create and update return result=true
               if (result == true) {
                 await _loadData();
-              }
-              if (result == "updated") {
                 CustomSnackbar().showReminderBar(context);
               }
             },
@@ -329,10 +327,11 @@ class _ReminderScreenState extends State<ReminderScreen>
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () async {
-                    await Future.wait([
-                      controller.deleteReminder(reminder),
-                      controller.deleteReminderFromAPI(reminder.id, context),
-                    ]);
+                    await controller.deleteReminder(reminder);
+                    await controller.deleteReminderFromAPI(
+                      reminder.id,
+                      context,
+                    );
                     Get.back();
                   },
                   style: ElevatedButton.styleFrom(
@@ -400,7 +399,11 @@ class _ReminderScreenState extends State<ReminderScreen>
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  formatReminderTime(reminder.customReminder.timesPerDay!.list),
+                  reminder.customReminder.type == Option.interval
+                      ? "Reminder will ring after every $frequencyHour ${pluralizeHour(frequencyHour)}"
+                      : formatReminderTime(
+                        reminder.customReminder.timesPerDay?.list ?? [],
+                      ),
                   style: TextStyle(fontSize: 12, color: Color(0xff878787)),
                 ),
                 Spacer(),
@@ -524,9 +527,11 @@ class _ReminderScreenState extends State<ReminderScreen>
             const SizedBox(width: 4),
 
             Text(
-              formatReminderTime(
-                reminder.customReminder?.timesPerDay?.list ?? [],
-              ),
+              reminder.customReminder.type == Option.interval
+                  ? "Reminder will ring after every $frequencyHour ${pluralizeHour(frequencyHour)}"
+                  : formatReminderTime(
+                    reminder.customReminder?.timesPerDay?.list ?? [],
+                  ),
               style: TextStyle(fontSize: 12, color: Color(0xff878787)),
             ),
             Spacer(),
@@ -583,9 +588,11 @@ class _ReminderScreenState extends State<ReminderScreen>
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  formatReminderTime(
-                    reminder.customReminder!.timesPerDay!.list ?? [],
-                  ),
+                  reminder.customReminder.type == Option.interval
+                      ? "Reminder will ring after every $frequencyHour ${pluralizeHour(frequencyHour)}"
+                      : formatReminderTime(
+                        reminder.customReminder!.timesPerDay?.list ?? [],
+                      ),
                   style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xff878787),

@@ -1,11 +1,13 @@
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
+import 'package:snevva/services/reminder/native_alarm_bridge.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Controllers/Reminder/water_controller.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart'
     as reminder_payload;
 import 'package:snevva/models/reminders/water_reminder_model.dart';
+import 'package:snevva/services/reminder/reminder_alarm_transaction.dart';
 
 import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
@@ -50,13 +52,15 @@ class ReminderScheduler {
 
         reminder.validate();
 
-        await _scheduleByCategory(
-          reminder,
-          deletedGroupIds: deletedGroupIds,
-          deletedAlarmIds: deletedAlarmIds,
+        final transaction = ReminderAlarmTransaction(
+          saveReminder:
+              (updated) => _reminderController.updateReminderLocalOnly(updated),
         );
+        await transaction.schedule(reminder);
 
-        debugPrint("✅ Reminder scheduled successfully ID:${reminder.id}");
+        debugPrint(
+          "✅ Reminder scheduled successfully via Pipeline ID:${reminder.id}",
+        );
       } catch (e, s) {
         debugPrint("❌ Invalid reminder skipped: $e");
         debugPrint("📍 StackTrace: $s");
@@ -197,7 +201,7 @@ class ReminderScheduler {
         assetAudioPath: medicineSound,
         loopAudio: true,
         vibrate: true,
-        androidFullScreenIntent: true,
+        androidFullScreenIntent: false,
         volumeSettings: VolumeSettings.fade(
           volume: 0.8,
           fadeDuration: const Duration(seconds: 5),
@@ -207,6 +211,16 @@ class ReminderScheduler {
           "groupId": reminder.id.toString(),
           "category": ReminderCategory.medicine.toString(),
           "type": "times",
+          "startDate": reminder.startDate,
+          "endDate": reminder.endDate,
+          "remindBefore":
+              reminder.remindBefore == null
+                  ? null
+                  : {
+                    "time": reminder.remindBefore!.time,
+                    "unit": reminder.remindBefore!.unit,
+                  },
+          "scheduleMetadata": reminder.scheduleMetadata.toJson(),
         }),
         notificationSettings: NotificationSettings(
           title: reminder.title,
@@ -227,6 +241,16 @@ class ReminderScheduler {
 
       if (success) {
         alarms.add(alarmSettings);
+        // 📲 Also arm via native Kotlin layer (survives OEM kill + reboot)
+        final payload = jsonDecode(alarmSettings.payload ?? '{}');
+        await NativeAlarmBridge.armAlarm(
+          alarmId: alarmSettings.id,
+          epochMs: alarmSettings.dateTime.millisecondsSinceEpoch,
+          groupId: payload['groupId']?.toString() ?? reminder.id.toString(),
+          category: 'medicine',
+          title: alarmSettings.notificationSettings.title,
+          body: alarmSettings.notificationSettings.body,
+        );
       }
     }
 
@@ -302,6 +326,7 @@ class ReminderScheduler {
           id: scheduledReminderId(reminderId: reminder.id, time: scheduledTime),
           dateTime: scheduledTime,
           assetAudioPath: waterSound,
+          warningNotificationOnKill: false,
           volumeSettings: VolumeSettings.fade(
             volume: 0.8,
             fadeDuration: Duration(seconds: 5),
@@ -323,6 +348,18 @@ class ReminderScheduler {
 
         final success = await Alarm.set(alarmSettings: alarmSettings);
         debugPrint("Water interval alarm set result: $success");
+        if (success) {
+          // 📲 Also arm via native Kotlin layer
+          await NativeAlarmBridge.armAlarm(
+            alarmId: alarmSettings.id,
+            epochMs: alarmSettings.dateTime.millisecondsSinceEpoch,
+            groupId: reminder.id.toString(),
+            category: 'water',
+            title: alarmSettings.notificationSettings.title,
+            body: alarmSettings.notificationSettings.body,
+            intervalMs: interval.hours * 3600 * 1000,
+          );
+        }
       }
       return;
     }
@@ -348,6 +385,7 @@ class ReminderScheduler {
           id: scheduledReminderId(reminderId: reminder.id, time: scheduledTime),
           dateTime: scheduledTime,
           assetAudioPath: waterSound,
+          warningNotificationOnKill: false,
           volumeSettings: VolumeSettings.fade(
             volume: 0.8,
             fadeDuration: Duration(seconds: 5),
@@ -370,6 +408,17 @@ class ReminderScheduler {
         final success = await Alarm.set(alarmSettings: alarmSettings);
 
         debugPrint("Water alarm set result: $success");
+        if (success) {
+          // 📲 Also arm via native Kotlin layer
+          await NativeAlarmBridge.armAlarm(
+            alarmId: alarmSettings.id,
+            epochMs: alarmSettings.dateTime.millisecondsSinceEpoch,
+            groupId: reminder.id.toString(),
+            category: 'water',
+            title: alarmSettings.notificationSettings.title,
+            body: alarmSettings.notificationSettings.body,
+          );
+        }
       }
       return;
     }
@@ -411,6 +460,7 @@ class ReminderScheduler {
       id: scheduledReminderId(reminderId: reminder.id, time: beforeTime),
       dateTime: beforeTime,
       assetAudioPath: remindBeforeSound,
+      warningNotificationOnKill: false,
       volumeSettings: VolumeSettings.fade(
         volume: 0.8,
         fadeDuration: Duration(seconds: 5),
@@ -421,6 +471,16 @@ class ReminderScheduler {
         "category": category,
         "type": "before",
         "mainTime": mainTime.toIso8601String(),
+        "startDate": reminder.startDate,
+        "endDate": reminder.endDate,
+        "remindBefore":
+            reminder.remindBefore == null
+                ? null
+                : {
+                  "time": reminder.remindBefore!.time,
+                  "unit": reminder.remindBefore!.unit,
+                },
+        "scheduleMetadata": reminder.scheduleMetadata.toJson(),
       }),
       notificationSettings: NotificationSettings(
         title: "Upcoming ${category.capitalizeFirst} Reminder",
@@ -434,6 +494,17 @@ class ReminderScheduler {
     final success = await Alarm.set(alarmSettings: alarmSettings);
 
     debugPrint("PreReminder scheduled: $success");
+    if (success) {
+      // 📲 Also arm via native Kotlin layer
+      await NativeAlarmBridge.armAlarm(
+        alarmId: alarmSettings.id,
+        epochMs: alarmSettings.dateTime.millisecondsSinceEpoch,
+        groupId: reminder.id.toString(),
+        category: category,
+        title: alarmSettings.notificationSettings.title,
+        body: alarmSettings.notificationSettings.body,
+      );
+    }
   }
 
   /// ==============================
@@ -481,6 +552,7 @@ class ReminderScheduler {
         id: alarmId,
         dateTime: dateTime,
         assetAudioPath: _audioPathForCategory(category),
+        warningNotificationOnKill: false,
         volumeSettings: VolumeSettings.fade(
           volume: 0.8,
           fadeDuration: Duration(seconds: 5),
@@ -503,6 +575,17 @@ class ReminderScheduler {
       final success = await Alarm.set(alarmSettings: alarmSettings);
 
       debugPrint("Alarm set result: $success");
+      if (success) {
+        // 📲 Also arm via native Kotlin layer
+        await NativeAlarmBridge.armAlarm(
+          alarmId: alarmSettings.id,
+          epochMs: alarmSettings.dateTime.millisecondsSinceEpoch,
+          groupId: reminder.id.toString(),
+          category: category,
+          title: alarmSettings.notificationSettings.title,
+          body: alarmSettings.notificationSettings.body,
+        );
+      }
     }
   }
 }

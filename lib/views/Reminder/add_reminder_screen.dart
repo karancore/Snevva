@@ -92,44 +92,65 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   void fillEventFields(ReminderPayloadModel reminder) {
     // 1. Basic Fields
     reminderController.titleController.text = reminder.title ?? '';
+
     reminderController.selectedCategory.value = reminder.category.toLowerCase();
+
     reminderController.notesController.text = reminder?.notes ?? '';
 
-    // 2. Time Parsing
     final dateTimeString =
         reminder.customReminder.timesPerDay?.list.first ?? '';
 
     if (dateTimeString.isNotEmpty) {
       try {
-        final parsedTime = DateTime.parse(dateTimeString);
-        reminderController.timeController.text = DateFormat(
-          'hh:mm a',
-        ).format(parsedTime);
-        reminderController.pickedTime.value = TimeOfDay.fromDateTime(
-          parsedTime,
-        );
+        final parsedTime = _safeParseTime(dateTimeString);
+        if (parsedTime != null) {
+          final formattedTime = DateFormat('hh:mm a').format(parsedTime);
+          reminderController.timeController.text = formattedTime;
+
+          reminderController.pickedTime.value = TimeOfDay.fromDateTime(
+            parsedTime,
+          );
+        }
       } catch (e) {
-        debugPrint("❌ Error parsing time: $e");
+        debugPrint("❌ Error parsing time string: $e");
       }
+    } else {
+      debugPrint("⚠️ No time string found");
     }
 
-    // 3. Start Date Logic
     final rawStartDate = reminder.startDate ?? '';
-    reminderController.startDateString.value =
-        rawStartDate.isEmpty ? 'Start Date' : rawStartDate;
-    reminderController.startDate.value = _parseSavedDate(rawStartDate);
 
-    // 4. Remind Before Logic
+    DateTime parsedDate;
+
+    if (rawStartDate.isNotEmpty) {
+      parsedDate =
+          DateTime.tryParse(rawStartDate) ??
+          DateFormat('MMMM d, yyyy').parse(rawStartDate);
+    } else {
+      parsedDate = DateTime.now();
+    }
+
+    print("Raw start date: '$rawStartDate'");
+
+    // ✅ FORMAT PROPERLY (THIS IS THE FIX)
+    reminderController.startDateString.value = DateFormat(
+      'MMMM dd, yyyy',
+    ).format(parsedDate);
+
     if (reminder.remindBefore != null) {
       final rb = reminder.remindBefore;
+
       eventGetxController.eventRemindMeBefore.value = 0;
 
       eventGetxController.eventTimeBeforeController.text =
           rb?.time.toString() ?? '';
+
       reminderController.selectedValue.value = rb?.unit ?? '';
     } else {
       debugPrint("ℹ️ No RemindBefore data associated with this reminder.");
     }
+
+    debugPrint("✅ fillEventFields completed");
   }
 
   void resetByCategory(String category) {
@@ -157,13 +178,15 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         reminder.customReminder.timesPerDay?.list.first ?? '';
     if (dateTimeString.isNotEmpty) {
       try {
-        final parsedTime = DateTime.parse(dateTimeString);
-        mealGetxController.timeController.text = DateFormat(
-          'hh:mm a',
-        ).format(parsedTime);
-        reminderController.pickedTime.value = TimeOfDay.fromDateTime(
-          parsedTime,
-        );
+        final parsedTime = _safeParseTime(dateTimeString);
+        if (parsedTime != null) {
+          mealGetxController.timeController.text = DateFormat(
+            'hh:mm a',
+          ).format(parsedTime);
+          reminderController.pickedTime.value = TimeOfDay.fromDateTime(
+            parsedTime,
+          );
+        }
       } catch (e) {
         debugPrint("❌ Error parsing meal time: $e");
       }
@@ -300,11 +323,13 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
     final savedStartDate = (reminder.startDate ?? '').trim();
     final savedEndDate = (reminder.endDate ?? '').trim();
+    
+
 
     medicineGetxController.startDateString.value =
-        savedStartDate.isEmpty ? 'Start Date' : savedStartDate;
+        savedStartDate.isEmpty ? 'Start Date' : formatDate(savedStartDate);
     medicineGetxController.endDateString.value =
-        savedEndDate.isEmpty ? 'End Date' : savedEndDate;
+        savedEndDate.isEmpty ? 'End Date' : formatDate(savedEndDate);
 
     medicineGetxController.startMedicineDateController.text = savedStartDate;
     medicineGetxController.endMedicineDateController.text = savedEndDate;
@@ -314,7 +339,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       final isoParsed = DateTime.tryParse(raw);
       if (isoParsed != null) return isoParsed;
       try {
-        final partial = DateFormat('dd MMMM').parseStrict(raw);
+        final partial = DateFormat('MMMM dd, yyyy').parseStrict(raw);
         final now = DateTime.now();
         return DateTime(now.year, partial.month, partial.day);
       } catch (_) {
@@ -360,14 +385,43 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       return null;
     }
     final isoParsed = DateTime.tryParse(raw);
-    if (isoParsed != null) return isoParsed;
+    if (isoParsed != null) {
+      return isoParsed.isUtc ? isoParsed.toLocal() : isoParsed;
+    }
     try {
-      final partial = DateFormat('dd MMMM').parseStrict(raw);
-      final now = DateTime.now();
-      return DateTime(now.year, partial.month, partial.day);
+      final partial = DateFormat('MMMM dd, yyyy').parseStrict(raw);
+      return DateTime(partial.year, partial.month, partial.day);
     } catch (_) {
       return null;
     }
+  }
+
+  DateTime? _safeParseTime(String raw) {
+    try {
+      return buildDateTimeFromTimeString(time: raw);
+    } catch (_) {
+      try {
+        final cleansed = raw
+            .trim()
+            .replaceAll(RegExp(r'\s+'), ' ')
+            .replaceAll('.', '');
+        final meridiemNormalized = cleansed.replaceAllMapped(
+          RegExp(r'\b(am|pm)\b', caseSensitive: false),
+          (match) => match.group(0)!.toUpperCase(),
+        );
+        final format = DateFormat('hh:mm a');
+        final partial = format.parse(meridiemNormalized);
+        final now = DateTime.now();
+        return DateTime(
+          now.year,
+          now.month,
+          now.day,
+          partial.hour,
+          partial.minute,
+        );
+      } catch (_) {}
+    }
+    return null;
   }
 
   void _blinkBorder() {

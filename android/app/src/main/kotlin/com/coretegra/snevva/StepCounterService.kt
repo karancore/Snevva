@@ -2,19 +2,32 @@ package com.coretegra.snevva
 
 import android.app.*
 import android.content.*
+import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.plugin.common.MethodChannel
-import android.content.pm.ServiceInfo
-import android.os.SystemClock
+import androidx.core.content.ContextCompat
+import androidx.work.Constraints
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+
+/** Bounds of a single sleep-tracking window. */
+private data class SleepWindow(val start: Calendar, val end: Calendar)
 
 class StepCounterService : Service(), SensorEventListener {
 
@@ -29,6 +42,22 @@ class StepCounterService : Service(), SensorEventListener {
     private val PREFS_NAME = "steps_prefs"
     private val KEY_TODAY_STEPS = "today_steps"
     private val KEY_DATE = "lastDate"
+
+    // 1-minute ticker — keeps sleep duration in the notification fresh
+    // without requiring any Dart/Flutter involvement.
+    private val notifHandler = Handler(Looper.getMainLooper())
+    private val notifRunnable = object : Runnable {
+        override fun run() {
+            refreshNotification()
+            notifHandler.postDelayed(this, 60_000L)
+        }
+    }
+
+    /** Dynamically-registered receiver that tracks sleep intervals natively. */
+    private var screenReceiver: ScreenStateReceiver? = null
+
+    /** ISO-8601 formatter shared by handleScreenOff / handleScreenOn. */
+    private val isoFmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.US)
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -95,17 +124,82 @@ class StepCounterService : Service(), SensorEventListener {
         // Dart hasn't run yet.
         ensureNotificationChannel()
 
+        // ── Post-logout user-switch guard ──────────────────────────────────────
+        // forceLogout() calls FlutterSharedPreferences.clear() which removes
+        // "flutter.today_steps". Our own steps_prefs is a different file and
+        // is NOT cleared on logout, so User B would inherit User A's step count.
+        // If the key is absent → fresh login → reset our counter to 0.
+        val flutterPrefs = applicationContext.getSharedPreferences(
+            "FlutterSharedPreferences", android.content.Context.MODE_PRIVATE
+        )
+        if (!flutterPrefs.contains("flutter.today_steps")) {
+            Log.d("StepService", "🔄 flutter.today_steps absent (post-logout). Resetting step counter for new user.")
+            prefs.edit()
+                .putInt(KEY_TODAY_STEPS, 0)
+                .remove(KEY_DATE)   // force a fresh date so day-reset logic is clean
+                .apply()
+            // Also zero out the Flutter-visible key immediately so the notification
+            // shows 0 right away, before any API seed arrives.
+            flutterPrefs.edit()
+                .putLong("flutter.today_steps", 0L)
+                .apply()
+        }
+        // ── End guard ──────────────────────────────────────────────────────────
+
         val stepsToday = prefs.getInt(KEY_TODAY_STEPS, 0)
         val notification = buildNotification(stepsToday)
 
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH)
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                // Check if we have FOREGROUND_SERVICE_HEALTH permission before starting foreground service
+                if (ContextCompat.checkSelfPermission(
+                        this,
+                        "android.permission.FOREGROUND_SERVICE_HEALTH"
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    startForeground(
+                        NOTIFICATION_ID,
+                        notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH
+                    )
+                } else {
+                    Log.w(
+                        "StepService",
+                        "⚠️ Missing FOREGROUND_SERVICE_HEALTH permission. Starting as regular service."
+                    )
+                    startForeground(NOTIFICATION_ID, notification)
+                }
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } catch (e: Exception) {
+            Log.e("StepService", "Error starting foreground service", e)
+            // Fallback: try to start as regular foreground service without health type
+            try {
+                startForeground(NOTIFICATION_ID, notification)
+            } catch (e2: Exception) {
+                Log.e(
+                    "StepService",
+                    "Failed to start foreground service even without health type",
+                    e2
+                )
+            }
         }
 
         registerStepListener()
         scheduleSparseWakeup()
+        notifHandler.postDelayed(notifRunnable, 60_000L) // start 1-min ticker
+
+        // ── Native screen-state receiver for sleep window tracking ──────────────
+        // Must be registered dynamically — ACTION_SCREEN_OFF/ON are not deliverable
+        // to manifest-declared receivers.  This keeps working even when Dart is dead.
+        screenReceiver = ScreenStateReceiver()
+        val screenFilter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+        }
+        registerReceiver(screenReceiver, screenFilter)
+        Log.d("StepService", "📱 ScreenStateReceiver registered for native sleep tracking")
 
         Log.d("StepService", "🚀 StepCounterService started.")
     }
@@ -125,10 +219,55 @@ class StepCounterService : Service(), SensorEventListener {
         val currentDate = android.text.format.DateFormat.format("yyyyMMdd", System.currentTimeMillis()).toString()
         val savedDate = prefs.getString(KEY_DATE, currentDate)
 
-        // Reset steps daily
+        // ── Day boundary crossed ───────────────────────────────────────────────
+        // Kotlin is the sole owner of the day-change pipeline.  Do NOT rely on
+        // the Dart UI being open for this — it may never open if the user just
+        // keeps walking.
         if (currentDate != savedDate) {
-            prefs.edit().putString(KEY_DATE, currentDate).putInt(KEY_TODAY_STEPS, 0).apply()
-            Log.d("StepService", "📅 New day detected. Steps reset.")
+            Log.d("StepService", "📅 New day detected. Flushing yesterday and queuing for sync.")
+
+            // Compute yesterday's dateKey from savedDate (yyyyMMdd → YYYY-MM-DD)
+            val yesterdayKey = savedDate?.let {
+                try {
+                    val y = it.substring(0, 4)
+                    val m = it.substring(4, 6)
+                    val d = it.substring(6, 8)
+                    "$y-$m-$d"
+                } catch (_: Exception) { null }
+            }
+
+            // Run buffer flush + sync enqueue off the sensor callback thread
+            Thread {
+                try {
+                    // 1. Flush yesterday's step buffer → daily JSON
+                    BufferManager.flushStepsToDaily(applicationContext)
+
+                    // 2. Queue yesterday for API sync
+                    if (yesterdayKey != null) {
+                        BufferManager.addToSyncQueue(applicationContext, yesterdayKey)
+                        Log.d("StepService", "📤 Queued $yesterdayKey for sync")
+                    }
+
+                    // 3. Enqueue ApiSyncWorker (runs only when network is available)
+                    val syncRequest = OneTimeWorkRequestBuilder<ApiSyncWorker>()
+                        .setConstraints(
+                            Constraints.Builder()
+                                .setRequiredNetworkType(NetworkType.CONNECTED)
+                                .build()
+                        )
+                        .build()
+                    WorkManager.getInstance(applicationContext).enqueue(syncRequest)
+                    Log.d("StepService", "✅ ApiSyncWorker enqueued for $yesterdayKey")
+                } catch (e: Exception) {
+                    Log.e("StepService", "Day-change sync error: ${e.message}")
+                }
+            }.start()
+
+            // Reset local step counter for the new day
+            prefs.edit()
+                .putString(KEY_DATE, currentDate)
+                .putInt(KEY_TODAY_STEPS, 0)
+                .apply()
         }
 
         var stepsToday = prefs.getInt(KEY_TODAY_STEPS, 0)
@@ -148,13 +287,12 @@ class StepCounterService : Service(), SensorEventListener {
 
         Log.d("StepService", "👣 Steps today: $stepsToday")
 
-        // Update notification only when the Dart isolate is NOT sleeping
-        // (Dart isolate will overwrite the notification text during sleep mode)
-        val isSleeping = flutterPrefs.getBoolean("flutter.is_sleeping", false)
-        if (!isSleeping) {
-            val notifManager = getSystemService(NotificationManager::class.java)
-            notifManager.notify(NOTIFICATION_ID, buildNotification(stepsToday))
-        }
+        // Append to file buffer (primary durable store)
+        BufferManager.appendStepEvent(applicationContext, stepsToday)
+
+        // Always refresh the unified notification (shows BOTH steps + sleep).
+        // No switching logic needed — collision is impossible.
+        refreshNotification()
 
         // Relay to Flutter UI engine only if alive — fire-and-forget, never block
         val engine = flutterEngine
@@ -176,19 +314,237 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     override fun onDestroy() {
+        // Stop the 1-min ticker first
+        notifHandler.removeCallbacks(notifRunnable)
+        // Unregister the native screen-state receiver
+        screenReceiver?.let { try { unregisterReceiver(it) } catch (_: Exception) {} }
+        screenReceiver = null
+        // Flush buffers before being killed so no step data is lost
+        BufferManager.flushStepsToDaily(applicationContext)
+        BufferManager.flushSleepToDaily(applicationContext)
         super.onDestroy()
         sensorManager.unregisterListener(this)
-        Log.d("StepService", "🛑 StepCounterService destroyed.")
+        Log.d("StepService", "🛑 StepCounterService destroyed + buffers flushed.")
     }
 
-    private fun buildNotification(stepsToday: Int): Notification {
+    /**
+     * Reads current steps + sleep from SharedPreferences and posts the unified
+     * notification. Always called by Kotlin only — Dart never touches the
+     * notification directly.
+     */
+    private fun refreshNotification() {
+        val flutterPrefs = applicationContext.getSharedPreferences(
+            "FlutterSharedPreferences", android.content.Context.MODE_PRIVATE
+        )
+        val steps        = flutterPrefs.getLong("flutter.today_steps", 0L).toInt()
+        val sleepMinutes = computeSleepDisplayMinutes(flutterPrefs)
+        val notifManager = getSystemService(NotificationManager::class.java)
+        notifManager.notify(NOTIFICATION_ID, buildNotification(steps, sleepMinutes))
+    }
+
+    private fun buildNotification(stepsToday: Int, sleepMinutes: Int = 0): Notification {
+        val sleepText = if (sleepMinutes > 0) {
+            val h = sleepMinutes / 60
+            val m = sleepMinutes % 60
+            if (h > 0) "😴 Sleep: ${h}h ${m}m" else "😴 Sleep: ${m}m"
+        } else {
+            "😴 Sleep: --"
+        }
+        
+        val notificationIntent = Intent(this, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, notificationIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Snevva Active")
-            .setContentText("👟 Steps: $stepsToday")
+            .setContentText("👟 Steps: $stepsToday   $sleepText")
             .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentIntent(pendingIntent)
             .setOngoing(true)
             .build()
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // NATIVE SCREEN-STATE SLEEP TRACKING
+    // Runs entirely in Kotlin inside the foreground service — no Dart engine needed.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Receives ACTION_SCREEN_OFF and ACTION_SCREEN_ON.
+     * Registered dynamically in onCreate() so it works even when Dart is dead.
+     */
+    private inner class ScreenStateReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                Intent.ACTION_SCREEN_OFF -> handleScreenOff()
+                Intent.ACTION_SCREEN_ON  -> handleScreenOn()
+            }
+        }
+    }
+
+    /**
+     * Screen turned OFF.
+     * If the current time is inside the configured sleep window, record an anchor
+     * timestamp and mark is_sleeping = true so the notification shows live data.
+     */
+    private fun handleScreenOff() {
+        val window = getSleepWindowBounds() ?: return
+        val now    = Calendar.getInstance()
+
+        // Only engage if we are actually inside the sleep window
+        if (!isWithinSleepWindow(now, window.start, window.end)) return
+
+        val dateKey = getSleepDateKey(window.start)
+        val isoNow  = isoFmt.format(now.time)
+
+        applicationContext.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+            .edit()
+            .putString("flutter.last_screen_off_$dateKey", isoNow)
+            .putBoolean("flutter.is_sleeping", true)
+            .apply()
+
+        Log.d(TAG, "📴 Screen OFF → anchor set [$dateKey] at $isoNow")
+    }
+
+    /**
+     * Screen turned ON.
+     * Closes the open sleep interval (from the anchor written by handleScreenOff),
+     * clamps it to the window bounds, and appends it to the durable sleep buffer.
+     * Also accumulates flutter.sleep_elapsed_minutes so the notification shows a
+     * live running total throughout the night.
+     *
+     * Note: even if this fires after the wake time (e.g. user turns phone on at 10 AM),
+     * the interval is clamped to window.end, so no over-counting occurs.
+     * SleepCalcWorker already cleared the anchor at wake time, so this is a no-op then.
+     */
+    private fun handleScreenOn() {
+        val window  = getSleepWindowBounds() ?: return
+        val dateKey = getSleepDateKey(window.start)
+
+        val prefs      = applicationContext.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        val lastOffIso = prefs.getString("flutter.last_screen_off_$dateKey", null) ?: return
+
+        try {
+            val rawOff = isoFmt.parse(lastOffIso.take(23)) ?: return
+
+            // Clamp start — don't count time before bedtime
+            val intervalStart = if (rawOff.before(window.start.time)) window.start.time else rawOff
+
+            // Clamp end — don't count time after wake time
+            val now         = Calendar.getInstance()
+            val intervalEnd = if (now.after(window.end)) window.end.time else now.time
+
+            val diffMin = ((intervalEnd.time - intervalStart.time) / 60_000).toInt()
+
+            if (diffMin >= MIN_SLEEP_GAP_MIN) {
+                val startIso = isoFmt.format(intervalStart)
+                val endIso   = isoFmt.format(intervalEnd)
+
+                // Persist to the durable buffer file (survives process death)
+                BufferManager.appendSleepInterval(applicationContext, dateKey, startIso, endIso)
+
+                // Accumulate running elapsed so the 1-min ticker notification stays live
+                val current = prefs.getLong("flutter.sleep_elapsed_minutes", 0L).toInt()
+                prefs.edit()
+                    .putLong("flutter.sleep_elapsed_minutes", (current + diffMin).toLong())
+                    .apply()
+
+                Log.d(TAG, "😴 Sleep interval recorded: ${diffMin}m  [$startIso → $endIso]")
+            } else {
+                Log.d(TAG, "😴 Interval too short (${diffMin}m < ${MIN_SLEEP_GAP_MIN}m) — skipped")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "handleScreenOn error: $e")
+        }
+
+        // Always clear the anchor to prevent double-counting.
+        // SleepCalcWorker also removes it at wake time (belt-and-suspenders).
+        prefs.edit().remove("flutter.last_screen_off_$dateKey").apply()
+    }
+
+    /**
+     * Determines which sleep value to show in the notification.
+     *
+     *  Case 1 — is_sleeping = true           → live elapsed (grows through the night)
+     *  Case 2 — sleep_final_date == today     → final total written by SleepCalcWorker
+     *  Case 3 — no active / recent session   → 0  (notification shows "--")
+     */
+    private fun computeSleepDisplayMinutes(prefs: SharedPreferences): Int {
+        // Case 1: actively inside the sleep window
+        if (prefs.getBoolean("flutter.is_sleeping", false)) {
+            return prefs.getLong("flutter.sleep_elapsed_minutes", 0L).toInt()
+        }
+
+        // Case 2: session finished today — keep showing the final result all day
+        val finalDate = prefs.getString("flutter.sleep_final_date", null)
+        if (finalDate != null) {
+            val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+            if (finalDate == today) {
+                return prefs.getLong("flutter.sleep_final_minutes", 0L).toInt()
+            }
+        }
+
+        // Case 3: nothing relevant
+        return 0
+    }
+
+    /**
+     * Computes the bounds of the current (or most-recently-started) sleep window
+     * from bedtime + wake-time values stored by the Dart SleepController.
+     * Returns null when no sleep window has been configured by the user.
+     */
+    private fun getSleepWindowBounds(): SleepWindow? {
+        val prefs   = applicationContext.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        val bedMin  = prefs.getLong("flutter.user_bedtime_ms",  -1L)
+        val wakeMin = prefs.getLong("flutter.user_waketime_ms", -1L)
+        if (bedMin == -1L || wakeMin == -1L) return null
+
+        val bedHour    = (bedMin  / 60).toInt()
+        val bedMinute  = (bedMin  % 60).toInt()
+        val wakeHour   = (wakeMin / 60).toInt()
+        val wakeMinute = (wakeMin % 60).toInt()
+
+        val now = Calendar.getInstance()
+
+        // Resolve the most recently started bedtime
+        // (shift back one day if tonight's bedtime hasn't arrived yet)
+        val start = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, bedHour)
+            set(Calendar.MINUTE,      bedMinute)
+            set(Calendar.SECOND,      0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        if (start.after(now)) start.add(Calendar.DAY_OF_MONTH, -1)
+
+        // Wake time is always strictly after bedtime (overnight windows cross midnight)
+        val end = (start.clone() as Calendar).apply {
+            set(Calendar.HOUR_OF_DAY, wakeHour)
+            set(Calendar.MINUTE,      wakeMinute)
+            set(Calendar.SECOND,      0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        if (!end.after(start)) end.add(Calendar.DAY_OF_MONTH, 1)
+
+        return SleepWindow(start, end)
+    }
+
+    /** Returns true when [now] falls within [start, end] (both inclusive). */
+    private fun isWithinSleepWindow(now: Calendar, start: Calendar, end: Calendar): Boolean =
+        !now.before(start) && !now.after(end)
+
+    /**
+     * Returns the YYYY-MM-DD key for the bed-date (the window's start day).
+     * This matches the key used by BufferManager and the daily JSON files.
+     */
+    private fun getSleepDateKey(windowStart: Calendar): String = "%04d-%02d-%02d".format(
+        windowStart.get(Calendar.YEAR),
+        windowStart.get(Calendar.MONTH) + 1,
+        windowStart.get(Calendar.DAY_OF_MONTH)
+    )
+
+    // ══════════════════════════════════════════════════════════════════════════
 
     /** Creates tracker_channel as a safety fallback (e.g. boot before Dart has run). */
     private fun ensureNotificationChannel() {
@@ -208,7 +564,11 @@ class StepCounterService : Service(), SensorEventListener {
 
     companion object {
         private const val TAG = "StepService"
+        // Minimum screen-off duration (minutes) to count as a sleep interval.
+        // Mirrors Dart's SleepNoticingService.minSleepGap.
+        private const val MIN_SLEEP_GAP_MIN = 3
         // Set by MainActivity so steps can be sent to the live UI engine
         var flutterEngine: FlutterEngine? = null
     }
 }
+

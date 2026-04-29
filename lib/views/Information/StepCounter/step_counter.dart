@@ -4,7 +4,7 @@ import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
@@ -61,12 +61,12 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
     // Ensure we observe app lifecycle to refresh on resume
     WidgetsBinding.instance.addObserver(this);
 
-    // Start the MethodChannel listener + hive poller so this screen receives
+    // Start the MethodChannel listener + file poller so this screen receives
     // live step updates from the native StepCounterService immediately.
     stepController.activateRealtimeTracking();
 
-    // Load whatever is already in Hive so the UI shows steps right away.
-    stepController.loadTodayStepsFromHive();
+    // Load whatever is already in the daily file so the UI shows steps right away.
+    stepController.loadTodayStepsFromFile();
   }
 
   @override
@@ -88,8 +88,8 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
 
     if (state == AppLifecycleState.resumed) {
       // Force reload from Hive and prefs when app returns to foreground
-      debugPrint('🔁 App resumed - reloading steps from Hive');
-      stepController.loadTodayStepsFromHive();
+      debugPrint('🔁 App resumed - reloading steps from file');
+      stepController.loadTodayStepsFromFile();
     }
   }
 

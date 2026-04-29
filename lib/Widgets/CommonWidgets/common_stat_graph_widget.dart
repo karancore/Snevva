@@ -166,13 +166,14 @@ class CommonStatGraphWidget extends StatelessWidget {
     String formatted = '';
     final double safeMaxX =
         isMonthly
-            ? max(1, labels.length).toDouble()
-            : max(1, (maxXForWeek ?? labels.length)).toDouble();
+            ? max(0, labels.length - 1).toDouble()
+            : max(0, (maxXForWeek ?? labels.length - 1)).toDouble();
 
     double chartWidth = max(
       labels.length * 42.0,
       MediaQuery.of(context).size.width - 40,
     );
+    if (isMonthly) chartWidth += 1;
 
     if (points.isEmpty || labels.isEmpty) {
       return SizedBox(

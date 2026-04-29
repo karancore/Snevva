@@ -146,9 +146,9 @@ bool isProfileSetupInitialComplete(Map user) {
   if (occupationData is Map) {
     occupationValid = _hasNonEmptyString(occupationData['Name']);
   }
-  if (!occupationValid) {
-    occupationValid = _hasNonEmptyString(user['Occupation']);
-  }
+  // if (!occupationValid) {
+  //   occupationValid = _hasNonEmptyString(user['Occupation']);
+  // }
 
   return nameValid && genderValid && dobValid && occupationValid;
 }
@@ -240,12 +240,72 @@ int buildAlarmId({required int groupId, required DateTime time, String? salt}) {
   return hashed == 0 ? 1 : hashed;
 }
 
+int computeAlarmId({
+  required int reminderId,
+  required int scheduleVersion,
+  required DateTime fireTime,
+  required bool isPreAlarm,
+}) {
+  final normalized = DateTime(
+    fireTime.year,
+    fireTime.month,
+    fireTime.day,
+    fireTime.hour,
+    fireTime.minute,
+    fireTime.second,
+  ).toIso8601String();
+
+  final seed = '$reminderId|$scheduleVersion|$normalized|$isPreAlarm';
+
+  final hash64 = _fnv1a64(seed.codeUnits);
+
+  final id = (hash64 ^ (hash64 >> 32)) & 0x7fffffff;
+
+  return id == 0 ? 1 : id;
+}
+
+int _fnv1a64(List<int> bytes) {
+  const int fnvPrime = 0x100000001b3;
+  const int offsetBasis = 0xcbf29ce484222325;
+  const int mask64 = 0xFFFFFFFFFFFFFFFF;
+  int hash = offsetBasis;
+  for (var byte in bytes) {
+    hash ^= byte;
+    hash = (hash * fnvPrime) & mask64;
+  }
+
+  return hash;
+}
+
 int generateWaterAlarmId(int reminderId, int index) {
   return reminderId * 10 + index;
 }
 
 DateTime combineWithToday(TimeOfDay time) {
   return DateTime(now.year, now.month, now.day, time.hour, time.minute);
+}
+
+List<int> sanitizeIds(List<dynamic>? input) {
+  return (input ?? []).whereType<int>().toSet().toList();
+}
+
+final Map<String, bool> _txnLocks = {};
+
+Future<void> runWithLock(String key, Future<void> Function() fn) async {
+  if (_txnLocks[key] == true) return;
+
+  _txnLocks[key] = true;
+  try {
+    await fn();
+  } finally {
+    _txnLocks[key] = false;
+  }
+}
+
+void logTxn(Map<String, dynamic> data) {
+  debugPrint(
+    '[ReminderTxn] ' + data.entries.map((e) => '${e.key}=${e.value}').join(' '),
+  );
 }
 
 DateTime toDateTimeToday(TimeOfDay time) {
@@ -279,12 +339,21 @@ String formatReminderTime(List remindTimes) {
       if (time is String) {
         try {
           DateTime dateTime = DateTime.parse(time);
-          formattedTimes.add(DateFormat('hh:mm a').format(dateTime));
+          // ✅ Always display in device local time — avoids 5h offset on UTC emulators
+          final local = dateTime.isUtc ? dateTime.toLocal() : dateTime;
+          formattedTimes.add(DateFormat('hh:mm a').format(local));
+          // ✅ Always display in device local time.
+          // DateTime.parse has no timezone info → treated as local on device
+          // but as UTC on emulators whose system clock is UTC (+0). Force
+          // toLocal() so the displayed time is always in the user's timezone.
+          formattedTimes.add(DateFormat('hh:mm a').format(local));
         } catch (e) {
+          // Not a parseable datetime string — show as-is (e.g. "09:30 AM")
           formattedTimes.add(time);
         }
       } else if (time is DateTime) {
-        formattedTimes.add(DateFormat('hh:mm a').format(time));
+        final local = time.isUtc ? time.toLocal() : time;
+        formattedTimes.add(DateFormat('hh:mm a').format(local));
       }
     } catch (e) {
       debugPrint('Error formatting time: $e');
@@ -295,9 +364,10 @@ String formatReminderTime(List remindTimes) {
   return formattedTimes.join(', ');
 }
 
-String formatDate(int? day, int? month, int? year) {
-  if (day == null || month == null || year == null) return 'N/A';
-  return '$day/$month/$year';
+String formatDate(String dateStr) {
+  DateTime parsedDate = DateTime.parse(dateStr); // "2026-04-18"
+  String formattedDate = DateFormat('MMMM dd, yyyy').format(parsedDate);
+  return formattedDate;
 }
 
 double getListHeight(int itemCount, double itemHeight, double maxHeight) {

@@ -127,10 +127,10 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
                   }
                 },
 
-                icon:
-                    isSigningIn
-                        ? SizedBox(height: 28, width: 28, child: const Loader())
-                        : Image.asset(google, height: 28, width: 28),
+                icon: isSigningIn
+                    ? const SizedBox(height: 28, width: 28, child: Loader())
+                    : Image.asset(google, height: 28, width: 28),
+
                 padding: const EdgeInsets.all(12),
                 splashRadius: 28,
               ),

@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
+import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/services/auth_header_helper.dart';
 import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/services/encryption_service.dart';
+import 'package:snevva/services/file_storage_service.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 
 import '../../../consts/consts.dart';
@@ -140,9 +142,27 @@ class CreatePasswordController extends GetxService {
 
         localStorageManager.registerDeviceFCMIfNeeded();
 
+        // ── Fetch PatientCode so new-user file I/O lands in fs/<uid>/, not fs/anonymous/
+        try {
+          final signInCtrl = Get.find<SignInController>();
+          final userInfo = await signInCtrl.userInfo();
+          final userData = userInfo['data'];
+          if (userData != null) {
+            final patientCode = userData['PatientCode']?.toString() ?? '';
+            if (patientCode.isNotEmpty) {
+              await prefs.setString('PatientCode', patientCode);
+              FileStorageService().reset(); // re-scope to fs/<uid>/
+              debugPrint('✅ [SignUp] PatientCode saved & FileStorageService reset: $patientCode');
+            }
+          }
+        } catch (e) {
+          debugPrint('⚠️ [SignUp] Could not fetch PatientCode after registration: $e');
+          // Non-fatal — user will get it on next login via handleSuccessfulSignIn
+        }
+
         await AuthService().ensurePostLoginPermissionsAndStartTracking();
 
-        Get.offAll(() => ProfileSetupInitial()); // 👈 clears previous stack
+        Get.offAll(() => ProfileSetupInitial());
       }
     } catch (e) {
       CustomSnackbar.showError(
@@ -233,9 +253,27 @@ class CreatePasswordController extends GetxService {
 
         localStorageManager.registerDeviceFCMIfNeeded();
 
-        // await AuthService().ensurePostLoginPermissionsAndStartTracking();
+        // ── Fetch PatientCode so new-user file I/O lands in fs/<uid>/, not fs/anonymous/
+        try {
+          final signInCtrl = Get.find<SignInController>();
+          final userInfo = await signInCtrl.userInfo();
+          final userData = userInfo['data'];
+          if (userData != null) {
+            final patientCode = userData['PatientCode']?.toString() ?? '';
+            if (patientCode.isNotEmpty) {
+              await prefs.setString('PatientCode', patientCode);
+              FileStorageService().reset(); // re-scope to fs/<uid>/
+              debugPrint('✅ [SignUp] PatientCode saved & FileStorageService reset: $patientCode');
+            }
+          }
+        } catch (e) {
+          debugPrint('⚠️ [SignUp] Could not fetch PatientCode after registration: $e');
+          // Non-fatal — user will get it on next login via handleSuccessfulSignIn
+        }
 
-        Get.offAll(() => ProfileSetupInitial()); // 👈 clears previous stack
+        await AuthService().ensurePostLoginPermissionsAndStartTracking();
+
+        Get.offAll(() => ProfileSetupInitial());
       } else {
         final decryptedError = EncryptionService.decryptData(
           response.body,

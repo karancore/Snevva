@@ -43,6 +43,7 @@ import 'background_pedometer_service.dart';
 import 'decisiontree_service.dart';
 import 'device_token_service.dart';
 import 'encryption_service.dart';
+import 'file_storage_service.dart';
 import 'permission_manager.dart';
 import 'tracking_service_manager.dart';
 
@@ -63,7 +64,7 @@ class AuthService {
       Get.find<BottomSheetController>();
   WomenHealthController get womenhealthController =>
       Get.find<WomenHealthController>();
-  SignInController get signInController => Get.find<SignInController>();
+  SignInController get signInController => Get.put(SignInController());
 
   Future<String> login(String username, String password) async {
     final response = await http.post(
@@ -216,11 +217,11 @@ class AuthService {
     localStorageManager.registerDeviceFCMIfNeeded();
 
     loginLog("Fetching reminders...");
-    await reminderController.getReminderFromAPI(context);
+    await reminderController.syncRemindersFromServer(context);
     loginLog("Reminders loaded");
 
     loginLog("Loading mood...");
-    await moodcontroller.loadmoodfromAPI(
+    await moodcontroller.loadMoodFromAPI(
       month: DateTime.now().month,
       year: DateTime.now().year,
     );
@@ -239,6 +240,11 @@ class AuthService {
     final PatientCode = userData['PatientCode']?.toString() ?? '';
     await prefs.setString('PatientCode', PatientCode);
     loginLog("PatientCode saved: $PatientCode");
+
+    // Reset the cached fs/<uid>/ directory so this login session reads from the
+    // correct user-scoped folder (handles hot-session-swap without a process kill).
+    FileStorageService().reset();
+    loginLog("FileStorageService cache reset for $PatientCode");
 
     final Map userMap = localStorageManager.userMap;
     final bool profileComplete = isProfileSetupInitialComplete(userMap);
@@ -355,6 +361,25 @@ class AuthService {
     _isLoggingOut = true;
 
     try {
+      // ── Final step sync before logout ────────────────────────────────────────
+      // Auth token is still valid here. Once prefs.clear() runs it's gone, so
+      // this is the ONLY window where we can push today's unflushed steps to
+      // the API. We do it synchronously (awaited) so the data reaches the server
+      // before the token is wiped. Non-fatal — a failure must never block logout.
+      try {
+        if (Get.isRegistered<StepCounterController>()) {
+          final ctrl = Get.find<StepCounterController>();
+          if (ctrl.todaySteps.value > 0) {
+            debugPrint('📤 Logout: syncing today\'s steps (${ctrl.todaySteps.value}) before token clear...');
+            await ctrl.saveStepRecordToServer();
+            debugPrint('✅ Logout step sync done');
+          }
+        }
+      } catch (e) {
+        debugPrint('⚠️ Logout step sync failed (non-fatal): $e');
+      }
+      // ── End final step sync ──────────────────────────────────────────────────
+
       try {
         debugPrint('🛑 Stopping background services...');
 
@@ -363,6 +388,10 @@ class AuthService {
         // Back-compat safety: if anything else is wired to old stopper.
         await stopBackgroundService();
 
+        // Stop the native foreground service so the sticky notification
+        // disappears on all logout paths (manual or token-expired).
+        await TrackingServiceManager.instance.stopNativeStepService();
+
         debugPrint('✅ Background services stopped');
       } catch (e) {
         debugPrint('⚠️ Failed to stop background service: $e');
@@ -370,17 +399,20 @@ class AuthService {
       }
 
       final prefs = await SharedPreferences.getInstance();
+
+      // Invalidate the user-scoped fs/<uid>/ cache BEFORE clearing prefs so that
+      // any in-flight Dart read that starts after this point gets a fresh lookup.
+      FileStorageService().reset();
+      debugPrint('🗑️ FileStorageService cache invalidated');
+
       await prefs.clear();
 
       try {
-        await Hive.box<StepEntry>('step_history').clear();
+        final stepBox = await Hive.openBox<StepEntry>('step_history');
+        await stepBox.clear();
+        debugPrint('🗑️ step_history Hive box cleared');
       } catch (e) {
         debugPrint('❌ Failed to clear step_history on logout: $e');
-        try {
-          await Hive.box<StepEntry>('step_history').clear();
-        } catch (e2) {
-          debugPrint('❌ Second attempt to clear step_history failed: $e2');
-        }
       }
 
       final localStorageManager = Get.find<LocalStorageManager>();

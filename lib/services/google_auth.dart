@@ -22,10 +22,15 @@ class GoogleAuthService extends GetxService {
   bool _initialized = false;
 
   // ---------------- INIT ----------------
-  Future<void> init(BuildContext context) async {
+  Future<bool> init(BuildContext context) async {
     if (_initialized) {
-      debugPrint("ℹ️ GoogleAuthService already initialized");
-      return;
+      debugPrint("ℹ️ Already initialized → retrying lightweight auth");
+
+      try {
+        await _google.attemptLightweightAuthentication();
+      } catch (_) {}
+
+      return user.value != null;
     }
 
     debugPrint("🔵 GoogleAuthService: init started");
@@ -99,24 +104,18 @@ class GoogleAuthService extends GetxService {
 
   // ---------------- BUTTON LOGIN ----------------
   Future<void> signIn() async {
-    debugPrint("👆 Login button pressed");
+    if (user.value != null) {
+      debugPrint("✅ Already signed in");
+      return;
+    }
 
-    final supports = _google.supportsAuthenticate();
-    debugPrint("Supports authenticate: $supports");
+    if (!_google.supportsAuthenticate()) return;
 
-    if (supports) {
-      debugPrint("🚀 Starting Google authenticate()");
-      try {
-        await _google.authenticate();
-      } on GoogleSignInException catch (e) {
-        if (e.code == GoogleSignInExceptionCode.canceled) {
-          debugPrint("⚠️ User cancelled Google sign-in UI");
-          return;
-        }
-        rethrow;
-      }
-    } else {
-      debugPrint("⚠️ authenticate() not supported on this platform");
+    try {
+      await _google.authenticate();
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) return;
+      rethrow;
     }
   }
 
@@ -165,10 +164,24 @@ class GoogleAuthService extends GetxService {
       }
 
       final result = jsonDecode(jsonEncode(response));
+      debugPrint("📥 Backend response decoded: $result");
+
       final token = result['data'];
-      debugPrint("Received token from backend: $token");
+      debugPrint("🔑 Extracted token: $token");
+
+      if (token == null || token.toString().trim().isEmpty) {
+        debugPrint("❌ Token is null/empty — aborting login to prevent forced logout cascade");
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Login Failed',
+          message: 'Could not retrieve session token from server. Please try again.',
+        );
+        return;
+      }
+
       final prefs = await SharedPreferences.getInstance();
-      prefs.setString('auth_token', token);
+      prefs.setString('auth_token', token.toString());
+      debugPrint("✅ Auth token saved to prefs");
 
       await authService.handleSuccessfulSignIn(
         emailOrPhone: account.email,
@@ -178,8 +191,6 @@ class GoogleAuthService extends GetxService {
       );
 
       _initialized = false; // Reset init state to allow re-init if needed
-
-      debugPrint("📥 Backend response: $response");
 
       debugPrint("🎉 Backend login completed");
     } catch (e, stack) {

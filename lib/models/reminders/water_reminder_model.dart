@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:alarm/model/alarm_settings.dart';
+import 'package:snevva/models/reminder_schedule_metadata.dart';
 
 import '../../common/global_variables.dart';
 
@@ -14,6 +17,8 @@ class WaterReminderModel {
   final String waterReminderEndTime;
 
   final String? interval;
+  final ReminderScheduleMetadata scheduleMetadata;
+  final DateTime? updatedAt;
 
   WaterReminderModel({
     required this.id,
@@ -26,6 +31,11 @@ class WaterReminderModel {
     required this.waterReminderEndTime,
     this.interval,
     this.notes,
+    this.updatedAt,
+    this.scheduleMetadata = const ReminderScheduleMetadata(
+      timezoneId: 'UTC',
+      scheduleSemantics: ScheduleSemantics.wallClock,
+    ),
   }) : assert(
          (type == Option.times && interval == null) ||
              (type == Option.interval && interval != null),
@@ -35,6 +45,7 @@ class WaterReminderModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'updatedAt': updatedAt?.toIso8601String(),
       'title': title,
       'Category': category,
       'type': type.name, // ✅ JSON-safe
@@ -44,40 +55,102 @@ class WaterReminderModel {
       'waterReminderEndTime': waterReminderEndTime,
       'notes': notes,
       'interval': interval,
+      'scheduleMetadata': scheduleMetadata.toJson(),
     };
   }
 
   factory WaterReminderModel.fromJson(Map<String, dynamic> json) {
+    final typeStr = (json['type'] ?? json['Type'] ?? '').toString();
     final type = Option.values.firstWhere(
-      (e) => e.name == json['type'],
+      (e) => e.name == typeStr,
       orElse: () => Option.times,
     );
+    final rawAlarms = json['alarms'] ?? json['Alarms'];
+    final rawScheduleMetadata =
+        json['scheduleMetadata'] ?? json['ScheduleMetadata'];
 
     return WaterReminderModel(
-      id: json['id'] ?? 0,
-
-      title: json['title'] ?? 'Water Reminder',
-
-      // handle old + new key names safely
-      category: json['Category'] ?? json['category'] ?? 'Water',
-
+      id: _parseInt(json['id'] ?? json['Id']),
+      updatedAt: (json['updatedAt'] ?? json['UpdatedAt']) != null
+          ? DateTime.tryParse(
+            (json['updatedAt'] ?? json['UpdatedAt']).toString(),
+          )
+          : null,
+      title: (json['title'] ?? json['Title'] ?? 'Water Reminder').toString(),
+      category: (json['category'] ?? json['Category'] ?? 'Water').toString(),
       type: type,
-
-      notes: json['notes'] as String?,
-
-      alarms:
-          (json['alarms'] as List?)
-              ?.map((a) => AlarmSettings.fromJson(a))
-              .toList() ??
-          [],
-
-      timesPerDay: json['timesPerDay'] ?? '0',
-
-      waterReminderStartTime: json['waterReminderStartTime'] ?? '00:00',
-
-      waterReminderEndTime: json['waterReminderEndTime'] ?? '23:59',
-
-      interval: type == Option.interval ? json['interval'] ?? '60' : null,
+      notes: _parseNullableString(json['notes'] ?? json['Notes']),
+      alarms: _parseAlarms(rawAlarms),
+      timesPerDay:
+          (json['timesPerDay'] ?? json['TimesPerDay'] ?? '').toString(),
+      waterReminderStartTime: (json['waterReminderStartTime'] ??
+              json['WaterReminderStartTime'] ??
+              json['StartWaterTime'] ??
+              '00:00')
+          .toString(),
+      waterReminderEndTime: (json['waterReminderEndTime'] ??
+              json['WaterReminderEndTime'] ??
+              json['EndWaterTime'] ??
+              '23:59')
+          .toString(),
+      interval: type == Option.interval
+          ? (json['interval'] ?? json['Interval'] ?? '60').toString()
+          : null,
+      scheduleMetadata: ReminderScheduleMetadata.fromJson(
+        rawScheduleMetadata is Map
+            ? Map<String, dynamic>.from(rawScheduleMetadata)
+            : null,
+        timezoneIdFallback: 'UTC',
+        semanticsFallback: ScheduleSemantics.wallClock,
+      ),
     );
   }
+
+  static List<AlarmSettings> _parseAlarms(dynamic rawAlarms) {
+    if (rawAlarms is String) {
+      try {
+        return _parseAlarms(jsonDecode(rawAlarms));
+      } catch (_) {
+        return const <AlarmSettings>[];
+      }
+    }
+
+    if (rawAlarms is! List) {
+      return const <AlarmSettings>[];
+    }
+
+    final alarms = <AlarmSettings>[];
+    for (final item in rawAlarms) {
+      if (item is AlarmSettings) {
+        alarms.add(item);
+        continue;
+      }
+      if (item is Map) {
+        alarms.add(AlarmSettings.fromJson(Map<String, dynamic>.from(item)));
+        continue;
+      }
+      if (item is String) {
+        try {
+          final decoded = jsonDecode(item);
+          if (decoded is Map) {
+            alarms.add(
+              AlarmSettings.fromJson(Map<String, dynamic>.from(decoded)),
+            );
+          }
+        } catch (_) {}
+      }
+    }
+    return alarms;
+  }
+}
+
+int _parseInt(dynamic raw) {
+  if (raw is int) return raw;
+  return int.tryParse(raw?.toString() ?? '') ?? 0;
+}
+
+String? _parseNullableString(dynamic raw) {
+  if (raw == null) return null;
+  final text = raw.toString().trim();
+  return text.isEmpty ? null : text;
 }
