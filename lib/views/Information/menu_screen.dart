@@ -103,7 +103,7 @@ class _MenuScreenState extends State<MenuScreen>
         title: "Add A Reminder",
         subtitle: "Medication, meal, hydration alert",
         imagePath: reminderIcon,
-        navigateTo: ReminderScreenWrapper(),
+        navigateTo: ReminderScreenWrapper(isClose: true,),
       ),
       MenuItem(
         title: "Steps Tracker",

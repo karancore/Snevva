@@ -31,6 +31,7 @@ class EditprofileController extends GetxService {
   var phoneNumber = '';
   var heightValue = '';
   var weightValue = '';
+
   // var gender = '';
   RxString gender = ''.obs;
   var occupation = '';
@@ -47,7 +48,6 @@ class EditprofileController extends GetxService {
     otpVerificationController = Get.find<OTPVerificationController>();
     initialProfileController = Get.find<ProfileSetupController>();
   }
-
 
   // void updateField(String key, dynamic value) {
   //   localStorageManager.userMap[key] = value;
@@ -161,6 +161,7 @@ class EditprofileController extends GetxService {
         break;
     }
   }
+
   void updateDob({int? day, int? month, int? year}) {
     final current = dob ?? DateTime.now();
 
@@ -191,7 +192,6 @@ class EditprofileController extends GetxService {
 
     isResendEnabled.value = true;
   }
-
 
   void showEditFieldDialog(
     BuildContext context, {
@@ -357,9 +357,9 @@ class EditprofileController extends GetxService {
                                     // await notify.showOtpNotification(result);
 
                                     if (result != false && result != null) {
-                                      otpVerificationController.responseOtp
-                                          .value =
-                                          result;
+                                      otpVerificationController
+                                          .responseOtp
+                                          .value = result;
 
                                       // ✅ Close first dialog
                                       Navigator.of(dialogCtx).pop();
@@ -389,7 +389,8 @@ class EditprofileController extends GetxService {
                                     }
                                   } catch (e) {
                                     debugPrint(
-                                        'Error during phone OTP process: $e');
+                                      'Error during phone OTP process: $e',
+                                    );
                                     CustomSnackbar.showError(
                                       context: context,
                                       title: 'Error',
@@ -424,7 +425,7 @@ class EditprofileController extends GetxService {
                                       context: context,
                                       title: 'Error',
                                       message:
-                                      'Please enter a valid email address',
+                                          'Please enter a valid email address',
                                     );
                                     isLoading.value = false;
                                     return;
@@ -437,9 +438,9 @@ class EditprofileController extends GetxService {
                                     // await notify.showOtpNotification(result);
 
                                     if (result != false && result != null) {
-                                      otpVerificationController.responseOtp
-                                          .value =
-                                          result;
+                                      otpVerificationController
+                                          .responseOtp
+                                          .value = result;
 
                                       // ✅ Close first dialog
                                       Navigator.of(dialogCtx).pop();
@@ -447,13 +448,12 @@ class EditprofileController extends GetxService {
                                       // ✅ Step 2: Open OTP verification dialog
                                       Future.delayed(
                                         const Duration(milliseconds: 150),
-                                            () {
+                                        () {
                                           updateemailDialog(
                                             context,
                                             title: "Verify your email",
                                             fieldKey: "Email",
-                                            initialValue:
-                                            value,
+                                            initialValue: value,
                                             // pass the actual entered email!
                                             onUpdated: onUpdated,
                                           );
@@ -464,7 +464,7 @@ class EditprofileController extends GetxService {
                                         context: context,
                                         title: 'Error',
                                         message:
-                                        'Failed to send OTP. Please try again.',
+                                            'Failed to send OTP. Please try again.',
                                       );
                                       isLoading.value = false;
                                     }
@@ -474,7 +474,7 @@ class EditprofileController extends GetxService {
                                       context: context,
                                       title: 'Error',
                                       message:
-                                      'Something went wrong while sending OTP.',
+                                          'Something went wrong while sending OTP.',
                                     );
                                     isLoading.value = false;
                                   } finally {
@@ -592,7 +592,8 @@ class EditprofileController extends GetxService {
     ),
   );
 
-  void updateemailDialog(BuildContext context, {
+  void updateemailDialog(
+    BuildContext context, {
     required String title,
     required String fieldKey,
     required String initialValue,
@@ -665,9 +666,7 @@ class EditprofileController extends GetxService {
                   focusedPinTheme: focusedPinTheme,
                   submittedPinTheme: submittedPinTheme,
                   followingPinTheme: followingPinTheme,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
 
                   onChanged: (val) {
                     print("⌨️ OTP Typing: $val");
@@ -677,13 +676,12 @@ class EditprofileController extends GetxService {
                     print("✅ OTP Entered: $pin");
                     print("📧 Verifying for Email: $value");
 
-                    otpVerificationStatus =
-                        otpVerificationController.verifyOtp(
-                            pin,
-                            pinController.text,
-                            ctx,
-                            isEditPassword: true
-                        );
+                    otpVerificationStatus = otpVerificationController.verifyOtp(
+                      pin,
+                      pinController.text,
+                      ctx,
+                      isEditPassword: true,
+                    );
 
                     print("📡 verifyOtp API called");
 
@@ -695,8 +693,8 @@ class EditprofileController extends GetxService {
                       localStorageManager.userMap['Email'] = initialValue;
 
                       debugPrint(
-                          "💾 Local Storage Updated: Email = ${localStorageManager
-                              .userMap['Email']}");
+                        "💾 Local Storage Updated: Email = ${localStorageManager.userMap['Email']}",
+                      );
 
                       email.value = initialValue;
                       print("💾 Local Email Saved: $email");
@@ -726,51 +724,49 @@ class EditprofileController extends GetxService {
                 const SizedBox(height: 15),
 
                 Obx(
-                      () =>
-                      InkWell(
-                        onTap: isResendEnabled.value
+                  () => InkWell(
+                    onTap:
+                        isResendEnabled.value
                             ? () async {
-                          print("🔁 Resend OTP Clicked");
+                              print("🔁 Resend OTP Clicked");
 
-                          isResendEnabled.value = false;
+                              isResendEnabled.value = false;
 
-                          print("⏳ Resend Disabled");
+                              print("⏳ Resend Disabled");
 
-                          startResendTimer(seconds: 30);
+                              startResendTimer(seconds: 30);
 
-                          print("⏱️ Resend Timer Started: 30s");
+                              print("⏱️ Resend Timer Started: 30s");
 
-                          print("📡 Calling gmailOtp API...");
+                              print("📡 Calling gmailOtp API...");
                           print("📧 Email: $value");
 
-                          final result =
-                          await signupController.gmailOtp(
-                            value,
-                            ctx,
-                          );
+                              final result = await signupController.gmailOtp(
+                                value,
+                                ctx,
+                              );
 
-                          print("📥 gmailOtp API Result: $result");
+                              print("📥 gmailOtp API Result: $result");
 
-                          if (result != false && result != null) {
-                            otpVerificationController
-                                .responseOtp
-                                .value = result;
+                              if (result != false && result != null) {
+                                otpVerificationController.responseOtp.value =
+                                    result;
 
-                            print("✅ OTP Resent Successfully");
+                                print("✅ OTP Resent Successfully");
                             print(
                               "📨 Response OTP Saved: ${otpVerificationController
                                   .responseOtp.value}",
                             );
 
-                            CustomSnackbar.showSuccess(
-                              context: context,
-                              title: 'Success',
-                              message: 'OTP resent successfully.',
-                            );
-                          } else {
-                            print("❌ Failed to resend OTP");
+                                CustomSnackbar.showSuccess(
+                                  context: context,
+                                  title: 'Success',
+                                  message: 'OTP resent successfully.',
+                                );
+                              } else {
+                                print("❌ Failed to resend OTP");
 
-                            CustomSnackbar.showError(
+                                CustomSnackbar.showError(
                               context: context,
                               title: 'Error',
                               message: 'Failed to resend OTP.',
@@ -783,12 +779,7 @@ class EditprofileController extends GetxService {
                         print("🎨 ShaderMask Applied");
 
                         return AppColors.primaryGradient.createShader(
-                          Rect.fromLTWH(
-                            0,
-                            0,
-                            bounds.width,
-                            bounds.height,
-                          ),
+                          Rect.fromLTWH(0, 0, bounds.width, bounds.height),
                         );
                       },
                       child: Text(
@@ -862,8 +853,11 @@ class EditprofileController extends GetxService {
                   followingPinTheme: followingPinTheme,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   onCompleted: (pin) async {
-                    otpVerificationStatus = otpVerificationController
-                        .verifyOtp(pin, pinController.text, ctx);
+                    otpVerificationStatus = otpVerificationController.verifyOtp(
+                      pin,
+                      pinController.text,
+                      ctx,
+                    );
                     if (otpVerificationStatus) {
                       localStorageManager.userMap['PhoneNumber'] = initialValue;
                       phoneNumber = initialValue;
@@ -1029,8 +1023,8 @@ class EditprofileController extends GetxService {
   }
 
   void showOccupationDialog(BuildContext context, {VoidCallback? onUpdated}) {
-    final initialOccupation = localStorageManager
-        .userMap['OccupationData']?['Name']?.toString();
+    final initialOccupation =
+        localStorageManager.userMap['OccupationData']?['Name']?.toString();
     String? selectedOccupation = initialOccupation;
     final mediaQuery = MediaQuery.of(context);
     // ✅ Listens to the app's current theme command
@@ -1068,7 +1062,7 @@ class EditprofileController extends GetxService {
                     headerStyle: TextStyle(color: AppColors.primaryColor),
                     //closedBorder: Border.all(color: Colors.transparent),
                     closedFillColor:
-                        isDarkMode ? Colors.black45 : scaffoldColorLight,
+                        isDarkMode ? Colors.transparent : scaffoldColorLight,
                     expandedFillColor:
                         isDarkMode ? Colors.black87 : scaffoldColorLight,
                   ),
@@ -1108,7 +1102,7 @@ class EditprofileController extends GetxService {
                       "Update",
                       style: TextStyle(
                         color:
-                            isDarkMode ? scaffoldColorDark : scaffoldColorLight,
+                            isDarkMode ? scaffoldColorLight : scaffoldColorDark,
                       ),
                     ),
                   ),

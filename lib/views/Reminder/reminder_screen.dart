@@ -14,8 +14,9 @@ import '../../common/global_variables.dart';
 import 'collapsed_header.dart';
 
 class ReminderScreen extends StatefulWidget {
-  const ReminderScreen({super.key});
+  const ReminderScreen({super.key, this.isClose = false});
 
+  final bool? isClose;
   @override
   State<ReminderScreen> createState() => _ReminderScreenState();
 }
@@ -88,7 +89,7 @@ class _ReminderScreenState extends State<ReminderScreen>
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: CustomAppBar(
         appbarText: "Reminder",
-        showCloseButton: false,
+        showCloseButton: widget.isClose ?? false,
         onClose: () {
           Navigator.of(context).pop();
         },
