@@ -35,50 +35,70 @@ class GoogleAuthService extends GetxService {
 
     debugPrint("🔵 GoogleAuthService: init started");
 
+    await _google.initialize(serverClientId: WEB);
+
+    debugPrint("🟢 GoogleSignIn initialized with clientId: $WEB");
+
+    // LISTEN AUTH EVENTS
+    _authEventsSub = _google.authenticationEvents.listen(
+      (event) async {
+        debugPrint("📡 Authentication event received: ${event.runtimeType}");
+
+        // SIGNED IN
+        if (event is GoogleSignInAuthenticationEventSignIn) {
+          final GoogleSignInAccount account = event.user;
+
+          debugPrint("✅ User signed in");
+          debugPrint("   Email: ${account.email}");
+          debugPrint("   Display Name: ${account.displayName}");
+          debugPrint("   ID: ${account.id}");
+
+          user.value = account;
+
+          await precacheImage(
+            CachedNetworkImageProvider(account.photoUrl ?? ''),
+            context,
+          );
+
+          await _handleBackendLogin(account, context, account.email);
+        }
+        // SIGNED OUT
+        else if (event is GoogleSignInAuthenticationEventSignOut) {
+          debugPrint("🚪 User signed out");
+          user.value = null;
+        }
+      },
+      onError: (error) {
+        debugPrint("❌ authenticationEvents error triggered");
+        _initialized = false; // Reset init state to allow re-init if needed
+        if (error is GoogleSignInException) {
+          debugPrint("   Error code: ${error.code}");
+          debugPrint("   Error message: ${error.description}");
+        } else {
+          debugPrint("   Unknown error: $error");
+        }
+
+        // Ignore cancel (user just closed popup)
+        if (error is GoogleSignInException &&
+            error.code == GoogleSignInExceptionCode.canceled) {
+          debugPrint("⚠️ User cancelled Google sign-in UI");
+        }
+      },
+    );
+
+    // Attempt auto login
+    debugPrint("🔄 Attempting lightweight authentication...");
     try {
-      await _google.initialize(serverClientId: WEB);
-
-      final completer = Completer<bool>();
-
-      _authEventsSub = _google.authenticationEvents.listen(
-            (event) async {
-          if (event is GoogleSignInAuthenticationEventSignIn) {
-            final account = event.user;
-
-            user.value = account;
-
-            await precacheImage(
-              CachedNetworkImageProvider(account.photoUrl ?? ''),
-              context,
-            );
-
-            await _handleBackendLogin(account, context, account.email);
-
-            if (!completer.isCompleted) {
-              completer.complete(true);
-            }
-          } else if (event is GoogleSignInAuthenticationEventSignOut) {
-            user.value = null;
-          }
-        },
-        onError: (_) {
-          if (!completer.isCompleted) {
-            completer.complete(false);
-          }
-        },
-      );
-
       await _google.attemptLightweightAuthentication();
-
-      _initialized = true;
-
-      return await completer.future
-          .timeout(const Duration(seconds: 2), onTimeout: () => false);
-
     } catch (e) {
-      debugPrint("❌ Init failed: $e");
-      _initialized = false;
-      return false;
+      debugPrint("❌ Lightweight auth failed: $e");
+
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Sign-in Issue',
+        message: 'Google auto sign-in failed. Please try manually.',
+      );
+      _initialized = true;
     }
   }
 
