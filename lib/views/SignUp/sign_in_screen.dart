@@ -55,6 +55,7 @@ class _SignInScreenState extends State<SignInScreen> {
     CustomSnackbar.showError(context: context, title: "", message: message);
   }
 
+
   Future<void> onSignInButtonClick(BuildContext context) async {
     if (isLoading) return;
 

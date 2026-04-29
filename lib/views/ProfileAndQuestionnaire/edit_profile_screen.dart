@@ -35,7 +35,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     /// Initialize values from localStorageManager
     controller.name = localStorageManager.userMap['Name']?.toString() ?? '';
-    controller.email = localStorageManager.userMap['Email']?.toString() ?? '';
+
+    controller.email.value =
+        localStorageManager.userMap['Email']?.toString() ?? '';
     controller.phoneNumber =
         localStorageManager.userMap['PhoneNumber']?.toString() ?? '';
 
@@ -235,7 +237,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     imageProvider == null
                                         ? Icon(
                                           Icons.person,
-                                          size: 200 * 0.75,
+                                      size: 140 * 0.75,
                                           color: white,
                                         )
                                         : null,
@@ -302,8 +304,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 '',
                             onUpdated:
                                 () => setState(() {
-                                  localStorageManager.userMap['Name'] =
-                                      controller.name;
+
                                 }),
                           ),
 
@@ -390,11 +391,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 '',
                             onUpdated:
                                 () => setState(() {
-                                  controller.email =
-                                      controller
-                                          .email; // redundant but consistent
-                                  localStorageManager.userMap['Email'] =
-                                      controller.email;
                                 }),
                           ),
                       child: Material(
@@ -416,11 +412,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Obx(
-                                () => Text(
-                                  localStorageManager.userMap['Email']
-                                          ?.toString() ??
-                                      'Enter your email',
+                              Obx(() {
+                                debugPrint(
+                                    "🔍 Email in userMap: ${localStorageManager
+                                        .userMap['Email']}");
+                                return Text(
+                                  controller.email.value.isNotEmpty
+                                      ? controller.email.value
+                                      : 'Enter your email',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color:
@@ -428,8 +427,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                             ? Colors.white60
                                             : Colors.black54,
                                   ),
-                                ),
-                              ),
+                                );
+                              }),
                               Icon(
                                 Icons.edit,
                                 color: AppColors.primaryColor,
@@ -463,11 +462,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 '',
                             onUpdated:
                                 () => setState(() {
-                                  controller.phoneNumber =
-                                      controller
-                                          .phoneNumber; // redundant but consistent
-                                  localStorageManager.userMap['PhoneNumber'] =
-                                      controller.phoneNumber;
                                 }),
                           ),
                       child: Material(
@@ -551,12 +545,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           context,
                           onUpdated:
                               () => setState(() {
-                                localStorageManager.userMap['DayOfBirth'] =
-                                    controller.dob?.day;
-                                localStorageManager.userMap['MonthOfBirth'] =
-                                    controller.dob?.month;
-                                localStorageManager.userMap['YearOfBirth'] =
-                                    controller.dob?.year;
                               }),
                         );
                       },
@@ -578,35 +566,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                () {
-                                  final day =
-                                      localStorageManager.userMap['DayOfBirth'];
-                                  final month =
-                                      localStorageManager
-                                          .userMap['MonthOfBirth'];
-                                  final year =
-                                      localStorageManager
-                                          .userMap['YearOfBirth'];
-
-                                  if (day != null &&
-                                      month != null &&
-                                      year != null) {
-                                    final date = DateTime(year, month, day);
-                                    return DateFormat(
-                                      'dd/MM/yyyy',
-                                    ).format(date);
-                                  }
-                                  return 'Select your date of birth';
-                                }(),
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color:
-                                      isDarkMode
-                                          ? Colors.white60
-                                          : Colors.black54,
-                                ),
-                              ),
+                              Obx(() {
+                                final day = localStorageManager
+                                    .userMap['DayOfBirth'];
+                                final month = localStorageManager
+                                    .userMap['MonthOfBirth'];
+                                final year = localStorageManager
+                                    .userMap['YearOfBirth'];
+                                if (day != null && month != null &&
+                                    year != null) {
+                                  return Text(DateFormat('dd/MM/yyyy').format(
+                                      DateTime(year, month, day)),
+                                      style: TextStyle(fontSize: 14,
+                                          color: isDarkMode
+                                              ? Colors.white60
+                                              : Colors.black54));
+                                }
+                                return Text('Select your date of birth',
+                                    style: TextStyle(fontSize: 14,
+                                        color: isDarkMode
+                                            ? Colors.white60
+                                            : Colors.black54));
+                              }),
                               Icon(
                                 Icons.edit,
                                 color: AppColors.primaryColor,
@@ -635,16 +616,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 "How tall are you, really? (No judgment, we promise!) We just need this for personalizing your experience.",
                             fieldKey: "Height",
                             initialValue: controller.heightValue,
-                            onUpdated:
-                                () => setState(() {
-                                  // When updated, store with 2 decimal precision
+                            onUpdated: () =>
+                                setState(() {
+                                  // ✅ Only for display formatting — map is already saved by controller
                                   final height = double.tryParse(
-                                    controller.heightValue.toString(),
-                                  );
+                                      controller.heightValue.toString());
                                   if (height != null) {
-                                    localStorageManager
-                                            .userGoalDataMap['HeightData']?['Value'] =
-                                        double.parse(height.toStringAsFixed(2));
+                                    controller.heightValue = height % 1 == 0
+                                        ? height.toInt().toString() // "185"
+                                        : height.toStringAsFixed(2); // "185.50"
                                   }
                                 }),
                           ),
@@ -669,10 +649,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             children: [
                               Text(
                                 controller.heightValue.toString().isNotEmpty
-                                    ? double.tryParse(
-                                          controller.heightValue.toString(),
-                                        )?.toStringAsFixed(2) ??
-                                        'Enter your height'
+                                    ? (() {
+                                  final value = double.tryParse(
+                                    controller.heightValue.toString(),
+                                  );
+                                  if (value == null) {
+                                    return 'Enter your height';
+                                  }
+
+                                  // check if decimal part is zero
+                                  return value % 1 == 0
+                                      ? value
+                                      .toInt()
+                                      .toString() // 185
+                                      : value.toStringAsFixed(2); // 185.50
+                                })()
                                     : 'Enter your height',
                                 style: TextStyle(
                                   fontSize: 14,
@@ -711,15 +702,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 "We know it’s a sensitive one, but it helps us tailor things to you. Don’t worry, this is just for your profile!",
                             fieldKey: "Weight",
                             initialValue: controller.weightValue,
-                            onUpdated:
-                                () => setState(() {
-                                  controller.weightValue =
-                                      controller
-                                          .weightValue; // redundant but consistent
-                                  localStorageManager
-                                          .userMap['WeightData']?['Value'] =
-                                      controller.weightValue;
+                            // Weight onUpdated:
+                            onUpdated: () =>
+                                setState(() {
+                                  // ✅ Only for display formatting — map is already saved by controller
+                                  final weight = double.tryParse(
+                                      controller.weightValue.toString());
+                                  if (weight != null) {
+                                    controller.weightValue = weight % 1 == 0
+                                        ? weight.toInt().toString() // "82"
+                                        : weight.toStringAsFixed(2); // "82.50"
+                                  }
                                 }),
+
                           ),
                       child: Material(
                         shape: RoundedRectangleBorder(
@@ -740,10 +735,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                controller.weightValue.toString().isNotEmpty ==
-                                        true
-                                    ? controller.weightValue.toString()
-                                    : 'Enter your weight',
+                                controller.weightValue
+                                    .toString()
+                                    .isNotEmpty
+                                    ? (() {
+                                  final value = double.tryParse(
+                                    controller.weightValue.toString(),
+                                  );
+                                  if (value == null)
+                                    return 'Enter your height';
+
+                                  // check if decimal part is zero
+                                  return value % 1 == 0
+                                      ? value
+                                      .toInt()
+                                      .toString() // 185
+                                      : value.toStringAsFixed(2); // 185.50
+                                })()
+                                    : 'Enter your height',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color:
@@ -798,22 +807,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                localStorageManager.userMap['Gender']
-                                            ?.toString()
-                                            .isNotEmpty ==
-                                        true
-                                    ? localStorageManager.userMap['Gender']
+                              Obx(() =>
+                                  Text(
+                                    localStorageManager.userMap['Gender']
+                                        ?.toString()
+                                        .isNotEmpty == true
+                                        ? localStorageManager.userMap['Gender']
                                         .toString()
                                     : 'Select your gender',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color:
-                                      isDarkMode
-                                          ? Colors.white60
-                                          : Colors.black54,
-                                ),
-                              ),
+                                    style: TextStyle(fontSize: 14,
+                                        color: isDarkMode
+                                            ? Colors.white60
+                                            : Colors.black54),
+                                  )),
+
                               Icon(
                                 Icons.edit,
                                 color: AppColors.primaryColor,
@@ -840,9 +847,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           context,
                           onUpdated:
                               () => setState(() {
-                                localStorageManager
-                                        .userMap['OccupationData']?['Name'] =
-                                    controller.occupation;
+
                               }),
                         );
                       },
@@ -864,24 +869,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                localStorageManager
-                                            .userMap['OccupationData']?['Name']
-                                            ?.toString()
-                                            .isNotEmpty ==
-                                        true
-                                    ? localStorageManager
+                              Obx(() =>
+                                  Text(
+                                    localStorageManager
+                                        .userMap['OccupationData']?['Name']
+                                        ?.toString()
+                                        .isNotEmpty == true
+                                        ? localStorageManager
                                         .userMap['OccupationData']['Name']
                                         .toString()
                                     : 'Select your occupation',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color:
-                                      isDarkMode
-                                          ? Colors.white60
-                                          : Colors.black54,
-                                ),
-                              ),
+                                    style: TextStyle(fontSize: 14,
+                                        color: isDarkMode
+                                            ? Colors.white60
+                                            : Colors.black54),
+                                  )),
+
                               Icon(
                                 Icons.edit,
                                 color: AppColors.primaryColor,
@@ -916,8 +919,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 '',
                             onUpdated:
                                 () => setState(() {
-                                  localStorageManager.userMap['AddressByUser'] =
-                                      controller.address;
+
                                 }),
                           ),
                       child: Material(
@@ -949,19 +951,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               Expanded(
                                 child: SingleChildScrollView(
                                   // 👈 allows scrolling if address is too long
-                                  child: Text(
-                                    localStorageManager.userMap['AddressByUser']
+                                  child: Obx(() =>
+                                      Text(
+                                        localStorageManager
+                                            .userMap['AddressByUser']
                                             ?.toString() ??
-                                        'Enter your Address',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color:
-                                          isDarkMode
-                                              ? Colors.white60
-                                              : Colors.black54,
-                                    ),
+                                            'Enter your Address',
+                                        style: TextStyle(fontSize: 14,
+                                            color: isDarkMode
+                                                ? Colors.white60
+                                                : Colors.black54),
                                     softWrap: true,
-                                  ),
+                                      )),
                                 ),
                               ),
                               Padding(

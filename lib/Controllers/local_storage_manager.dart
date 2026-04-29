@@ -51,9 +51,42 @@ class LocalStorageManager extends GetxService {
     return token != null && token.isNotEmpty;
   }
 
+  // In LocalStorageManager
+  Future<void> updateUserField(String key, dynamic value) async {
+    userMap[key] = value;
+    await saveUserMap();
+  }
+
+  Future<void> updateGoalField(String key, dynamic value) async {
+    userGoalDataMap[key] = value;
+    await saveUserGoalMap();
+  }
+
   /// ✅ Call this AFTER login success
   Future<void> registerDeviceFCMIfNeeded() async {
     await _deviceTokenService.handleDeviceRegistration();
+  }
+
+  Future<void> saveUserMap() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setString(
+      'userdata',
+      jsonEncode(userMap),
+    );
+
+    userMap.refresh();
+  }
+
+  Future<void> saveUserGoalMap() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setString(
+      'userGoaldata',
+      jsonEncode(userGoalDataMap),
+    );
+
+    userGoalDataMap.refresh();
   }
 
   // Future<void> checkSession() async {
@@ -79,6 +112,14 @@ class LocalStorageManager extends GetxService {
     userGoalDataMap.value = _safeDecode(prefs.getString('userGoaldata'));
 
     userMap['HeightData']?['Value'] ??= {'Value': null};
+    userMap['Email'] ??= '';
+    userMap['PhoneNumber'] ??= '';
+    userMap['Name'] ??= '';
+    userMap['AddressByUser'] ??= '';
+
+    userMap['OccupationData']?['Name'] ??= {'Name': null};
+
+
     userMap['WeightData']?['Value'] ??= {'Value': null};
   }
 

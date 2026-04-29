@@ -1,12 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:dropdown_flutter/custom_dropdown.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:pinput/pinput.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
@@ -29,7 +27,7 @@ class EditprofileController extends GetxService {
 
   DateTime? dob;
   var name = '';
-  var email = '';
+  RxString email = ''.obs;
   var phoneNumber = '';
   var heightValue = '';
   var weightValue = '';
@@ -38,7 +36,7 @@ class EditprofileController extends GetxService {
   var occupation = '';
   var address = '';
 
-  var isLoading = false.obs; // For showing loader on buttons
+  var isLoading = false.obs; // For showing updateFieldloader on buttons
   var isResendEnabled = true.obs; // For enabling/disabling resend
   var resendTimer = 0.obs; // For showing countdown
   Timer? _resendCountdownTimer;
@@ -46,65 +44,123 @@ class EditprofileController extends GetxService {
   @override
   void onInit() {
     super.onInit();
-    loadUserData();
     otpVerificationController = Get.find<OTPVerificationController>();
     initialProfileController = Get.find<ProfileSetupController>();
   }
 
-  Future<void> loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString('userMap');
-    if (jsonString != null) {
-      localStorageManager.userMap = RxMap<String, dynamic>.from(
-        jsonDecode(jsonString),
-      );
-    }
-  }
 
-  void updateField(String key, dynamic value) {
-    localStorageManager.userMap[key] = value;
+  // void updateField(String key, dynamic value) {
+  //   localStorageManager.userMap[key] = value;
+  //
+  //   switch (key) {
+  //     case 'Name':
+  //       name = value;
+  //       break;
+  //     case 'Email':
+  //       email.value = value;
+  //       break;
+  //     case 'PhoneNumber':
+  //       phoneNumber = value;
+  //       break;
+  //     case 'Height':
+  //       heightValue = value;
+  //       localStorageManager.userGoalDataMap['HeightData']['Value'] = value;
+  //       break;
+  //     case 'Weight':
+  //       weightValue = value;
+  //       localStorageManager.userGoalDataMap['WeightData']['Value'] = value;
+  //       break;
+  //     case 'Gender':
+  //       gender = value;
+  //       break;
+  //     case 'Occupation':
+  //       occupation = value;
+  //       break;
+  //     case 'Address':
+  //       address = value;
+  //       break;
+  //     case 'DayOfBirth':
+  //       updateDob(day: value);
+  //       break;
+  //
+  //     case 'MonthOfBirth':
+  //       updateDob(month: value);
+  //       break;
+  //
+  //     case 'YearOfBirth':
+  //       updateDob(year: value);
+  //       break;
+  //   }
+  // }
 
+  Future<void> updateField(String key, dynamic value) async {
     switch (key) {
       case 'Name':
+        localStorageManager.userMap['Name'] = value;
         name = value;
+        await localStorageManager.saveUserMap();
         break;
+
       case 'Email':
-        email = value;
+        localStorageManager.userMap['Email'] = value;
+        email.value = value;
+        await localStorageManager.saveUserMap();
         break;
+
       case 'PhoneNumber':
+        localStorageManager.userMap['PhoneNumber'] = value;
         phoneNumber = value;
+        await localStorageManager.saveUserMap();
         break;
+
       case 'Height':
         heightValue = value;
-        localStorageManager.userGoalDataMap['HeightData']['Value'] = value;
+        await localStorageManager.updateGoalField('HeightData', {
+          ...localStorageManager.userGoalDataMap['HeightData'] ?? {},
+          'Value': double.tryParse(value.toString()),
+        });
         break;
+
       case 'Weight':
         weightValue = value;
-        localStorageManager.userGoalDataMap['WeightData']['Value'] = value;
+        await localStorageManager.updateGoalField('WeightData', {
+          ...localStorageManager.userGoalDataMap['WeightData'] ?? {},
+          'Value': double.tryParse(value.toString()),
+        });
         break;
-      case 'Gender':
-        gender = value;
-        break;
-      case 'Occupation':
-        occupation = value;
-        break;
-      case 'Address':
-        address = value;
-        break;
+
       case 'DayOfBirth':
-        updateDob(day: value);
+        localStorageManager.userMap['DayOfBirth'] = value;
+        await localStorageManager.saveUserMap();
         break;
-
       case 'MonthOfBirth':
-        updateDob(month: value);
+        localStorageManager.userMap['MonthOfBirth'] = value;
+        await localStorageManager.saveUserMap();
+        break;
+      case 'YearOfBirth':
+        localStorageManager.userMap['YearOfBirth'] = value;
+        await localStorageManager.saveUserMap();
         break;
 
-      case 'YearOfBirth':
-        updateDob(year: value);
+      case 'Gender':
+        localStorageManager.userMap['Gender'] = value;
+        gender.value = value;
+        await localStorageManager.saveUserMap();
+        break;
+
+      case 'Occupation':
+        localStorageManager.userMap['Occupation'] = value;
+        occupation = value;
+        await localStorageManager.saveUserMap();
+        break;
+
+      case 'Address':
+        localStorageManager.userMap['AddressByUser'] = value;
+        address = value;
+        await localStorageManager.saveUserMap();
         break;
     }
   }
-
   void updateDob({int? day, int? month, int? year}) {
     final current = dob ?? DateTime.now();
 
@@ -132,8 +188,10 @@ class EditprofileController extends GetxService {
 
   void stopResendTimer() {
     _resendCountdownTimer?.cancel();
+
     isResendEnabled.value = true;
   }
+
 
   void showEditFieldDialog(
     BuildContext context, {
@@ -366,7 +424,7 @@ class EditprofileController extends GetxService {
                                       context: context,
                                       title: 'Error',
                                       message:
-                                          'Please enter a valid email address',
+                                      'Please enter a valid email address',
                                     );
                                     isLoading.value = false;
                                     return;
@@ -389,13 +447,14 @@ class EditprofileController extends GetxService {
                                       // ✅ Step 2: Open OTP verification dialog
                                       Future.delayed(
                                         const Duration(milliseconds: 150),
-                                        () {
+                                            () {
                                           updateemailDialog(
                                             context,
                                             title: "Verify your email",
                                             fieldKey: "Email",
                                             initialValue:
-                                                value, // pass the actual entered email!
+                                            value,
+                                            // pass the actual entered email!
                                             onUpdated: onUpdated,
                                           );
                                         },
@@ -405,7 +464,7 @@ class EditprofileController extends GetxService {
                                         context: context,
                                         title: 'Error',
                                         message:
-                                            'Failed to send OTP. Please try again.',
+                                        'Failed to send OTP. Please try again.',
                                       );
                                       isLoading.value = false;
                                     }
@@ -415,7 +474,7 @@ class EditprofileController extends GetxService {
                                       context: context,
                                       title: 'Error',
                                       message:
-                                          'Something went wrong while sending OTP.',
+                                      'Something went wrong while sending OTP.',
                                     );
                                     isLoading.value = false;
                                   } finally {
@@ -533,23 +592,37 @@ class EditprofileController extends GetxService {
     ),
   );
 
-  void updateemailDialog(
-    BuildContext context, {
+  void updateemailDialog(BuildContext context, {
     required String title,
     required String fieldKey,
     required String initialValue,
     VoidCallback? onUpdated,
   }) {
+    print("📩 updateemailDialog opened");
+    print("📝 Title: $title");
+    print("🔑 FieldKey: $fieldKey");
+    print("📧 Initial Email: $initialValue");
+
     final TextEditingController controller = TextEditingController(
       text: initialValue,
     );
+
     final pinController = TextEditingController();
+
     final value = controller.text.trim();
+
+    print("✂️ Trimmed Email Value: $value");
+
     // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    print("🎨 Dark Mode Enabled: $isDarkMode");
+
     showDialog(
       context: context,
       builder: (ctx) {
+        print("🪟 Dialog Builder Triggered");
+
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -561,8 +634,19 @@ class EditprofileController extends GetxService {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(height: 10),
-                Image.asset(veriemail, height: 180, width: 180),
+
+                Image.asset(
+                  veriemail,
+                  height: 180,
+                  width: 180,
+                  errorBuilder: (context, error, stackTrace) {
+                    print("❌ Image Load Error: $error");
+                    return const SizedBox();
+                  },
+                ),
+
                 const SizedBox(height: 25),
+
                 Text(
                   'Enter the 6-digit code sent to\n$value',
                   textAlign: TextAlign.center,
@@ -571,6 +655,7 @@ class EditprofileController extends GetxService {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+
                 const SizedBox(height: 25),
 
                 Pinput(
@@ -579,58 +664,133 @@ class EditprofileController extends GetxService {
                   defaultPinTheme: defaultPinTheme,
                   focusedPinTheme: focusedPinTheme,
                   submittedPinTheme: submittedPinTheme,
-                  onCompleted: (pin) {},
                   followingPinTheme: followingPinTheme,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  // onCompleted: (pin) async {
-                  //   otpVerificationStatus = await otpVerificationController
-                  //       .verifyOtp(pin, , ctx);
-                  //   if (otpVerificationStatus) {
-                  //     localStorageManager.userMap['Email'] = initialValue;
-                  //     email = initialValue;
-                  //     await signupController.updateGmail(email, ctx);
-                  //     if (onUpdated != null) onUpdated();
-                  //   }
-                  // },
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                  ],
+
+                  onChanged: (val) {
+                    print("⌨️ OTP Typing: $val");
+                  },
+
+                  onCompleted: (pin) async {
+                    print("✅ OTP Entered: $pin");
+                    print("📧 Verifying for Email: $value");
+
+                    otpVerificationStatus =
+                        otpVerificationController.verifyOtp(
+                            pin,
+                            pinController.text,
+                            ctx,
+                            isEditPassword: true
+                        );
+
+                    print("📡 verifyOtp API called");
+
+                    print("📥 OTP Verification Result: $otpVerificationStatus");
+
+                    if (otpVerificationStatus) {
+                      print("✅ OTP Verified Successfully");
+
+                      localStorageManager.userMap['Email'] = initialValue;
+
+                      debugPrint(
+                          "💾 Local Storage Updated: Email = ${localStorageManager
+                              .userMap['Email']}");
+
+                      email.value = initialValue;
+                      print("💾 Local Email Saved: $email");
+
+                      await localStorageManager.saveUserMap();
+
+                      await signupController.updateGmail(email.value, ctx);
+
+                      print("📡 updateGmail API called");
+
+                      if (onUpdated != null) {
+                        print("🔄 onUpdated callback triggered");
+                        onUpdated();
+                        CustomSnackbar.showSuccess(
+                          context: context,
+                          title: 'Success',
+                          message: 'Email updated successfully.',
+                        );
+                        Navigator.pop(ctx);
+                      }
+                    } else {
+                      print("❌ OTP Verification Failed");
+                    }
+                  },
                 ),
 
                 const SizedBox(height: 15),
+
                 Obx(
-                  () => InkWell(
-                    onTap:
-                        isResendEnabled.value
+                      () =>
+                      InkWell(
+                        onTap: isResendEnabled.value
                             ? () async {
-                              isResendEnabled.value = false;
-                              startResendTimer(
-                                seconds: 30,
-                              ); // Start 30-sec timer
+                          print("🔁 Resend OTP Clicked");
 
-                              final result = await signupController.gmailOtp(
-                                value,
-                                ctx,
-                              );
+                          isResendEnabled.value = false;
 
-                              if (result != false && result != null) {
-                                otpVerificationController.responseOtp = result;
-                                CustomSnackbar.showSuccess(
-                                  context: context,
-                                  title: 'Success',
-                                  message: 'OTP resent successfully.',
-                                );
-                              } else {
-                                CustomSnackbar.showError(
-                                  context: context,
-                                  title: 'Error',
-                                  message: 'Failed to resend OTP.',
-                                );
-                              }
-                            }
+                          print("⏳ Resend Disabled");
+
+                          startResendTimer(seconds: 30);
+
+                          print("⏱️ Resend Timer Started: 30s");
+
+                          print("📡 Calling gmailOtp API...");
+                          print("📧 Email: $value");
+
+                          final result =
+                          await signupController.gmailOtp(
+                            value,
+                            ctx,
+                          );
+
+                          print("📥 gmailOtp API Result: $result");
+
+                          if (result != false && result != null) {
+                            otpVerificationController
+                                .responseOtp
+                                .value = result;
+
+                            print("✅ OTP Resent Successfully");
+                            print(
+                              "📨 Response OTP Saved: ${otpVerificationController
+                                  .responseOtp.value}",
+                            );
+
+                            CustomSnackbar.showSuccess(
+                              context: context,
+                              title: 'Success',
+                              message: 'OTP resent successfully.',
+                            );
+                          } else {
+                            print("❌ Failed to resend OTP");
+
+                            CustomSnackbar.showError(
+                              context: context,
+                              title: 'Error',
+                              message: 'Failed to resend OTP.',
+                            );
+                          }
+                        }
                             : null,
                     child: ShaderMask(
-                      shaderCallback:
-                          (bounds) => AppColors.primaryGradient.createShader(
-                            Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+                      shaderCallback: (bounds) {
+                        print("🎨 ShaderMask Applied");
+
+                        return AppColors.primaryGradient.createShader(
+                          Rect.fromLTWH(
+                            0,
+                            0,
+                            bounds.width,
+                            bounds.height,
                           ),
+                        );
+                      },
                       child: Text(
                         isResendEnabled.value
                             ? "Resend code"
@@ -702,14 +862,23 @@ class EditprofileController extends GetxService {
                   followingPinTheme: followingPinTheme,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   onCompleted: (pin) async {
-                    //  otpVerificationStatus = await otpVerificationController
-                    //      .verifyOtp(pin, ctx);
-                    //  if (otpVerificationStatus) {
-                    //    localStorageManager.userMap['PhoneNumber'] = initialValue;
-                    //    phoneNumber = initialValue;
-                    //    await signupController.updatePhone(phoneNumber, ctx);
-                    //    if (onUpdated != null) onUpdated();
-                    // }
+                    otpVerificationStatus = otpVerificationController
+                        .verifyOtp(pin, pinController.text, ctx);
+                    if (otpVerificationStatus) {
+                      localStorageManager.userMap['PhoneNumber'] = initialValue;
+                      phoneNumber = initialValue;
+                      await localStorageManager.saveUserMap();
+                      await signupController.updatePhone(phoneNumber, ctx);
+                      if (onUpdated != null) {
+                        onUpdated();
+                        CustomSnackbar.showSuccess(
+                          context: context,
+                          title: 'Success',
+                          message: 'Mobile number updated successfully.',
+                        );
+                        Navigator.pop(ctx);
+                      }
+                    }
                   },
                 ),
 
@@ -730,7 +899,8 @@ class EditprofileController extends GetxService {
                               );
 
                               if (result != false && result != null) {
-                                otpVerificationController.responseOtp = result;
+                                otpVerificationController.responseOtp.value =
+                                    result;
                                 CustomSnackbar.showSuccess(
                                   context: context,
                                   title: 'Success',
@@ -781,6 +951,7 @@ class EditprofileController extends GetxService {
     void selectGender(String Usergender) async {
       localStorageManager.userMap['Gender'] = Usergender;
       gender.value = Usergender;
+      await localStorageManager.saveUserMap();
       await saveGender(Usergender, context);
       Navigator.pop(context);
       if (onUpdated != null) onUpdated!();
@@ -858,8 +1029,8 @@ class EditprofileController extends GetxService {
   }
 
   void showOccupationDialog(BuildContext context, {VoidCallback? onUpdated}) {
-    final initialOccupation =
-        localStorageManager.userMap['Occupation']?.toString();
+    final initialOccupation = localStorageManager
+        .userMap['OccupationData']?['Name']?.toString();
     String? selectedOccupation = initialOccupation;
     final mediaQuery = MediaQuery.of(context);
     // ✅ Listens to the app's current theme command
@@ -916,9 +1087,11 @@ class EditprofileController extends GetxService {
                     onPressed: () async {
                       if (selectedOccupation != null &&
                           selectedOccupation!.isNotEmpty) {
-                        localStorageManager.userMap['Occupation'] =
+                        localStorageManager.userMap['OccupationData'] ??= {};
+                        localStorageManager.userMap['OccupationData']['Name'] =
                             selectedOccupation;
                         occupation = selectedOccupation!;
+                        await localStorageManager.saveUserMap();
                         await saveOccupation(
                           context,
                           selectedOccupation!,
@@ -1060,9 +1233,7 @@ class EditprofileController extends GetxService {
                                 selectedDate!.month;
                             localStorageManager.userMap['YearOfBirth'] =
                                 selectedDate!.year;
-                            updateField('DayOfBirth', selectedDate!.day);
-                            updateField('MonthOfBirth', selectedDate!.month);
-                            updateField('YearOfBirth', selectedDate!.year);
+                            await localStorageManager.saveUserMap();
                             await saveDOB(selectedDate!, context);
                           }
                           setState(() {});

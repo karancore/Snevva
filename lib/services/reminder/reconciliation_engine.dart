@@ -6,7 +6,9 @@ import '../../models/hive_models/reminder_payload_model.dart';
 import '../../models/reminder_schedule_metadata.dart';
 import 'reminder_schedule_resolver.dart';
 import 'reminder_alarm_transaction.dart';
+import 'reminder_alarm_platform.dart';
 import 'device_timezone_service.dart';
+import 'native_alarm_bridge.dart';
 import '../../Controllers/Reminder/reminder_controller.dart';
 import 'package:get/get.dart';
 
@@ -144,10 +146,13 @@ class ReconciliationEngine {
           await Alarm.stop(id);
         } catch (_) {}
       }
+      if (usesNativeReminderScheduling && toRemove.isNotEmpty) {
+        await NativeAlarmBridge.cancelAlarms(toRemove.toList(growable: false));
+      }
 
       for (final id in toAdd) {
          final alarm = expectedIdsMap[id]!;
-         final success = await Alarm.set(alarmSettings: alarm);
+         final success = await scheduleReminderAlarm(alarm);
          if (!success) {
            logTxn({
              "phase": "alarm_set_failed",
@@ -155,6 +160,11 @@ class ReconciliationEngine {
            });
            throw StateError('Failed during reconcile to set alarm $id');
          }
+      }
+      if (usesNativeReminderScheduling && expectedIdsMap.isNotEmpty) {
+        await NativeAlarmBridge.saveAndArm(
+          expectedIdsMap.values.toList(growable: false),
+        );
       }
 
       // PHASE D: Strict Source of Truth Enforcement

@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/services/device_token_service.dart';
-import 'package:snevva/services/notification_service.dart';
+
 import '../../common/custom_snackbar.dart';
 import '../../env/env.dart';
 import '../../services/auth_header_helper.dart';
@@ -157,7 +157,12 @@ class SignUpController extends GetxService {
   }
 
   Future<dynamic> gmailOtp(String email, BuildContext context) async {
+    debugPrint('📧 gmailOtp() called');
+    debugPrint('📥 Email received: $email');
+
     if (email.isEmpty) {
+      debugPrint('❌ Email is empty');
+
       CustomSnackbar.showError(
         context: context,
         title: 'Error',
@@ -165,13 +170,27 @@ class SignUpController extends GetxService {
       );
       return;
     }
+
     final plainEmail = jsonEncode({'Gmail': email});
+
+    debugPrint('📝 Plain email payload: $plainEmail');
 
     try {
       isLoading.value = true;
+      debugPrint('⏳ Loading started');
+
       final uri = Uri.parse("$baseUrl$updateEmailOtpEndpoint");
+      debugPrint('🌐 API URL: $uri');
+
       final encryptedEmail = EncryptionService.encryptData(plainEmail);
+
+      debugPrint('🔐 Encrypted email payload created');
+      debugPrint('🔑 Hash: ${encryptedEmail['Hash']}');
+      debugPrint('📦 Encrypted Data: ${encryptedEmail['encryptedData']}');
+
       final headers = await AuthHeaderHelper.getHeaders(withAuth: true);
+
+      debugPrint('📨 Initial headers: $headers');
 
       headers['x-data-hash'] = encryptedEmail['Hash']!;
 
@@ -180,32 +199,53 @@ class SignUpController extends GetxService {
 
       headers['X-Device-Info'] = deviceInfoHeader;
 
+      debugPrint('📱 Device Info Header Added');
+      debugPrint('📨 Final headers: $headers');
+
       final encryptedBody = jsonEncode({
         'data': encryptedEmail['encryptedData'],
       });
+
+      debugPrint('📤 Request Body: $encryptedBody');
+
+      debugPrint('🚀 Sending POST request...');
 
       final response = await http.post(
         uri,
         headers: headers,
         body: encryptedBody,
       );
+
+      debugPrint('📥 Response received');
+      debugPrint('📊 Status Code: ${response.statusCode}');
+      debugPrint('📄 Raw Response Body: ${response.body}');
+      debugPrint('📨 Response Headers: ${response.headers}');
+
       if (response.statusCode == 200) {
+        debugPrint('✅ Status code 200 success');
+
         final responseBody = jsonDecode(response.body);
-        // debugPrint("response Body: $responseBody");
+
+        debugPrint('📦 Decoded Response Body: $responseBody');
 
         final encryptedBody = responseBody['data'];
-        // debugPrint("👉 Encrypted OTP response: $encryptedBody");
+
+        debugPrint('🔐 Encrypted Response Data: $encryptedBody');
 
         final responseHash = response.headers['x-data-hash'];
-        // debugPrint("👉 Response Hash: $responseHash");
+
+        debugPrint('🔑 Response Hash: $responseHash');
 
         final decrypted = EncryptionService.decryptData(
           encryptedBody,
           responseHash!,
         );
-        // debugPrint("Decrypted OTP response: $decrypted");
+
+        debugPrint('🔓 Decrypted Response: $decrypted');
 
         if (decrypted == null) {
+          debugPrint('❌ Failed to decrypt response');
+
           CustomSnackbar.showError(
             context: context,
             title: 'Error',
@@ -216,8 +256,15 @@ class SignUpController extends GetxService {
 
         final Map<String, dynamic> gettedData = jsonDecode(decrypted);
 
+        debugPrint('📂 Parsed Decrypted Data: $gettedData');
+
         final data = gettedData['data'];
+
+        debugPrint('📌 Extracted Data Object: $data');
+
         if (data == null || data['Otp'] == null) {
+          debugPrint('❌ OTP not found in response');
+
           CustomSnackbar.showError(
             context: context,
             title: 'Error',
@@ -227,6 +274,9 @@ class SignUpController extends GetxService {
         }
 
         final otp = data['Otp'];
+
+        debugPrint('🔢 OTP Received: $otp');
+
         // await notify.showOtpNotification(otp);
 
         CustomSnackbar.showSuccess(
@@ -235,15 +285,23 @@ class SignUpController extends GetxService {
           message: 'OTP Sent. $otp',
         );
 
+        debugPrint('✅ OTP flow completed successfully');
+
         return otp;
       } else {
+        debugPrint('❌ API failed with status code: ${response.statusCode}');
+        debugPrint('📄 Error response body: ${response.body}');
+
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
           message: 'Signup failed',
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('🔥 Exception in gmailOtp(): $e');
+      debugPrint('📍 StackTrace: $stackTrace');
+
       CustomSnackbar.showError(
         context: context,
         title: 'Error',
@@ -251,9 +309,10 @@ class SignUpController extends GetxService {
       );
     } finally {
       isLoading.value = false;
+      debugPrint('🏁 gmailOtp() finished');
+      debugPrint('⏹️ Loading stopped');
     }
   }
-
   Future<dynamic> updateGmail(String email, BuildContext context) async {
     if (email.isEmpty) {
       CustomSnackbar.showError(

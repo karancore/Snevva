@@ -141,7 +141,7 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
         }
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_notification1)
             .setContentTitle("$emoji $title")
             .setContentText(body.ifEmpty { title })
             .setPriority(NotificationCompat.PRIORITY_MAX)

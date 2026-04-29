@@ -74,8 +74,7 @@ class _ReminderScreenState extends State<ReminderScreen>
 
   Future<void> _loadData() async {
     await controller.loadAllReminderLists();
-    final reminders = await controller.getReminderFromAPI(context);
-    logLong("REMINDERS", reminders.toString());
+    // final reminders = await controller.getReminderFromAPI(context);
   }
 
   @override
@@ -514,6 +513,7 @@ class _ReminderScreenState extends State<ReminderScreen>
         );
 
       case 'meal':
+        print("Times per day: ${reminder.customReminder?.timesPerDay?.list}");
         return Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.start,
@@ -530,22 +530,13 @@ class _ReminderScreenState extends State<ReminderScreen>
               reminder.customReminder.type == Option.interval
                   ? "Reminder will ring after every $frequencyHour ${pluralizeHour(frequencyHour)}"
                   : formatReminderTime(
-                    reminder.customReminder?.timesPerDay?.list ?? [],
+                    reminder.customReminder.timesPerDay?.list ?? [],
                   ),
               style: TextStyle(fontSize: 12, color: Color(0xff878787)),
             ),
             Spacer(),
             InkWell(
               onTap: () {
-                // Get.snackbar(
-                //   "WIP",
-                //   "Reminder inundation is work in progress.",
-                //   snackPosition: SnackPosition.BOTTOM,
-                //   colorText: white,
-                //   backgroundColor: AppColors.primaryColor,
-                //   duration: const Duration(seconds: 3),
-                // );
-                // return;
                 Get.to(() => AddReminderScreen(reminder: reminder));
               },
               child: SvgPicture.asset(
@@ -573,6 +564,9 @@ class _ReminderScreenState extends State<ReminderScreen>
         );
 
       case 'event':
+        debugPrint(
+          "Times per day: ${reminder.customReminder?.timesPerDay?.list}",
+        );
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

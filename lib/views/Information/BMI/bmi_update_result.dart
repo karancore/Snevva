@@ -102,7 +102,7 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
     final status = getStatus(widget.bmi);
     final statusColor = getStatusColor(widget.bmi);
     final imagePath = getImg(widget.bmi);
-    print("Height of screen is $height");
+
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),

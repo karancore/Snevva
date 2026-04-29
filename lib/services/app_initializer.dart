@@ -11,6 +11,7 @@ import 'package:snevva/models/hive_models/reminder_payload_model.dart';
 import 'package:snevva/services/file_storage_service.dart';
 import 'package:snevva/services/notification_service.dart';
 import 'package:snevva/services/reminder/device_timezone_service.dart';
+import 'package:snevva/services/reminder/reminder_alarm_platform.dart';
 import 'package:snevva/services/reminder/reminder_worker.dart';
 import 'package:snevva/services/unified_background_service.dart';
 import 'package:timezone/data/latest.dart';
@@ -67,7 +68,7 @@ Future<void> requestAllPermissions() async {
 
   // For reliable background step counting, battery optimization must be ignored.
   if (statuses[Permission.ignoreBatteryOptimizations]?.isDenied ?? true) {
-    print(
+    debugPrint(
       "⚠️ Ignoring battery optimizations is NOT granted, background isolate might drop.",
     );
     // Note: If you want 100% 24/7 reliability, you must prompt the user
@@ -246,6 +247,7 @@ Future<bool> initializeApp() async {
     // The alarm plugin expects initialization before any alarm reads,
     // restores, reconciliation, or scheduling happen in app startup flows.
     await ensureAlarmInitialized();
+    await clearLegacyFlutterReminderAlarms();
 
     // ⏰ Register WorkManager periodic task for reminder rescheduling.
     // Runs every ~6 hours even if the app is killed, ensuring the 36h
@@ -278,7 +280,7 @@ Future<bool> initializeApp() async {
     return prefs.getBool('remember_me') ?? false;
   } catch (e, stackTrace) {
     debugPrint("❌ App initialization failed: $e");
-    debugPrint(stackTrace as String?);
+    debugPrint(stackTrace.toString());
     return false;
   }
 }

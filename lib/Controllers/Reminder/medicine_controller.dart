@@ -3,7 +3,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
-import 'package:snevva/services/reminder/native_alarm_bridge.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pinput/pinput.dart';
@@ -11,6 +10,7 @@ import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/models/mappers/medicine_to_reminder_mapper.dart';
 import 'package:snevva/models/reminder_schedule_metadata.dart';
 import 'package:snevva/services/hive_service.dart';
+import 'package:snevva/services/reminder/device_timezone_service.dart';
 import 'package:snevva/services/reminder/reminder_schedule_resolver.dart';
 
 import '../../common/custom_snackbar.dart';
@@ -528,6 +528,7 @@ class MedicineController extends GetxController {
     debugPrint('📦 Loading medicine reminders from Hive Key: $key');
     // final box = Hive.box(reminderBox);
     final box = await HiveService().remindersBox();
+    final timezoneId = await DeviceTimezoneService.instance.getTimeZoneId();
 
     // Get the list of strings (safely)
     final List<dynamic>? storedList = box.get(key);
@@ -541,7 +542,10 @@ class MedicineController extends GetxController {
         // Decode JSON String -> Map -> Model
         if (item is String) {
           final Map<String, dynamic> decoded = jsonDecode(item);
-          final model = MedicineReminderModel.fromJson(decoded);
+          final model = MedicineReminderModel.fromJson(
+            decoded,
+            timezoneIdFallback: timezoneId,
+          );
           loadedList.add(model);
         }
       } catch (e) {
@@ -613,7 +617,6 @@ class MedicineController extends GetxController {
     );
 
     // Native AlarmManager is the sole scheduler — skip Alarm.set().
-
 
     // 2. Update the List in Hive
     final id = alarmId;

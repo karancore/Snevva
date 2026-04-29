@@ -47,16 +47,17 @@ class MedicineReminderModel {
     ),
   });
 
-  factory MedicineReminderModel.fromJson(Map<String, dynamic> json) {
+  factory MedicineReminderModel.fromJson(
+    Map<String, dynamic> json, {
+    required String timezoneIdFallback,
+  }) {
     final customReminderRaw = json['customReminder'] ?? json['CustomReminder'];
     final dosageRaw = json['dosage'] ?? json['Dosage'];
     final remindBeforeRaw = json['remindBefore'] ?? json['RemindBefore'];
 
     return MedicineReminderModel(
       id: _readInt(json, const ['id', 'Id']),
-      updatedAt: _tryParseDateTime(
-        json['updatedAt'] ?? json['UpdatedAt'],
-      ),
+      updatedAt: _tryParseDateTime(json['updatedAt'] ?? json['UpdatedAt']),
       alarmIds: _parseAlarmIds(json['alarmIds'] ?? json['AlarmIds']),
       title: (json['title'] ?? json['Title'] ?? '').toString(),
       category: (json['category'] ?? json['Category'] ?? '').toString(),
@@ -67,7 +68,7 @@ class MedicineReminderModel {
           (json['medicineType'] ?? json['MedicineType'] ?? '').toString(),
       dosage:
           dosageRaw is Map
-              ? Dosage.fromJson(Map<String, dynamic>.from(dosageRaw as Map))
+              ? Dosage.fromJson(Map<String, dynamic>.from(dosageRaw))
               : Dosage(value: 0, unit: ''),
       medicineFrequencyPerDay:
           (json['medicineFrequencyPerDay'] ??
@@ -75,14 +76,12 @@ class MedicineReminderModel {
                   '')
               .toString(),
       reminderFrequencyType:
-          (json['reminderFrequencyType'] ??
-                  json['ReminderFrequencyType'] ??
-                  '')
+          (json['reminderFrequencyType'] ?? json['ReminderFrequencyType'] ?? '')
               .toString(),
       customReminder:
           customReminderRaw is Map
               ? CustomReminder.fromJson(
-                Map<String, dynamic>.from(customReminderRaw as Map),
+                Map<String, dynamic>.from(customReminderRaw),
               )
               : CustomReminder.fromJson(const {}),
       remindBefore:
@@ -100,36 +99,34 @@ class MedicineReminderModel {
             : json['ScheduleMetadata'] is Map
             ? Map<String, dynamic>.from(json['ScheduleMetadata'] as Map)
             : null,
-        timezoneIdFallback: 'UTC',
+        timezoneIdFallback: timezoneIdFallback,
         semanticsFallback: ReminderPayloadModel.defaultSemanticsForCategory(
           (json['category'] ?? json['Category'] ?? '').toString(),
           isSingleInstance:
-              ((((json['customReminder'] ?? json['CustomReminder'])
-                                  ?['timesPerDay'] ??
-                              (json['customReminder'] ?? json['CustomReminder'])
-                                  ?['TimesPerDay'])
-                          ?['count'] ??
-                      (((json['customReminder'] ?? json['CustomReminder'])
-                                  ?['timesPerDay'] ??
-                              (json['customReminder'] ?? json['CustomReminder'])
-                                  ?['TimesPerDay'])
-                          ?['Count']) ??
-                      '0')
-                          .toString() ==
-                      '1') ||
-                  (((((json['customReminder'] ?? json['CustomReminder'])
-                                      ?['timesPerDay'] ??
-                                  (json['customReminder'] ??
-                                      json['CustomReminder'])?['TimesPerDay'])
-                              ?['list'] as List?) ??
-                          (((json['customReminder'] ?? json['CustomReminder'])
-                                      ?['timesPerDay'] ??
-                                  (json['customReminder'] ??
-                                      json['CustomReminder'])?['TimesPerDay'])
-                              ?['List'] as List?))
-                              ?.length ??
-                          0) <=
-                      1,
+              ((((json['customReminder'] ??
+                                  json['CustomReminder'])?['timesPerDay'] ??
+                              (json['customReminder'] ??
+                                  json['CustomReminder'])?['TimesPerDay'])?['count'] ??
+                          (((json['customReminder'] ??
+                                  json['CustomReminder'])?['timesPerDay'] ??
+                              (json['customReminder'] ??
+                                  json['CustomReminder'])?['TimesPerDay'])?['Count']) ??
+                          '0')
+                      .toString() ==
+                  '1') ||
+              (((((json['customReminder'] ??
+                                          json['CustomReminder'])?['timesPerDay'] ??
+                                      (json['customReminder'] ??
+                                          json['CustomReminder'])?['TimesPerDay'])?['list']
+                                  as List?) ??
+                              (((json['customReminder'] ??
+                                          json['CustomReminder'])?['timesPerDay'] ??
+                                      (json['customReminder'] ??
+                                          json['CustomReminder'])?['TimesPerDay'])?['List']
+                                  as List?))
+                          ?.length ??
+                      0) <=
+                  1,
         ),
       ),
     );

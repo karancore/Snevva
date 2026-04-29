@@ -267,6 +267,32 @@ void main() {
       expect(resolvedInIndia.map(_hhmm), [_hhmm(firstTime), _hhmm(secondTime)]);
     });
 
+    test(
+      'absolute reminders keep the local timezoneId while audit timestamps stay UTC',
+      () async {
+        final resolver = const ReminderScheduleResolver();
+        final india = tz.getLocation('Asia/Kolkata');
+        final fireTime = tz.TZDateTime.now(india).add(const Duration(hours: 2));
+        final reminder = _buildEventReminder(
+          startDate: _dateOnly(fireTime),
+          times: [_hhmm(fireTime)],
+          scheduleMetadata: const ReminderScheduleMetadata(
+            timezoneId: 'Asia/Kolkata',
+            scheduleSemantics: ScheduleSemantics.absolute,
+          ),
+        );
+
+        final resolved = await resolver.resolve(reminder);
+
+        expect(resolved.updatedMetadata.timezoneId, 'Asia/Kolkata');
+        expect(DateTime.parse(resolved.nextFireAt!).isUtc, isTrue);
+        expect(
+          DateTime.parse(resolved.updatedMetadata.lastResolvedAt!).isUtc,
+          isTrue,
+        );
+      },
+    );
+
     test('alarm ids remain stable across identical rebuilds', () async {
       final scheduledIds = <int>[];
       final fireTime = DateTime.now().add(const Duration(days: 2));

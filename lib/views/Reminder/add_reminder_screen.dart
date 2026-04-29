@@ -130,8 +130,6 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       parsedDate = DateTime.now();
     }
 
-    print("Raw start date: '$rawStartDate'");
-
     // ✅ FORMAT PROPERLY (THIS IS THE FIX)
     reminderController.startDateString.value = DateFormat(
       'MMMM dd, yyyy',
@@ -323,8 +321,6 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
     final savedStartDate = (reminder.startDate ?? '').trim();
     final savedEndDate = (reminder.endDate ?? '').trim();
-    
-
 
     medicineGetxController.startDateString.value =
         savedStartDate.isEmpty ? 'Start Date' : formatDate(savedStartDate);
@@ -710,11 +706,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       );
                     }
                     : () async {
-                      await reminderController.validateAndUpdate(
+                      final result = await reminderController.validateAndUpdate(
                         context: context,
                         reminder: widget.reminder!,
                         dosage: dosage,
                       );
+                      debugPrint("Update $result");
                     },
           ),
         ),
@@ -980,7 +977,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             medicineGetxController.startDateString.value ==
                                     "Start Date"
                                 ? grey
-                                : black,
+                                : (Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? white
+                                    : black),
                       ),
                     ),
                   ),
@@ -1020,7 +1020,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             medicineGetxController.endDateString.value ==
                                     "End Date"
                                 ? grey
-                                : black,
+                                : (Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? white
+                                    : black),
                       ),
                     ),
                   ),
@@ -1546,7 +1549,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   color:
                       reminderController.startDateString.value == "Start Date"
                           ? grey
-                          : black,
+                          : (Theme.of(context).brightness == Brightness.dark
+                              ? white
+                              : black),
                 ),
               ),
             ),

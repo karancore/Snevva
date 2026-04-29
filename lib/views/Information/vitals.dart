@@ -1,6 +1,4 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:get/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
@@ -12,14 +10,150 @@ import '../../widgets/CommonWidgets/custom_appbar.dart';
 import '../../widgets/CommonWidgets/custom_outlined_button.dart';
 import '../../widgets/Drawer/drawer_menu_wigdet.dart';
 
+// ✅ SEPARATE WIDGET — Flutter never destroys this, focus is permanent
+class BpmInputWidget extends StatefulWidget {
+  final TextEditingController bpmController;
+  final double scale;
+
+  const BpmInputWidget({
+    super.key,
+    required this.bpmController,
+    required this.scale,
+  });
+
+  @override
+  State<BpmInputWidget> createState() => _BpmInputWidgetState();
+}
+
+class _BpmInputWidgetState extends State<BpmInputWidget> {
+  // ✅ FocusNode lives HERE — in its own stable state, never recreated
+  final FocusNode _bpmFocusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _bpmFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    bool isDarkMode = Theme
+        .of(context)
+        .brightness == Brightness.dark;
+    Color textColor = isDarkMode ? Colors.white : Colors.black;
+    double scale = widget.scale;
+
+    return GestureDetector(
+      onTap: () => _bpmFocusNode.requestFocus(),
+      child: Container(
+        height: 188 * scale,
+        width: 188 * scale,
+        decoration: BoxDecoration(
+          color: isDarkMode ? black : white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: const Color.fromRGBO(0, 0, 0, 0.08),
+              offset: const Offset(0, 0),
+              blurRadius: 8,
+              spreadRadius: 4,
+            ),
+          ],
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 69 * scale,
+                    height: 57 * scale,
+                    child: TextFormField(
+                      focusNode: _bpmFocusNode,
+                      controller: widget.bpmController,
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      inputFormatters: [MaxValueTextInputFormatter(200)],
+                      style: TextStyle(
+                        fontSize: 44,
+                        color: textColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: '78',
+                        hintStyle: TextStyle(
+                          color: textColor.withOpacity(0.3),
+                          fontSize: 56,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                  Column(
+                    children: [
+                      // ✅ Tapping image also focuses the field
+                      GestureDetector(
+                        onTap: () => _bpmFocusNode.requestFocus(),
+                        child: Image.asset(strokeAndHeart),
+                      ),
+                      Text(
+                        'BPM',
+                        style: TextStyle(
+                          color: Color(0xff878787),
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Enter vital',
+                    style: TextStyle(
+                      color: textColor.withOpacity(0.7),
+                      fontWeight: FontWeight.w500,
+                      fontSize: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  SvgPicture.asset(editIcon, height: 18),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================
+// MAIN SCREEN
+// ============================================================
+
 class VitalScreen extends StatefulWidget {
   const VitalScreen({super.key});
+
   @override
   State<VitalScreen> createState() => _VitalScreenState();
 }
 
 class _VitalScreenState extends State<VitalScreen> {
-  int heartRate = 73;
+  final ValueNotifier<int> heartRateNotifier = ValueNotifier<int>(0);
+
   int systolic = 120;
   int diastolic = 80;
   int bloodGlucose = 93;
@@ -28,13 +162,13 @@ class _VitalScreenState extends State<VitalScreen> {
   final TextEditingController diastolicController = TextEditingController();
   final TextEditingController glucoseController = TextEditingController();
   final TextEditingController bpmController = TextEditingController();
+
   static const bpmMax = 200;
   static const sysMax = 200;
   static const diaMax = 120;
   static const glucoseMax = 300;
 
   final vitalsKey = GlobalKey<FormState>();
-
   final _controller = Get.put(VitalsController());
 
   @override
@@ -44,73 +178,46 @@ class _VitalScreenState extends State<VitalScreen> {
 
     if (_controller.bpm.value > 0) {
       bpmController.text = _controller.bpm.value.toString();
+      heartRateNotifier.value = _controller.bpm.value;
     }
     if (_controller.sys.value > 0) {
       systolicController.text = _controller.sys.value.toString();
     }
-
     if (_controller.dia.value > 0) {
       diastolicController.text = _controller.dia.value.toString();
     }
-
     if (_controller.bloodGlucose.value > 0) {
       glucoseController.text = _controller.bloodGlucose.value.toString();
     }
 
-    //bpmController.text = heartRate.toString();
-    // systolicController.text = systolic.toString();
-    // diastolicController.text = diastolic.toString();
-    // glucoseController.text = bloodGlucose.toString();
-
     _controller.loadVitalsFromLocalStorage().then((_) {
-      setState(() {
-        //bpmController.text = _controller.bpm.value.toString();
-        if (_controller.bpm.value > 0) {
-          bpmController.text = _controller.bpm.value.toString();
-        }
-
-        if (_controller.sys.value > 0) {
-          systolicController.text = _controller.sys.value.toString();
-        }
-
-        if (_controller.dia.value > 0) {
-          diastolicController.text = _controller.dia.value.toString();
-        }
-        if (_controller.bloodGlucose.value > 0) {
-          glucoseController.text = _controller.bloodGlucose.value.toString();
-        }
-        heartRate = _controller.bpm.value;
-      });
+      if (!mounted) return;
+      if (_controller.bpm.value > 0) {
+        bpmController.text = _controller.bpm.value.toString();
+        heartRateNotifier.value = _controller.bpm.value;
+      }
+      if (_controller.sys.value > 0) {
+        systolicController.text = _controller.sys.value.toString();
+      }
+      if (_controller.dia.value > 0) {
+        diastolicController.text = _controller.dia.value.toString();
+      }
+      if (_controller.bloodGlucose.value > 0) {
+        glucoseController.text = _controller.bloodGlucose.value.toString();
+      }
     });
 
     bpmController.addListener(() {
-      setState(() {
-        final parsed = int.tryParse(bpmController.text);
-        if (parsed != null) {
-          heartRate = parsed;
-        }
-        // heartRate = int.tryParse(bpmController.text) ?? 0;
-        // systolic = int.tryParse(systolicController.text) ?? 0;
-        // diastolic = int.tryParse(diastolicController.text) ?? 0;
-        // bloodGlucose = int.tryParse(glucoseController.text) ?? 0;
-
-        if (_controller.sys.value > 0) {
-          systolicController.text = _controller.sys.value.toString();
-        }
-
-        if (_controller.dia.value > 0) {
-          diastolicController.text = _controller.dia.value.toString();
-        }
-
-        if (_controller.bloodGlucose.value > 0) {
-          glucoseController.text = _controller.bloodGlucose.value.toString();
-        }
-      });
+      final parsed = int.tryParse(bpmController.text);
+      if (parsed != null) {
+        heartRateNotifier.value = parsed;
+      }
     });
   }
 
   @override
   void dispose() {
+    heartRateNotifier.dispose();
     bpmController.dispose();
     systolicController.dispose();
     diastolicController.dispose();
@@ -147,10 +254,10 @@ class _VitalScreenState extends State<VitalScreen> {
 
     final result = _controller.submitVitals(
       BloodPressureData(
-        heartRate: bpm!.toDouble(),
-        sys: sys!.toDouble(),
-        dia: dia!.toDouble(),
-        bloodGlucose: glucose!.toDouble(),
+        heartRate: bpm.toDouble(),
+        sys: sys.toDouble(),
+        dia: dia.toDouble(),
+        bloodGlucose: glucose.toDouble(),
         day: DateTime.now().day,
         month: DateTime.now().month,
         year: DateTime.now().year,
@@ -170,86 +277,6 @@ class _VitalScreenState extends State<VitalScreen> {
         }
       });
     }
-  }
-
-  // Future<void> updateVitals() async {
-  //   int? newBPM = int.tryParse(bpmController.text);
-  //   int? newSystolic = int.tryParse(systolicController.text);
-  //   int? newDiastolic = int.tryParse(diastolicController.text);
-  //   int? newGlucose = int.tryParse(glucoseController.text);
-  //
-  //   showMissingFieldsSnackbar(context);
-  //
-  //   if (vitalsKey.currentState!.validate()) {
-  //     if (newBPM != 0 &&
-  //         newSystolic != null &&
-  //         newDiastolic != null &&
-  //         newGlucose != null) {
-  //       setState(() {
-  //         heartRate = newBPM ?? 72;
-  //         systolic = newSystolic;
-  //         diastolic = newDiastolic;
-  //         bloodGlucose = newGlucose;
-  //       });
-  //
-  //       if (isValidVitals(
-  //         bpm: newBPM!,
-  //         sys: newSystolic!,
-  //         dia: newDiastolic!,
-  //         glucose: newGlucose!,
-  //       )) {
-  //         final res = _controller.submitVitals(
-  //           BloodPressureData(
-  //             heartRate: heartRate.toDouble(),
-  //             sys: systolic.toDouble(),
-  //             dia: diastolic.toDouble(),
-  //             bloodGlucose: bloodGlucose.toDouble(),
-  //             day: DateTime.now().day,
-  //             month: DateTime.now().month,
-  //             year: DateTime.now().year,
-  //             time: TimeOfDay.now().format(context),
-  //           ),
-  //           context,
-  //         );
-  //         if (await res) {
-  //           bpmController.clear();
-  //           systolicController.clear();
-  //           diastolicController.clear();
-  //           glucoseController.clear();
-  //           Get.to(() => HomeWrapper(key: UniqueKey()));
-  //         }
-  //       }
-  //     } else {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(content: Text("Please enter valid numeric values")),
-  //       );
-  //     }
-  //   }
-  // }
-
-  void showMissingFieldsSnackbar(BuildContext context) {
-    List<String> missingFields = [];
-
-    if (bpmController.text.trim().isEmpty) {
-      missingFields.add("Heart Rate (BPM)");
-    }
-
-    if (systolicController.text.trim().isEmpty ||
-        diastolicController.text.trim().isEmpty) {
-      missingFields.add("Blood Pressure");
-    }
-
-    if (glucoseController.text.trim().isEmpty) {
-      missingFields.add("Blood Glucose");
-    }
-
-    if (missingFields.isEmpty) return;
-
-    CustomSnackbar.showError(
-      context: context,
-      title: "Missing Information",
-      message: "Please enter:\n• ${missingFields.join("\n• ")}",
-    );
   }
 
   bool isValidVitals({
@@ -275,6 +302,8 @@ class _VitalScreenState extends State<VitalScreen> {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
+    double screenWidth = mediaQuery.size.width;
+    double scale = screenWidth / 360;
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
@@ -293,9 +322,7 @@ class _VitalScreenState extends State<VitalScreen> {
       appBar: CustomAppBar(
         appbarText: "Vitals",
         onClose: () {
-          if (Get.isSnackbarOpen) {
-            Get.closeCurrentSnackbar();
-          }
+          if (Get.isSnackbarOpen) Get.closeCurrentSnackbar();
           Get.back();
         },
       ),
@@ -310,75 +337,41 @@ class _VitalScreenState extends State<VitalScreen> {
               children: [
                 const SizedBox(height: 20),
 
-                // Heart Rate Indicator
                 Stack(
                   alignment: Alignment.center,
                   children: [
-                    SizedBox(
-                      width: 200,
-                      height: 200,
-                      child: CircularProgressIndicator(
-                        value: ((int.tryParse(bpmController.text) ?? 0) / 200)
-                            .clamp(0.0, 1.0),
-                        strokeWidth: 15,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.primaryColor,
-                        ),
-                        backgroundColor: Colors.grey.shade800,
-                      ),
-                    ),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width: 80,
-                          child: TextFormField(
-                            controller: bpmController,
-                            keyboardType: TextInputType.number,
-                            textAlign: TextAlign.center,
-                            inputFormatters: [MaxValueTextInputFormatter(200)],
-                            style: TextStyle(
-                              fontSize: 44,
-                              color: textColor,
-                              fontWeight: FontWeight.bold,
+                    // ✅ Only ring rebuilds
+                    ValueListenableBuilder<int>(
+                      valueListenable: heartRateNotifier,
+                      builder: (context, heartRate, _) {
+                        return SizedBox(
+                          width: 260 * scale,
+                          height: 260 * scale,
+                          child: CircularProgressIndicator(
+                            value: (heartRate / 200).clamp(0.0, 1.0),
+                            strokeWidth: 25 * scale,
+                            strokeCap: StrokeCap.round,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.primaryColor,
                             ),
-                            decoration: InputDecoration(
-                              hintText: heartRate > 0 ? '$heartRate' : '--',
-                              hintStyle: TextStyle(
-                                color: textColor.withOpacity(0.3),
-                              ),
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              disabledBorder: InputBorder.none,
-                              errorBorder: InputBorder.none,
-                              focusedErrorBorder: InputBorder.none,
-
-                              isDense: true,
-                            ),
+                            backgroundColor:
+                            AppColors.primaryColor.withOpacity(0.05),
                           ),
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.favorite, color: Colors.pink, size: 16),
-                            const SizedBox(width: 4),
-                            Text(
-                              'BPM',
-                              style: TextStyle(
-                                color: textColor.withOpacity(0.7),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                        );
+                      },
+                    ),
+
+                    // ✅ Proper widget — Flutter NEVER recreates it
+                    BpmInputWidget(
+                      key: const ValueKey('bpm_input'),
+                      bpmController: bpmController,
+                      scale: scale,
                     ),
                   ],
                 ),
 
                 const SizedBox(height: 30),
 
-                // Vitals Input Card
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -386,7 +379,8 @@ class _VitalScreenState extends State<VitalScreen> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: isDarkMode ? Colors.transparent : Colors.black12,
+                        color:
+                        isDarkMode ? Colors.transparent : Colors.black12,
                         blurRadius: 10,
                       ),
                     ],
@@ -394,7 +388,6 @@ class _VitalScreenState extends State<VitalScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Blood Pressure Input
                       Row(
                         children: [
                           Image.asset(heartVitalIcon, width: 24, height: 24),
@@ -402,7 +395,8 @@ class _VitalScreenState extends State<VitalScreen> {
                           Expanded(
                             child: Text(
                               'Blood Pressure:',
-                              style: TextStyle(color: textColor, fontSize: 13),
+                              style:
+                              TextStyle(color: textColor, fontSize: 13),
                             ),
                           ),
                           SizedBox(
@@ -411,7 +405,8 @@ class _VitalScreenState extends State<VitalScreen> {
                               controller: systolicController,
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: textColor, fontSize: 14),
+                              style:
+                              TextStyle(color: textColor, fontSize: 14),
                               inputFormatters: [
                                 MaxValueTextInputFormatter(200),
                               ],
@@ -431,14 +426,39 @@ class _VitalScreenState extends State<VitalScreen> {
                               ),
                             ),
                           ),
-                          Text('/', style: TextStyle(color: textColor)),
+                          ListenableBuilder(
+                            listenable: Listenable.merge([
+                              systolicController,
+                              diastolicController,
+                            ]),
+                            builder: (context, child) {
+                              final hasData =
+                                  systolicController.text
+                                      .trim()
+                                      .isNotEmpty &&
+                                      diastolicController.text
+                                          .trim()
+                                          .isNotEmpty;
+                              return Text(
+                                '/',
+                                style: TextStyle(
+                                  color: hasData
+                                      ? (isDarkMode
+                                      ? Colors.white
+                                      : Colors.black)
+                                      : textColor.withOpacity(0.4),
+                                ),
+                              );
+                            },
+                          ),
                           SizedBox(
                             width: 45,
                             child: TextFormField(
                               controller: diastolicController,
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: textColor, fontSize: 14),
+                              style:
+                              TextStyle(color: textColor, fontSize: 14),
                               inputFormatters: [
                                 MaxValueTextInputFormatter(120),
                               ],
@@ -465,8 +485,6 @@ class _VitalScreenState extends State<VitalScreen> {
                         ],
                       ),
                       const SizedBox(height: 20),
-
-                      // Blood Glucose Input
                       Row(
                         children: [
                           Image.asset(bloodDropsIcon, width: 24, height: 24),
@@ -474,7 +492,8 @@ class _VitalScreenState extends State<VitalScreen> {
                           Expanded(
                             child: Text(
                               'Blood Glucose:',
-                              style: TextStyle(color: textColor, fontSize: 13),
+                              style:
+                              TextStyle(color: textColor, fontSize: 13),
                             ),
                           ),
                           SizedBox(
@@ -486,7 +505,8 @@ class _VitalScreenState extends State<VitalScreen> {
                               inputFormatters: [
                                 MaxValueTextInputFormatter(300),
                               ],
-                              style: TextStyle(color: textColor, fontSize: 14),
+                              style:
+                              TextStyle(color: textColor, fontSize: 14),
                               decoration: InputDecoration(
                                 hintText: '$bloodGlucose',
                                 hintStyle: TextStyle(

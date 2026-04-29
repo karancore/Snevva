@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -330,30 +333,32 @@ TimeOfDay stringToTimeOfDay(String time) {
   return TimeOfDay.fromDateTime(dateTime);
 }
 
-String formatReminderTime(List remindTimes) {
+String formatReminderTime(List<String> remindTimes) {
   if (remindTimes.isEmpty) return 'N/A';
 
   List<String> formattedTimes = [];
+
   for (var time in remindTimes) {
     try {
+      DateTime? dateTime;
+
       if (time is String) {
         try {
-          DateTime dateTime = DateTime.parse(time);
-          // ✅ Always display in device local time — avoids 5h offset on UTC emulators
-          final local = dateTime.isUtc ? dateTime.toLocal() : dateTime;
-          formattedTimes.add(DateFormat('hh:mm a').format(local));
-          // ✅ Always display in device local time.
-          // DateTime.parse has no timezone info → treated as local on device
-          // but as UTC on emulators whose system clock is UTC (+0). Force
-          // toLocal() so the displayed time is always in the user's timezone.
-          formattedTimes.add(DateFormat('hh:mm a').format(local));
-        } catch (e) {
-          // Not a parseable datetime string — show as-is (e.g. "09:30 AM")
+          dateTime = DateTime.parse(time);
+
+          // 🔥 Always normalize to local time
+          dateTime = dateTime.toLocal();
+        } catch (_) {
+          // Not ISO → assume already formatted (e.g. "09:30 AM")
           formattedTimes.add(time);
+          continue;
         }
       } else if (time is DateTime) {
-        final local = time.isUtc ? time.toLocal() : time;
-        formattedTimes.add(DateFormat('hh:mm a').format(local));
+        dateTime = DateTime.parse(time).toLocal();
+      }
+
+      if (dateTime != null) {
+        formattedTimes.add(DateFormat('hh:mm a').format(dateTime));
       }
     } catch (e) {
       debugPrint('Error formatting time: $e');
@@ -363,7 +368,6 @@ String formatReminderTime(List remindTimes) {
 
   return formattedTimes.join(', ');
 }
-
 String formatDate(String dateStr) {
   DateTime parsedDate = DateTime.parse(dateStr); // "2026-04-18"
   String formattedDate = DateFormat('MMMM dd, yyyy').format(parsedDate);
@@ -411,6 +415,12 @@ double widthFactor = 1.047;
 TimeOfDay parseTime(String timeString) {
   final format = DateFormat("hh:mm a");
   return TimeOfDay.fromDateTime(format.parse(timeString));
+}
+
+String encryptPasswordRuntime(String password) {
+  final bytes = utf8.encode(password);
+  final digest = md5.convert(bytes);
+  return digest.toString();
 }
 
 TimeOfDay parseTimeNew(String input) {
