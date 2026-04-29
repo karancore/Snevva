@@ -6,6 +6,8 @@ import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/common/calendar_widget.dart';
 import 'package:snevva/models/mood_model.dart';
 
+import '../consts/colors.dart';
+
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
 
@@ -45,18 +47,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
         .size
         .width / 360;
 
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: isDarkMode ? black : white,
       body: Padding(
         padding: const EdgeInsets.only(top: 59.0),
         child: Container(
           decoration: BoxDecoration(
+            color: isDarkMode ? black : white,
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(16),
               topRight: Radius.circular(16),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.15),
+                color:
+                    isDarkMode
+                        ? white.withOpacity(0.15)
+                        : black.withOpacity(0.15),
                 blurRadius: 12,
                 spreadRadius: 2,
                 offset: const Offset(0, -3),
@@ -66,6 +75,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: 15.0,
+              vertical: 16.0,
             ),
             child: Column(
               children: [
@@ -77,9 +87,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       width: 24 * scale,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
+                        color: isDarkMode ? black : white,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.28),
+                            color:
+                                isDarkMode
+                                    ? white.withOpacity(0.28)
+                                    : black.withOpacity(0.28),
                             offset: const Offset(2, 2),
                             blurRadius: 2,
                             spreadRadius: 2,
@@ -109,10 +123,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         height: 24 * scale,
                         width: 76 * scale,
                         decoration: BoxDecoration(
+                          color: isDarkMode ? black : white,
                           borderRadius: BorderRadius.circular(8),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.26),
+                              color:
+                                  isDarkMode
+                                      ? white.withOpacity(0.26)
+                                      : black.withOpacity(0.26),
                               offset: const Offset(1, 1),
                               blurRadius: 4,
                               spreadRadius: 2,
