@@ -6,16 +6,16 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/Widgets/CommonWidgets/common_stat_graph_widget.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
+import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_bottom_sheet.dart';
 
 import '../../../Controllers/SleepScreen/sleep_controller.dart';
-import 'package:snevva/Widgets/CommonWidgets/common_stat_graph_widget.dart';
-import 'package:snevva/common/global_variables.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 enum StatViewMode { weekly, monthly }
 
@@ -344,28 +344,32 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
               //========== SLEEP TRACKING INDICATOR ==========
               // if (!_sleepScheduleSet) _buildFirstTimeState(),
               SizedBox(
+                width: 300,
+                height: 300,
                 child: Stack(
+                  alignment: Alignment.center,
                   children: [
-                    // Clock numbers
-                    for (int i = 1; i <= 12; i++)
-                      Positioned(
-                        left:
-                            center +
-                            radius * cos((i * 30 - 90) * pi / 180) +
-                            10,
-                        top:
-                            center + radius * sin((i * 30 - 90) * pi / 180) + 5,
-                        child: Text(
-                          '$i',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey.shade700,
+                    // Subtle ambient glow behind the ring
+                    Container(
+                      width: 260,
+                      height: 260,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primaryColor.withOpacity(0.15),
+                            blurRadius: 40,
+                            spreadRadius: 10,
                           ),
-                        ),
+                        ],
                       ),
+                    ),
 
-                    // Main circular indicator
+                    // Clock hour markers (dots instead of numbers — cleaner)
+                    for (int i = 1; i <= 12; i++)
+                      _buildClockMarker(i, center: 150, radius: 130),
+
+                    // Main indicator
                     _isSleeping
                         ? _buildActiveSleepIndicator()
                         : _buildInactiveSleepIndicator(),
@@ -611,41 +615,6 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     );
   }
 
-  Widget _buildActiveSleepIndicator() {
-    return CircularPercentIndicator(
-      radius: 120,
-      lineWidth: 20,
-      percent: _progress,
-      progressColor: AppColors.primaryColor,
-      backgroundColor: mediumGrey.withValues(alpha: 0.3),
-      circularStrokeCap: CircularStrokeCap.round,
-      center: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.bedtime, size: 40, color: AppColors.primaryColor),
-          const SizedBox(height: 8),
-          Text(
-            _formatDuration(_currentSleepDuration),
-            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-          ),
-          Text(
-            'of ${_formatDuration(_sleepGoal)}',
-            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${(_progress * 100).toInt()}%',
-            style: const TextStyle(
-              fontSize: 16,
-              color: AppColors.primaryColor,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildTonightState() {
     return Container(
       width: 240,
@@ -707,6 +676,113 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     );
   }
 
+  // ── Improved Sleep Clock Widget ──────────────────────────────────────────────
+
+  // ── Clock marker helper ───────────────────────────────────────────────────────
+  Widget _buildClockMarker(
+    int i, {
+    required double center,
+    required double radius,
+  }) {
+    final angle = (i * 30 - 90) * pi / 180;
+    final isMajor = i % 3 == 0; // 3, 6, 9, 12 are bigger
+    return Positioned(
+      left: center + radius * cos(angle) - (isMajor ? 3 : 2),
+      top: center + radius * sin(angle) - (isMajor ? 3 : 2),
+      child: Container(
+        width: isMajor ? 6 : 4,
+        height: isMajor ? 6 : 4,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color:
+              isMajor
+                  ? AppColors.primaryColor.withOpacity(0.8)
+                  : Colors.grey.withOpacity(0.35),
+        ),
+      ),
+    );
+  }
+
+  // ── Active (currently sleeping) ───────────────────────────────────────────────
+  Widget _buildActiveSleepIndicator() {
+    return CircularPercentIndicator(
+      radius: 110,
+      lineWidth: 14,
+      percent: _progress,
+      // Gradient stroke via linearGradient
+      linearGradient: LinearGradient(
+        colors: [
+          AppColors.primaryColor.withOpacity(0.6),
+          AppColors.primaryColor,
+        ],
+      ),
+      backgroundColor: Colors.white.withOpacity(0.07),
+      circularStrokeCap: CircularStrokeCap.round,
+      center: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Moon icon with soft glow container
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.primaryColor.withOpacity(0.12),
+            ),
+            child: Icon(
+              Icons.bedtime_rounded,
+              size: 32,
+              color: AppColors.primaryColor,
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Elapsed duration — large & bold
+          Text(
+            _formatDuration(_currentSleepDuration),
+            style: const TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.5,
+              color: Colors.white,
+            ),
+          ),
+
+          const SizedBox(height: 2),
+
+          // Goal label
+          Text(
+            'of ${_formatDuration(_sleepGoal)}',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey[400],
+              letterSpacing: 0.2,
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // Pill-shaped progress badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            decoration: BoxDecoration(
+              color: AppColors.primaryColor.withOpacity(0.18),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '${(_progress * 100).toInt()}%',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primaryColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Inactive (showing last night's data) ─────────────────────────────────────
   Widget _buildInactiveSleepIndicator() {
     return Obx(() {
       final d = sleepController.deepSleepDuration.value;
@@ -716,41 +792,106 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
       final percent =
           idealMin <= 0 ? 0.0 : (deepMin / idealMin).clamp(0.0, 1.0);
 
+      // Pick colour based on quality
+      final Color ringColor =
+          percent >= 0.85
+              ? const Color(0xFF4CAF82) // green  – great
+              : percent >= 0.55
+              ? AppColors
+                  .primaryColor // brand  – okay
+              : const Color(0xFFE07B5A); // amber  – low
+
       return CircularPercentIndicator(
-        radius: 120,
-        lineWidth: 20,
+        radius: 110,
+        lineWidth: 14,
         percent: percent,
-        progressColor: AppColors.primaryColor,
-        backgroundColor: mediumGrey.withValues(alpha: 0.3),
-        circularStrokeCap: CircularStrokeCap.round,
-        center: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            (d.inMinutes > 0)
-                ? Text(
-                  fmtDuration(d),
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                )
-                : const Text(
-                  "No sleep yet",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey,
-                  ),
-                ),
-            const SizedBox(height: 8),
-            Text(
-              sleepController.getSleepStatus(d),
-              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-            ),
-          ],
+        linearGradient: LinearGradient(
+          colors: [ringColor.withOpacity(0.5), ringColor],
         ),
+        backgroundColor: Colors.white.withOpacity(0.07),
+        circularStrokeCap: CircularStrokeCap.round,
+        center:
+            d.inMinutes > 0
+                ? _inactiveWithData(d, ringColor, percent)
+                : _inactiveEmpty(),
       );
     });
+  }
+
+  Widget _inactiveWithData(Duration d, Color ringColor, double percent) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Quality icon
+        Icon(
+          percent >= 0.85
+              ? Icons.sentiment_very_satisfied_rounded
+              : percent >= 0.55
+              ? Icons.sentiment_satisfied_rounded
+              : Icons.sentiment_dissatisfied_rounded,
+          color: ringColor,
+          size: 28,
+        ),
+        const SizedBox(height: 8),
+
+        Text(
+          fmtDuration(d),
+          style: const TextStyle(
+            fontSize: 30,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+            color: Colors.white,
+          ),
+        ),
+
+        const SizedBox(height: 4),
+
+        Text(
+          sleepController.getSleepStatus(d),
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 13, color: Colors.grey[400]),
+        ),
+
+        const SizedBox(height: 8),
+
+        // Quality pill
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+          decoration: BoxDecoration(
+            color: ringColor.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            '${(percent * 100).toInt()}% of goal',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: ringColor,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _inactiveEmpty() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.bedtime_outlined, size: 32, color: Colors.grey[600]),
+        const SizedBox(height: 10),
+        Text(
+          'No sleep\nrecorded',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[500],
+            height: 1.3,
+          ),
+        ),
+      ],
+    );
   }
 
   List<String> generateShortWeekdays() {
