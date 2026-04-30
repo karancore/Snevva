@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/queryParamViewModels/bloodpressure.dart';
+import 'package:snevva/views/information/bmi_status.dart';
 
 import '../../Controllers/Vitals/vitalsController.dart';
 import '../../common/global_variables.dart';
@@ -120,13 +121,30 @@ class _BpmInputWidgetState extends State<BpmInputWidget> {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'Enter vital',
-                    style: TextStyle(
-                      color: textColor.withOpacity(0.7),
-                      fontWeight: FontWeight.w500,
-                      fontSize: 20,
-                    ),
+                  ValueListenableBuilder(
+                    valueListenable: widget.bpmController,
+                    builder: (context, value, child) {
+                      final hasData =
+                          widget.bpmController.text
+                              .trim()
+                              .isNotEmpty;
+
+                      final bpmStatus = getBpmStatus(
+                        int.tryParse(widget.bpmController.text) ?? 0,
+                      );
+
+                      return Text(
+                        hasData ? bpmStatus.label : "Enter BPM",
+                        style: TextStyle(
+                            color: hasData
+                                ? bpmStatus.color
+                                : textColor.withOpacity(0.4),
+                            fontSize: 20,
+                            fontWeight: FontWeight.w500
+
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(width: 4),
                   SvgPicture.asset(editIcon, height: 18),
@@ -344,6 +362,7 @@ class _VitalScreenState extends State<VitalScreen> {
                     ValueListenableBuilder<int>(
                       valueListenable: heartRateNotifier,
                       builder: (context, heartRate, _) {
+                        final bpmStatus = getBpmStatus(heartRate);
                         return SizedBox(
                           width: 260 * scale,
                           height: 260 * scale,
@@ -352,10 +371,9 @@ class _VitalScreenState extends State<VitalScreen> {
                             strokeWidth: 25 * scale,
                             strokeCap: StrokeCap.round,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              AppColors.primaryColor,
+                              bpmStatus.color,
                             ),
-                            backgroundColor:
-                            AppColors.primaryColor.withOpacity(0.05),
+                            backgroundColor: bpmStatus.color.withOpacity(0.05),
                           ),
                         );
                       },

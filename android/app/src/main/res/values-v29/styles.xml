@@ -3,8 +3,8 @@
 
     <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <!-- Show a splash screen on the activity. Automatically removed when
-             the Flutter engine draws its first frame -->
-        <item name="android:windowBackground">@mipmap/snevva_elly_round</item>
+              the Flutter engine draws its first frame -->
+        <item name="android:windowBackground">@mipmap/snevva_elly</item>
         <item name="android:forceDarkAllowed">false</item>
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>

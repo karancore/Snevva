@@ -360,7 +360,7 @@ class StepCounterService : Service(), SensorEventListener {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Snevva Active")
             .setContentText("👟 Steps: $stepsToday   $sleepText")
-            .setSmallIcon(R.drawable.ic_stat_notification1)
+            .setSmallIcon(R.mipmap.snevva_elly)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .build()

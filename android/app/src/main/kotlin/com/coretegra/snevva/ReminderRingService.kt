@@ -14,6 +14,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.coretegra.snevva.ReminderRingService.Companion.AUTO_STOP_SECONDS
 
 /**
  * ForegroundService that rings a native reminder alarm.
@@ -22,7 +23,7 @@ import androidx.core.app.NotificationCompat
  *   1. Started by [ReminderAlarmReceiver] when AlarmManager fires.
  *   2. Shows a high-priority full-screen notification immediately.
  *   3. Plays per-category audio from Flutter's bundled APK assets.
- *   4. Auto-stops after [AUTO_STOP_SECONDS] to prevent infinite ringing.
+// *   4. Auto-stops after [AUTO_STOP_SECONDS] to prevent infinite ringing.
  *   5. Stopped early when the user taps "Stop" → [ReminderStopReceiver].
  *
  * No Flutter engine is involved — this is 100% native Kotlin.

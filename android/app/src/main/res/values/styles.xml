@@ -2,7 +2,7 @@
 <resources>
     <!-- Theme applied to the Android Window while the process is starting when the OS's Dark Mode setting is off -->
     <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
-        <item name="android:windowBackground">@mipmap/snevva_elly_round</item>
+        <item name="android:windowBackground">@drawable/snevva_elly_foreground</item>
 
         <!-- Show a splash screen on the activity. Automatically removed when
              the Flutter engine draws its first frame -->

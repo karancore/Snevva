@@ -198,8 +198,8 @@ class ReminderController extends GetxController {
   }
 
   Future<void> _runDeferredInit() async {
-    await checkAndroidNotificationPermission();
-    await checkAndroidScheduleExactAlarmPermission();
+    // ✅ NOTE: Permission requests have been moved to PermissionGateScreen
+    // which is shown after login. Permissions are no longer requested here.
     await cleanupExpiredBeforeAlarms();
     await loadAlarms();
     await loadAllReminderLists();
@@ -3564,6 +3564,19 @@ class ReminderController extends GetxController {
       debugPrint("⏹️ [ReminderUpdate] stopping primary alarmId: $alarmId");
       await Alarm.stop(alarmId);
     }
+
+    // ✅ KEY FIX: cancel native AlarmManager entries AND purge from SharedPrefs.
+    // Alarm.stop() only touches the flutter_alarm package; without this the
+    // Kotlin-side AlarmManager entry remains armed and the alarm still fires.
+    if (alarmIdsToStop.isNotEmpty) {
+      debugPrint(
+        "🗑️ [ReminderUpdate] cancelling ${alarmIdsToStop.length} native alarms: $alarmIdsToStop",
+      );
+      await NativeAlarmBridge.cancelAlarms(
+        alarmIdsToStop.toList(growable: false),
+      );
+    }
+
     await _cleanupBeforeReminderAlarms(
       category: _normalizeCategory(reminder.category),
       reminder: reminder,

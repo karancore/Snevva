@@ -1,9 +1,7 @@
 import 'dart:async';
-
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
-import 'package:snevva/services/reminder/native_alarm_bridge.dart';
 import 'package:intl/intl.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/common/global_variables.dart';
@@ -11,6 +9,7 @@ import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
 import 'package:snevva/models/reminder_schedule_metadata.dart';
 import 'package:snevva/services/hive_service.dart';
+import 'package:snevva/services/reminder/native_alarm_bridge.dart';
 import 'package:snevva/services/reminder/reminder_alarm_transaction.dart';
 import 'package:snevva/services/reminder/reminder_schedule_resolver.dart';
 
@@ -786,6 +785,10 @@ class WaterController extends GetxController {
     debugPrint("🗑️ deleteWaterReminder called → id=$reminderId");
     waterList.value = await loadWaterReminderList("water_list");
 
+    // Collect every native alarm ID that belongs to this reminder so we can
+    // cancel them from AlarmManager AND remove them from SharedPrefs.
+    final nativeIdsToCancel = <int>{};
+
     final alarms = await Alarm.getAlarms();
 
     for (final alarm in alarms) {
@@ -797,6 +800,7 @@ class WaterController extends GetxController {
         if (_isWaterCategory(category) && groupId == reminderId.toString()) {
           debugPrint("⏹️ Stopping alarm ${alarm.id}");
           await Alarm.stop(alarm.id);
+          nativeIdsToCancel.add(alarm.id);
         }
       } catch (e) {
         debugPrint("❌ Payload parse error: $e");
@@ -805,8 +809,30 @@ class WaterController extends GetxController {
 
     final index = waterList.indexWhere((e) => e.id == reminderId);
     if (index != -1) {
+      final model = waterList[index];
+
+      // Also collect IDs stored inside the model (covers the native-only path
+      // where Alarm.getAlarms() may return nothing because flutter_alarm is
+      // bypassed but the AlarmManager entry is still live).
+      for (final a in model.alarms) {
+        nativeIdsToCancel.add(a.id);
+      }
+      nativeIdsToCancel.addAll(model.scheduleMetadata.alarmIds);
+      nativeIdsToCancel.addAll(model.scheduleMetadata.preAlarmIds);
+
       waterList.removeAt(index);
       debugPrint("✅ Water reminder removed from list");
+    }
+
+    // ✅ KEY FIX: cancel native AlarmManager entries AND remove from SharedPrefs
+    // so BootReceiver cannot re-arm them after a reboot.
+    if (nativeIdsToCancel.isNotEmpty) {
+      debugPrint(
+        "🗑️ Cancelling ${nativeIdsToCancel.length} native alarms: $nativeIdsToCancel",
+      );
+      await NativeAlarmBridge.cancelAlarms(
+        nativeIdsToCancel.toList(growable: false),
+      );
     }
 
     await reminderController.saveReminderList(waterList, "water_list");

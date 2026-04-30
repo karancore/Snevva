@@ -10,7 +10,7 @@
 
         <!-- Splash icon (VECTOR) -->
         <item name="android:windowSplashScreenAnimatedIcon">
-            @mipmap/snevva_elly_round
+            @mipmap/snevva_elly
         </item>
 
 

@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
@@ -11,6 +10,7 @@ import 'package:snevva/models/mappers/medicine_to_reminder_mapper.dart';
 import 'package:snevva/models/reminder_schedule_metadata.dart';
 import 'package:snevva/services/hive_service.dart';
 import 'package:snevva/services/reminder/device_timezone_service.dart';
+import 'package:snevva/services/reminder/native_alarm_bridge.dart';
 import 'package:snevva/services/reminder/reminder_schedule_resolver.dart';
 
 import '../../common/custom_snackbar.dart';
@@ -712,9 +712,17 @@ class MedicineController extends GetxController {
 
     final model = medicineList[index];
     final candidateTimes = _candidateReminderTimes(model);
-    final idsToStop = <int>{...model.alarmIds, model.id};
 
-    for (final id in idsToStop) {
+    // Collect ALL alarm IDs that need to be cancelled — both from the model's
+    // stored alarm ID list and from scheduleMetadata (native-only path).
+    final nativeIdsToCancel = <int>{
+      ...model.alarmIds,
+      model.id,
+      ...model.scheduleMetadata.alarmIds,
+      ...model.scheduleMetadata.preAlarmIds,
+    };
+
+    for (final id in nativeIdsToCancel) {
       await Alarm.stop(id);
     }
 
@@ -727,6 +735,7 @@ class MedicineController extends GetxController {
         if (decoded['category'] == ReminderCategory.medicine.toString() &&
             decoded['groupId'] == reminderId.toString()) {
           await Alarm.stop(alarm.id);
+          nativeIdsToCancel.add(alarm.id);
         }
       } catch (_) {}
     }
@@ -746,6 +755,7 @@ class MedicineController extends GetxController {
         );
         if (matchesTitle && matchesMedicine && matchesTime) {
           await Alarm.stop(alarm.id);
+          nativeIdsToCancel.add(alarm.id);
         }
       }
     }
@@ -771,8 +781,21 @@ class MedicineController extends GetxController {
 
         if (matchesMainTime) {
           await Alarm.stop(alarm.id);
+          nativeIdsToCancel.add(alarm.id);
         }
       } catch (_) {}
+    }
+
+    // ✅ KEY FIX: cancel native AlarmManager entries AND purge from SharedPrefs.
+    // Alarm.stop() only touches the flutter_alarm package; without this the
+    // Kotlin-side AlarmManager entry remains armed and the alarm still fires.
+    if (nativeIdsToCancel.isNotEmpty) {
+      debugPrint(
+        '🗑️ [Medicine] Cancelling ${nativeIdsToCancel.length} native alarms: $nativeIdsToCancel',
+      );
+      await NativeAlarmBridge.cancelAlarms(
+        nativeIdsToCancel.toList(growable: false),
+      );
     }
 
     medicineList.removeAt(index);
