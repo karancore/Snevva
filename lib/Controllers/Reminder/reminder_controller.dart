@@ -20,12 +20,12 @@ import 'package:snevva/models/mappers/reminder_api_mapper.dart';
 import 'package:snevva/models/mappers/reminder_payload_mapper.dart';
 import 'package:snevva/models/reminder_schedule_metadata.dart';
 import 'package:snevva/services/api_service.dart';
-import 'package:snevva/services/reminder/native_alarm_bridge.dart';
-import 'package:snevva/services/reminder/reminder_scheduler.dart';
 import 'package:snevva/services/reminder/device_timezone_service.dart';
+import 'package:snevva/services/reminder/native_alarm_bridge.dart';
 import 'package:snevva/services/reminder/reminder_alarm_transaction.dart';
 import 'package:snevva/services/reminder/reminder_identity.dart';
 import 'package:snevva/services/reminder/reminder_schedule_resolver.dart';
+import 'package:snevva/services/reminder/reminder_scheduler.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import '../../common/global_variables.dart';
@@ -2709,6 +2709,7 @@ class ReminderController extends GetxController {
 
     switch (category) {
       case "medicine":
+
         final isInterval =
             medicineGetxController.medicineReminderOption.value ==
             Option.interval;
@@ -2741,10 +2742,47 @@ class ReminderController extends GetxController {
               colorText: white,
               backgroundColor: AppColors.primaryColor,
               duration: const Duration(seconds: 3),
+              icon: const Icon(
+                Icons.watch_later_outlined,
+                color: Colors.white,
+              ),
             );
 
             return false;
           }
+
+          if (medicineGetxController.startDateString.value == 'Start Date' ||
+              medicineGetxController.endDateString.value == 'End Date') {
+            String message = '';
+
+            if (medicineGetxController.startDateString.value == 'Start Date' &&
+                medicineGetxController.endDateString.value == 'End Date') {
+              message = "Please select start and end dates.";
+            } else
+            if (medicineGetxController.startDateString.value == 'Start Date') {
+              message = "Please select a start date.";
+            } else {
+              message = "Please select an end date.";
+            }
+
+            Get.snackbar(
+              "Missing Information",
+              message,
+              snackPosition: SnackPosition.TOP,
+              colorText: white,
+              backgroundColor: AppColors.primaryColor,
+              margin: const EdgeInsets.all(12),
+              borderRadius: 12,
+              duration: const Duration(seconds: 3),
+              icon: const Icon(
+                Icons.calendar_today_rounded,
+                color: Colors.white,
+              ),
+            );
+
+            return false;
+          }
+
           debugPrint("✅ Adding medicine times-based alarm");
           final ok = await medicineGetxController.addMedicineAlarm(
             context: context,
@@ -2774,6 +2812,39 @@ class ReminderController extends GetxController {
             );
             return false;
           }
+
+          if (medicineGetxController.startDateString.value == 'Start Date' ||
+              medicineGetxController.endDateString.value == 'End Date') {
+            String message = '';
+
+            if (medicineGetxController.startDateString.value == 'Start Date' &&
+                medicineGetxController.endDateString.value == 'End Date') {
+              message = "Please select start and end dates.";
+            } else
+            if (medicineGetxController.startDateString.value == 'Start Date') {
+              message = "Please select a start date.";
+            } else {
+              message = "Please select an end date.";
+            }
+
+            Get.snackbar(
+              "Missing Information",
+              message,
+              snackPosition: SnackPosition.TOP,
+              colorText: white,
+              backgroundColor: AppColors.primaryColor,
+              margin: const EdgeInsets.all(12),
+              borderRadius: 12,
+              duration: const Duration(seconds: 3),
+              icon: const Icon(
+                Icons.calendar_today_rounded,
+                color: Colors.white,
+              ),
+            );
+
+            return false;
+          }
+
 
           final ok = await medicineGetxController.addMedicineIntervalAlarm(
             context: context,
@@ -2877,6 +2948,10 @@ class ReminderController extends GetxController {
         colorText: white,
         backgroundColor: AppColors.primaryColor,
         duration: const Duration(seconds: 2),
+        icon: const Icon(
+          Icons.title_sharp,
+          color: Colors.white,
+        ),
       );
       return false;
     }
@@ -2898,6 +2973,10 @@ class ReminderController extends GetxController {
             colorText: white,
             backgroundColor: AppColors.primaryColor,
             duration: const Duration(seconds: 2),
+            icon: const Icon(
+              Icons.close,
+              color: Colors.white,
+            ),
           );
           return false;
         }
