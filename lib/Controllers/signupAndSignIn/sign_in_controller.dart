@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -282,7 +283,21 @@ class SignInController extends GetxService {
       }
     } catch (e, st) {
       debugPrint("sign in screen email $e  $st");
-      // CustomSnackbar.showDeviceBlocked(context: context);
+      if (e is SocketException ||
+          (e is http.ClientException &&
+              e.message.contains('SocketException'))) {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Server Unreachable',
+          message: 'Our servers are currently unavailable or responding too slowly.\n Please try again in a moment.',
+        );
+      } else {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Exception',
+          message: 'Sign In failed.',
+        );
+      }
       return false;
     }
   }
@@ -582,11 +597,22 @@ class SignInController extends GetxService {
       }
     } catch (e, st) {
       debugPrint("sign in phone $e $st");
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Exception',
-        message: 'Sign In failed $e',
-      );
+
+      if (e is SocketException ||
+          (e is http.ClientException &&
+              e.message.contains('SocketException'))) {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Server Unreachable',
+          message: 'Our servers are currently unavailable or responding too slowly.\n Please try again in a moment.',
+        );
+      } else {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Exception',
+          message: 'Sign In failed.',
+        );
+      }
       return false;
     }
   }
