@@ -84,6 +84,8 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     height = mediaQuery.size.height;
     debugPrint("Height of Diet Plan Screen: $height");
     width = mediaQuery.size.width;
+    double screenWidth = mediaQuery.size.width;
+    double scale = screenWidth / 360;
 
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
@@ -206,7 +208,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                 }
                 final showLoader = dietController.isCelebrityLoadingMore.value;
                 return SizedBox(
-                  height: 170,
+                  height: 170 * scale,
                   child: ListView.separated(
                     controller: dietController.celebrityScrollController,
                     scrollDirection: Axis.horizontal,
@@ -232,6 +234,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                           heading: item.heading ?? "",
                           subHeading: item.title ?? "",
                           dietImg: item.thumbnailMedia ?? dietPlaceholder,
+                          isGridItem: false,
                           isDarkMode: isDarkMode,
                         ),
                       );
@@ -398,70 +401,73 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
             ? const EdgeInsets.symmetric(horizontal: 8, vertical: 6)
             : const EdgeInsets.symmetric(horizontal: 8, vertical: 8);
 
-    return Material(
-      color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
-      elevation: 4,
-      borderRadius: BorderRadius.circular(cardRadius),
-      child: InkWell(
-        onTap: () {
-          dietController.dietTagsDataResponse.value = item;
-          final daysList = item.mealPlan;
+    return InkWell(
+      onTap: () {
+        dietController.dietTagsDataResponse.value = item;
+        final daysList = item.mealPlan;
 
-          Get.to(() => DietDetailsScreen(diet: item, daysList: daysList));
-        },
-        child: Container(
-          width: cardWidth,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(cardRadius),
-            border: Border.all(width: border04px, color: mediumGrey),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(cardRadius),
-                ),
-                child: CachedNetworkImage(
-                  imageUrl: dietImg,
-                  height: imageHeight,
-                  width: cardWidth,
-                  fit: BoxFit.cover,
-                ),
+        Get.to(() => DietDetailsScreen(diet: item, daysList: daysList));
+      },
+      child: Container(
+        width: cardWidth,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(cardRadius),
+          color: isDarkMode ? black : white,
+          border: Border.all(width: border04px, color: mediumGrey),
+          boxShadow: [
+            BoxShadow(
+              color: isDarkMode ? Color(0x14000000) : Color(0x14FFFFFF),
+              offset: const Offset(0, 0),
+              blurRadius: 8,
+              spreadRadius: 4,
+            ),
+          ],
+        ),
+
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(cardRadius),
               ),
-              Padding(
-                padding: textPadding,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AutoSizeText(
-                      heading,
-                      minFontSize: 10,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: isGridItem ? 14 : 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    AutoSizeText(
-                      subHeading,
-                      minFontSize: 10,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: isGridItem ? 9 : 10,
-                        color: mediumGrey,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
+              child: CachedNetworkImage(
+                imageUrl: dietImg,
+                height: imageHeight,
+                width: cardWidth,
+                fit: BoxFit.cover,
               ),
-            ],
-          ),
+            ),
+            Padding(
+              padding: textPadding,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    heading,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: isGridItem ? 14 : 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    subHeading,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: isGridItem ? 9 : 10,
+                      color: mediumGrey,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
