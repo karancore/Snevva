@@ -486,7 +486,11 @@ class _MyAppState extends State<MyApp> {
         setState(() => _initState = AppInitState.success);
       }
 
-      _runStage3BackgroundTasks(hasSession: true);
+      // ⚠️ Removed second _runStage3BackgroundTasks(hasSession: true) call that
+      // was dead code (blocked by _stage3Started guard) but had a dangerous
+      // hardcoded hasSession=true which could start the background service
+      // for logged-out users if the guard was ever removed.
+
     } catch (e, s) {
       logLong('INIT ERROR', '$e\n$s');
 
@@ -504,20 +508,36 @@ class _MyAppState extends State<MyApp> {
       // ✅ Delay 1 s so the splash→home transition renders at full FPS
       // before the background-isolate JIT spike hits.
       Future<void>.delayed(const Duration(seconds: 1), () async {
-        await _cleanupExpiredStartupAlarms();
-        await _mergeSleepHistoryInBackground();
-        await _scanLargeSharedPreferences();
-        
+        // ✅ Run independent prep tasks in parallel instead of sequentially.
+        await Future.wait([
+          _cleanupExpiredStartupAlarms(),
+          _mergeSleepHistoryInBackground(),
+          _scanLargeSharedPreferences(),
+        ]);
+
         try {
-          final engine = snevva_reconciliation.ReconciliationEngine(
-            saveReminder: (reminder) async {
-              if (Get.isRegistered<ReminderController>(tag: 'reminder')) {
-                final controller = Get.find<ReminderController>(tag: 'reminder');
-                await controller.updateReminderLocalOnly(reminder);
-              }
-            }
-          );
-          await engine.handleTimezoneStartupChecks();
+          // ✅ Use batch mode so all per-reminder saves during reconciliation
+          // are accumulated in memory and flushed in a single Hive pass at
+          // the end, instead of N × (4 reads + 4 writes) on the event loop.
+          final controller = Get.isRegistered<ReminderController>(tag: 'reminder')
+              ? Get.find<ReminderController>(tag: 'reminder')
+              : null;
+
+          controller?.beginBatchUpdate();
+          try {
+            final engine = snevva_reconciliation.ReconciliationEngine(
+              saveReminder: (reminder) async {
+                if (Get.isRegistered<ReminderController>(tag: 'reminder')) {
+                  Get.find<ReminderController>(tag: 'reminder')
+                      .updateReminderLocalOnly(reminder);
+                }
+              },
+            );
+            await engine.handleTimezoneStartupChecks();
+          } finally {
+            // Always flush, even if reconciliation threw an error.
+            await controller?.endBatchUpdate();
+          }
         } catch (e, s) {
           logLong('RECONCILIATION ERROR', '$e\n$s');
         }
@@ -561,8 +581,11 @@ class _MyAppState extends State<MyApp> {
             ? await compute(_findExpiredBeforeAlarmIdsForStartup, payload)
             : _findExpiredBeforeAlarmIdsForStartup(payload);
 
-    for (final id in idsToStop) {
-      await Alarm.stop(id);
+    // \u2705 Stop all expired alarms concurrently instead of one-at-a-time.
+    if (idsToStop.isNotEmpty) {
+      await Future.wait(
+        idsToStop.map((id) => Alarm.stop(id).catchError((_) => false)),
+      );
     }
   }
 

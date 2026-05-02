@@ -198,10 +198,20 @@ class ReminderController extends GetxController {
   }
 
   Future<void> _runDeferredInit() async {
-    // ✅ NOTE: Permission requests have been moved to PermissionGateScreen
-    // which is shown after login. Permissions are no longer requested here.
-    await cleanupExpiredBeforeAlarms();
-    await loadAlarms();
+    // ✅ Single Alarm.getAlarms() call shared by both cleanup and loadAlarms,
+    // avoiding two redundant SQLite reads on every controller initialisation.
+    final loadedAlarms = await Alarm.getAlarms();
+    final stoppedIds = await _cleanupExpiredBeforeAlarmsFromList(loadedAlarms);
+    // Filter the local list so alarms.value doesn't contain stale entries
+    // that were just stopped — avoids a second Alarm.getAlarms() round-trip.
+    final activeAlarms =
+        stoppedIds.isEmpty
+            ? loadedAlarms
+            : loadedAlarms
+                .where((a) => !stoppedIds.contains(a.id))
+                .toList(growable: false);
+    activeAlarms.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+    alarms.value = activeAlarms;
     await loadAllReminderLists();
   }
 
@@ -483,7 +493,17 @@ class ReminderController extends GetxController {
 
   Future<void> cleanupExpiredBeforeAlarms() async {
     final alarms = await Alarm.getAlarms();
-    if (alarms.isEmpty) return;
+    await _cleanupExpiredBeforeAlarmsFromList(alarms);
+  }
+
+  /// Inner cleanup that accepts a pre-fetched alarm list, avoiding a redundant
+  /// [Alarm.getAlarms()] call when the list was already fetched by the caller.
+  /// Returns the set of alarm IDs that were stopped so the caller can filter
+  /// them from any in-memory list without a second [Alarm.getAlarms()] call.
+  Future<Set<int>> _cleanupExpiredBeforeAlarmsFromList(
+    List<AlarmSettings> alarms,
+  ) async {
+    if (alarms.isEmpty) return const {};
 
     final scanInput = alarms
         .where((alarm) => alarm.payload != null)
@@ -495,7 +515,7 @@ class ReminderController extends GetxController {
         )
         .toList(growable: false);
 
-    if (scanInput.isEmpty) return;
+    if (scanInput.isEmpty) return const {};
 
     final payload = <String, dynamic>{
       'nowEpochMs': DateTime.now().millisecondsSinceEpoch,
@@ -507,9 +527,14 @@ class ReminderController extends GetxController {
             ? await compute(_collectExpiredBeforeAlarmIds, payload)
             : _collectExpiredBeforeAlarmIds(payload);
 
-    for (final id in expiredIds) {
-      await Alarm.stop(id);
-    }
+    if (expiredIds.isEmpty) return const {};
+
+    // ✅ Stop all expired alarms concurrently instead of sequentially.
+    await Future.wait(
+      expiredIds.map((id) => Alarm.stop(id).catchError((_) => false)),
+    );
+
+    return expiredIds.toSet();
   }
 
   DateTime calculateBeforeReminder() {
@@ -1062,7 +1087,58 @@ class ReminderController extends GetxController {
     debugPrint('✅ Saved ${stringList.length} items to Hive → $keyName');
   }
 
+  // ─── loadAllReminderLists with concurrent-call deduplication ───────────────
+  //
+  // When Stage 2 warmup, ReminderController._runDeferredInit, and Stage 3
+  // reconciliation all call loadAllReminderLists() within the same ~1-second
+  // window, the Completer guard collapses them into a single 4-category Hive
+  // read instead of three independent reads + three Rx rebuilds.
+
+  Completer<void>? _loadAllCompleter;
+
   Future<void> loadAllReminderLists() async {
+    if (_loadAllCompleter != null) {
+      // A load is already in progress — wait for it instead of starting another.
+      return _loadAllCompleter!.future;
+    }
+    _loadAllCompleter = Completer<void>();
+    try {
+      await _doLoadAllReminderLists();
+      _loadAllCompleter!.complete();
+    } catch (e, s) {
+      _loadAllCompleter!.completeError(e, s);
+      rethrow;
+    } finally {
+      _loadAllCompleter = null;
+    }
+  }
+
+  // ─── Batch-update helpers ───────────────────────────────────────────────────
+  //
+  // During reconcileAllReminders() there can be N calls to updateReminderLocalOnly
+  // — each of which previously triggered _saveToCategoryWiseLists (4 Hive reads
+  // + 4 Hive writes).  Call beginBatchUpdate() before the loop so writes are
+  // deferred, then endBatchUpdate() to flush everything in a single pass.
+
+  bool _batchUpdateMode = false;
+
+  /// Puts the controller into batch mode. While active,
+  /// [updateReminderLocalOnly] only updates the in-memory [reminders] list
+  /// without triggering Hive I/O.
+  void beginBatchUpdate() {
+    _batchUpdateMode = true;
+    debugPrint('[ReminderCtrl] beginBatchUpdate — Hive writes deferred');
+  }
+
+  /// Flushes all in-memory changes accumulated since [beginBatchUpdate] to
+  /// Hive in a single _saveToCategoryWiseLists pass, then clears batch mode.
+  Future<void> endBatchUpdate() async {
+    _batchUpdateMode = false;
+    debugPrint('[ReminderCtrl] endBatchUpdate — flushing to Hive');
+    await _saveToCategoryWiseLists(reminders);
+  }
+
+  Future<void> _doLoadAllReminderLists() async {
     try {
       debugPrint('🔄 loadAllReminderLists() START');
       isLoading(true);
@@ -1345,7 +1421,11 @@ class ReminderController extends GetxController {
     } else {
       reminders.add(reminder);
     }
-    await _saveToCategoryWiseLists(reminders);
+    // Skip Hive I/O during batch reconciliation — endBatchUpdate() will flush
+    // all accumulated changes in a single pass.
+    if (!_batchUpdateMode) {
+      await _saveToCategoryWiseLists(reminders);
+    }
   }
 
   Future<List<reminder_payload.ReminderPayloadModel>> _saveToCategoryWiseLists(

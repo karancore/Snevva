@@ -1,5 +1,6 @@
 import 'package:alarm/alarm.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../common/global_variables.dart';
 import '../../models/hive_models/reminder_payload_model.dart';
@@ -37,11 +38,12 @@ class ReconciliationEngine {
       // 1. Crash Recovery
       if (currentReminder.scheduleMetadata.txnStatus == TxnStatus.scheduling) {
         debugPrint('[ReminderTxn] Crash recovery triggered for ${currentReminder.id}');
-        for (final id in currentReminder.scheduleMetadata.pendingAlarmIds) {
-          try {
-            await Alarm.stop(id);
-          } catch (_) {}
-        }
+        // ✅ Stop all pending alarms concurrently.
+        await Future.wait(
+          currentReminder.scheduleMetadata.pendingAlarmIds.map(
+            (id) => Alarm.stop(id).catchError((_) => false),
+          ),
+        );
         currentReminder = currentReminder.copyWithScheduleMetadata(
           currentReminder.scheduleMetadata.copyWith(
             txnStatus: TxnStatus.idle,
@@ -115,10 +117,12 @@ class ReconciliationEngine {
       
       if (shouldReschedule && missed.isNotEmpty) {
         debugPrint('[ReminderTxn][RECOVERY] reason=missed_fire reminder=${currentReminder.id}');
-        // Reschedule Fully
-        for (final id in currentReminder.scheduleMetadata.alarmIds) {
-          try { await Alarm.stop(id); } catch (_) {}
-        }
+        // Reschedule Fully — stop all current alarms concurrently.
+        await Future.wait(
+          currentReminder.scheduleMetadata.alarmIds.map(
+            (id) => Alarm.stop(id).catchError((_) => false),
+          ),
+        );
         await _transaction.schedule(currentReminder);
         return;
       }
@@ -140,12 +144,10 @@ class ReconciliationEngine {
         "toRemove": toRemove.length,
       });
 
-      // 4. Fix Operations
-      for (final id in toRemove) {
-        try {
-          await Alarm.stop(id);
-        } catch (_) {}
-      }
+      // 4. Fix Operations — stop stale alarms concurrently.
+      await Future.wait(
+        toRemove.map((id) => Alarm.stop(id).catchError((_) => false)),
+      );
       if (usesNativeReminderScheduling && toRemove.isNotEmpty) {
         await NativeAlarmBridge.cancelAlarms(toRemove.toList(growable: false));
       }
@@ -210,32 +212,100 @@ class ReconciliationEngine {
     final storedTz = await DeviceTimezoneService.instance.getLastKnownTimezone();
     final currentOffset = DateTime.now().timeZoneOffset.inMinutes;
     final storedOffset = await DeviceTimezoneService.instance.getLastKnownOffsetMinutes();
-    
-    if ((storedTz != null && currentTz != storedTz) || (storedOffset != null && currentOffset != storedOffset)) {
-      debugPrint('[ReminderTxn] Timezone/DST changed: tz($storedTz -> $currentTz), offset($storedOffset -> $currentOffset)');
-      await DeviceTimezoneService.instance.saveLastKnownTimezone(currentTz, currentOffset);
-      
+
+    if ((storedTz != null && currentTz != storedTz) ||
+        (storedOffset != null && currentOffset != storedOffset)) {
+      // ── Timezone / DST changed ── must always reconcile ──────────────────
+      debugPrint(
+        '[ReminderTxn] Timezone/DST changed: '
+        'tz($storedTz -> $currentTz), offset($storedOffset -> $currentOffset)',
+      );
+      await DeviceTimezoneService.instance.saveLastKnownTimezone(
+        currentTz,
+        currentOffset,
+      );
+
       final controller = Get.find<ReminderController>(tag: 'reminder');
       await controller.loadAllReminderLists();
       final reminders = List<ReminderPayloadModel>.from(controller.reminders);
-      
+
       for (var reminder in reminders) {
         reminder = reminder.copyWithScheduleMetadata(
           reminder.scheduleMetadata.copyWith(
             timezoneId: currentTz,
             scheduleVersion: reminder.scheduleMetadata.scheduleVersion + 1,
-          )
+          ),
         );
         await _saveReminder(reminder);
       }
-      
+
       await reconcileAllReminders();
+      await _markReconcileDone();
+      await _clearAlarmFiredFlag();
     } else if (storedTz == null || storedOffset == null) {
-      await DeviceTimezoneService.instance.saveLastKnownTimezone(currentTz, currentOffset);
-      await reconcileAllReminders(); 
-    } else {
-      // Just reconcile locally for any background crashes out of sequence
+      // ── First-ever launch ── save baseline and reconcile once ─────────────
+      await DeviceTimezoneService.instance.saveLastKnownTimezone(
+        currentTz,
+        currentOffset,
+      );
       await reconcileAllReminders();
+      await _markReconcileDone();
+      await _clearAlarmFiredFlag();
+    } else {
+      // ── Normal open ── only reconcile when necessary ─────────────────────
+      // Reconcile if (a) a native alarm fired recently, OR
+      //             (b) more than 2 hours have passed since last reconciliation.
+      // Skipping reconciliation here is the single biggest startup-freeze fix.
+      if (await _shouldReconcile()) {
+        debugPrint('[ReminderTxn] Reconciling — alarm fired or interval elapsed');
+        await reconcileAllReminders();
+        await _markReconcileDone();
+        await _clearAlarmFiredFlag();
+      } else {
+        debugPrint(
+          '[ReminderTxn] Skipping reconciliation — '
+          'timezone unchanged and within throttle window',
+        );
+      }
     }
   }
+
+  // ── Reconciliation throttle helpers ──────────────────────────────────────
+
+  /// SharedPrefs key written by Dart after a successful reconciliation.
+  static const _kLastReconcileKey = 'reminder_last_reconcile_epoch_ms';
+
+  /// SharedPrefs key written by [ReminderAlarmReceiver.kt] (with flutter.
+  /// prefix) when a native alarm fires, signalling that reconciliation
+  /// should run on the next app open.
+  static const _kAlarmFiredKey = 'alarm_fired_recently';
+
+  /// Minimum gap between automatic reconciliations (2 hours).
+  static const _kReconcileIntervalMs = 2 * 60 * 60 * 1000;
+
+  /// Returns true when reconciliation should run.
+  Future<bool> _shouldReconcile() async {
+    final prefs = await SharedPreferences.getInstance();
+    // Always reconcile when a native alarm has fired.
+    if (prefs.getBool(_kAlarmFiredKey) == true) return true;
+    // Otherwise throttle to once every 2 hours.
+    final lastMs = prefs.getInt(_kLastReconcileKey) ?? 0;
+    return DateTime.now().millisecondsSinceEpoch - lastMs > _kReconcileIntervalMs;
+  }
+
+  /// Records the current time as the last reconciliation timestamp.
+  Future<void> _markReconcileDone() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(
+      _kLastReconcileKey,
+      DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+
+  /// Clears the alarm-fired flag set by the native receiver.
+  Future<void> _clearAlarmFiredFlag() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kAlarmFiredKey);
+  }
 }
+

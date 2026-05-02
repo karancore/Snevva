@@ -11,7 +11,8 @@ import 'package:snevva/models/hive_models/reminder_payload_model.dart';
 import 'package:snevva/services/file_storage_service.dart';
 import 'package:snevva/services/notification_service.dart';
 import 'package:snevva/services/reminder/device_timezone_service.dart';
-import 'package:snevva/services/reminder/reminder_alarm_platform.dart';
+// reminder_alarm_platform.dart import removed — clearLegacyFlutterReminderAlarms
+// is no longer called at startup (native AlarmManager is the sole scheduler).
 import 'package:snevva/services/reminder/reminder_worker.dart';
 import 'package:snevva/services/unified_background_service.dart';
 import 'package:timezone/data/latest.dart';
@@ -247,7 +248,10 @@ Future<bool> initializeApp() async {
     // The alarm plugin expects initialization before any alarm reads,
     // restores, reconciliation, or scheduling happen in app startup flows.
     await ensureAlarmInitialized();
-    await clearLegacyFlutterReminderAlarms();
+    // NOTE: clearLegacyFlutterReminderAlarms() (Alarm.stopAll) removed.
+    // The native AlarmManager is the sole scheduler on Android, so the
+    // flutter_alarm plugin DB is always empty — the sweep was wasting
+    // SQLite time on every open and stacking with the Stage 3 cleanup.
 
     // ⏰ Register WorkManager periodic task for reminder rescheduling.
     // Runs every ~6 hours even if the app is killed, ensuring the 36h

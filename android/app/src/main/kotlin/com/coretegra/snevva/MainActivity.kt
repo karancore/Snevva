@@ -85,14 +85,35 @@ class MainActivity : FlutterActivity() {
         // Re-arm all native reminder alarms every time the Flutter engine attaches.
         // This is idempotent and covers the case where the user opens the app after
         // a background kill, ensuring AlarmManager entries are always up-to-date.
+        //
+        // ✅ Cooldown: if armFromSharedPrefs ran within the last 60 seconds (e.g.
+        // because ReminderAlarmReceiver.rescheduleNext already re-armed on alarm
+        // fire), skip the full sweep to avoid redundant binder IPC calls during
+        // the Flutter engine attach window.
         Thread {
             try {
-                ReminderArmingHelper.armFromSharedPrefs(applicationContext)
-                Log.d("MainActivity", "✅ Native reminder alarms re-armed on engine attach")
+                val prefs = applicationContext.getSharedPreferences(
+                    "FlutterSharedPreferences", android.content.Context.MODE_PRIVATE
+                )
+                val lastArmMs = prefs.getLong("flutter.native_alarm_last_arm_epoch_ms", 0L)
+                val elapsedMs = System.currentTimeMillis() - lastArmMs
+                if (elapsedMs > 60_000L) {
+                    ReminderArmingHelper.armFromSharedPrefs(applicationContext)
+                    prefs.edit()
+                        .putLong("flutter.native_alarm_last_arm_epoch_ms", System.currentTimeMillis())
+                        .apply()
+                    Log.d("MainActivity", "✅ Native reminder alarms re-armed on engine attach")
+                } else {
+                    Log.d(
+                        "MainActivity",
+                        "⏭ Skipping armFromSharedPrefs — done ${elapsedMs}ms ago (cooldown 60s)"
+                    )
+                }
             } catch (e: Exception) {
                 Log.e("MainActivity", "armFromSharedPrefs failed: ${e.message}")
             }
         }.start()
+
 
         // MethodChannels setup
 

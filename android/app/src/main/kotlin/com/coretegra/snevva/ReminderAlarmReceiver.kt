@@ -83,6 +83,17 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
 
         Log.d(TAG, "🔔 REMINDER_FIRE id=$alarmId cat=$category intervalMs=$intervalMs")
 
+        // Signal Flutter that an alarm just fired so reconciliation runs on the
+        // next app open (bypasses the 2-hour throttle in reconciliation_engine.dart).
+        // Also stamp the arm epoch so MainActivity can skip a redundant full re-arm.
+        val nowMs = System.currentTimeMillis()
+        context.getSharedPreferences("FlutterSharedPreferences", android.content.Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("flutter.alarm_fired_recently", true)
+            .putLong("flutter.native_alarm_last_arm_epoch_ms", nowMs)
+            .apply()
+        Log.d(TAG, "📝 Wrote alarm_fired_recently + arm epoch to FlutterSharedPreferences")
+
         // Cancel the alarm-package's own notification so only ours is visible.
         // We do NOT call stopService(AlarmService) — doing so then letting its
         // AlarmReceiver call startForegroundService() causes a crash on Android 14+
@@ -96,7 +107,7 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
 
         // Reschedule next occurrence
         if (intervalMs > 0L) {
-            val nextEpochMs = System.currentTimeMillis() + intervalMs
+            val nextEpochMs = nowMs + intervalMs
             ReminderArmingHelper.arm(
                 context, alarmId, nextEpochMs, groupId, category, title, body, intervalMs
             )
