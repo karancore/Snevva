@@ -27,8 +27,18 @@ class HydrationStatController extends GetxService {
   var isLoading = true.obs;
 
   @override
+  void onInit() {
+    super.onInit();
+    loadWaterIntakefromAPI(
+      month: DateTime.now().month,
+      year: DateTime.now().year,
+    );
+  }
+
+  @override
   void onReady() {
     super.onReady();
+
     loadWaterIntake();
   }
 

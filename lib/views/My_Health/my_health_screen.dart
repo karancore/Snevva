@@ -112,7 +112,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
         cardType: "water",
         title: Obx(
           () => Text(
-            '${waterController.waterIntake.value}',
+            waterController.waterIntake.value.toStringAsFixed(0),
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
           ),
         ),
@@ -228,12 +228,12 @@ class _MyHealthScreenState extends State<MyHealthScreen>
         cardType: "sys",
         title: Obx(
           () => Text(
-            '${vitalController.sys.value}/${vitalController.dia.value}',
+            '${vitalController.sys.value} / ${vitalController.dia.value}',
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
           ),
         ),
         subtitle: const Text(
-          'mmHg',
+          'mm / Hg',
           style: TextStyle(fontSize: 14, color: Colors.grey),
         ),
         buttonText: 'Add Vitals',
