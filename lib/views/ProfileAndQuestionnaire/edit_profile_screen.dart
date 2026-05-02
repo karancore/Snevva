@@ -956,7 +956,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                         localStorageManager
                                             .userMap['AddressByUser']
                                             ?.toString() ??
-                                            'Enter your Address',
+                                            'Enter your address',
                                         style: TextStyle(fontSize: 14,
                                             color: isDarkMode
                                                 ? Colors.white60
