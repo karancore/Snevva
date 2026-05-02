@@ -97,7 +97,7 @@
             <!-- 🔥 Small icon for foreground service notification (CRITICAL for Android 12+) -->
             <meta-data
                 android:name="flutterBackgroundServiceNotificationIcon"
-                android:resource="@mipmap/ic_launcher" />
+                android:resource="@drawable/ic_stat_notification_bg" />
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

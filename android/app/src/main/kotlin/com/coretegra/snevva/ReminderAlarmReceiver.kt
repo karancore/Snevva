@@ -141,13 +141,15 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
         }
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_stat_notification1)
+            .setSmallIcon(R.drawable.ic_stat_notification_bg)
             .setContentTitle("$emoji $title")
             .setContentText(body.ifEmpty { title })
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setAutoCancel(false)
             .setOngoing(true)
+            .setColor(0xFFA95BFF.toInt())
+            .setColorized(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .addAction(android.R.drawable.ic_media_pause, "Stop", stopPending)
             .build()
