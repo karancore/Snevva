@@ -23,10 +23,11 @@
     <!-- 📲 Notifications (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- 🏃 Step counting & sensors -->
+    <!-- 🏃 Step counting (TYPE_STEP_DETECTOR via ACTIVITY_RECOGNITION only) -->
+    <!-- BODY_SENSORS / BODY_SENSORS_BACKGROUND intentionally removed:
+         Sleep is tracked via screen-state (SCREEN_ON/OFF), not body sensors.
+         Step tracking uses TYPE_STEP_DETECTOR, covered by ACTIVITY_RECOGNITION alone. -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
-    <uses-permission android:name="android.permission.BODY_SENSORS" />
-    <uses-permission android:name="android.permission.BODY_SENSORS_BACKGROUND" />
 
     <!-- 📍 Location -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
