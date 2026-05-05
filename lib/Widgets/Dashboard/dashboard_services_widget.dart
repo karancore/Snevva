@@ -2,7 +2,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
-import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/Widgets/Dashboard/dashboard_service_widget_items.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/views/DietPlan/diet_plan_screen.dart';
@@ -12,6 +11,7 @@ import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.d
 import 'package:snevva/views/Information/mental_wellness_screen.dart';
 import 'package:snevva/views/WomenHealth/women_health_screen.dart';
 
+import '../../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import '../../Controllers/WomenHealth/women_health_controller.dart';
 import '../../consts/consts.dart';
 import '../../views/Information/HydrationScreens/hydration_screen.dart';
@@ -34,26 +34,21 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
   String? selectedGender;
   String? gender;
 
+
+  final localstorage = Get.find<LocalStorageManager>();
+  final editprofileController = Get.find<EditprofileController>(); // ✅ add
+
   @override
   void initState() {
     super.initState();
-    _loadGenderFromPreferences();
+
+
+    final savedGender = localstorage.userMap['Gender']?.toString();
+    if (savedGender != null && editprofileController.gender.value.isEmpty) {
+      editprofileController.gender.value = savedGender;
+    }
   }
 
-  Future<void> _loadGenderFromPreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-    final localGender = prefs.getString('user_gender');
-
-    setState(() {
-      // gender = localGender ?? 'Not Specified';
-      final signInController = Get.put(SignInController());
-      final userInfo = signInController.userProfData ?? {};
-      final userData = userInfo['data'];
-      gender = (localGender != null) ? localGender : userData['Gender'];
-      debugPrint("Gender $gender");
-      isLoading = false;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,9 +61,11 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
     // final userInfo = signInController.userProfData ?? {};
     // final userData = userInfo['data'];
 
-    final localstorage = Get.find<LocalStorageManager>();
+
     final userInfo = localstorage.userMap;
     logLong('userInfo: ', userInfo.toString());
+    logLong('Gender of userinfo: ', userInfo['Gender'].toString());
+
 
     // final userActiveData = signInController.userGoalData ?? {};
 
@@ -233,91 +230,38 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
         //   ],
         // ),
         SizedBox(height: 20),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            DashboardServiceWidgetItems(
-              widgetText: 'Sleep Tracker',
-              widgetImg: sleepTrackerIcon,
-              onTap: () async {
-                final prefs = await SharedPreferences.getInstance();
-                final isFirstSleep = prefs.getBool('sleepGoalbool') ?? false;
-
-                if (!isFirstSleep) {
-                  final agreed = await showSleepBottomSheetModal(
-                    context: context,
-                    isDarkMode: isDarkMode,
-                    height: height,
-                    isNavigating: true,
-                  );
-
-                  if (agreed != null) {
-                    await prefs.setBool('sleepGoalbool', true);
-
-                    if (!context.mounted) return;
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => SleepTrackerScreen()),
-                    );
-
-                    Future.microtask(() async {
-                      await Get.find<SleepController>()
-                          .savesleepToLocalStorage();
-                    });
-                  }
-                } else {
-                  if (!context.mounted) return;
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => SleepTrackerScreen()),
-                  );
-                }
-              },
-            ),
-            DashboardServiceWidgetItems(
-              widgetText: 'Mental Wellness',
-              widgetImg: mentalWellIcon,
-              onTap: () {
-                Get.to(() => MentalWellnessScreen());
-              },
-            ),
-            DashboardServiceWidgetItems(
-              widgetText: 'Health Tips',
-              widgetImg: tipsIcon,
-              onTap: () {
-                Get.to(() => HealthTipsScreen());
-              },
-            ),
-            if (gender == 'Female')
+        Obx(() {
+          final currentGender = editprofileController.gender.value;
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
               DashboardServiceWidgetItems(
-                widgetText: 'Women Health',
-                widgetImg: womenIcon,
+                widgetText: 'Sleep Tracker',
+                widgetImg: sleepTrackerIcon,
                 onTap: () async {
                   final prefs = await SharedPreferences.getInstance();
-                  final isFirstWomen =
-                      prefs.getBool('is_first_time_women') ?? true;
+                  final isFirstSleep = prefs.getBool('sleepGoalbool') ?? false;
 
-                  if (isFirstWomen) {
-                    final agreed = await showWomenBottomSheetsModal(
-                      context,
-                      isDarkMode,
-                      width,
-                      height,
+                  if (!isFirstSleep) {
+                    final agreed = await showSleepBottomSheetModal(
+                      context: context,
+                      isDarkMode: isDarkMode,
+                      height: height,
+                      isNavigating: true,
                     );
 
                     if (agreed != null) {
-                      await prefs.setBool('is_first_time_women', false);
+                      await prefs.setBool('sleepGoalbool', true);
 
                       if (!context.mounted) return;
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => WomenHealthScreen()),
+                        MaterialPageRoute(builder: (_) => SleepTrackerScreen()),
                       );
 
                       Future.microtask(() async {
-                        await Get.find<WomenHealthController>()
-                            .saveWomenHealthToLocalStorage();
+                        await Get.find<SleepController>()
+                            .savesleepToLocalStorage();
                       });
                     }
                   } else {
@@ -325,22 +269,79 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
 
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => WomenHealthScreen()),
+                      MaterialPageRoute(builder: (_) => SleepTrackerScreen()),
                     );
                   }
                 },
               ),
-
-            if (gender != 'Female')
               DashboardServiceWidgetItems(
-                widgetText: 'BMI Calculator',
-                widgetImg: bmiIcon,
+                widgetText: 'Mental Wellness',
+                widgetImg: mentalWellIcon,
                 onTap: () {
-                  Get.to(() => BmiCal());
+                  Get.to(() => MentalWellnessScreen());
                 },
               ),
-          ],
-        ),
+              DashboardServiceWidgetItems(
+                widgetText: 'Health Tips',
+                widgetImg: tipsIcon,
+                onTap: () {
+                  Get.to(() => HealthTipsScreen());
+                },
+              ),
+              if (currentGender == 'Female')
+                DashboardServiceWidgetItems(
+                  widgetText: 'Women Health',
+                  widgetImg: womenIcon,
+                  onTap: () async {
+                    final prefs = await SharedPreferences.getInstance();
+                    final isFirstWomen =
+                        prefs.getBool('is_first_time_women') ?? true;
+
+                    if (isFirstWomen) {
+                      final agreed = await showWomenBottomSheetsModal(
+                        context,
+                        isDarkMode,
+                        width,
+                        height,
+                      );
+
+                      if (agreed != null) {
+                        await prefs.setBool('is_first_time_women', false);
+
+                        if (!context.mounted) return;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) =>
+                              WomenHealthScreen()),
+                        );
+
+                        Future.microtask(() async {
+                          await Get.find<WomenHealthController>()
+                              .saveWomenHealthToLocalStorage();
+                        });
+                      }
+                    } else {
+                      if (!context.mounted) return;
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => WomenHealthScreen()),
+                      );
+                    }
+                  },
+                ),
+
+              if (currentGender != 'Female')
+                DashboardServiceWidgetItems(
+                  widgetText: 'BMI Calculator',
+                  widgetImg: bmiIcon,
+                  onTap: () {
+                    Get.to(() => BmiCal());
+                  },
+                ),
+            ],
+          );
+        }),
         SizedBox(height: 30),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,

@@ -14,7 +14,9 @@ import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
 import 'package:snevva/views/Reminder/reminder_wrapper.dart';
 import 'package:snevva/views/WomenHealth/women_health_screen.dart';
 
+import '../../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import '../../Controllers/StepCounter/step_counter_controller.dart';
+import '../../Controllers/local_storage_manager.dart';
 import '../../Widgets/CommonWidgets/custom_appbar.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../Widgets/menu_item_widget.dart';
@@ -34,11 +36,13 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen>
     with SingleTickerProviderStateMixin {
-  String? gender;
+
   bool isLoading = true;
 
   late AnimationController listAnimationController;
   late List<Animation<Offset>> _slideAnimation;
+
+  late EditprofileController editprofileController; // ✅ add
 
   late final List<MenuItem> menuItems;
   List<MenuItem> filteredMenuItems = [];
@@ -46,6 +50,26 @@ class _MenuScreenState extends State<MenuScreen>
   @override
   void initState() {
     super.initState();
+
+    editprofileController = Get.find<EditprofileController>();
+
+    final savedGender = Get
+        .find<LocalStorageManager>()
+        .userMap['Gender']?.toString();
+    if (savedGender != null && editprofileController.gender.value.isEmpty) {
+      editprofileController.gender.value = savedGender;
+    }
+
+    // ✅ Jab gender change ho, menu rebuild karo
+    ever(editprofileController.gender, (_) {
+      if (mounted) {
+        setState(() {
+          _initializeMenuItems(); // filter dobara lagao
+          _initializeAnimations();
+        });
+      }
+    });
+
     _loadGenderAndInit();
   }
 
@@ -70,17 +94,18 @@ class _MenuScreenState extends State<MenuScreen>
     if (!mounted) return;
 
     setState(() {
-      gender = resolvedGender;
       isLoading = false;
     });
 
-    debugPrint('MenuScreen gender = $gender');
 
     _initializeMenuItems();
     _initializeAnimations();
   }
 
   void _initializeMenuItems() {
+    final currentGender = editprofileController.gender
+        .value; // ✅ controller se lo
+
     menuItems = [
       MenuItem(
         title: "Sleep Tracker",
@@ -164,13 +189,11 @@ class _MenuScreenState extends State<MenuScreen>
     ];
 
     // Filter items based on gender
-    filteredMenuItems =
-        menuItems.where((item) {
-          if (item.title == "Women's Health" && gender != 'Female') {
-            return false;
-          }
-          return true;
-        }).toList();
+    filteredMenuItems = menuItems.where((item) {
+      if (item.title == "Women's Health" && currentGender != 'Female')
+        return false;
+      return true;
+    }).toList();
   }
 
   void _initializeAnimations() {

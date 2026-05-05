@@ -17,6 +17,7 @@ import 'package:snevva/views/WomenHealth/women_health_screen.dart';
 import 'package:snevva/views/information/bmi/bmi_update_result.dart';
 
 import '../../Controllers/Hydration/hydration_stat_controller.dart';
+import '../../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import '../../Controllers/StepCounter/step_counter_controller.dart';
 import '../../Controllers/signupAndSignIn/sign_in_controller.dart';
 import '../../common/global_variables.dart';
@@ -34,9 +35,10 @@ class _MyHealthScreenState extends State<MyHealthScreen>
   final stepController = Get.find<StepCounterController>();
   final waterController = Get.find<HydrationStatController>();
   final moodController = Get.find<MoodController>();
+  late EditprofileController editprofileController;
 
   String? localGender;
-  String? gender;
+
   bool isLoading = true;
   final vitalController = Get.find<VitalsController>();
   final sleepController = Get.find<SleepController>();
@@ -55,6 +57,25 @@ class _MyHealthScreenState extends State<MyHealthScreen>
   @override
   void initState() {
     super.initState();
+
+    editprofileController = Get.find<EditprofileController>();
+
+    // ✅ Initial sync
+    final savedGender = localStorageManager.userMap['Gender']?.toString();
+    if (savedGender != null && editprofileController.gender.value.isEmpty) {
+      editprofileController.gender.value = savedGender;
+    }
+
+    // ✅ Reactive — gender change hote hi cards rebuild
+    ever(editprofileController.gender, (_) {
+      if (mounted) {
+        setState(() {
+          _initializeVitalItems();
+          _initAnimations();
+        });
+      }
+    });
+
     _loadMoodFromPrefs();
     bmiController.loadUserBMI();
     _loadGenderAndInit();
@@ -81,11 +102,9 @@ class _MyHealthScreenState extends State<MyHealthScreen>
     if (!mounted) return;
 
     setState(() {
-      gender = resolvedGender;
       isLoading = false;
     });
 
-    debugPrint('✅ MyHealthScreen gender = $gender');
 
     _initializeVitalItems();
     _initAnimations();
@@ -104,6 +123,9 @@ class _MyHealthScreenState extends State<MyHealthScreen>
   }
 
   void _initializeVitalItems() {
+    final currentGender =
+        editprofileController.gender.value; // ✅ controller se lo
+
     vitalItems = [
       // Tracker Cards
       TrackerHealthCard(
@@ -275,9 +297,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
     // Filter items based on gender
     filteredVitalItems =
         vitalItems.where((item) {
-          if (item.buttonText == "Add Data" &&
-              item.cardType == "women" &&
-              gender != 'Female')
+          if (item.cardType == "women" && currentGender != 'Female')
             return false;
           return true;
         }).toList();
