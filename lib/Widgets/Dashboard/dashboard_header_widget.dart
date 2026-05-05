@@ -72,8 +72,8 @@ class DashboardHeaderWidget extends StatelessWidget {
               ],
             ),
             Positioned(
-              right: -30,
-              bottom: -15,
+              right: -45,
+              bottom: -5,
               child: Image.asset(mascotAi, height: 200),
             ),
           ],

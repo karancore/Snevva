@@ -14,7 +14,7 @@ const pleasant = "assets/Images/MoodTracker/pleasnt.svg.png";
 const neutral = "assets/Images/MoodTracker/good 1.svg.png";
 const unpleasant = "assets/Images/MoodTracker/unpleasant.svg.png";
 
-const mascotAi = "assets/Images/eleAI.webp";
+const mascotAi = "assets/Images/eleAI.png";
 const elemascot = "assets/Images/loginel.webp";
 const splash = "assets/Icons/splash.webp";
 const avatar1 = "assets/Images/avatar1.webp";
