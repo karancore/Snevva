@@ -6,7 +6,9 @@ import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
+import 'package:snevva/views/My_Health/my_health_screen.dart';
 
+import '../../../Controllers/local_storage_manager.dart';
 import 'bmi_update_result.dart';
 
 class BmiUpdatecal extends StatefulWidget {
@@ -21,6 +23,7 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
   int age = 19;
   double weight = 52;
   double height = 158;
+  final localStorageManager = Get.find<LocalStorageManager>();
 
   // smaller virtual list to lower layout cost
   static const int _virtualItemCount = 200;
@@ -46,13 +49,35 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
   bool _isAutoScrolling = false;
 
   // controller (keep as you had it)
-  final bmicontroller = Get.put(BmiUpdateController());
+  final bmicontroller = Get.find<BmiUpdateController>();
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
+
+
+    final heightValue =
+    localStorageManager.userGoalDataMap['HeightData']?['Value'];
+
+    print("Heightvalue is $heightValue");
+
+    height = double.tryParse(
+        (heightValue is num) ? heightValue.toStringAsFixed(2) : '') ?? 185;
+    print("height is $height");
+
+    // debugPrint(localStorageManager.userGoalDataMap['HeightData']?['Value']);
+    // debugPrint(controller.heightValue);
+
+    final weightValue =
+    localStorageManager.userGoalDataMap['WeightData']?['Value'];
+    weight = weightValue is num ? weightValue.toDouble() : 52.0;
+    selectedWeight = weightValue is num ? weightValue.toInt() : 85;
+
+    print("Weight value is $weightValue");
+    print("height is $weight");
+
 
     _middleIndex = _virtualItemCount ~/ 2;
 
@@ -156,7 +181,7 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
           Padding(
             padding: const EdgeInsets.only(right: 20),
             child: InkWell(
-              onTap: () => Navigator.pop(context),
+              onTap: () => Get.to(() => const MyHealthScreen()),
               child: const SizedBox(
                 height: 24,
                 width: 24,
@@ -199,7 +224,7 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          const Text("Weight"),
+                          const Text("Weight (in kg)"),
                           Divider(color: mediumGrey, thickness: 1),
                           Row(
                             children: [

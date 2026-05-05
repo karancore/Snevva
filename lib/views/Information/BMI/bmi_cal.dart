@@ -7,6 +7,7 @@ import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
 
 import '../../../Controllers/BMI/bmi_updatecontroller.dart';
+import '../../../Controllers/local_storage_manager.dart';
 import 'bmi_result.dart';
 
 class BmiCal extends StatefulWidget {
@@ -37,20 +38,70 @@ class _BmiCalState extends State<BmiCal> {
 
   late int _middleIndex;
 
+  final localStorageManager = Get.find<LocalStorageManager>();
+
   final double itemWidth = 38; // 30 width + 8 separator spacing
   final double viewportWidth = 220; // your SizedBox width
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
-
     _scrollController.addListener(_onScroll);
-
     _middleIndex = _virtualItemCount ~/ 2;
 
-    weightController = FixedExtentScrollController(
-      initialItem: selectedWeight - 1,
-    );
+    // Height
+    final heightValue = localStorageManager
+        .userGoalDataMap['HeightData']?['Value'];
+    height = heightValue is num ? heightValue.toDouble() : 185.0;
+
+    // Weight
+    final weightValue = localStorageManager
+        .userGoalDataMap['WeightData']?['Value'];
+    weight = weightValue is num ? weightValue.toDouble() : 52.0;
+    selectedWeight = weightValue is num ? weightValue.toInt() : 52;
+
+    // Age  ← was hardcoded to 19
+
+    final day = localStorageManager.userMap['DayOfBirth'];
+    final month = localStorageManager.userMap['MonthOfBirth'];
+    final year = localStorageManager.userMap['YearOfBirth'];
+
+    if (day != null && month != null && year != null) {
+      final dob = DateTime(
+        int.tryParse(year.toString()) ?? 0,
+        int.tryParse(month.toString()) ?? 0,
+        int.tryParse(day.toString()) ?? 0,
+      );
+      debugPrint("User DOB: $dob");
+
+      final today = DateTime.now();
+      int calculatedAge = today.year - dob.year;
+
+      // Subtract 1 if birthday hasn't occurred yet this year
+      if (today.month < dob.month ||
+          (today.month == dob.month && today.day < dob.day)) {
+        calculatedAge--;
+      }
+
+      age = calculatedAge.clamp(5, 120); // keeps age within valid BMI range
+    } else {
+      age = 19; // fallback
+    }
+
+    // Gender  ← was hardcoded to true
+    final genderValue = localStorageManager.userMap['Gender']
+        ?.toString()
+        .toLowerCase();
+    isMale = genderValue == 'male' || genderValue == 'm' || genderValue == '1';
+
+    debugPrint(
+        "Height: $height | Weight: $weight | Age: $age | isMale: $isMale");
+    debugPrint(
+        "HeightValue: $heightValue | WeightValue: $weightValue | isMale: $isMale");
+
+
+    weightController =
+        FixedExtentScrollController(initialItem: selectedWeight - 1);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 50), () {
