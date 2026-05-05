@@ -214,13 +214,25 @@ class _MyHealthScreenState extends State<MyHealthScreen>
           style: const TextStyle(fontSize: 14, color: Colors.grey),
         ),
         buttonText: 'BMI Result',
-        onPressed:
-            () => Get.to(
+        onPressed: () {
+          if (bmiController.bmi.value == 0.0) {
+            Get.snackbar(
+              "No BMI Data",
+              "Please add your height and weight in profile screen to calculate BMI.",
+              backgroundColor: Colors.redAccent,
+              snackPosition: SnackPosition.TOP,
+
+              colorText: Colors.white,
+            );
+          } else {
+            Get.to(
               () => BMIUpdateResultScreen(
                 bmi: bmiController.bmi.value,
                 age: bmiController.age.value,
               ),
-            ),
+            );
+          }
+        },
       ),
       TrackerHealthCard(
         icon: Icons.opacity,
