@@ -217,7 +217,8 @@ class _WomenHealthScreenState extends State<WomenHealthScreen> {
                           return WomenHealthQuotesWidget(
                             title: tip.title,
                             shortDescription: tip.shortDescription,
-                            imageUrl: tip.thumbnailMedia?.cdnUrl ?? '',
+                            imageUrl:
+                                tip.thumbnailMedia?.cdnUrl ?? placeHolderImage,
                           );
                         },
                       ),

@@ -8,7 +8,8 @@ const veriemail = "assets/Images/verifyEmail.webp";
 const noEntries = "assets/Images/MoodTracker/elly no entry 1.webp";
 const girlMood = "assets/Images/MoodTracker/Layer 4.png";
 const face = "assets/Images/MoodTracker/Untitled design 1.webp";
-
+const placeHolderImage =
+    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT5SX05Y_Pg5HW3GYJW6ywCcxf4q_BQsdeD5w&s";
 const pleasant = "assets/Images/MoodTracker/pleasnt.svg.png";
 const neutral = "assets/Images/MoodTracker/good 1.svg.png";
 const unpleasant = "assets/Images/MoodTracker/unpleasant.svg.png";
