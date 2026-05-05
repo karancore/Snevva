@@ -3,7 +3,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 class OEMSettingsHelper {
   static const MethodChannel _channel = MethodChannel(
-    'com.coretegra.snevva/oem_settings',
+    'com.coretegra.snevvaa/oem_settings',
   );
 
   static Future<void> requestBackgroundPermissions() async {

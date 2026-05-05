@@ -1,4 +1,4 @@
-package com.coretegra.snevva
+package com.coretegra.snevvaa
 
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -38,7 +38,7 @@ object ReminderArmingHelper {
     private const val PREFS_KEY = "flutter.native_reminder_alarms"
 
     /** Intent action fired to ReminderAlarmReceiver by AlarmManager. */
-    const val ACTION_FIRE = "com.coretegra.snevva.REMINDER_FIRE"
+    const val ACTION_FIRE = "com.coretegra.snevvaa.REMINDER_FIRE"
 
     // ─────────────────────────────────────────────────────────────────────────
     // armFromSharedPrefs — read saved schedule + arm all future alarms

@@ -254,7 +254,7 @@ class SleepController extends GetxService {
   // SLEEP SCHEDULE METHODS
   // ═══════════════════════════════════════════════════════════════
   static const MethodChannel _nativeSleepChannel = MethodChannel(
-    'com.coretegra.snevva/sleep_service',
+    'com.coretegra.snevvaa/sleep_service',
   );
 
   void _updateNativeSleepAlarms() {

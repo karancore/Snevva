@@ -65,7 +65,7 @@ class StepCounterController extends GetxController {
   final Map<String, List<FlSpot>> _monthlySpotsCache = <String, List<FlSpot>>{};
 
   static const _stepChannel =
-      MethodChannel('com.coretegra.snevva/step_detector');
+      MethodChannel('com.coretegra.snevvaa/step_detector');
 
   // =======================
   // INIT

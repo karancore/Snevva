@@ -14,6 +14,9 @@ const String WEB_CLIENT_ID =
 
 const String WEB =
     "760082000923-v6lm2bqqroimspg8f1am01ntbio5mbn0.apps.googleusercontent.com";
+const String WEBDEBUG =
+    "760082000923-s0m8ar03o6aej0h6lnr3utvdqpa7c2td.apps.googleusercontent.com";
+
 // send otp api
 const String senOtpEmailEndpoint =
     '/api/registration/enduser/sendotp/gmail/signup';

@@ -1,4 +1,4 @@
-package com.coretegra.snevva
+package com.coretegra.snevvaa
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -25,7 +25,7 @@ class ConnectivityReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "ConnectivityReceiver"
-        const val SYNC_CHANNEL = "com.coretegra.snevva/sync"
+        const val SYNC_CHANNEL = "com.coretegra.snevvaa/sync"
     }
 
     override fun onReceive(context: Context, intent: Intent) {

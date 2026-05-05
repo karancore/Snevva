@@ -3,7 +3,6 @@ import 'dart:math';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:geolocator/geolocator.dart';
 
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,9 +33,6 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
   int todayDate = 1;
   DateTime _selectedMonth = DateTime.now();
   bool _isMonthlyView = false;
-
-  Position? _currentPosition;
-  StreamSubscription<Position>? _locationSub;
 
   Timer? _uiRefreshTimer;
 
@@ -71,7 +67,6 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    _locationSub?.cancel();
     _uiRefreshTimer?.cancel();
     _debounce?.cancel();
     _secretResetTimer?.cancel();
@@ -148,28 +143,6 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
   //     _graphMaxY = maxSteps * 1.1; // 10% padding
   //   });
   // }
-
-  Future<void> _initLocationTracking() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      await Geolocator.openLocationSettings();
-    }
-
-    LocationPermission permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever)
-      return;
-
-    _locationSub = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10,
-      ),
-    ).listen((pos) {
-      if (!mounted) return;
-      setState(() => _currentPosition = pos);
-    });
-  }
 
   // ===== LABELS =====
   //

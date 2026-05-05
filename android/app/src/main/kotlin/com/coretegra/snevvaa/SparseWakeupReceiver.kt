@@ -1,4 +1,4 @@
-package com.coretegra.snevva
+package com.coretegra.snevvaa
 
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -32,7 +32,7 @@ class SparseWakeupReceiver : BroadcastReceiver() {
         }
 
         StepCounterService.flutterEngine?.let { engine ->
-            val channel = MethodChannel(engine.dartExecutor.binaryMessenger, "com.coretegra.snevva/step_detector")
+            val channel = MethodChannel(engine.dartExecutor.binaryMessenger, "com.coretegra.snevvaa/step_detector")
             channel.invokeMethod("onAlarmWakeup", null)
             Log.d("SparseWakeupReceiver", "Wakeup sent to Flutter channel")
         }

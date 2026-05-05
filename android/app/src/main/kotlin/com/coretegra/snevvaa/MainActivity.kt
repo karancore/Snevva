@@ -1,4 +1,4 @@
-package com.coretegra.snevva
+package com.coretegra.snevvaa
 
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -12,12 +12,12 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    private val sleepServiceChannelName = "com.coretegra.snevva/sleep_service"
-    private val stepServiceChannelName = "com.coretegra.snevva/step_service"
-    private val displayConfigChannelName = "com.coretegra.snevva/display_config"
-    private val oemChannelName = "com.coretegra.snevva/oem_settings"
-    private val timezoneChannelName = "com.coretegra.snevva/timezone"
-    private val reminderAlarmsChannelName = "com.coretegra.snevva/reminder_alarms"
+    private val sleepServiceChannelName = "com.coretegra.snevvaa/sleep_service"
+    private val stepServiceChannelName = "com.coretegra.snevvaa/step_service"
+    private val displayConfigChannelName = "com.coretegra.snevvaa/display_config"
+    private val oemChannelName = "com.coretegra.snevvaa/oem_settings"
+    private val timezoneChannelName = "com.coretegra.snevvaa/timezone"
+    private val reminderAlarmsChannelName = "com.coretegra.snevvaa/reminder_alarms"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -238,7 +238,7 @@ class MainActivity : FlutterActivity() {
             }
 
         // Sync manager channel: Kotlin → Dart trigger for file-based sync queue
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.coretegra.snevva/sync_manager")
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.coretegra.snevvaa/sync_manager")
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "flushAndSync" -> {

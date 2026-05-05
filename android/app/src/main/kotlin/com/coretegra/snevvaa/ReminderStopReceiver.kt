@@ -1,4 +1,4 @@
-package com.coretegra.snevva
+package com.coretegra.snevvaa
 
 import android.app.NotificationManager
 import android.content.BroadcastReceiver
@@ -31,7 +31,7 @@ class ReminderStopReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != "com.coretegra.snevva.REMINDER_STOP") {
+        if (intent.action != "com.coretegra.snevvaa.REMINDER_STOP") {
             Log.w(TAG, "Unexpected action: ${intent.action}")
             return
         }

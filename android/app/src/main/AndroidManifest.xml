@@ -12,13 +12,16 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission
+        android:name="android.permission.USE_FULL_SCREEN_INTENT"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ACCESS_NOTIFICATION_POLICY"
+        tools:node="remove" />
 
     <!-- 📲 Notifications (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -29,23 +32,22 @@
          Step tracking uses TYPE_STEP_DETECTOR, covered by ACTIVITY_RECOGNITION alone. -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
 
-    <!-- 📍 Location -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-
     <!-- ⚙️ Foreground service types -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+        tools:node="remove" />
 
     <!-- 🔋 Battery optimization ignore -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
-    <!-- 📷 Camera & microphone -->
+    <!-- 📷 Camera -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission
+        android:name="android.permission.RECORD_AUDIO"
+        tools:node="remove" />
 
     <uses-feature
         android:name="android.hardware.camera"
@@ -205,7 +207,7 @@
             android:name=".ReminderAlarmReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.coretegra.snevva.REMINDER_FIRE" />
+                <action android:name="com.coretegra.snevvaa.REMINDER_FIRE" />
             </intent-filter>
         </receiver>
 
@@ -214,7 +216,7 @@
             android:name=".ReminderStopReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.coretegra.snevva.REMINDER_STOP" />
+                <action android:name="com.coretegra.snevvaa.REMINDER_STOP" />
             </intent-filter>
         </receiver>
 

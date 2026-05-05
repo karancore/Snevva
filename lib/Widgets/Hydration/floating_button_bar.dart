@@ -10,6 +10,7 @@ class FloatingButtonBar extends StatelessWidget {
     required this.onAddBtnLongTap,
     required this.onAddBtnTap,
     this.addWaterValue,
+    this.isMood = false,
   });
 
   final VoidCallback onStatBtnTap;
@@ -17,6 +18,7 @@ class FloatingButtonBar extends StatelessWidget {
   final VoidCallback onAddBtnLongTap;
   final VoidCallback onAddBtnTap;
   final int? addWaterValue;
+  final bool? isMood;
 
   @override
   Widget build(BuildContext context) {
@@ -80,21 +82,46 @@ class FloatingButtonBar extends StatelessWidget {
                           horizontal: 10,
                           vertical: 4,
                         ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SvgPicture.asset(gearIcon2),
-                            const SizedBox(height: 4),
-                            const AutoSizeText(
-                              'Reminder',
-                              maxLines: 1,
-                              minFontSize: 8,
-                              maxFontSize: 14,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ],
-                        ),
+                        child:
+                            (isMood! == true)
+                                ? Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SvgPicture.asset(
+                                      smileyIcon,
+                                      width: 20,
+                                      height: 20,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    AutoSizeText(
+                                      'Mood',
+                                      maxLines: 1,
+                                      minFontSize: 8,
+                                      maxFontSize: 14,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                                : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SvgPicture.asset(gearIcon2),
+                                    const SizedBox(height: 4),
+                                    AutoSizeText(
+                                      'Reminder',
+                                      maxLines: 1,
+                                      minFontSize: 8,
+                                      maxFontSize: 14,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                       ),
                     ),
                   ],

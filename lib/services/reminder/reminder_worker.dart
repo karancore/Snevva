@@ -8,10 +8,10 @@ import '../hive_service.dart';
 import 'reconciliation_engine.dart';
 
 /// Unique task name used by WorkManager to identify our periodic reminder job.
-const String kReminderReconcileTask = 'com.coretegra.snevva.reminderReconcile';
+const String kReminderReconcileTask = 'com.coretegra.snevvaa.reminderReconcile';
 
 /// One-shot task triggered by BootReceiver or manual request.
-const String kReminderOneShotTask = 'com.coretegra.snevva.reminderOneShot';
+const String kReminderOneShotTask = 'com.coretegra.snevvaa.reminderOneShot';
 
 /// The top-level callback dispatcher required by WorkManager.
 /// Must be a top-level function (not a class method).

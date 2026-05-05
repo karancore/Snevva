@@ -28,6 +28,30 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:760082000923:android:372e5eb0c946cea3a3dcbe",
+        "android_client_info": {
+          "package_name": "com.coretegra.snevvaa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCUAz5H5yHgpZl8DHnEScp_O3weEXndQIE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "760082000923-v6lm2bqqroimspg8f1am01ntbio5mbn0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

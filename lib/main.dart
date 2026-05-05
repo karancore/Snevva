@@ -178,7 +178,7 @@ void main() {
 
       // Register the step MethodChannel so the native StepCounterService can
       // deliver step counts to this Flutter engine via onStepDetected.
-      const stepChannel = MethodChannel('com.coretegra.snevva/step_detector');
+      const stepChannel = MethodChannel('com.coretegra.snevvaa/step_detector');
       stepChannel.setMethodCallHandler((call) async {
         if (call.method == 'onStepDetected') {
           // Write directly to SharedPrefs so the controller poller picks it up

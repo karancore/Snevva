@@ -104,24 +104,19 @@ class NutritionTipsPage extends StatelessWidget {
                           height: 220,
                           width: 220,
                           fit: BoxFit.cover,
-                          // loadingBuilder: (context, child, progress) {
-                          //   if (progress == null) return child;
-                          //   return Container(
-                          //     height: 220,
-                          //     width: 220,
-                          //     alignment: Alignment.center,
-                          //     child: const CircularProgressIndicator(),
-                          //   );
-                          // },
-                          // errorBuilder: (context, error, stackTrace) {
-                          //   return Container(
-                          //     height: 220,
-                          //     width: 220,
-                          //     color: Colors.grey[300],
-                          //     alignment: Alignment.center,
-                          //     child: const Icon(Icons.broken_image, size: 40),
-                          //   );
-                          // },
+                          errorWidget:
+                              (context, error, stackTrace) => Container(
+                            height: 120,
+                            color: Colors.grey[300],
+                            child: const Center(child: Icon(Icons.broken_image)),
+                          ),
+                          placeholder: (context, url) {
+                            return Container(
+                              height: 120,
+                              color: Colors.grey[200],
+                              child: const Center(child: CircularProgressIndicator()),
+                            );
+                          },
                         ),
                       ),
                     ),

@@ -105,7 +105,7 @@ class NativeAlarmEntry {
 class NativeAlarmBridge {
   NativeAlarmBridge._();
 
-  static const _channel = MethodChannel('com.coretegra.snevva/reminder_alarms');
+  static const _channel = MethodChannel('com.coretegra.snevvaa/reminder_alarms');
 
   /// SharedPrefs key — must match PREFS_KEY in ReminderArmingHelper.kt.
   /// Kotlin reads this as "flutter.native_reminder_alarms" because the Dart

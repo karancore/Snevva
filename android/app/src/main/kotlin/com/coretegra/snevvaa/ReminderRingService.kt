@@ -1,4 +1,4 @@
-package com.coretegra.snevva
+package com.coretegra.snevvaa
 
 import android.app.Notification
 import android.app.NotificationManager
@@ -14,7 +14,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.coretegra.snevva.ReminderRingService.Companion.AUTO_STOP_SECONDS
+import com.coretegra.snevvaa.ReminderRingService.Companion.AUTO_STOP_SECONDS
 
 /**
  * ForegroundService that rings a native reminder alarm.
@@ -37,7 +37,7 @@ class ReminderRingService : Service() {
     companion object {
         private const val TAG = "ReminderRingService"
         const val NOTIFICATION_ID = 9001
-        const val ACTION_STOP = "com.coretegra.snevva.REMINDER_STOP"
+        const val ACTION_STOP = "com.coretegra.snevvaa.REMINDER_STOP"
         private const val AUTO_STOP_SECONDS = 60L
         const val CHANNEL_ID = "reminder_alarm_channel"
     }

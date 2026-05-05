@@ -10,7 +10,7 @@ class TrackingServiceManager {
 
   static final TrackingServiceManager instance = TrackingServiceManager._();
   static const MethodChannel _stepServiceChannel = MethodChannel(
-    'com.coretegra.snevva/step_service',
+    'com.coretegra.snevvaa/step_service',
   );
 
   Future<void> start() async {

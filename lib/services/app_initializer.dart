@@ -58,8 +58,6 @@ Future<void> createServiceNotificationChannel() async {
 Future<void> requestAllPermissions() async {
   final req = <Permission>[
     Permission.activityRecognition,
-    Permission.sensors,
-    Permission.locationWhenInUse,
     Permission.ignoreBatteryOptimizations,
     Permission.notification,
   ];

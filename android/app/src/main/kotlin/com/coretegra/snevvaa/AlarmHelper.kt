@@ -1,4 +1,4 @@
-package com.coretegra.snevva
+package com.coretegra.snevvaa
 
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -24,14 +24,14 @@ object AlarmHelper {
         val bedPendingIntent = PendingIntent.getBroadcast(
             context,
             START_SLEEP_REQUEST_CODE,
-            Intent().setComponent(android.content.ComponentName(context, "com.coretegra.snevva.StartSleepReceiver")),
+            Intent().setComponent(android.content.ComponentName(context, "com.coretegra.snevvaa.StartSleepReceiver")),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         val wakePendingIntent = PendingIntent.getBroadcast(
             context,
             STOP_SLEEP_REQUEST_CODE,
-            Intent().setComponent(android.content.ComponentName(context, "com.coretegra.snevva.StopSleepReceiver")),
+            Intent().setComponent(android.content.ComponentName(context, "com.coretegra.snevvaa.StopSleepReceiver")),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 

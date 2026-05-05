@@ -6,7 +6,7 @@ class DeviceTimezoneService {
   DeviceTimezoneService._();
 
   static const MethodChannel _channel =
-  MethodChannel('com.coretegra.snevva/timezone');
+  MethodChannel('com.coretegra.snevvaa/timezone');
 
   static final DeviceTimezoneService instance =
   DeviceTimezoneService._();

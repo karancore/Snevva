@@ -1,4 +1,4 @@
-package com.coretegra.snevva
+package com.coretegra.snevvaa
 
 import android.app.*
 import android.content.*
@@ -298,7 +298,7 @@ class StepCounterService : Service(), SensorEventListener {
         val engine = flutterEngine
         if (engine != null && engine.dartExecutor.isExecutingDart) {
             try {
-                val channel = MethodChannel(engine.dartExecutor.binaryMessenger, "com.coretegra.snevva/step_detector")
+                val channel = MethodChannel(engine.dartExecutor.binaryMessenger, "com.coretegra.snevvaa/step_detector")
                 channel.invokeMethod("onStepDetected", stepsToday)
             } catch (e: Exception) {
                 Log.w("StepService", "MethodChannel send failed (engine may be detaching): ${e.message}")

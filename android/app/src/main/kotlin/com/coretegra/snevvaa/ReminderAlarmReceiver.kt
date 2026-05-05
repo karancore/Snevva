@@ -1,4 +1,4 @@
-package com.coretegra.snevva
+package com.coretegra.snevvaa
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -131,7 +131,7 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
         val notifId = notifIdFor(alarmId)
 
         val stopIntent = Intent(context, ReminderStopReceiver::class.java).apply {
-            action = "com.coretegra.snevva.REMINDER_STOP"
+            action = "com.coretegra.snevvaa.REMINDER_STOP"
             putExtra("notifId", notifId)
             putExtra("alarmId", alarmId)
         }

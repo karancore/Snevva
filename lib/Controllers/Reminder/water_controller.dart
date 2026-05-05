@@ -845,7 +845,6 @@ class WaterController extends GetxController {
   }
 
   void resetControllers() {
-    everyHourController.clear();
     timesPerDayController.clear();
 
     startWaterTimeController.clear();

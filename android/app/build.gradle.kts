@@ -22,12 +22,12 @@ val resolvedStoreFile = configuredStoreFile?.let { configuredPath ->
     }
 }
 android {
-    namespace = "com.coretegra.snevva"
+    namespace = "com.coretegra.snevvaa"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     defaultConfig {
-        applicationId = "com.coretegra.snevva"
+        applicationId = "com.coretegra.snevvaa"
         //minSdk = flutter.minSdkVersion
         minSdk = flutter.minSdkVersion
 
