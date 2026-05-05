@@ -205,7 +205,7 @@ class SignInController extends GetxService {
       else if (response.statusCode == 400) {
         CustomSnackbar.showError(
           context: context,
-          title: 'Error',
+          title: 'Sign In Failed',
           message: 'Wrong Credentials',
         );
 
@@ -512,7 +512,7 @@ class SignInController extends GetxService {
       } else if (response.statusCode == 400) {
         CustomSnackbar.showError(
           context: context,
-          title: 'Error',
+          title: 'Sign In Failed',
           message: 'Wrong Credentials',
         );
         return false;

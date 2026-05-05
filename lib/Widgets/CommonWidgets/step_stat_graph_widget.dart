@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 
@@ -26,7 +25,6 @@ class StepStatGraphWidget extends StatelessWidget {
   final bool isDarkMode;
   final double height;
   final List<FlSpot> points;
-
   final double yAxisMaxValue;
   final bool isMonthlyView;
   final List<String>? weekLabels;
@@ -34,36 +32,30 @@ class StepStatGraphWidget extends StatelessWidget {
   final String graphTitle;
   final double maxY;
   final DateTime? selectedMonthForHeader;
+
   @override
   Widget build(BuildContext context) {
-     final now = DateTime.now();
+    final now = DateTime.now();
     DateTime headerDate = now;
     if (isMonthlyView && selectedMonthForHeader != null) {
       final selected = selectedMonthForHeader!;
       final isCurrentMonth =
           selected.year == now.year && selected.month == now.month;
-      headerDate =
-          isCurrentMonth
-              ? DateTime(now.year, now.month, now.day)
-              : DateTime(selected.year, selected.month + 1, 0);
+      headerDate = isCurrentMonth
+          ? DateTime(now.year, now.month, now.day)
+          : DateTime(selected.year, selected.month + 1, 0);
     }
 
     final String formattedDate = DateFormat('d MMM, yyyy').format(headerDate);
-
     final labels =
         weekLabels ?? const ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-    final bool isMonthly = isMonthlyView;
-
-    // final bool isMonthly = labels.length > 7;
-
     // Clamp points so they never exceed maxY
-    final clampedPoints =
-        points.map((p) {
-          double y = p.y;
-          if (y > yAxisMaxValue) y = yAxisMaxValue;
-          return FlSpot(p.x, y);
-        }).toList();
+    final clampedPoints = points.map((p) {
+      double y = p.y;
+      if (y > yAxisMaxValue) y = yAxisMaxValue;
+      return FlSpot(p.x, y);
+    }).toList();
 
     return Material(
       elevation: 3,
@@ -113,21 +105,21 @@ class StepStatGraphWidget extends StatelessWidget {
             // ===== GRAPH =====
             isMonthlyView
                 ? SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: _buildChart(
-                    labels: labels,
-                    points: clampedPoints,
-                    isMonthly: true,
-                    context: context,
-                  ),
-                )
+              scrollDirection: Axis.horizontal,
+              child: _buildChart(
+                labels: labels,
+                points: clampedPoints,
+                isMonthly: true,
+                context: context,
+              ),
+            )
                 : _buildChart(
-                  labels: labels,
-                  points: clampedPoints,
-                  context: context,
-                  isMonthly: false,
-                  maxXForWeek: maxXForWeek,
-                ),
+              labels: labels,
+              points: clampedPoints,
+              context: context,
+              isMonthly: false,
+              maxXForWeek: maxXForWeek,
+            ),
           ],
         ),
       ),
@@ -150,8 +142,15 @@ class StepStatGraphWidget extends StatelessWidget {
     return 10000;
   }
 
-  /// Returns a "nice" maximum Y-axis value slightly above the actual max value
-
+  double get _dynamicBarWidth {
+    final count = points.length;
+    if (count <= 3) return 40;
+    if (count <= 5) return 40;
+    if (count <= 7) return 40;
+    if (count <= 15) return 30;
+    if (count <= 20) return 30;
+    return 30;
+  }
   Widget _buildChart({
     required List<String> labels,
     required List<FlSpot> points,
@@ -159,7 +158,6 @@ class StepStatGraphWidget extends StatelessWidget {
     required BuildContext context,
     int? maxXForWeek,
   }) {
-    // final double interval = maxY / 5;
     final double interval = getNiceInterval(maxY);
 
     double chartWidth = max(
@@ -169,44 +167,73 @@ class StepStatGraphWidget extends StatelessWidget {
 
     if (isMonthly) chartWidth += 1;
 
-    final safeMaxx =
-        isMonthly
-            ? max(0, labels.length - 1).toDouble()
-            : max(0, (maxXForWeek ?? labels.length - 1)).toDouble();
-
     final now = DateTime.now();
     final selectedMonth = selectedMonthForHeader;
-    final bool highlightCurrentMonth =
-        selectedMonth != null &&
+    final bool highlightCurrentMonth = selectedMonth != null &&
         selectedMonth.year == now.year &&
         selectedMonth.month == now.month;
+
+    // ✅ Convert FlSpot list → BarChartGroupData list
+    final barGroups = List.generate(labels.length, (index) {
+      final spot = points.firstWhere(
+            (p) => p.x.toInt() == index,
+        orElse: () => FlSpot(index.toDouble(), 0),
+      );
+
+      final bool isToday = isMonthly
+          ? (highlightCurrentMonth && index == getCurrentDateIndex())
+          : index == maxXForWeek;
+
+      return BarChartGroupData(
+        x: index,
+        barRods: [
+          BarChartRodData(
+            toY: spot.y,
+            width: _dynamicBarWidth, // thinner for monthly (more bars)
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(4),
+            ),
+            // ✅ Highlight today's bar differently
+            gradient: LinearGradient(
+              colors: isToday
+                  ? [
+                AppColors.primaryColor,
+                AppColors.primaryColor,
+              ]
+                  : [
+                AppColors.primaryColor.withOpacity(0.5),
+                AppColors.primaryColor,
+              ],
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
+            ),
+          ),
+        ],
+      );
+    });
 
     return Container(
       padding: const EdgeInsets.only(top: 52),
       height: height * 0.28,
       width: chartWidth,
       child: RepaintBoundary(
-        child: LineChart(
-          LineChartData(
-            minX: 0,
-            maxX: safeMaxx,
+        child: BarChart(
+          BarChartData(
             minY: 0,
             maxY: maxY,
+            barGroups: barGroups,
             titlesData: FlTitlesData(
               bottomTitles: AxisTitles(
                 sideTitles: SideTitles(
                   showTitles: true,
-                  interval: 1,
                   reservedSize: 24,
                   getTitlesWidget: (value, _) {
                     final int index = value.toInt();
-
                     if (index >= 0 && index < labels.length) {
-                      final bool isToday =
-                          isMonthly
-                              ? (highlightCurrentMonth &&
-                                  index == getCurrentDateIndex())
-                              : index == maxXForWeek;
+                      final bool isToday = isMonthly
+                          ? (highlightCurrentMonth &&
+                          index == getCurrentDateIndex())
+                          : index == maxXForWeek;
 
                       return Padding(
                         padding: const EdgeInsets.only(top: 6),
@@ -214,12 +241,12 @@ class StepStatGraphWidget extends StatelessWidget {
                           labels[index],
                           style: TextStyle(
                             fontSize: 9,
-                            fontWeight:
-                                isToday ? FontWeight.bold : FontWeight.normal,
-                            color:
-                                isToday
-                                    ? AppColors.primaryColor
-                                    : Colors.grey.shade600,
+                            fontWeight: isToday
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: isToday
+                                ? AppColors.primaryColor
+                                : Colors.grey.shade600,
                           ),
                         ),
                       );
@@ -232,8 +259,8 @@ class StepStatGraphWidget extends StatelessWidget {
                 sideTitles: SideTitles(
                   showTitles: true,
                   interval: interval,
-                  getTitlesWidget:
-                      (value, _) => Text(
+                  getTitlesWidget: (value, _) =>
+                      Text(
                         NumberFormat.compact().format(value.toInt()),
                         style: const TextStyle(fontSize: 9),
                       ),
@@ -250,8 +277,8 @@ class StepStatGraphWidget extends StatelessWidget {
               show: true,
               horizontalInterval: interval,
               drawVerticalLine: false,
-              getDrawingHorizontalLine:
-                  (_) => const FlLine(color: mediumGrey, strokeWidth: 0.8),
+              getDrawingHorizontalLine: (_) =>
+              const FlLine(color: mediumGrey, strokeWidth: 0.8),
             ),
             borderData: FlBorderData(
               show: true,
@@ -262,58 +289,22 @@ class StepStatGraphWidget extends StatelessWidget {
                 top: BorderSide(color: Colors.transparent),
               ),
             ),
-            lineBarsData: [
-              LineChartBarData(
-                spots: points,
-                isCurved: true,
-                preventCurveOverShooting: true,
-                color: AppColors.primaryColor,
-                barWidth: 2,
-                dotData: FlDotData(
-                  show: true,
-                  getDotPainter: (spot, _, __, ___) {
-                    if (spot.y == 0) {
-                      return FlDotCirclePainter(radius: 0);
-                    }
-                    return FlDotCirclePainter(
-                      radius: 4,
-                      color: white,
-                      strokeWidth: 2,
-                      strokeColor: AppColors.primaryColor,
-                    );
-                  },
-                ),
-                belowBarData: BarAreaData(
-                  show: true,
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.primaryColor.withOpacity(0.3),
-                      Colors.transparent,
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
-              ),
-            ],
-            lineTouchData: LineTouchData(
+            // ✅ Tooltip on tap
+            barTouchData: BarTouchData(
               enabled: true,
-              touchTooltipData: LineTouchTooltipData(
-                getTooltipColor: (touchedSpot) => AppColors.primaryColor,
-                tooltipPadding: EdgeInsets.all(8),
+              touchTooltipData: BarTouchTooltipData(
+                getTooltipColor: (_) => AppColors.primaryColor,
+                tooltipPadding: const EdgeInsets.all(8),
                 tooltipBorderRadius: BorderRadius.circular(24),
-
-                getTooltipItems: (touchedSpots) {
-                  return touchedSpots.map((spot) {
-                    return LineTooltipItem(
-                      '${(spot.y).round()} Steps',
-                      const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: white,
-                      ),
-                    );
-                  }).toList();
+                getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                  return BarTooltipItem(
+                    '${rod.toY.round()} Steps',
+                    const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: white,
+                    ),
+                  );
                 },
               ),
             ),

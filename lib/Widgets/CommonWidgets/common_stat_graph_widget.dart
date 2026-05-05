@@ -35,12 +35,21 @@ class CommonStatGraphWidget extends StatelessWidget {
   final String measureUnit;
   final bool isMonthlyView;
   final bool isSleepGraph;
-
   final bool isWaterGraph;
-  final List<FlSpot> points; // Data points for the graph
-  final List<String>?
-  weekLabels; // Can be days (Mon-Sun) or month days (1,5,10...)
+  final List<FlSpot> points;
+  final List<String>? weekLabels;
   final DateTime? selectedMonthForHeader;
+
+  // ✅ Dynamic bar width based on point count
+  double get _dynamicBarWidth {
+    final count = points.length;
+    if (count <= 3) return 40;
+    if (count <= 5) return 40;
+    if (count <= 7) return 40;
+    if (count <= 15) return 30;
+    if (count <= 20) return 30;
+    return 30;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,15 +63,9 @@ class CommonStatGraphWidget extends StatelessWidget {
       "Sun",
     ];
 
-    // Use provided labels, or default weekly labels
     final labels = weekLabels ?? fixedWeekLabels;
-
-    // If labels > 7, treat it as monthly data
-    //final bool isMonthly = labels.length > 7;
     final bool isMonthly = isMonthlyView;
 
-    // Weekly labels are often partial (Mon..today), so highlight by the
-    // provided weekly max index instead of assuming 7 labels are present.
     int todayIndex = -1;
     if (!isMonthly && labels.isNotEmpty) {
       final int resolvedIndex = maxXForWeek ?? (labels.length - 1);
@@ -96,7 +99,7 @@ class CommonStatGraphWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ===== Header Section =====
+            // ===== Header =====
             Row(
               children: [
                 SvgPicture.asset(statisticIcon, height: 22),
@@ -129,7 +132,7 @@ class CommonStatGraphWidget extends StatelessWidget {
 
             const SizedBox(height: 15),
 
-            // ===== Graph Section =====
+            // ===== Graph =====
             isMonthlyView
                 ? SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -163,18 +166,6 @@ class CommonStatGraphWidget extends StatelessWidget {
     required BuildContext context,
     int? maxXForWeek,
   }) {
-    String formatted = '';
-    final double safeMaxX =
-        isMonthly
-            ? max(0, labels.length - 1).toDouble()
-            : max(0, (maxXForWeek ?? labels.length - 1)).toDouble();
-
-    double chartWidth = max(
-      labels.length * 42.0,
-      MediaQuery.of(context).size.width - 40,
-    );
-    if (isMonthly) chartWidth += 1;
-
     if (points.isEmpty || labels.isEmpty) {
       return SizedBox(
         height: height * 0.28,
@@ -187,33 +178,66 @@ class CommonStatGraphWidget extends StatelessWidget {
       );
     }
 
+    double chartWidth = max(
+      labels.length * 42.0,
+      MediaQuery.of(context).size.width - 40,
+    );
+    if (isMonthly) chartWidth += 1;
+
+    // ✅ Convert FlSpot list → BarChartGroupData list
+    final barGroups = List.generate(labels.length, (index) {
+      final spot = points.firstWhere(
+        (p) => p.x.toInt() == index,
+        orElse: () => FlSpot(index.toDouble(), 0),
+      );
+
+      final bool isToday =
+          !isMonthly && todayIndex != -1 && index == todayIndex;
+
+      return BarChartGroupData(
+        x: index,
+        barRods: [
+          BarChartRodData(
+            toY: spot.y,
+            width: _dynamicBarWidth, // ✅ dynamic width
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+            gradient: LinearGradient(
+              colors:
+                  isToday
+                      ? [AppColors.primaryColor, AppColors.primaryColor]
+                      : [
+                        AppColors.primaryColor.withOpacity(0.5),
+                        AppColors.primaryColor,
+                      ],
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
+            ),
+          ),
+        ],
+      );
+    });
+
     return Container(
       padding: const EdgeInsets.only(top: 52),
       height: height * 0.28,
       width: chartWidth,
       child: RepaintBoundary(
-        child: LineChart(
+        child: BarChart(
           key: ValueKey(isMonthlyView),
-          LineChartData(
-            minX: 0,
-            maxX: safeMaxX,
-            // use dynamic maxX
+          BarChartData(
             minY: 0,
             maxY: yAxisMaxValue,
-
+            barGroups: barGroups,
             titlesData: FlTitlesData(
               bottomTitles: AxisTitles(
                 sideTitles: SideTitles(
                   showTitles: true,
                   reservedSize: 24,
-                  interval: 1,
                   getTitlesWidget: (value, _) {
                     final int index = value.toInt();
-
                     if (index >= 0 && index < labels.length) {
                       final bool isToday =
                           !isMonthly && todayIndex != -1 && index == todayIndex;
-
                       return Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(
@@ -230,7 +254,6 @@ class CommonStatGraphWidget extends StatelessWidget {
                         ),
                       );
                     }
-
                     return const SizedBox.shrink();
                   },
                 ),
@@ -248,10 +271,12 @@ class CommonStatGraphWidget extends StatelessWidget {
                       ),
                 ),
               ),
-              rightTitles: AxisTitles(
+              rightTitles: const AxisTitles(
                 sideTitles: SideTitles(showTitles: false),
               ),
-              topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              topTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
             ),
             gridData: FlGridData(
               show: true,
@@ -269,74 +294,30 @@ class CommonStatGraphWidget extends StatelessWidget {
                 top: BorderSide(color: Colors.transparent),
               ),
             ),
-            lineBarsData: [
-              LineChartBarData(
-                spots: points,
-                isCurved: true,
-                preventCurveOverShooting: true,
-
-                color: AppColors.primaryColor,
-                barWidth: 2,
-                dotData: FlDotData(
-                  show: true,
-                  getDotPainter: (spot, percent, barData, index) {
-                    if (spot.y == 0) {
-                      return FlDotCirclePainter(
-                        radius: 0, // 👈 invisible
-                        color: Colors.transparent,
-                        strokeWidth: 0,
-                        strokeColor: Colors.transparent,
-                      );
-                    }
-
-                    return FlDotCirclePainter(
-                      radius: 4,
-                      color: white,
-                      strokeWidth: 2,
-                      strokeColor: AppColors.primaryColor,
-                    );
-                  },
-                ),
-
-                belowBarData: BarAreaData(
-                  show: true,
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.primaryColor.withOpacity(0.3),
-                      Colors.transparent,
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
-              ),
-            ],
-            lineTouchData: LineTouchData(
+            // ✅ Tooltip — sleep ya water ke hisaab se format
+            barTouchData: BarTouchData(
               enabled: true,
-              touchTooltipData: LineTouchTooltipData(
-                getTooltipColor: (touchedSpot) => AppColors.primaryColor,
+              touchTooltipData: BarTouchTooltipData(
+                getTooltipColor: (_) => AppColors.primaryColor,
                 tooltipPadding: const EdgeInsets.all(8),
                 tooltipBorderRadius: BorderRadius.circular(24),
-                getTooltipItems: (touchedSpots) {
-                  return touchedSpots.map((spot) {
-                    if (isSleepGraph) {
-                      final int minutes = (spot.y * 60).round();
-                      formatted = formatDurationToHM(
-                        Duration(minutes: minutes),
-                      );
-                    }
-
-                    return LineTooltipItem(
-                      isSleepGraph
-                          ? formatted
-                          : '${(spot.y * 1000).round()} ml',
-                      const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    );
-                  }).toList();
+                getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                  String label;
+                  if (isSleepGraph) {
+                    final int minutes = (rod.toY * 60).round();
+                    label = formatDurationToHM(Duration(minutes: minutes));
+                  } else {
+                    // water graph
+                    label = '${(rod.toY * 1000).round()} ml';
+                  }
+                  return BarTooltipItem(
+                    label,
+                    const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  );
                 },
               ),
             ),
@@ -346,6 +327,8 @@ class CommonStatGraphWidget extends StatelessWidget {
     );
   }
 }
+
+// ===== Helper functions (unchanged) =====
 
 double getNiceHydrationMaxY(double value) {
   if (value <= 1) return 1;
@@ -367,11 +350,6 @@ double getNiceHydrationInterval(double maxY) {
 }
 
 double getNiceSleepMaxY(double value) {
-  // if (value <= 0) return 0;
-  // if (value <= 1) return 1;
-  // if (value <= 2) return 2;
-  // if (value <= 3) return 3;
-
   if (value <= 4) return 4;
   if (value <= 5) return 5;
   if (value <= 6) return 6;
