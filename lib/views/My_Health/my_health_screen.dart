@@ -205,7 +205,9 @@ class _MyHealthScreenState extends State<MyHealthScreen>
         cardType: "bmi",
         title: Obx(
           () => Text(
-            '${bmiController.bmi.value}',
+            (bmiController.bmi.value == 0.0)
+                ? 'Add BMI'
+                : '${bmiController.bmi.value}',
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
           ),
         ),

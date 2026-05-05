@@ -12,6 +12,7 @@ import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/services/notification_service.dart';
 
+import '../BMI/bmi_updatecontroller.dart';
 import '../local_storage_manager.dart';
 import '../signupAndSignIn/otp_verification_controller.dart';
 import '../signupAndSignIn/sign_up_controller.dart';
@@ -501,6 +502,11 @@ class EditprofileController extends GetxService {
                                       year: DateTime.now().year,
                                       time: TimeOfDay.now().format(context),
                                     );
+                                    // ✅ BmiUpdateController ko sync karo
+                                    final bmiController =
+                                        Get.find<BmiUpdateController>();
+                                    bmiController.height.value = height!;
+                                    bmiController.updateBmiValues();
                                     isLoading.value = false;
                                     break;
                                   case 'Weight':
@@ -512,6 +518,10 @@ class EditprofileController extends GetxService {
                                       year: DateTime.now().year,
                                       time: TimeOfDay.now().format(context),
                                     );
+                                    final bmiController =
+                                        Get.find<BmiUpdateController>();
+                                    bmiController.weight.value = weight!;
+                                    bmiController.updateBmiValues();
                                     isLoading.value = false;
                                     break;
                                   case 'Address':

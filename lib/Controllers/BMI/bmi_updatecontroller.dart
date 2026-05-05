@@ -37,6 +37,9 @@ class BmiUpdateController extends GetxService {
     localStorageManager = Get.find<LocalStorageManager>();
     editprofileController = Get.find<EditprofileController>();
     scrollController.addListener(_onScroll);
+
+    ever(height, (_) => updateBmiValues());
+    ever(weight, (_) => updateBmiValues());
   }
 
   void _onScroll() {
@@ -45,6 +48,31 @@ class BmiUpdateController extends GetxService {
     if (position.maxScrollExtent <= 0) return;
     if (position.pixels >= position.maxScrollExtent - 200) {
       GetCustomHealthTips(loadMore: true);
+    }
+  }
+
+  void updateBmiValues() {
+    localStorageManager.userGoalDataMap['HeightData']['Value'] = height.value;
+    localStorageManager.userGoalDataMap['WeightData']['Value'] = weight.value;
+
+    // ✅ Recalculate BMI
+    if (height.value > 0 && weight.value > 0) {
+      final heightInMeters = height.value / 100;
+      bmi.value = double.parse(
+        (weight.value / (heightInMeters * heightInMeters)).toStringAsFixed(2),
+      );
+
+      if (bmi.value < 18.5) {
+        bmi_text.value = "Underweight";
+      } else if (bmi.value < 24.9) {
+        bmi_text.value = "Great-Shape";
+      } else if (bmi.value < 29.9) {
+        bmi_text.value = "Overweight";
+      } else {
+        bmi_text.value = "Obese";
+      }
+
+      debugPrint('✅ BMI recalculated: ${bmi.value} → ${bmi_text.value}');
     }
   }
 
@@ -87,20 +115,6 @@ class BmiUpdateController extends GetxService {
     debugPrint('Set Age: $age, Height: $height cm, Weight: $weight kg');
     updateBmiValues();
     return true;
-  }
-
-  void updateBmiValues() {
-    debugPrint(
-      "ht and wt before ${localStorageManager.userGoalDataMap['HeightData']['Value']} and ${localStorageManager.userGoalDataMap['WeightData']['Value']}",
-    );
-    localStorageManager.userGoalDataMap['HeightData']['Value'] = height.value;
-    localStorageManager.userGoalDataMap['WeightData']['Value'] = weight.value;
-
-    debugPrint('Updated Height: ${height.value}, Weight: ${weight.value}');
-    debugPrint(
-      "ht and wt updated in local storage manager ${localStorageManager.userGoalDataMap['HeightData']['Value']} and ${localStorageManager.userGoalDataMap['WeightData']['Value']}",
-    );
-    // await localStorageManager.reloadUserMap();
   }
 
   Future<void> loadUserBMI() async {
