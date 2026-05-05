@@ -900,9 +900,6 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
 
                                       if (path != null) {
                                         final fileName = path.split('/').last;
-                                        final inDownloads = path.startsWith(
-                                          '/storage/emulated/0/Download/',
-                                        );
                                         setState(() {
                                           _isCurrentTrackDownloaded = true;
                                           _currentTrackDownloadedPath = path;
@@ -912,9 +909,7 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
                                         ).showSnackBar(
                                           SnackBar(
                                             content: Text(
-                                              inDownloads
-                                                  ? 'Saved to Downloads/$fileName'
-                                                  : 'Downloaded to $path',
+                                              'Downloaded: $fileName',
                                             ),
                                           ),
                                         );

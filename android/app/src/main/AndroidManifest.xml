@@ -1,11 +1,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- File-based storage (internal app dir — no external-storage permissions needed) -->
-    <!-- External storage permissions below are kept only for legacy compatibility -->
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <!-- File-based storage uses internal app dir (getApplicationSupportDirectory).
+         No external-storage permissions are needed on Android 10+ (API 29+).
+         READ/WRITE_EXTERNAL_STORAGE are scoped to API ≤28 only for legacy devices.
+         MANAGE_EXTERNAL_STORAGE has been removed: the app does not manage arbitrary
+         external files and Google Play policy prohibits this permission unless the
+         app is a file manager, antivirus, or backup tool. -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
 
     <!-- 🌐 Internet & network state -->
     <uses-permission android:name="android.permission.INTERNET" />
