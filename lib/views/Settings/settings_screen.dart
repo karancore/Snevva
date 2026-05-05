@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:snevva/utils/theme_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -24,6 +25,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsToggle = false;
   double _volume = 0.5;
 
+  String appVersion = '1.0.0';
   Future<void> launchEmail() async {
     final Uri emailUri = Uri(
       scheme: 'mailto',
@@ -37,6 +39,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     await launchUrl(emailUri, mode: LaunchMode.externalApplication);
   }
+
+
+  @override
+  void initState() {
+    super.initState();
+
+    fetchAppVersion();
+  }
+
+  Future<void> fetchAppVersion() async {
+    String version = await getAppVersion();
+    appVersion = version;
+  }
+
+  Future<String> getAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+
+    String version = packageInfo.version; // e.g. 1.0.0
+    String buildNumber = packageInfo.buildNumber; // e.g. 1
+
+    return version;
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -212,7 +238,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 buildTile('Version', 'Tap to check for updates'),
                 const Spacer(),
                 AutoSizeText(
-                  'v1.0.0',
+                  'v$appVersion',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                 ),
               ],
