@@ -23,7 +23,10 @@ import '../../widgets/reminder/custom_Radio.dart';
 class AddReminderScreen extends StatefulWidget {
   final ReminderPayloadModel? reminder;
 
-  const AddReminderScreen({super.key, this.reminder});
+  final bool ? isHydrationScreen;
+
+  const AddReminderScreen(
+      {super.key, this.reminder, this.isHydrationScreen = false});
 
   @override
   State<AddReminderScreen> createState() => _AddReminderScreenState();
@@ -54,12 +57,18 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
     final reminder = widget.reminder;
 
+
     debugPrint("Reminder ${reminder.toString()}");
+
     if (reminder != null) {
       // editing existing reminder
       fillByCategory(reminder);
     } else {
-      reminderController.selectedCategory.value = 'medicine';
+      if (widget.isHydrationScreen == true) {
+        reminderController.selectedCategory.value = 'water';
+      } else {
+        reminderController.selectedCategory.value = 'medicine';
+      }
     }
   }
 
@@ -79,6 +88,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         break;
     }
   }
+
 
   void fillTimeControllers(List<String> times) {
     medicineGetxController.timeControllers.clear();

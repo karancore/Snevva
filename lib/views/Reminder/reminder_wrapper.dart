@@ -9,9 +9,14 @@ import '../../Controllers/Reminder/water_controller.dart';
 import 'reminder_screen.dart';
 
 class ReminderScreenWrapper extends StatelessWidget {
-  const ReminderScreenWrapper({super.key, this.isClose = false});
+  const ReminderScreenWrapper(
+      {super.key, this.isClose = false, this.isHydrationScreen = false});
 
   final bool ? isClose;
+
+  final bool ? isHydrationScreen;
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +26,7 @@ class ReminderScreenWrapper extends StatelessWidget {
     Get.find<MedicineController>();
     Get.find<ReminderController>(tag: 'reminder');
 
-    return ReminderScreen(isClose: isClose,);
+    return ReminderScreen(
+      isClose: isClose, isHydrationScreen: isHydrationScreen,);
   }
 }

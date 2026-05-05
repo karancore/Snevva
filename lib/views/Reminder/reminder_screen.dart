@@ -14,9 +14,11 @@ import '../../common/global_variables.dart';
 import 'collapsed_header.dart';
 
 class ReminderScreen extends StatefulWidget {
-  const ReminderScreen({super.key, this.isClose = false});
+  const ReminderScreen(
+      {super.key, this.isClose = false, this.isHydrationScreen = false});
 
   final bool? isClose;
+  final bool ? isHydrationScreen;
   @override
   State<ReminderScreen> createState() => _ReminderScreenState();
 }
@@ -43,6 +45,7 @@ class _ReminderScreenState extends State<ReminderScreen>
       _loadData();
     });
   }
+
 
   void _triggerListAnimationIfNeeded(int itemCount) {
     if (itemCount == 0 || itemCount == _lastAnimatedCount) return;

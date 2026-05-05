@@ -1,6 +1,6 @@
 import 'package:snevva/views/Information/HydrationScreens/hydration_bottom_sheet.dart';
 import 'package:snevva/views/Information/HydrationScreens/water_bottom_sheet.dart';
-import 'package:snevva/views/Reminder/reminder_wrapper.dart';
+import 'package:snevva/views/Reminder/add_reminder_screen.dart';
 import 'package:snevva/widgets/Hydration/floating_button_bar.dart';
 import 'package:wheel_picker/wheel_picker.dart';
 
@@ -139,7 +139,11 @@ class _HydrationScreenState extends State<HydrationScreen>
         child: Obx(
           () => FloatingButtonBar(
             onStatBtnTap: () => Get.to(() => const HydrationStatistics()),
-            onReminderBtnTap: () => Get.to(() => const ReminderScreenWrapper()),
+            onReminderBtnTap:
+                () =>
+                Get.to(
+                      () => const AddReminderScreen(isHydrationScreen: true,),
+                ),
             onAddBtnTap: _onAddButtonPressed,
             onAddBtnLongTap: () async {
               final result = await showHydrationBottomSheetModal(
