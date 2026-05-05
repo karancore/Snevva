@@ -2,7 +2,7 @@ import 'package:modern_form_line_awesome_icons/modern_form_line_awesome_icons.da
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
-import 'package:snevva/views/Reminder/reminder_wrapper.dart';
+import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
 import 'package:snevva/views/WomenHealth/women_health_history.dart';
 import 'package:snevva/widgets/Hydration/floating_button_bar.dart';
 
@@ -254,7 +254,7 @@ class _WomenHealthScreenState extends State<WomenHealthScreen> {
                 child: FloatingButtonBar(
                   onStatBtnTap: () => Get.to(() => WomenHealthHistory()),
                   onReminderBtnTap: () {
-                    Get.to(() => ReminderScreenWrapper());
+                    Get.to(() => MoodTrackerScreen());
                   },
                   onAddBtnTap: () async {
                     DateTime now = DateTime.now();
@@ -298,6 +298,7 @@ class _WomenHealthScreenState extends State<WomenHealthScreen> {
                     }
                   },
                   onAddBtnLongTap: () {},
+                  isMood: true,
                 ),
               ),
             ),

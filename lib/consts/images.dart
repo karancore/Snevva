@@ -182,6 +182,7 @@ const heightFemale = "assets/Images/Height_And_Weight/height1.svg";
 const hydrationEle = 'assets/Images/HydrationEle.webp';
 const statIcon = 'assets/Icons/Hydration/StatIcon.svg';
 const gearIcon2 = 'assets/Icons/Hydration/GearIcon.svg';
+const smileyIcon = "assets/Icons/WomenHealth/Vector (1).svg";
 const statisticIcon = 'assets/Icons/Hydration/bar-chart-grouped-line.svg';
 const deleteIcon = 'assets/Icons/Hydration/delete-bin-line.svg';
 
