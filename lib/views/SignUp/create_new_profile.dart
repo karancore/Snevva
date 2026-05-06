@@ -78,8 +78,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
       } else {
         CustomSnackbar.showError(
-          title: 'Error',
-          message: 'Please Provide Correct Email or Phone Number',
+          title: 'Oops!',
+          message:
+              'That doesn’t look right. Please check your email or phone number and try again.',
           context: context,
         );
       }
