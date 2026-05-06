@@ -124,7 +124,7 @@ class _DashboardServiceOverviewDynamicWidgetsState
                 valueText: Obx(
                   () => RichText(
                     text: TextSpan(
-                      text: '${waterController.waterIntake.value} ml',
+                      text: '${waterController.waterIntake.value.toStringAsFixed(0)} ml',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 10,

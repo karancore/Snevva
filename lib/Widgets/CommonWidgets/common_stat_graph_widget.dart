@@ -44,11 +44,11 @@ class CommonStatGraphWidget extends StatelessWidget {
   double get _dynamicBarWidth {
     final count = points.length;
     if (count <= 3) return 40;
-    if (count <= 5) return 40;
-    if (count <= 7) return 40;
-    if (count <= 15) return 30;
-    if (count <= 20) return 30;
-    return 30;
+    if (count <= 5) return 30;
+    if (count <= 7) return 20;
+    if (count <= 15) return 14;
+    if (count <= 20) return 10;
+    return 8;
   }
 
   @override
