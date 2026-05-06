@@ -83,7 +83,7 @@ class _HydrationScreenState extends State<HydrationScreen>
   void _onAddButtonPressed() {
     final currentTime = DateTime.now().millisecondsSinceEpoch;
     if (currentTime - lastPressTime < cooldownTime) {
-      _showCooldownWarning();
+      // _showCooldownWarning();
       return;
     }
 

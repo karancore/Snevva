@@ -23,13 +23,13 @@ class UpdateOldPasswordController extends GetxService {
   var confirmPassword = ''.obs;
   var isChecked = false.obs;
 
-  bool get hasLetter => RegExp(r'[A-Za-z]').hasMatch(password.value);
+  bool get hasUppercase => RegExp(r'[A-Z]').hasMatch(password.value);
 
   bool get hasNumberOrSymbol => RegExp(r'[\d!@#$&*~]').hasMatch(password.value);
 
   bool get hasMinLength => password.value.length >= 10;
 
-  bool get isPasswordValid => hasLetter && hasNumberOrSymbol && hasMinLength;
+  bool get isPasswordValid => hasUppercase && hasNumberOrSymbol && hasMinLength;
 
   bool get isConfirmPasswordValid {
     if (password.value.isEmpty || confirmPassword.value.isEmpty) {

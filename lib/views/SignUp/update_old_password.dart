@@ -20,13 +20,15 @@ class UpdateOldPassword extends StatefulWidget {
   State<UpdateOldPassword> createState() => _UpdateOldPaswordState();
 }
 
-final updatePasswordController = Get.put(UpdateOldPasswordController());
-final _formKey = GlobalKey<FormState>();
-
 class _UpdateOldPaswordState extends State<UpdateOldPassword> {
+  late final UpdateOldPasswordController updatePasswordController;
+
+  final _formKey = GlobalKey<FormState>();
   @override
   void initState() {
     super.initState();
+
+    updatePasswordController = Get.find<UpdateOldPasswordController>();
 
     updatePasswordController.passwordController.addListener(() {
       updatePasswordController.password.value =
