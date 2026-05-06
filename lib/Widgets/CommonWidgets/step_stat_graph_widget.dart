@@ -213,7 +213,7 @@ class StepStatGraphWidget extends StatelessWidget {
     });
 
     return Container(
-      padding: const EdgeInsets.only(top: 52),
+      padding: const EdgeInsets.only(top: 32),
       height: height * 0.28,
       width: chartWidth,
       child: RepaintBoundary(

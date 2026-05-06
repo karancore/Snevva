@@ -83,7 +83,7 @@ class _BpmInputWidgetState extends State<BpmInputWidget> {
                         fontWeight: FontWeight.bold,
                       ),
                       decoration: InputDecoration(
-                        hintText: '78',
+                        hintText: '--',
                         hintStyle: TextStyle(
                           color: textColor.withOpacity(0.3),
                           fontSize: 56,

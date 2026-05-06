@@ -51,7 +51,6 @@ class MainActivity : FlutterActivity() {
         // never needs MainActivity to show over the lock screen.
     }
 
-
     private fun startStepCounterService(): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
             ContextCompat.checkSelfPermission(
@@ -104,9 +103,19 @@ class MainActivity : FlutterActivity() {
                         .apply()
                     Log.d("MainActivity", "✅ Native reminder alarms re-armed on engine attach")
                 } else {
+                    // ✅ FIX 2: Even when we skip the full sweep, refresh the arm epoch
+                    // to now. Without this, a cold-start triggered by ReminderStopReceiver
+                    // (which fires only ~15s after the last arm) would see elapsedMs still
+                    // below 60s and skip indefinitely, leaving the alarm schedule stale.
+                    // Refreshing the epoch here means the NEXT open always gets a clean
+                    // 60-second window rather than compounding the skip chain.
+                    prefs.edit()
+                        .putLong("flutter.native_alarm_last_arm_epoch_ms", System.currentTimeMillis())
+                        .apply()
                     Log.d(
                         "MainActivity",
-                        "⏭ Skipping armFromSharedPrefs — done ${elapsedMs}ms ago (cooldown 60s)"
+                        "⏭ Skipping armFromSharedPrefs — done ${elapsedMs}ms ago (cooldown 60s). " +
+                        "Epoch refreshed. App will use cached alarm schedule."
                     )
                 }
             } catch (e: Exception) {
@@ -114,8 +123,7 @@ class MainActivity : FlutterActivity() {
             }
         }.start()
 
-
-        // MethodChannels setup
+        // ── MethodChannels ────────────────────────────────────────────────────
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, oemChannelName)
             .setMethodCallHandler { call, result ->
@@ -145,18 +153,12 @@ class MainActivity : FlutterActivity() {
                 when (call.method) {
                     "startStepService" -> result.success(startStepCounterService())
 
-                    // ── Seed today's step count from the API ──────────────────────────
-                    // Called right after login when the server returns the current-day
-                    // step total (e.g. 644 from a previous install).  We write it to:
-                    //   • steps_prefs/today_steps  → sensor increments from this base
-                    //   • FlutterSharedPreferences/flutter.today_steps → notification
                     "seedTodaySteps" -> {
                         val steps = (call.arguments as? Int) ?: 0
                         val nativePrefs = getSharedPreferences("steps_prefs", android.content.Context.MODE_PRIVATE)
                         val flutterPrefs = applicationContext.getSharedPreferences(
                             "FlutterSharedPreferences", android.content.Context.MODE_PRIVATE
                         )
-                        // Only update if the incoming value is strictly larger (never go backward)
                         val currentNative = nativePrefs.getInt("today_steps", 0)
                         val currentFlutter = flutterPrefs.getLong("flutter.today_steps", 0L).toInt()
                         if (steps > currentNative) {
@@ -167,20 +169,16 @@ class MainActivity : FlutterActivity() {
                             flutterPrefs.edit().putLong("flutter.today_steps", steps.toLong()).apply()
                             Log.d("MainActivity", "🌱 Seeded flutter.today_steps → $steps")
                         }
-                        // Refresh notification immediately so the user sees the correct count
                         val notifIntent = Intent(applicationContext, StepCounterService::class.java)
                         notifIntent.action = "REFRESH_NOTIFICATION"
                         try { applicationContext.startService(notifIntent) } catch (_: Exception) {}
                         result.success(true)
                     }
 
-                    // ── Stop the native foreground service on logout ───────────────────
-                    // Stopping the service also removes the persistent notification.
                     "stopStepService" -> {
                         try {
                             val stopIntent = Intent(applicationContext, StepCounterService::class.java)
                             applicationContext.stopService(stopIntent)
-                            // Belt-and-suspenders: explicitly cancel notification ID 1
                             val nm = getSystemService(android.app.NotificationManager::class.java)
                             nm?.cancel(1)
                             Log.d("MainActivity", "🛑 StepCounterService stopped and notification cleared")
@@ -195,7 +193,6 @@ class MainActivity : FlutterActivity() {
                 }
             }
 
-        // Existing channel for SleepNoticingService.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, sleepServiceChannelName)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -219,13 +216,10 @@ class MainActivity : FlutterActivity() {
                         result.success("Sleep alarms scheduled")
                     }
 
-                    else -> {
-                        result.notImplemented()
-                    }
+                    else -> result.notImplemented()
                 }
             }
 
-        // Channel used by Flutter to detect and request higher refresh rates.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, displayConfigChannelName)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -237,7 +231,6 @@ class MainActivity : FlutterActivity() {
                 }
             }
 
-        // Sync manager channel: Kotlin → Dart trigger for file-based sync queue
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.coretegra.snevvaa/sync_manager")
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -254,33 +247,70 @@ class MainActivity : FlutterActivity() {
                 }
             }
 
-        // Native reminder alarm channel (survives Flutter engine kill + device reboot)
+        // ── Native reminder alarm channel ─────────────────────────────────────
+        // Survives Flutter engine kill + device reboot via AlarmManager + SharedPrefs.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, reminderAlarmsChannelName)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
 
+                    // ── Arm a single alarm ────────────────────────────────────
                     "armAlarm" -> {
-                        val alarmId   = call.argument<Int>("alarmId") ?: -1
-                        val epochMs   = (call.argument<Long>("epochMs")
+                        val alarmId    = call.argument<Int>("alarmId") ?: -1
+                        val epochMs    = (call.argument<Long>("epochMs")
                             ?: call.argument<Int>("epochMs")?.toLong()) ?: 0L
-                        val groupId   = call.argument<String>("groupId") ?: ""
-                        val category  = call.argument<String>("category") ?: ""
-                        val title     = call.argument<String>("title") ?: "Reminder"
-                        val body      = call.argument<String>("body") ?: ""
+                        val groupId    = call.argument<String>("groupId") ?: ""
+                        val category   = call.argument<String>("category") ?: ""
+                        val title      = call.argument<String>("title") ?: "Reminder"
+                        val body       = call.argument<String>("body") ?: ""
                         val intervalMs = (call.argument<Long>("intervalMs")
                             ?: call.argument<Int>("intervalMs")?.toLong()) ?: 0L
                         ReminderArmingHelper.arm(
-                            this@MainActivity, alarmId, epochMs, groupId, category, title, body, intervalMs
+                            this@MainActivity, alarmId, epochMs, groupId,
+                            category, title, body, intervalMs
                         )
                         result.success(true)
                     }
 
+                    // ── Cancel a single alarm ─────────────────────────────────
+                    // Also purges the entry from the persisted JSON schedule so
+                    // armFromSharedPrefs / BootReceiver cannot re-arm it.
                     "cancelAlarm" -> {
                         val alarmId = call.argument<Int>("alarmId") ?: -1
                         if (alarmId != -1) ReminderArmingHelper.cancel(this@MainActivity, alarmId)
                         result.success(true)
                     }
 
+                    // ── Cancel multiple alarms in one call ────────────────────
+                    // Called by NativeAlarmBridge.cancelAlarms() on the Flutter
+                    // side. Uses a single SharedPrefs write for efficiency.
+                    "cancelAlarms" -> {
+                        @Suppress("UNCHECKED_CAST")
+                        val rawIds = call.argument<List<*>>("alarmIds")
+                        val ids = rawIds?.filterIsInstance<Int>() ?: emptyList()
+                        if (ids.isNotEmpty()) {
+                            ReminderArmingHelper.cancelAll(this@MainActivity, ids)
+                            Log.d("MainActivity", "🗑️ cancelAlarms: removed ${ids.size} alarm(s) → $ids")
+                        }
+                        result.success(true)
+                    }
+
+                    // ── Cancel ALL alarms for a reminder group ────────────────
+                    // ✅ NEW — Called by NativeAlarmBridge.cancelByGroupId() on
+                    // the Flutter side when the user deletes an event, meal, or
+                    // medicine reminder. Sweeps the JSON schedule by groupId so
+                    // any alarmId created by rescheduleNext() during a race
+                    // condition is also purged. This is the correct delete path
+                    // for all multi-alarm reminder types.
+                    "cancelByGroupId" -> {
+                        val groupId = call.argument<Int>("groupId") ?: -1
+                        if (groupId != -1) {
+                            ReminderArmingHelper.cancelByGroupId(this@MainActivity, groupId)
+                            Log.d("MainActivity", "🗑️ cancelByGroupId=$groupId")
+                        }
+                        result.success(true)
+                    }
+
+                    // ── Persist the full alarm schedule ───────────────────────
                     "saveSchedule" -> {
                         val json = call.argument<String>("json") ?: "[]"
                         val prefs = getSharedPreferences(
@@ -291,6 +321,7 @@ class MainActivity : FlutterActivity() {
                         result.success(true)
                     }
 
+                    // ── Arm all alarms from JSON or SharedPrefs ───────────────
                     "armAll" -> {
                         val json = call.argument<String>("json")
                         if (json.isNullOrBlank() || json == "[]") {
@@ -302,6 +333,7 @@ class MainActivity : FlutterActivity() {
                         result.success(true)
                     }
 
+                    // ── Copy audio assets to internal storage ─────────────────
                     "copyAudioAssets" -> {
                         try {
                             ReminderArmingHelper.copyAudioAssetsIfNeeded(this@MainActivity)
@@ -324,8 +356,6 @@ class MainActivity : FlutterActivity() {
     override fun onResume() {
         super.onResume()
         requestHighestRefreshRate()
-        // ✅ Off main thread — flushStepsToDaily does file I/O (read+parse+write)
-        // which would block the Android main thread and delay the first Flutter frame.
         Thread {
             try {
                 BufferManager.flushStepsToDaily(applicationContext)
@@ -351,8 +381,6 @@ class MainActivity : FlutterActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Clear the engine reference so StepCounterService stops trying to
-        // send MethodChannel messages to the now-detached Flutter engine.
         StepCounterService.flutterEngine = null
         Log.d("Lifecycle", "onDestroy called")
     }
@@ -365,23 +393,15 @@ class MainActivity : FlutterActivity() {
 
     private fun getHighestSupportedRefreshRate(): Double {
         val currentDisplay = getDisplaySafe() ?: return getCurrentRefreshRate()
-
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            return getCurrentRefreshRate()
-        }
-
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return getCurrentRefreshRate()
         val highestMode = currentDisplay.supportedModes.maxByOrNull { it.refreshRate }
         return highestMode?.refreshRate?.toDouble() ?: getCurrentRefreshRate()
     }
 
     private fun requestHighestRefreshRate(): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            return false
-        }
-
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return false
         val currentDisplay = getDisplaySafe() ?: return false
         val highestMode = currentDisplay.supportedModes.maxByOrNull { it.refreshRate } ?: return false
-
         val params = window.attributes
         params.preferredDisplayModeId = highestMode.modeId
         params.preferredRefreshRate = highestMode.refreshRate
@@ -404,19 +424,34 @@ class MainActivity : FlutterActivity() {
         try {
             when {
                 manufacturer.contains("xiaomi") || manufacturer.contains("redmi") || manufacturer.contains("poco") -> {
-                    intent.component = android.content.ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")
+                    intent.component = android.content.ComponentName(
+                        "com.miui.securitycenter",
+                        "com.miui.permcenter.autostart.AutoStartManagementActivity"
+                    )
                 }
                 manufacturer.contains("oppo") || manufacturer.contains("realme") || manufacturer.contains("oneplus") -> {
-                    intent.component = android.content.ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity")
+                    intent.component = android.content.ComponentName(
+                        "com.coloros.safecenter",
+                        "com.coloros.safecenter.permission.startup.StartupAppListActivity"
+                    )
                 }
                 manufacturer.contains("vivo") || manufacturer.contains("iqoo") -> {
-                    intent.component = android.content.ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity")
+                    intent.component = android.content.ComponentName(
+                        "com.vivo.permissionmanager",
+                        "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"
+                    )
                 }
                 manufacturer.contains("huawei") || manufacturer.contains("honor") -> {
-                    intent.component = android.content.ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity")
+                    intent.component = android.content.ComponentName(
+                        "com.huawei.systemmanager",
+                        "com.huawei.systemmanager.optimize.process.ProtectActivity"
+                    )
                 }
                 manufacturer.contains("samsung") -> {
-                    intent.component = android.content.ComponentName("com.samsung.android.lool", "com.samsung.android.sm.ui.battery.BatteryActivity")
+                    intent.component = android.content.ComponentName(
+                        "com.samsung.android.lool",
+                        "com.samsung.android.sm.ui.battery.BatteryActivity"
+                    )
                 }
                 else -> {
                     intent.action = android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
@@ -425,11 +460,7 @@ class MainActivity : FlutterActivity() {
             startActivity(intent)
         } catch (e: Exception) {
             intent.action = android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
-            try {
-                startActivity(intent)
-            } catch (ex: Exception) {
-                // Ignore
-            }
+            try { startActivity(intent) } catch (ex: Exception) { /* Ignore */ }
         }
     }
 }

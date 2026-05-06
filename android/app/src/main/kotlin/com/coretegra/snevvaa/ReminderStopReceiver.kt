@@ -78,5 +78,29 @@ class ReminderStopReceiver : BroadcastReceiver() {
             mgr.cancel(alarmId)
             Log.d(TAG, "✅ Alarm-package notification $alarmId cancelled")
         }
+
+        // ✅ FIX 4: Signal the upcoming cold-start that an alarm just fired.
+        //
+        // ReminderStopReceiver fires BEFORE the app cold-starts. If we don't
+        // write these flags here, the new process will:
+        //   a) skip reconciliation (alarm_fired_recently is still false), and
+        //   b) skip armFromSharedPrefs (arm epoch is < 60s old from the last fire).
+        // Both skips compound, leaving the Flutter engine in a half-initialized
+        // state with no alarm state and no reconciliation run.
+        //
+        // Writing alarm_fired_recently ensures ReconciliationEngine.handleTimezoneStartupChecks()
+        // runs _shouldReconcile() -> true on the next open.
+        // Zeroing native_alarm_last_arm_epoch_ms forces MainActivity.configureFlutterEngine
+        // to run armFromSharedPrefs despite being < 60s after the last alarm fire.
+        try {
+            context.getSharedPreferences("FlutterSharedPreferences", android.content.Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean("flutter.alarm_fired_recently", true)
+                .putLong("flutter.native_alarm_last_arm_epoch_ms", 0L)
+                .apply()
+            Log.d(TAG, "📝 Wrote alarm_fired_recently + reset arm epoch for cold-start")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to write cold-start flags", e)
+        }
     }
 }

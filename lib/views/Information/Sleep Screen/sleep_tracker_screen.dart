@@ -7,13 +7,15 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
-import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
+import 'package:snevva/widgets/CommonWidgets/custom_appbar.dart';
+import 'package:snevva/widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
+import 'package:snevva/services/notification_service.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_bottom_sheet.dart';
+import 'package:snevva/views/Information/Sleep%20Screen/sleep_report_screen.dart';
 
 import '../../../Controllers/SleepScreen/sleep_controller.dart';
-import 'package:snevva/Widgets/CommonWidgets/common_stat_graph_widget.dart';
+import 'package:snevva/widgets/CommonWidgets/common_stat_graph_widget.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -195,13 +197,10 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     ) {
       if (event != null && mounted) {
         sleepController.stopSleep();
-        Get.snackbar(
-          '🎉 Goal Reached!',
-          'You\'ve completed your sleep goal!',
-          snackPosition: SnackPosition.TOP,
-          duration: const Duration(seconds: 5),
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
+        NotificationService().showInstantNotification(
+          id: WAKE_NOTIFICATION_ID + 1,
+          title: '🎉 Goal Reached!',
+          body: 'You\'ve completed your sleep goal!',
         );
       }
     });
@@ -505,6 +504,65 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
               const SizedBox(height: 16),
 
+              //========== SLEEP REPORT NAVIGATION CARD ==========
+              // GestureDetector(
+              //   onTap: () {
+              //     Get.to(() => const SleepReportScreen());
+              //   },
+              //   child: Container(
+              //     padding: const EdgeInsets.all(16),
+              //     decoration: BoxDecoration(
+              //       color: isDarkMode ? darkGray : Colors.white,
+              //       borderRadius: BorderRadius.circular(12),
+              //       boxShadow: [
+              //         BoxShadow(
+              //           color: Colors.black.withValues(alpha: 0.05),
+              //           blurRadius: 10,
+              //           offset: const Offset(0, 2),
+              //         ),
+              //       ],
+              //     ),
+              //     child: Row(
+              //       children: [
+              //         Container(
+              //           padding: const EdgeInsets.all(12),
+              //           decoration: BoxDecoration(
+              //             color: AppColors.primaryColor.withValues(alpha: 0.1),
+              //             shape: BoxShape.circle,
+              //           ),
+              //           child: const Icon(Icons.analytics_outlined, color: AppColors.primaryColor),
+              //         ),
+              //         const SizedBox(width: 16),
+              //         Expanded(
+              //           child: Column(
+              //             crossAxisAlignment: CrossAxisAlignment.start,
+              //             children: [
+              //               const Text(
+              //                 "View Sleep Report",
+              //                 style: TextStyle(
+              //                   fontSize: 16,
+              //                   fontWeight: FontWeight.w600,
+              //                 ),
+              //               ),
+              //               const SizedBox(height: 4),
+              //               Text(
+              //                 "Detailed analysis of your sleep stages",
+              //                 style: TextStyle(
+              //                   fontSize: 13,
+              //                   color: Colors.grey[600],
+              //                 ),
+              //               ),
+              //             ],
+              //           ),
+              //         ),
+              //         const Icon(Icons.chevron_right, color: Colors.grey),
+              //       ],
+              //     ),
+              //   ),
+              // ),
+              //
+              // const SizedBox(height: 20),
+
               //========== WEEKLY/MONTHLY TOGGLE ==========
               Obx(() {
                 final isMonthly = sleepController.isMonthlyView.value;
@@ -558,7 +616,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
               //========== SLEEP GRAPH ==========
               SizedBox(
-                height: height * 0.41,
+                height: height * 0.35,
                 child: Obx(() {
                   final labels =
                       sleepController.isMonthlyView.value
@@ -601,6 +659,64 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                     selectedMonthForHeader: _selectedMonth,
                   );
                 }),
+              ),
+              const SizedBox(height: 20),
+
+              //========== SLEEP REPORT NAVIGATION CARD ==========
+              GestureDetector(
+                onTap: () {
+                  Get.to(() => const SleepReportScreen());
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? darkGray : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryColor.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.analytics_outlined, color: AppColors.primaryColor),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "View Sleep Report",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "Detailed analysis of your sleep stages",
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right, color: Colors.grey),
+                    ],
+                  ),
+                ),
               ),
 
               const SizedBox(height: 30),

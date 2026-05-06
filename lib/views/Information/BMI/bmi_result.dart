@@ -198,8 +198,7 @@ class _BmiResultPageState extends State<BmiResultPage> {
                             heading: tip['Heading'] ?? '',
                             title: tip['Title'] ?? '',
                             image:
-                                tip['ThumbnailMedia']?['CdnUrl'] ??
-                                "https://d3byuuhm0bg21i.cloudfront.net/derivatives/c3d47d00-8a25-46ef-bba3-ec5609c49b08/thumb.webp",
+                                "https://${tip['ThumbnailMedia']?['CdnUrl']}".isNotEmpty ? "https://${tip['ThumbnailMedia']?['CdnUrl']}" :                                "https://d3byuuhm0bg21i.cloudfront.net/derivatives/c3d47d00-8a25-46ef-bba3-ec5609c49b08/thumb.webp",
                             isDarkMode: isDarkMode,
                             onButtonTap:
                                 () => Get.to(

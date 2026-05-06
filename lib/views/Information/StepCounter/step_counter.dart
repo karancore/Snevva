@@ -396,7 +396,7 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
 
               // ===== GRAPH =====
               SizedBox(
-                height: height * 0.41,
+                height: height * 0.37,
                 child: Obx(() {
                   final labels =
                       _isMonthlyView

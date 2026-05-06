@@ -81,13 +81,30 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
         val body       = intent.getStringExtra("body") ?: ""
         val intervalMs = intent.getLongExtra("intervalMs", 0L)
 
-        Log.d(TAG, "🔔 REMINDER_FIRE id=$alarmId cat=$category intervalMs=$intervalMs")
+        Log.d(TAG, "🔔 REMINDER_FIRE id=$alarmId cat=$category groupId=$groupId intervalMs=$intervalMs")
+
+        // ✅ GUARD: Check tombstones BEFORE showing notification or playing audio.
+        // This is the last line of defence — if cancelByGroupId() was called but
+        // the AlarmManager entry had already been queued by the kernel, this check
+        // prevents the alarm from firing visually even if we couldn't cancel it
+        // from AlarmManager in time (race condition on meal/medicine/event delete).
+        if (isDeleted(context, alarmId, groupId)) {
+            Log.d(TAG, "⛔ REMINDER_FIRE suppressed — alarmId=$alarmId groupId=$groupId was deleted by user")
+            // Clean up any stale JSON entry
+            if (groupId.isNotBlank()) {
+                val gid = groupId.toIntOrNull() ?: -1
+                if (gid != -1) ReminderArmingHelper.cancelByGroupId(context, gid)
+            } else {
+                ReminderArmingHelper.cancel(context, alarmId)
+            }
+            return
+        }
 
         // Signal Flutter that an alarm just fired so reconciliation runs on the
         // next app open (bypasses the 2-hour throttle in reconciliation_engine.dart).
         // Also stamp the arm epoch so MainActivity can skip a redundant full re-arm.
         val nowMs = System.currentTimeMillis()
-        context.getSharedPreferences("FlutterSharedPreferences", android.content.Context.MODE_PRIVATE)
+        context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
             .edit()
             .putBoolean("flutter.alarm_fired_recently", true)
             .putLong("flutter.native_alarm_last_arm_epoch_ms", nowMs)
@@ -96,8 +113,7 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
 
         // Cancel the alarm-package's own notification so only ours is visible.
         // We do NOT call stopService(AlarmService) — doing so then letting its
-        // AlarmReceiver call startForegroundService() causes a crash on Android 14+
-        // because the restarted service never calls startForeground().
+        // AlarmReceiver call startForegroundService() causes a crash on Android 14+.
         val mgr = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         mgr.cancel(alarmId)   // alarm-package uses raw alarmId
 
@@ -105,7 +121,9 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
         showNotification(context, alarmId, title, body, category)
         playAudio(context, category)
 
-        // Reschedule next occurrence
+        // ✅ Reschedule next occurrence via ReminderArmingHelper which already
+        // has tombstone guards inside rescheduleNext() — so deleted recurring
+        // reminders won't be rescheduled even if this point is reached.
         if (intervalMs > 0L) {
             val nextEpochMs = nowMs + intervalMs
             ReminderArmingHelper.arm(
@@ -114,6 +132,33 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
             Log.d(TAG, "🔁 Fast-rescheduled alarm id=$alarmId in ${intervalMs}ms")
         } else {
             ReminderArmingHelper.rescheduleNext(context, alarmId)
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // isDeleted — checks both alarm-level and group-level tombstones
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private fun isDeleted(context: Context, alarmId: Int, groupId: String): Boolean {
+        val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        return try {
+            val deletedAlarmIdsRaw = prefs.getString("flutter.deleted_reminder_alarm_ids_v1", null)
+            if (deletedAlarmIdsRaw != null) {
+                val arr = org.json.JSONArray(deletedAlarmIdsRaw)
+                for (i in 0 until arr.length()) {
+                    if (arr.optInt(i, -1) == alarmId) return true
+                }
+            }
+            val gid = groupId.toIntOrNull() ?: return false
+            val deletedGroupIdsRaw = prefs.getString("flutter.deleted_reminder_group_ids_v1", null)
+                ?: return false
+            val arr2 = org.json.JSONArray(deletedGroupIdsRaw)
+            for (i in 0 until arr2.length()) {
+                if (arr2.optInt(i, -1) == gid) return true
+            }
+            false
+        } catch (_: Exception) {
+            false
         }
     }
 

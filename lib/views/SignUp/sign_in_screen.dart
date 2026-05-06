@@ -59,6 +59,14 @@ class _SignInScreenState extends State<SignInScreen> {
   Future<void> onSignInButtonClick(BuildContext context) async {
     if (isLoading) return;
 
+    // ✅ FIX 5 (IME loop): Dismiss the keyboard BEFORE the async sign-in work
+    // begins. Without this, the focused TextFormField keeps an active IME
+    // session. When handleSuccessfulSignIn() calls Get.offAll(), the route
+    // transition animation starts while the IME is still animating open,
+    // causing 6+ repeated onRequestShow → onCancelled cycles (each ~9ms)
+    // that blow the 16.67ms frame budget and produce visible jank.
+    FocusScope.of(context).unfocus();
+
     setState(() => isLoading = true);
 
     final prefs = await SharedPreferences.getInstance();

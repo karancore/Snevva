@@ -79,8 +79,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       } else {
         CustomSnackbar.showError(
           title: 'Oops!',
-          message:
-              'That doesn’t look right. Please check your email or phone number and try again.',
+          message: 'That doesn’t look right. Please check your email or phone number and try again.',
           context: context,
         );
       }

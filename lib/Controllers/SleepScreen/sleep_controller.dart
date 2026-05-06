@@ -16,6 +16,7 @@ import 'package:snevva/services/api_service.dart';
 import 'package:snevva/services/file_storage_service.dart';
 
 import '../../common/global_variables.dart';
+import '../../services/notification_service.dart';
 
 enum SleepState { sleeping, awake }
 
@@ -187,13 +188,10 @@ class SleepController extends GetxService {
         );
 
         // Show celebration message
-        Get.snackbar(
-          '🎉 Goal Reached!',
-          'You\'ve completed your ${_formatDuration(Duration(minutes: goalMinutes))} sleep goal!',
-          snackPosition: SnackPosition.TOP,
-          duration: const Duration(seconds: 5),
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
+        NotificationService().showInstantNotification(
+          id: WAKE_NOTIFICATION_ID + 2,
+          title: '🎉 Goal Reached!',
+          body: 'You\'ve completed your ${_formatDuration(Duration(minutes: goalMinutes))} sleep goal!',
         );
       }
     });

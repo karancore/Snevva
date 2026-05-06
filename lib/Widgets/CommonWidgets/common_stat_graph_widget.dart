@@ -23,6 +23,7 @@ class CommonStatGraphWidget extends StatelessWidget {
     this.maxXForWeek,
     this.weekLabels,
     this.selectedMonthForHeader,
+    this.onBarTouched,
   });
 
   final bool isDarkMode;
@@ -39,16 +40,26 @@ class CommonStatGraphWidget extends StatelessWidget {
   final List<FlSpot> points;
   final List<String>? weekLabels;
   final DateTime? selectedMonthForHeader;
+  final Function(int, FlSpot)? onBarTouched;
 
   // ✅ Dynamic bar width based on point count
+  // double get _dynamicBarWidth {
+  //   final count = points.length;
+  //   if (count <= 3) return 40;
+  //   if (count <= 5) return 30;
+  //   if (count <= 7) return 20;
+  //   if (count <= 15) return 14;
+  //   if (count <= 20) return 10;
+  //   return 8;
+  // }
   double get _dynamicBarWidth {
     final count = points.length;
     if (count <= 3) return 40;
-    if (count <= 5) return 30;
-    if (count <= 7) return 20;
-    if (count <= 15) return 14;
-    if (count <= 20) return 10;
-    return 8;
+    if (count <= 5) return 40;
+    if (count <= 7) return 40;
+    if (count <= 15) return 30;
+    if (count <= 20) return 30;
+    return 30;
   }
 
   @override
@@ -130,7 +141,7 @@ class CommonStatGraphWidget extends StatelessWidget {
               ],
             ),
 
-            const SizedBox(height: 15),
+            const SizedBox(height: 1),
 
             // ===== Graph =====
             isMonthlyView
@@ -218,7 +229,7 @@ class CommonStatGraphWidget extends StatelessWidget {
     });
 
     return Container(
-      padding: const EdgeInsets.only(top: 52),
+      padding: const EdgeInsets.only(top: 32),
       height: height * 0.28,
       width: chartWidth,
       child: RepaintBoundary(
@@ -297,6 +308,18 @@ class CommonStatGraphWidget extends StatelessWidget {
             // ✅ Tooltip — sleep ya water ke hisaab se format
             barTouchData: BarTouchData(
               enabled: true,
+              touchCallback: (FlTouchEvent event, barTouchResponse) {
+                if (!event.isInterestedForInteractions ||
+                    barTouchResponse == null ||
+                    barTouchResponse.spot == null) {
+                  return;
+                }
+                if (onBarTouched != null) {
+                  final index = barTouchResponse.spot!.touchedBarGroupIndex;
+                  final yVal = barTouchResponse.spot!.touchedRodData.toY;
+                  onBarTouched!(index, FlSpot(index.toDouble(), yVal));
+                }
+              },
               touchTooltipData: BarTouchTooltipData(
                 getTooltipColor: (_) => AppColors.primaryColor,
                 tooltipPadding: const EdgeInsets.all(8),

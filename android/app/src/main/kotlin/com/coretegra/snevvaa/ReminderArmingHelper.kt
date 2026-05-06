@@ -37,6 +37,14 @@ object ReminderArmingHelper {
     /** Flutter shared_preferences adds "flutter." prefix to all keys. */
     private const val PREFS_KEY = "flutter.native_reminder_alarms"
 
+    /**
+     * Tombstone keys written by Flutter's _recordLocalDeletion().
+     * We read these so armFromSharedPrefs / BootReceiver / rescheduleNext
+     * never resurrect a reminder the user explicitly deleted.
+     */
+    private const val DELETED_GROUP_IDS_KEY = "flutter.deleted_reminder_group_ids_v1"
+    private const val DELETED_ALARM_IDS_KEY = "flutter.deleted_reminder_alarm_ids_v1"
+
     /** Intent action fired to ReminderAlarmReceiver by AlarmManager. */
     const val ACTION_FIRE = "com.coretegra.snevvaa.REMINDER_FIRE"
 
@@ -47,6 +55,10 @@ object ReminderArmingHelper {
     /**
      * Reads all alarms from SharedPrefs and arms every one whose trigger
      * time is still in the future. Safe to call multiple times (idempotent).
+     *
+     * ✅ Tombstone guard: skips any alarm whose groupId or alarmId appears in
+     * the Flutter-written deleted-IDs lists, so BootReceiver / engine-attach
+     * re-arms cannot resurrect reminders the user explicitly deleted.
      */
     fun armFromSharedPrefs(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
@@ -56,15 +68,29 @@ object ReminderArmingHelper {
             return
         }
 
+        // ── Load tombstone sets written by Flutter's _recordLocalDeletion() ──
+        val deletedGroupIds = readIntSetFromJsonArray(prefs, DELETED_GROUP_IDS_KEY)
+        val deletedAlarmIds = readIntSetFromJsonArray(prefs, DELETED_ALARM_IDS_KEY)
+
         try {
             val arr = JSONArray(json)
             val now = System.currentTimeMillis()
             var armed = 0
             var skipped = 0
+            var tombstoned = 0
 
             for (i in 0 until arr.length()) {
                 val obj = arr.getJSONObject(i)
+                val alarmId = obj.getInt("alarmId")
                 val epochMs = obj.getLong("epochMs")
+                val groupId = obj.optString("groupId", "").toIntOrNull() ?: -1
+
+                // ✅ Skip deleted reminders — user explicitly removed these
+                if (alarmId in deletedAlarmIds || (groupId != -1 && groupId in deletedGroupIds)) {
+                    Log.d(TAG, "⛔ Skipping tombstoned alarm id=$alarmId groupId=$groupId")
+                    tombstoned++
+                    continue
+                }
 
                 if (epochMs <= now) {
                     skipped++
@@ -72,21 +98,43 @@ object ReminderArmingHelper {
                 }
 
                 arm(
-                    context  = context,
-                    alarmId  = obj.getInt("alarmId"),
-                    epochMs  = epochMs,
-                    groupId  = obj.optString("groupId", ""),
-                    category = obj.optString("category", ""),
-                    title    = obj.optString("title", "Reminder"),
-                    body     = obj.optString("body", ""),
+                    context    = context,
+                    alarmId    = alarmId,
+                    epochMs    = epochMs,
+                    groupId    = obj.optString("groupId", ""),
+                    category   = obj.optString("category", ""),
+                    title      = obj.optString("title", "Reminder"),
+                    body       = obj.optString("body", ""),
                     intervalMs = obj.optLong("intervalMs", 0L),
                 )
                 armed++
             }
 
-            Log.d(TAG, "armFromSharedPrefs: armed=$armed skipped=$skipped")
+            Log.d(TAG, "armFromSharedPrefs: armed=$armed skipped=$skipped tombstoned=$tombstoned")
         } catch (e: Exception) {
             Log.e(TAG, "armFromSharedPrefs failed: ${e.message}")
+        }
+    }
+
+    /** Reads a Flutter-persisted JSON array of ints into a Set<Int>. */
+    private fun readIntSetFromJsonArray(
+        prefs: android.content.SharedPreferences,
+        key: String,
+    ): Set<Int> {
+        val raw = prefs.getString(key, null) ?: return emptySet()
+        return try {
+            val arr = JSONArray(raw)
+            val set = mutableSetOf<Int>()
+            for (i in 0 until arr.length()) {
+                when (val v = arr.get(i)) {
+                    is Int    -> set.add(v)
+                    is Long   -> set.add(v.toInt())
+                    is String -> v.toIntOrNull()?.let { set.add(it) }
+                }
+            }
+            set
+        } catch (_: Exception) {
+            emptySet()
         }
     }
 
@@ -127,7 +175,6 @@ object ReminderArmingHelper {
                     if (mgr.canScheduleExactAlarms()) {
                         mgr.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, epochMs, pending)
                     } else {
-                        // No exact-alarm permission — use inexact but wakeup
                         mgr.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, epochMs, pending)
                     }
                 }
@@ -139,7 +186,7 @@ object ReminderArmingHelper {
                 }
             }
             Log.d(TAG, "✅ armed alarmId=$alarmId category=$category at ${Date(epochMs)}" +
-                if (intervalMs > 0) " interval=${intervalMs}ms" else "")
+                    if (intervalMs > 0) " interval=${intervalMs}ms" else "")
         } catch (e: SecurityException) {
             Log.e(TAG, "SecurityException arming alarm id=$alarmId — exact alarm permission denied", e)
         } catch (e: Exception) {
@@ -148,10 +195,118 @@ object ReminderArmingHelper {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // cancel — cancel a single alarm
+    // cancel — cancel a single alarm by alarmId
     // ─────────────────────────────────────────────────────────────────────────
 
     fun cancel(context: Context, alarmId: Int) {
+        // 1. Cancel from AlarmManager
+        cancelFromAlarmManager(context, alarmId)
+
+        // 2. ✅ FIX: Remove from persisted JSON schedule so armFromSharedPrefs /
+        //    BootReceiver cannot re-arm it the next time the app opens or reboots.
+        removeFromPersistedSchedule(context, setOf(alarmId))
+
+        Log.d(TAG, "🗑️ cancelled native alarmId=$alarmId")
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // cancelAll — batch cancel by alarm IDs (called by "cancelAlarms" channel)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    fun cancelAll(context: Context, alarmIds: List<Int>) {
+        if (alarmIds.isEmpty()) return
+
+        for (alarmId in alarmIds) {
+            cancelFromAlarmManager(context, alarmId)
+            Log.d(TAG, "🗑️ cancelled native alarmId=$alarmId")
+        }
+
+        // ✅ Single SharedPrefs write for the entire batch — avoids N separate commits.
+        removeFromPersistedSchedule(context, alarmIds.toSet())
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // cancelByGroupId — cancels ALL alarms belonging to a reminder group.
+    //
+    // ✅ NEW — Correct delete method for meal / medicine / event reminders.
+    // Each group can have multiple alarmIds. Cancelling only the IDs known at
+    // delete-time misses any ID created by rescheduleNext() in a race condition
+    // (alarm fires at the exact moment user taps delete). Sweeping by groupId
+    // catches every entry regardless of when it was written.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    fun cancelByGroupId(context: Context, groupId: Int) {
+        if (groupId == -1) return
+
+        val prefs = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
+        val json = prefs.getString(PREFS_KEY, null) ?: return
+
+        try {
+            val arr = JSONArray(json)
+            val updated = JSONArray()
+            val cancelledIds = mutableListOf<Int>()
+
+            for (i in 0 until arr.length()) {
+                val obj = arr.getJSONObject(i)
+                val entryGroupId = obj.optString("groupId", "").toIntOrNull() ?: -1
+                if (entryGroupId == groupId) {
+                    val alarmId = obj.optInt("alarmId", -1)
+                    if (alarmId != -1) {
+                        cancelFromAlarmManager(context, alarmId)
+                        cancelledIds.add(alarmId)
+                    }
+                } else {
+                    updated.put(obj)
+                }
+            }
+
+            if (cancelledIds.isNotEmpty()) {
+                prefs.edit().putString(PREFS_KEY, updated.toString()).apply()
+                Log.d(TAG, "🗑️ cancelByGroupId=$groupId removed ${cancelledIds.size} alarm(s): $cancelledIds")
+            } else {
+                Log.d(TAG, "🗑️ cancelByGroupId=$groupId — no entries found in JSON schedule")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "cancelByGroupId failed for groupId=$groupId", e)
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // removeFromPersistedSchedule — purges IDs from the JSON schedule in prefs
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private fun removeFromPersistedSchedule(context: Context, alarmIds: Set<Int>) {
+        val prefs = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
+        val json = prefs.getString(PREFS_KEY, null) ?: return
+
+        try {
+            val arr = JSONArray(json)
+            val updated = JSONArray()
+            var removed = 0
+
+            for (i in 0 until arr.length()) {
+                val obj = arr.getJSONObject(i)
+                if (obj.optInt("alarmId", -1) in alarmIds) {
+                    removed++
+                } else {
+                    updated.put(obj)
+                }
+            }
+
+            if (removed > 0) {
+                prefs.edit().putString(PREFS_KEY, updated.toString()).apply()
+                Log.d(TAG, "🗑️ Removed $removed entry/entries from persisted schedule → $alarmIds")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "removeFromPersistedSchedule failed", e)
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // cancelFromAlarmManager — cancel a single PendingIntent from AlarmManager
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private fun cancelFromAlarmManager(context: Context, alarmId: Int) {
         val intent = Intent(context, ReminderAlarmReceiver::class.java).apply {
             action = ACTION_FIRE
         }
@@ -161,7 +316,6 @@ object ReminderArmingHelper {
         )
         val mgr = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         mgr.cancel(pending)
-        Log.d(TAG, "🗑️ cancelled native alarmId=$alarmId")
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -208,6 +362,20 @@ object ReminderArmingHelper {
         val json = prefs.getString(PREFS_KEY, null)
         if (json.isNullOrEmpty()) return
 
+        // ✅ GUARD: Read tombstones — do not reschedule deleted reminders.
+        // This prevents the race condition where a meal/medicine/event alarm
+        // fires at the exact moment the user deletes it, causing rescheduleNext
+        // to revive it for the next day/interval.
+        val deletedAlarmIds = readIntSetFromJsonArray(prefs, DELETED_ALARM_IDS_KEY)
+        val deletedGroupIds = readIntSetFromJsonArray(prefs, DELETED_GROUP_IDS_KEY)
+
+        // ✅ Fast-path: check alarm-level tombstone before parsing the JSON array
+        if (firedAlarmId in deletedAlarmIds) {
+            Log.d(TAG, "⛔ rescheduleNext skipped — alarmId=$firedAlarmId is tombstoned")
+            removeFromPersistedSchedule(context, setOf(firedAlarmId))
+            return
+        }
+
         try {
             val array = JSONArray(json)
             val now = System.currentTimeMillis()
@@ -215,6 +383,17 @@ object ReminderArmingHelper {
             for (i in 0 until array.length()) {
                 val obj = array.getJSONObject(i)
                 if (obj.optInt("alarmId", -1) != firedAlarmId) continue
+
+                val groupId = obj.optString("groupId", "").toIntOrNull() ?: -1
+
+                // ✅ GUARD: group-level tombstone covers meal/medicine/event where
+                // multiple alarmIds share one groupId
+                if (groupId != -1 && groupId in deletedGroupIds) {
+                    Log.d(TAG, "⛔ rescheduleNext skipped — groupId=$groupId is tombstoned (alarmId=$firedAlarmId)")
+                    // Sweep out all stale entries for this group in one pass
+                    cancelByGroupId(context, groupId)
+                    return
+                }
 
                 val intervalMs = obj.optLong("intervalMs", 0L)
                 if (intervalMs <= 0) {
@@ -238,10 +417,17 @@ object ReminderArmingHelper {
                 obj.put("epochMs", nextEpochMs)
                 prefs.edit().putString(PREFS_KEY, array.toString()).apply()
 
-                Log.d(TAG, "🔁 Rescheduled alarm id=$firedAlarmId → $nextEpochMs (+${intervalMs}ms)")
+                Log.d(TAG, "🔁 Rescheduled alarm id=$firedAlarmId → ${Date(nextEpochMs)} (+${intervalMs}ms)")
                 return
             }
-            Log.d(TAG, "Alarm id=$firedAlarmId not found in schedule for rescheduling")
+
+            // ✅ FIX 3: Alarm not found — this entry is an orphan (the alarm fired
+            // but the corresponding JSON record was already removed, e.g. by a
+            // concurrent cancelByGroupId() call). Defensively remove it from both
+            // the AlarmManager and the persisted schedule so it cannot re-surface.
+            Log.w(TAG, "Alarm id=$firedAlarmId not found in schedule — cancelling orphan entry")
+            cancelFromAlarmManager(context, firedAlarmId)
+            removeFromPersistedSchedule(context, setOf(firedAlarmId))
         } catch (e: Exception) {
             Log.e(TAG, "rescheduleNext error for id=$firedAlarmId", e)
         }

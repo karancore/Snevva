@@ -220,8 +220,7 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
 
                   if (widget.isForgotPasswordScreen) {
                     // ✅ Use forgot password controller for resend
-                    final forgotController =
-                        Get.find<ForgotPasswordController>();
+                    final forgotController = Get.find<ForgotPasswordController>();
                     result =
                         widget.emailOrPasswordText.contains('@')
                             ? await forgotController.resetPasswordUsingGmail(
