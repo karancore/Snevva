@@ -1,13 +1,11 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
+
 import '../../Controllers/alerts/alerts_controller.dart';
 import '../../consts/colors.dart';
 import '../../consts/images.dart';
 import '../../models/alerts.dart';
-import '../../services/notification_service.dart';
-import '../../widgets/CommonWidgets/custom_appbar.dart';
 
 class AlertsScreen extends StatefulWidget {
   const AlertsScreen({super.key});
@@ -18,7 +16,7 @@ class AlertsScreen extends StatefulWidget {
 
 class _AlertsScreenState extends State<AlertsScreen>
     with SingleTickerProviderStateMixin {
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+  late FirebaseMessaging messaging;
 
   final alertsController = Get.find<AlertsController>();
   List<Alerts> _alerts = [];
@@ -26,6 +24,8 @@ class _AlertsScreenState extends State<AlertsScreen>
   @override
   void initState() {
     super.initState();
+
+    messaging = FirebaseMessaging.instance;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       alertsController.hitAlertsNotifications();
       // alertsController.scheduleAllAlerts(_dummyAlerts);
