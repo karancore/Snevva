@@ -4,6 +4,7 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:alarm/alarm.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -27,8 +28,10 @@ import 'package:snevva/Controllers/signupAndSignIn/otp_verification_controller.d
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/update_old_password_controller.dart';
+import 'package:snevva/services/connectivity_service.dart';
 import 'package:snevva/services/firebase_init.dart';
 import 'package:snevva/services/google_auth.dart';
+import 'package:snevva/utils/push_notifications_controller.dart';
 import 'package:snevva/utils/theme_controller.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
@@ -46,6 +49,7 @@ import 'Controllers/signupAndSignIn/create_password_controller.dart';
 import 'common/ExceptionLogger.dart';
 import 'common/agent_debug_logger.dart';
 import 'common/global_variables.dart';
+import 'common/no_internet_banner.dart';
 import 'consts/consts.dart';
 import 'firebase_options.dart';
 import 'performance/frame_timing_monitor.dart';
@@ -227,6 +231,10 @@ void _registerCriticalDependencies() {
   if (!Get.isRegistered<ThemeController>()) {
     Get.put(ThemeController(), permanent: true);
   }
+  if (!Get.isRegistered<PushNotificationsController>()) {
+    Get.put(PushNotificationsController(), permanent: true);
+  }
+
   _registerLazyDependencies();
 }
 
@@ -346,10 +354,14 @@ class _MyAppState extends State<MyApp> {
   bool _stage3Started = false;
   late final ThemeController _themeController;
 
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  StreamSubscription<bool>? _connectivitySub;
+
   @override
   void initState() {
     super.initState();
     _themeController = Get.find<ThemeController>();
+
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -365,6 +377,38 @@ class _MyAppState extends State<MyApp> {
 
     _safeInit();
     _handlePendingNavigation();
+
+    ConnectivityService().init();
+
+    // 👇 Check current state immediately on launch
+    Connectivity().checkConnectivity().then((results) {
+      final isConnected = results.any((r) => r != ConnectivityResult.none);
+      if (!isConnected) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final context = Get.overlayContext;
+          if (context != null) NoInternetBanner.show(context);
+        });
+      }
+    });
+
+    _connectivitySub =
+        ConnectivityService().onConnectivityChanged.listen((isConnected) {
+          final context = Get.overlayContext;
+          if (context == null) return;
+          if (!isConnected) {
+            NoInternetBanner.show(context);
+          } else {
+            YesInternetBanner.show(context);
+          }
+        });
+  }
+
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    NoInternetBanner.hide();
+    super.dispose();
   }
 
   Future<void> _handlePendingNavigation() async {
@@ -607,6 +651,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return Obx(
       () => GetMaterialApp(
+        navigatorKey: _navigatorKey,
         debugShowCheckedModeBanner: false,
         showPerformanceOverlay:
             _kShowPerformanceOverlay && (kDebugMode || kProfileMode),
