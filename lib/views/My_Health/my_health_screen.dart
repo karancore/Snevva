@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
@@ -54,6 +55,10 @@ class _MyHealthScreenState extends State<MyHealthScreen>
   List<TrackerHealthCard> filteredVitalItems = [];
   late List<Animation<Offset>> _slideAnimations;
 
+
+  final scrollController = ScrollController();
+  bool _showAppBar = true;
+
   @override
   void initState() {
     super.initState();
@@ -79,6 +84,23 @@ class _MyHealthScreenState extends State<MyHealthScreen>
     _loadMoodFromPrefs();
     bmiController.loadUserBMI();
     _loadGenderAndInit();
+    scrollController.addListener(() {
+      if (scrollController.position.userScrollDirection ==
+          ScrollDirection.reverse) {
+        if (_showAppBar) {
+          setState(() {
+            _showAppBar = false;
+          });
+        }
+      } else if (scrollController.position.userScrollDirection ==
+          ScrollDirection.forward) {
+        if (!_showAppBar) {
+          setState(() {
+            _showAppBar = true;
+          });
+        }
+      }
+    });
   }
 
   Future<void> _loadGenderAndInit() async {
@@ -233,10 +255,12 @@ class _MyHealthScreenState extends State<MyHealthScreen>
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
           ),
         ),
-        subtitle: Text(
-          bmiController.bmi_text.value,
-          style: const TextStyle(fontSize: 14, color: Colors.grey),
-        ),
+        subtitle: Obx(() {
+          return Text(
+            getStatus(bmiController.bmi.value),
+            style: const TextStyle(fontSize: 14, color: Colors.grey),
+          );
+        }),
         buttonText: 'BMI Result',
         onPressed: () {
           if (bmiController.bmi.value == 0.0) {
@@ -333,6 +357,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
 
   @override
   void dispose() {
+    scrollController.dispose();
     _listAnimationController.dispose();
     super.dispose();
   }
@@ -374,12 +399,20 @@ class _MyHealthScreenState extends State<MyHealthScreen>
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       extendBodyBehindAppBar: true,
-      appBar: const CustomAppBar(
-        appbarText: 'My Health',
-        showCloseButton: false,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(_showAppBar ? kToolbarHeight : 0),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: _showAppBar ? 1.0 : 0.0,
+          child: CustomAppBar(
+            appbarText: 'My Health',
+            showCloseButton: false,
+          ),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: scrollController,
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

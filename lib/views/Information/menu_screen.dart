@@ -1,3 +1,4 @@
+import 'package:flutter/rendering.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/consts/consts.dart';
@@ -36,7 +37,6 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen>
     with SingleTickerProviderStateMixin {
-
   bool isLoading = true;
 
   late AnimationController listAnimationController;
@@ -47,15 +47,17 @@ class _MenuScreenState extends State<MenuScreen>
   late final List<MenuItem> menuItems;
   List<MenuItem> filteredMenuItems = [];
 
+  final scrollController = ScrollController();
+  bool _showAppBar = true;
+
   @override
   void initState() {
     super.initState();
 
     editprofileController = Get.find<EditprofileController>();
 
-    final savedGender = Get
-        .find<LocalStorageManager>()
-        .userMap['Gender']?.toString();
+    final savedGender =
+        Get.find<LocalStorageManager>().userMap['Gender']?.toString();
     if (savedGender != null && editprofileController.gender.value.isEmpty) {
       editprofileController.gender.value = savedGender;
     }
@@ -71,6 +73,24 @@ class _MenuScreenState extends State<MenuScreen>
     });
 
     _loadGenderAndInit();
+
+    scrollController.addListener(() {
+      if (scrollController.position.userScrollDirection ==
+          ScrollDirection.reverse) {
+        if (_showAppBar) {
+          setState(() {
+            _showAppBar = false;
+          });
+        }
+      } else if (scrollController.position.userScrollDirection ==
+          ScrollDirection.forward) {
+        if (!_showAppBar) {
+          setState(() {
+            _showAppBar = true;
+          });
+        }
+      }
+    });
   }
 
   Future<void> _loadGenderAndInit() async {
@@ -97,14 +117,13 @@ class _MenuScreenState extends State<MenuScreen>
       isLoading = false;
     });
 
-
     _initializeMenuItems();
     _initializeAnimations();
   }
 
   void _initializeMenuItems() {
-    final currentGender = editprofileController.gender
-        .value; // ✅ controller se lo
+    final currentGender =
+        editprofileController.gender.value; // ✅ controller se lo
 
     menuItems = [
       MenuItem(
@@ -128,7 +147,7 @@ class _MenuScreenState extends State<MenuScreen>
         title: "Add A Reminder",
         subtitle: "Medication, meal, hydration alert",
         imagePath: reminderIcon,
-        navigateTo: ReminderScreenWrapper(isClose: true,),
+        navigateTo: ReminderScreenWrapper(isClose: true),
       ),
       MenuItem(
         title: "Steps Tracker",
@@ -189,11 +208,12 @@ class _MenuScreenState extends State<MenuScreen>
     ];
 
     // Filter items based on gender
-    filteredMenuItems = menuItems.where((item) {
-      if (item.title == "Women's Health" && currentGender != 'Female')
-        return false;
-      return true;
-    }).toList();
+    filteredMenuItems =
+        menuItems.where((item) {
+          if (item.title == "Women's Health" && currentGender != 'Female')
+            return false;
+          return true;
+        }).toList();
   }
 
   void _initializeAnimations() {
@@ -225,6 +245,7 @@ class _MenuScreenState extends State<MenuScreen>
 
   @override
   void dispose() {
+    scrollController.dispose();
     listAnimationController.dispose();
     super.dispose();
   }
@@ -291,8 +312,16 @@ class _MenuScreenState extends State<MenuScreen>
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
-      appBar: CustomAppBar(appbarText: "Services", showCloseButton: false),
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(_showAppBar ? kToolbarHeight : 0),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: _showAppBar ? 1.0 : 0.0,
+          child: CustomAppBar(appbarText: "Services", showCloseButton: false),
+        ),
+      ),
       body: SingleChildScrollView(
+        controller: scrollController,
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

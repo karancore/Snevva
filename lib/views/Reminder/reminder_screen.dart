@@ -1,3 +1,4 @@
+import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
@@ -34,6 +35,10 @@ class _ReminderScreenState extends State<ReminderScreen>
 
   late AnimationController listAnimationController;
 
+
+  final scrollController = ScrollController();
+  bool _showAppBar = true;
+
   @override
   void initState() {
     super.initState();
@@ -43,6 +48,24 @@ class _ReminderScreenState extends State<ReminderScreen>
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
+    });
+
+    scrollController.addListener(() {
+      if (scrollController.position.userScrollDirection ==
+          ScrollDirection.reverse) {
+        if (_showAppBar) {
+          setState(() {
+            _showAppBar = false;
+          });
+        }
+      } else if (scrollController.position.userScrollDirection ==
+          ScrollDirection.forward) {
+        if (!_showAppBar) {
+          setState(() {
+            _showAppBar = true;
+          });
+        }
+      }
     });
   }
 
@@ -72,6 +95,7 @@ class _ReminderScreenState extends State<ReminderScreen>
 
   @override
   void dispose() {
+    scrollController.dispose();
     listAnimationController.dispose();
     super.dispose();
   }
@@ -90,12 +114,20 @@ class _ReminderScreenState extends State<ReminderScreen>
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
-      appBar: CustomAppBar(
-        appbarText: "Reminder",
-        showCloseButton: widget.isClose ?? false,
-        onClose: () {
-          Navigator.of(context).pop();
-        },
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(_showAppBar ? kToolbarHeight : 0),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: _showAppBar ? 1.0 : 0.0,
+          child: CustomAppBar(
+
+            appbarText: "Reminder",
+            showCloseButton: widget.isClose ?? false,
+            onClose: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
       ),
       body: Obx(() {
         //Show loading indicator
@@ -117,9 +149,11 @@ class _ReminderScreenState extends State<ReminderScreen>
         _triggerListAnimationIfNeeded(controller.reminders.length);
 
         return Column(
+
           children: [
             Expanded(
               child: ListView(
+                controller: scrollController,
                 padding: EdgeInsets.only(left: 16, right: 16, bottom: 16),
                 children: [
                   ...controller.reminders.asMap().entries.map((entry) {
