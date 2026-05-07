@@ -1,17 +1,13 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:snevva/utils/push_notifications_controller.dart';
 import 'package:snevva/utils/theme_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../consts/consts.dart';
-import '../debug_log_page.dart';
 import 'about_screen.dart';
-import 'debug_api_sync_screen.dart';
-import 'debug_sleep_buffer_screen.dart';
-import 'debug_steps_buffer_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -22,10 +18,14 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final ThemeController themeController = Get.find<ThemeController>();
+  final PushNotificationsController pushNotificationsController =
+      Get.find<PushNotificationsController>();
+
   bool _notificationsToggle = false;
   double _volume = 0.5;
 
   String appVersion = '1.0.0';
+
   Future<void> launchEmail() async {
     final Uri emailUri = Uri(
       scheme: 'mailto',
@@ -39,7 +39,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     await launchUrl(emailUri, mode: LaunchMode.externalApplication);
   }
-
 
   @override
   void initState() {
@@ -61,8 +60,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return version;
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -160,6 +157,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             SizedBox(height: height * 0.0188),
             const Divider(thickness: border04px, color: mediumGrey),
+            SizedBox(height: height * 0.0188),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Do Not Disturb",
+                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                ),
+                Obx(
+                  () => CupertinoSwitch(
+                    value: pushNotificationsController.isEnable.value,
+                    activeColor: AppColors.activeSwitch,
+                    onChanged: (value) {
+                      pushNotificationsController.isEnable.value = value;
+                      pushNotificationsController.disableNotifications(value);
+                    },
+                  ),
+                ),
+              ],
+            ),
             SizedBox(height: height * 0.0188),
             // Text(
             //   "Volume & Access",
