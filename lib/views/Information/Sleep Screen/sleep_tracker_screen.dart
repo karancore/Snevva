@@ -6,18 +6,18 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:snevva/widgets/CommonWidgets/custom_appbar.dart';
-import 'package:snevva/widgets/Drawer/drawer_menu_wigdet.dart';
+import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/services/notification_service.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_bottom_sheet.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_report_screen.dart';
+import 'package:snevva/widgets/CommonWidgets/common_stat_graph_widget.dart';
+import 'package:snevva/widgets/CommonWidgets/custom_appbar.dart';
+import 'package:snevva/widgets/Drawer/drawer_menu_wigdet.dart';
 
 import '../../../Controllers/SleepScreen/sleep_controller.dart';
-import 'package:snevva/widgets/CommonWidgets/common_stat_graph_widget.dart';
-import 'package:snevva/common/global_variables.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 enum StatViewMode { weekly, monthly }
 
@@ -616,7 +616,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
 
               //========== SLEEP GRAPH ==========
               SizedBox(
-                height: height * 0.35,
+                height: height * 0.37,
                 child: Obx(() {
                   final labels =
                       sleepController.isMonthlyView.value

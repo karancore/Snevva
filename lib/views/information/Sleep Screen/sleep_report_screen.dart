@@ -1,14 +1,11 @@
-import 'dart:math';
-
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
-import 'package:snevva/widgets/CommonWidgets/custom_appbar.dart';
+import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
+import 'package:snevva/widgets/CommonWidgets/common_stat_graph_widget.dart';
+import 'package:snevva/widgets/CommonWidgets/custom_appbar.dart';
 
 import '../../../Controllers/SleepScreen/sleep_controller.dart';
-import 'package:snevva/widgets/CommonWidgets/common_stat_graph_widget.dart';
-import 'package:snevva/common/global_variables.dart';
-
 import '../../../Widgets/Drawer/drawer_menu_wigdet.dart';
 
 class SleepReportScreen extends StatefulWidget {
@@ -257,7 +254,7 @@ class _SleepReportScreenState extends State<SleepReportScreen> {
               }),
               const SizedBox(height: 16),
               SizedBox(
-                height: height * 0.35,
+                height: height * 0.37,
                 child: Obx(() {
                   final labels =
                       sleepController.isMonthlyView.value
