@@ -19,10 +19,29 @@ class NotificationService {
   // -------------------------------------------------
   // Normalize timezone (VERY IMPORTANT)
   // -------------------------------------------------
-  String _normalizeTimeZone(String tzName) {
-    if (tzName == "IST") return "Asia/Kolkata";
-    return tzName;
-  }
+  // Maps legacy / deprecated IANA IDs and common abbreviations that Android
+  // may return to their modern canonical equivalents.
+  static const _tzAliases = <String, String>{
+    // Abbreviations
+    'IST': 'Asia/Kolkata',
+    'PST': 'America/Los_Angeles',
+    'MST': 'America/Denver',
+    'CST': 'America/Chicago',
+    'EST': 'America/New_York',
+    // Deprecated IANA names
+    'Asia/Calcutta': 'Asia/Kolkata',
+    'Asia/Dacca': 'Asia/Dhaka',
+    'Asia/Katmandu': 'Asia/Kathmandu',
+    'Asia/Macao': 'Asia/Macau',
+    'Asia/Rangoon': 'Asia/Yangon',
+    'Asia/Saigon': 'Asia/Ho_Chi_Minh',
+    'Asia/Ulan_Bator': 'Asia/Ulaanbaatar',
+    'Pacific/Truk': 'Pacific/Chuuk',
+    'Pacific/Ponape': 'Pacific/Pohnpei',
+    'America/Godthab': 'America/Nuuk',
+  };
+
+  String _normalizeTimeZone(String tzName) => _tzAliases[tzName] ?? tzName;
 
   // -------------------------------------------------
   // Initialize notifications + timezone
