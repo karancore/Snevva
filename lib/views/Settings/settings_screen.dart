@@ -166,15 +166,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
                 ),
                 Obx(
-                  () => CupertinoSwitch(
-                    value: pushNotificationsController.isEnable.value,
+                      () =>
+                      CupertinoSwitch(
+                        value: pushNotificationsController
+                            .isNotificationEnabled.value,
+
                     activeColor: AppColors.activeSwitch,
-                    onChanged: (value) {
-                      pushNotificationsController.isEnable.value = value;
-                      pushNotificationsController.disableNotifications(value);
+
+                        onChanged: pushNotificationsController
+                            .isUpdatingNotification.value
+                            ? null
+                            : (value) {
+                          pushNotificationsController
+                              .disableNotifications(value);
                     },
                   ),
-                ),
+                )
               ],
             ),
             SizedBox(height: height * 0.0188),

@@ -310,6 +310,12 @@ class MainActivity : FlutterActivity() {
                         result.success(true)
                     }
 
+                    // ── Cancel ALL persisted alarms (e.g. on logout) ──────────
+                    "cancelAllPersisted" -> {
+                        ReminderArmingHelper.cancelAllPersisted(this@MainActivity)
+                        result.success(true)
+                    }
+
                     // ── Persist the full alarm schedule ───────────────────────
                     "saveSchedule" -> {
                         val json = call.argument<String>("json") ?: "[]"

@@ -109,7 +109,9 @@ class ReminderAlarmTransaction {
             );
           }
 
-          newPendingIds.add(alarmId);
+          if (!newPendingIds.contains(alarmId)) {
+            newPendingIds.add(alarmId);
+          }
           currentReminder = currentReminder.copyWithScheduleMetadata(
             currentReminder.scheduleMetadata.copyWith(
               pendingAlarmIds: List.of(newPendingIds),

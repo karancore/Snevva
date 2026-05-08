@@ -1,16 +1,41 @@
 import 'package:get/get_connect/http/src/response/response.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../consts/consts.dart';
 import '../env/env.dart';
 import '../services/api_service.dart';
 
 class PushNotificationsController extends GetxController {
-  final isEnable = false.obs;
+  final isNotificationEnabled = false.obs;
+
+  final isUpdatingNotification = false.obs;
+
+  static const String _isDndKey = 'is_dnd_enabled';
+
+  @override
+  void onInit() {
+    super.onInit();
+    _loadNotificationPreference();
+  }
+
+  Future<void> _loadNotificationPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final savedValue = prefs.getBool(_isDndKey);
+
+    if (savedValue != null) {
+      isNotificationEnabled.value = savedValue;
+    }
+  }
 
   Future<void> disableNotifications(bool isEnabled) async {
+    /// Prevent duplicate requests
+    if (isUpdatingNotification.value) return;
+
     try {
+      isUpdatingNotification.value = true;
+
       debugPrint("🚀 disableNotifications() called");
-      debugPrint("📤 Sending payload: ${{"Value": isEnable.value}}");
 
       final payload = {"Value": isEnabled};
 
@@ -21,21 +46,28 @@ class PushNotificationsController extends GetxController {
         encryptionRequired: true,
       );
 
-      debugPrint("📥 Raw response type: ${response.runtimeType}");
-
       if (response is http.Response) {
         debugPrint(
-          "❌ [API - disableNotifications] Failed: HTTP ${response.statusCode}",
+          "❌ HTTP ${response.statusCode}",
         );
-        debugPrint("📄 Response body: ${response.body}");
+
         return;
       }
 
-      debugPrint("✅ Notifications API success");
-      debugPrint("🔕 Push notifications have been disabled.");
+      /// Update UI state
+      isNotificationEnabled.value = isEnabled;
+
+      /// Save locally
+      final prefs = await SharedPreferences.getInstance();
+
+      await prefs.setBool(_isDndKey, isEnabled);
+
+      debugPrint("✅ Notification preference updated");
     } catch (e, stackTrace) {
-      debugPrint("❌ Error disabling push notifications: $e");
-      debugPrint("📌 StackTrace: $stackTrace");
+      debugPrint("❌ Error: $e");
+      debugPrint("$stackTrace");
+    } finally {
+      isUpdatingNotification.value = false;
     }
   }
 }

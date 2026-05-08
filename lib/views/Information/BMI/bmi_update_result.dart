@@ -24,18 +24,18 @@ class BMIUpdateResultScreen extends StatefulWidget {
   State<BMIUpdateResultScreen> createState() => _BMIUpdateResultScreenState();
 }
 
+String getStatus(double bmi) {
+  if (bmi < 18.5) return 'Underweight';
+  if (bmi < 25) return 'Great Shape';
+  if (bmi < 30) return 'Overweight';
+  return 'Obese';
+}
+
 class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
   late final BmiUpdateController controller;
 
   final scrollController = ScrollController();
   bool _showAppBar = true;
-
-  String getStatus(double bmi) {
-    if (bmi < 18.5) return 'Underweight';
-    if (bmi < 25) return 'Great Shape';
-    if (bmi < 30) return 'Overweight';
-    return 'Obese';
-  }
 
   String getImg(double bmi) {
     if (bmi < 18.5) return skinny;

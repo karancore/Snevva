@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:alarm/alarm.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:http/http.dart' as http;
@@ -23,9 +22,10 @@ import 'package:snevva/common/agent_debug_logger.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/services/app_initializer.dart';
+import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/services/background_pedometer_service.dart';
-import 'package:snevva/services/file_storage_service.dart';
 import 'package:snevva/services/decisiontree_service.dart';
+import 'package:snevva/services/file_storage_service.dart';
 import 'package:snevva/services/hive_service.dart';
 import 'package:snevva/services/tracking_service_manager.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
@@ -123,7 +123,12 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
 
     // Then wipe rest
     await prefs.clear();
-    debugPrint('✅ SharedPreferences cleared');
+
+    // ✅ FIX: Restore the reminders_disabled tombstone flag because prefs.clear() wiped it!
+    // This is critical so native BootReceiver/armFromSharedPrefs doesn't resurrect alarms
+    await prefs.setBool('reminders_disabled', true);
+
+    debugPrint('✅ SharedPreferences cleared (and reminders disabled natively)');
   }
 
   /// Flushes local buffers to daily JSON files and pushes today's steps to the
@@ -193,11 +198,7 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
       debugPrint('⚠️ DecisionTree cleanup failed: $e');
     }
 
-    try {
-      await Alarm.stopAll();
-    } catch (e) {
-      debugPrint('⚠️ Alarm stopAll failed: $e');
-    }
+
 
     debugPrint('🗑️ Deleting GetX controllers...');
     _deleteControllerIfRegistered<DietPlanController>(force: true);
@@ -228,6 +229,9 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
       await _syncHealthDataBeforeLogout();
 
       // ── 2. Start heavy background cleanup (does not need the token) ──────────
+      // Must clear reminder runtime BEFORE prefs.clear() so we know which alarms to cancel!
+      await AuthService.clearReminderRuntimeOnLogout();
+      
       final stopAndHiveFuture = _stopServicesAndClearHive();
       final apiSuccess = await _callLogoutApiBestEffort();
 

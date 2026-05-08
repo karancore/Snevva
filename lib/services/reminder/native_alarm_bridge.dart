@@ -170,6 +170,19 @@ class NativeAlarmBridge {
   }
 
   // ───────────────────────────────────────────────────────────────
+  // cancelAllPersisted — clear all alarms (e.g. on logout)
+  // ───────────────────────────────────────────────────────────────
+
+  static Future<void> cancelAllPersisted() async {
+    try {
+      await _channel.invokeMethod<bool>('cancelAllPersisted');
+      debugPrint('[NativeAlarm] 🗑 cancelAllPersisted executed');
+    } catch (e) {
+      debugPrint('[NativeAlarm] ⚠️ cancelAllPersisted failed: $e');
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────
   // cancelAlarms — bulk cancel + remove from SharedPrefs
   // ───────────────────────────────────────────────────────────────
 

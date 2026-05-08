@@ -502,11 +502,10 @@ class EditprofileController extends GetxService {
                                       year: DateTime.now().year,
                                       time: TimeOfDay.now().format(context),
                                     );
-                                    // ✅ BmiUpdateController ko sync karo
+                                    // ✅ Sync BmiUpdateController — ever() watcher fires updateBmiValues() automatically
                                     final bmiController =
                                         Get.find<BmiUpdateController>();
                                     bmiController.height.value = height!;
-                                    bmiController.updateBmiValues();
                                     isLoading.value = false;
                                     break;
                                   case 'Weight':
@@ -518,10 +517,10 @@ class EditprofileController extends GetxService {
                                       year: DateTime.now().year,
                                       time: TimeOfDay.now().format(context),
                                     );
+                                    // ✅ Sync BmiUpdateController — ever() watcher fires updateBmiValues() automatically
                                     final bmiController =
                                         Get.find<BmiUpdateController>();
                                     bmiController.weight.value = weight!;
-                                    bmiController.updateBmiValues();
                                     isLoading.value = false;
                                     break;
                                   case 'Address':

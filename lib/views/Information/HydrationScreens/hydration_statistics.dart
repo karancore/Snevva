@@ -1,11 +1,12 @@
+import 'package:intl/intl.dart';
 import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
+
 import '../../../Widgets/CommonWidgets/common_stat_graph_widget.dart';
 import '../../../common/global_variables.dart';
 import '../../../consts/consts.dart';
 import '../../../models/water_history_model.dart';
-import 'package:intl/intl.dart';
 
 class HydrationStatistics extends StatefulWidget {
   const HydrationStatistics({super.key});
@@ -265,7 +266,7 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                 // double interval = (maxY / 5).ceilToDouble();
 
                 return SizedBox(
-                  height: height * 0.35,
+                  height: height * 0.37,
                   child: Obx(() {
                     final labels =
                         _isMonthlyView

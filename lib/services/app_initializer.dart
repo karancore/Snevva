@@ -254,7 +254,11 @@ Future<bool> initializeApp() async {
     // ⏰ Register WorkManager periodic task for reminder rescheduling.
     // Runs every ~6 hours even if the app is killed, ensuring the 36h
     // scheduling window is continuously refreshed.
-    await initReminderWorker();
+    final prefs = await SharedPreferences.getInstance();
+    final hasSession = (prefs.getString('auth_token') ?? '').isNotEmpty;
+    if (hasSession) {
+      await initReminderWorker();
+    }
 
     // 📦 One-time file path migration: copies any daily JSON files that were
     // written to the OLD app_flutter/fs/daily/ path into the NEW files/fs/daily/
@@ -273,8 +277,9 @@ Future<bool> initializeApp() async {
     // ID is idempotent (overwrites the previous entry), so there is no
     // duplication risk.  This also self-heals any notification that was
     // previously scheduled in UTC due to the timezone-fallback bug.
-    final prefs = await SharedPreferences.getInstance();
-    await notifService.scheduleReminder(id: 100);
+    if (hasSession) {
+      await notifService.scheduleReminder(id: 100);
+    }
 
     _isInitialized = true;
     debugPrint("✅ App initialization complete");

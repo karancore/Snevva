@@ -1,9 +1,7 @@
 import 'dart:async';
-
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
-import 'package:snevva/services/reminder/native_alarm_bridge.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Controllers/Reminder/water_controller.dart';
 import 'package:snevva/consts/consts.dart';
@@ -73,72 +71,18 @@ class MealController extends GetxController {
     debugPrint("📤 [addMealAlarm] Meal Data Payload:");
     debugPrint("   ↳ $mealData");
 
-    final alarmSettings = AlarmSettings(
-      id: id,
-      dateTime: scheduledTime,
-      assetAudioPath: mealSound,
-      loopAudio: true,
-      androidFullScreenIntent: false,
-      volumeSettings: VolumeSettings.fade(
-        volume: 0.8,
-        fadeDuration: Duration(seconds: 5),
-        volumeEnforced: true,
-      ),
-      notificationSettings: NotificationSettings(
-        title:
-            title.isNotEmpty
-                ? reminderController.titleController.text
-                : 'MEAL REMINDER',
-        body: notes,
-        stopButton: 'Stop',
-        icon: 'alarm',
-        iconColor: AppColors.primaryColor,
-      ),
-    );
-
-    debugPrint("🔔 [addMealAlarm] AlarmSettings created:");
-    debugPrint("   ↳ id: ${alarmSettings.id}");
-    debugPrint("   ↳ dateTime: ${alarmSettings.dateTime}");
-    debugPrint("   ↳ title: ${alarmSettings.notificationSettings.title}");
-    debugPrint("   ↳ body: ${alarmSettings.notificationSettings.body}");
-
-    const success = true;
-
-    if (success) {
-      debugPrint("📲 [addMealAlarm] Arming alarm via NativeAlarmBridge...");
-
-      try {
-        await NativeAlarmBridge.armAlarm(
-          alarmId: alarmSettings.id,
-          epochMs: alarmSettings.dateTime.millisecondsSinceEpoch,
-          groupId: id.toString(),
-          category: 'meal',
-          title: alarmSettings.notificationSettings.title,
-          body: alarmSettings.notificationSettings.body,
-        );
-
-        debugPrint("✅ [addMealAlarm] Native alarm armed successfully");
-      } catch (e, stack) {
-        debugPrint("❌ [addMealAlarm] Native alarm FAILED");
-        debugPrint("   ↳ error: $e");
-        debugPrint("   ↳ stack: $stack");
-      }
+    debugPrint("⏱️ [addMealAlarm] Scheduling new reminder locally...");
+    try {
+      final transaction = await reminderController.scheduleReminderLocally(
+          mealData);
 
       debugPrint("📂 [addMealAlarm] Updating local meals list...");
-
       mealsList.value = await reminderController.loadReminderList("meals_list");
-      debugPrint("   ↳ loaded mealsList count: ${mealsList.length}");
 
       final displayTitle = title.isNotEmpty ? title : 'MEAL REMINDER';
-      mealsList.add({displayTitle: alarmSettings});
+      mealsList.add({displayTitle: transaction.mainAlarms.first});
 
-      debugPrint("   ↳ new mealsList count: ${mealsList.length}");
-
-      await reminderController.saveReminderList(mealsList, "meals_list");
-      debugPrint("   ↳ meals list saved");
-
-      await reminderController.loadAllReminderLists();
-      debugPrint("   ↳ all reminder lists reloaded");
+      await reminderController.finalizeUpdate(context, "meals_list", mealsList);
 
       debugPrint("🌐 [addMealAlarm] Sending to API...");
       unawaited(
@@ -161,8 +105,10 @@ class MealController extends GetxController {
       Get.back(result: true);
 
       debugPrint("🏁 [addMealAlarm] COMPLETED");
-    } else {
-      debugPrint("❌ [addMealAlarm] success flag was false — nothing executed");
+    } catch (e, stack) {
+      debugPrint("❌ [addMealAlarm] Scheduling FAILED");
+      debugPrint("   ↳ error: $e");
+      debugPrint("   ↳ stack: $stack");
     }
   }
 

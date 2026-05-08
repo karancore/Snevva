@@ -100,6 +100,19 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
             return
         }
 
+        // ✅ GUARD: Global logout / disable flag
+        val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        if (prefs.getBoolean("flutter.reminders_disabled", false)) {
+            Log.d(TAG, "⛔ REMINDER_FIRE suppressed — reminders are disabled (logged out)")
+            return
+        }
+
+        // ✅ GUARD: User toggled "Disable Notifications" in settings (DND mode)
+        if (prefs.getBoolean("flutter.is_dnd_enabled", false)) {
+            Log.d(TAG, "⛔ REMINDER_FIRE suppressed — user enabled DND in settings")
+            return
+        }
+
         // Signal Flutter that an alarm just fired so reconciliation runs on the
         // next app open (bypasses the 2-hour throttle in reconciliation_engine.dart).
         // Also stamp the arm epoch so MainActivity can skip a redundant full re-arm.

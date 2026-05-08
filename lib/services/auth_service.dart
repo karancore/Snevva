@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -27,8 +28,11 @@ import 'package:snevva/consts/consts.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/models/hive_models/steps_model.dart';
 import 'package:snevva/services/api_service.dart';
+import 'package:snevva/services/reminder/native_alarm_bridge.dart';
+import 'package:snevva/services/reminder/reminder_worker.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import 'package:snevva/views/permissions/permission_gate_screen.dart';
+import 'package:workmanager/workmanager.dart';
 
 import '../Controllers/signupAndSignIn/otp_verification_controller.dart';
 import '../Controllers/signupAndSignIn/sign_in_controller.dart';
@@ -169,6 +173,9 @@ class AuthService {
       prefs.setBool('remember_me', true);
       prefs.setString('user_credential', emailOrPhone);
     }
+
+    // ✅ Re-enable reminders upon successful login
+    await prefs.remove('reminders_disabled');
 
     //PERMISSIONS
     loginLog("Requesting permissions...");
@@ -356,6 +363,30 @@ class AuthService {
     }
   }
 
+  static Future<void> clearReminderRuntimeOnLogout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('reminders_disabled', true);
+
+    await NativeAlarmBridge.cancelAllPersisted();
+
+    await Alarm.stopAll();
+
+    final fln = FlutterLocalNotificationsPlugin();
+    await fln.cancelAll();
+    await fln.cancelAllPendingNotifications();
+
+    try {
+      await Workmanager().cancelByUniqueName(kReminderReconcileTask);
+      await Workmanager().cancelByUniqueName(kReminderOneShotTask);
+    } catch (_) {}
+
+    Get.delete<ReminderController>(tag: 'reminder', force: true);
+    Get.delete<WaterController>(force: true);
+    Get.delete<MedicineController>(force: true);
+    Get.delete<MealController>(force: true);
+    Get.delete<EventController>(force: true);
+  }
+
   static Future<void> forceLogout() async {
     if (_isLoggingOut) return;
     _isLoggingOut = true;
@@ -405,7 +436,14 @@ class AuthService {
       FileStorageService().reset();
       debugPrint('🗑️ FileStorageService cache invalidated');
 
+      // Clear alarms while prefs still contain native_reminder_alarms
+      await clearReminderRuntimeOnLogout();
+
       await prefs.clear();
+
+      // ✅ FIX: Restore the reminders_disabled tombstone flag because prefs.clear() wiped it!
+      // This is critical so native BootReceiver/armFromSharedPrefs doesn't resurrect alarms
+      await prefs.setBool('reminders_disabled', true);
 
       try {
         final stepBox = await Hive.openBox<StepEntry>('step_history');
@@ -427,7 +465,7 @@ class AuthService {
 
       // ❌ REMOVE THIS
       // Get.deleteAll(force: true);
-      await Alarm.stopAll();
+
       // ✅ Delete only app controllers
       Get.delete<DietPlanController>();
       Get.delete<HealthTipsController>();
@@ -435,10 +473,6 @@ class AuthService {
       Get.delete<MentalWellnessController>();
       Get.delete<MoodController>();
       Get.delete<MoodQuestionController>();
-      Get.delete<WaterController>();
-      Get.delete<MedicineController>();
-      Get.delete<EventController>();
-      Get.delete<MealController>();
       Get.delete<SignInController>(force: true);
       Get.delete<OTPVerificationController>(force: true);
       Get.delete<SleepController>();

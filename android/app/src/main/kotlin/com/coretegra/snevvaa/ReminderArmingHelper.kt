@@ -6,8 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
+import com.coretegra.snevvaa.ReminderArmingHelper.PREFS_KEY
 import org.json.JSONArray
-import org.json.JSONObject
 import java.io.File
 import java.util.Date
 
@@ -62,6 +62,13 @@ object ReminderArmingHelper {
      */
     fun armFromSharedPrefs(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
+
+        // ✅ GUARD: Skip re-arming if reminders are disabled (e.g. user logged out)
+        if (prefs.getBoolean("flutter.reminders_disabled", false)) {
+            Log.d(TAG, "⛔ armFromSharedPrefs: Reminders are disabled (logged out) — skipping")
+            return
+        }
+
         val json = prefs.getString(PREFS_KEY, null)
         if (json.isNullOrBlank()) {
             Log.d(TAG, "armFromSharedPrefs: no saved alarms")
@@ -223,6 +230,36 @@ object ReminderArmingHelper {
 
         // ✅ Single SharedPrefs write for the entire batch — avoids N separate commits.
         removeFromPersistedSchedule(context, alarmIds.toSet())
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // cancelAllPersisted — clears all alarms globally (e.g., on logout)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    fun cancelAllPersisted(context: Context) {
+        val prefs = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
+        val json = prefs.getString(PREFS_KEY, null)
+
+        if (!json.isNullOrBlank()) {
+            try {
+                val arr = JSONArray(json)
+                for (i in 0 until arr.length()) {
+                    val alarmId = arr.getJSONObject(i).optInt("alarmId", -1)
+                    if (alarmId != -1) {
+                        cancelFromAlarmManager(context, alarmId)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "cancelAllPersisted failed to parse schedule", e)
+            }
+        }
+
+        prefs.edit()
+            .remove(PREFS_KEY)
+            .remove("flutter.alarm_fired_recently")
+            .apply()
+
+        Log.d(TAG, "🗑️ cancelAllPersisted: Removed all native alarms and schedule.")
     }
 
     // ─────────────────────────────────────────────────────────────────────────

@@ -52,6 +52,14 @@ class BmiUpdateController extends GetxService {
   }
 
   void updateBmiValues() {
+    // Guard: ensure sub-maps exist before writing, in case the goal data
+    // hasn't been loaded from SharedPreferences yet (e.g. first-time save).
+    if (localStorageManager.userGoalDataMap['HeightData'] == null) {
+      localStorageManager.userGoalDataMap['HeightData'] = <String, dynamic>{};
+    }
+    if (localStorageManager.userGoalDataMap['WeightData'] == null) {
+      localStorageManager.userGoalDataMap['WeightData'] = <String, dynamic>{};
+    }
     localStorageManager.userGoalDataMap['HeightData']['Value'] = height.value;
     localStorageManager.userGoalDataMap['WeightData']['Value'] = weight.value;
 
@@ -113,7 +121,7 @@ class BmiUpdateController extends GetxService {
     this.weight.value = weight;
 
     debugPrint('Set Age: $age, Height: $height cm, Weight: $weight kg');
-    updateBmiValues();
+    // updateBmiValues();
     return true;
   }
 

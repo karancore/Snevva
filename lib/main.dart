@@ -398,7 +398,8 @@ class _MyAppState extends State<MyApp> {
           if (!isConnected) {
             NoInternetBanner.show(context);
           } else {
-            YesInternetBanner.show(context);
+            debugPrint('Connectivity restored, hiding banner');
+            NoInternetBanner.hide();
           }
         });
   }
@@ -559,6 +560,8 @@ class _MyAppState extends State<MyApp> {
           _scanLargeSharedPreferences(),
         ]);
 
+        if (!hasSession) return;
+
         try {
           // ✅ Use batch mode so all per-reminder saves during reconciliation
           // are accumulated in memory and flushed in a single Hive pass at
@@ -585,8 +588,6 @@ class _MyAppState extends State<MyApp> {
         } catch (e, s) {
           logLong('RECONCILIATION ERROR', '$e\n$s');
         }
-
-        if (!hasSession) return;
 
         AgentDebugLogger.log(
           runId: 'auth-bg',

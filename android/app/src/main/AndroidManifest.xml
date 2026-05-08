@@ -144,15 +144,6 @@
         <!-- Sparse wakeup receiver for step counter -->
         <receiver android:name=".SparseWakeupReceiver" android:exported="false" />
 
-
-
-        <!--        <receiver android:name=".ScreenReceiver" android:exported="false">-->
-<!--            <intent-filter>-->
-<!--                <action android:name="android.intent.action.SCREEN_OFF"/>-->
-<!--                <action android:name="android.intent.action.SCREEN_ON"/>-->
-<!--            </intent-filter>-->
-<!--        </receiver>-->
-
         <receiver
             android:exported="false"
             android:name="com.dexterous.flutterlocalnotifications.FlutterLocalNotificationsReceiver" />
