@@ -12,6 +12,7 @@ import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.d
 import 'package:snevva/widgets/semi_circular_progress.dart';
 
 import '../../../common/global_variables.dart';
+import 'step_report_screen.dart';
 import '../../../widgets/CommonWidgets/custom_appbar.dart';
 import '../../../widgets/CommonWidgets/step_stat_graph_widget.dart';
 import '../../../widgets/Drawer/drawer_menu_wigdet.dart';
@@ -444,6 +445,66 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
                   );
                 }),
               ),
+              const SizedBox(height: 20),
+
+              //========== STEP REPORT NAVIGATION CARD ==========
+              GestureDetector(
+                onTap: () {
+                  Get.to(() => const StepReportScreen());
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? darkGray : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryColor.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.analytics_outlined, color: AppColors.primaryColor),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "View Step Report",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "Detailed analysis of your steps",
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right, color: Colors.grey),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 30),
             ],
           ),
         ),

@@ -20,6 +20,7 @@ class StepStatGraphWidget extends StatelessWidget {
     this.graphTitle = '',
     required this.maxY,
     this.selectedMonthForHeader,
+    this.onBarTouched,
   });
 
   final bool isDarkMode;
@@ -32,6 +33,7 @@ class StepStatGraphWidget extends StatelessWidget {
   final String graphTitle;
   final double maxY;
   final DateTime? selectedMonthForHeader;
+  final Function(int, FlSpot)? onBarTouched;
 
   @override
   Widget build(BuildContext context) {
@@ -307,6 +309,18 @@ class StepStatGraphWidget extends StatelessWidget {
                   );
                 },
               ),
+              touchCallback: (FlTouchEvent event, barTouchResponse) {
+                if (!event.isInterestedForInteractions ||
+                    barTouchResponse == null ||
+                    barTouchResponse.spot == null) {
+                  return;
+                }
+                if (onBarTouched != null) {
+                  final index = barTouchResponse.spot!.touchedBarGroupIndex;
+                  final yVal = barTouchResponse.spot!.touchedRodData.toY;
+                  onBarTouched!(index, FlSpot(index.toDouble(), yVal));
+                }
+              },
             ),
           ),
         ),
