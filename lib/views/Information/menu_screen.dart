@@ -13,6 +13,7 @@ import 'package:snevva/views/Information/mental_wellness_screen.dart';
 import 'package:snevva/views/Information/vitals.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
 import 'package:snevva/views/Reminder/reminder_wrapper.dart';
+import 'package:snevva/views/Vitals/glucose_screen.dart';
 import 'package:snevva/views/WomenHealth/women_health_screen.dart';
 
 import '../../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
@@ -161,10 +162,19 @@ class _MenuScreenState extends State<MenuScreen>
         navigateTo: BmiCal(),
       ),
       MenuItem(
-        title: "Vital Monitor",
-        subtitle: "Heart rate, SpO₂ tracking",
-        imagePath: vitalIcon,
+          title: "Blood Pressure Monitor",
+          subtitle: "Track heart rate & oxygen levels",
+          imagePath: vitalIcon,
+          navigateTo: VitalScreen()
       ),
+
+      MenuItem(
+        title: "Blood Glucose",
+        subtitle: "Monitor blood sugar levels",
+        imagePath: vitalIcon,
+        navigateTo: GlucoseScreen(),
+      ),
+
       MenuItem(
         title: "Mental Wellness",
         subtitle: "Music or therapy support",
@@ -281,7 +291,11 @@ class _MenuScreenState extends State<MenuScreen>
           filteredMenuItems
               .where(
                 (item) =>
-                    ["BMI Calculator", "Vital Monitor"].contains(item.title),
+                    [
+                      "BMI Calculator",
+                      "Blood Pressure Monitor",
+                      'Blood Glucose'
+                    ].contains(item.title),
               )
               .toList(),
       "Mental Health & Wellness":
@@ -389,7 +403,7 @@ Widget _buildMenuGrid(
               debugPrint("Tapped on: ${item.title}");
 
               // Handle Vital Monitor
-              if (item.title == "Vital Monitor") {
+              if (item.title == "Blood Pressure Monitor") {
                 final prefs = await SharedPreferences.getInstance();
                 final isFirstTime = prefs.getBool('isFirstTime') ?? true;
 

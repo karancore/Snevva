@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 
 import '../consts/colors.dart';
@@ -11,29 +10,24 @@ const Color sugarTypeBorderColor = Color(0xffD2D2D2);
 const Color sugarTypeShadowColor = Color(0x40000000);
 
 class GlucoseCard extends StatelessWidget {
-  final String glucoseLevel;
-  final String time;
+  final String glucoseLevel; // mmol/L value as string
+  final String time; // ISO8601
+  final String type; // "Fasting" | "Post Meal" | "Custom"
 
   const GlucoseCard({
     super.key,
     required this.glucoseLevel,
     required this.time,
+    required this.type,
   });
 
   GlucoseStatus _getStatus(String level) {
     final value = double.tryParse(level);
     if (value == null) return GlucoseStatus.normal;
-    if (value < 70) return GlucoseStatus.low;
-    if (value > 180) return GlucoseStatus.high;
+    // mmol/L thresholds: <3.9 low, >10.0 high
+    if (value < 3.9) return GlucoseStatus.low;
+    if (value > 10.0) return GlucoseStatus.high;
     return GlucoseStatus.normal;
-  }
-
-  Color _getStatusColor(GlucoseStatus status) {
-    return switch (status) {
-      GlucoseStatus.low => AppColors.glucoseColor,
-      GlucoseStatus.high => AppColors.glucoseColor,
-      GlucoseStatus.normal => AppColors.glucoseColor,
-    };
   }
 
   String _getStatusLabel(GlucoseStatus status) {
@@ -44,23 +38,46 @@ class GlucoseCard extends StatelessWidget {
     };
   }
 
+  Color _getStatusColor(GlucoseStatus status) {
+    return switch (status) {
+      GlucoseStatus.low => const Color(0xffE05050),
+      GlucoseStatus.high => const Color(0xffE08A00),
+      GlucoseStatus.normal => AppColors.glucoseColor,
+    };
+  }
+
+  IconData _getTypeIcon() {
+    return switch (type) {
+      'Fasting' => Icons.bloodtype,
+      'Post Meal' => Icons.restaurant,
+      _ => Icons.water_drop,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final status = _getStatus(glucoseLevel);
-    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final statusColor = _getStatusColor(status);
-    double scale = MediaQuery.of(context).size.width / 360;
+    final bool isDarkMode = Theme
+        .of(context)
+        .brightness == Brightness.dark;
+    final double scale = MediaQuery
+        .of(context)
+        .size
+        .width / 360;
 
     return Card(
       color: isDarkMode ? darkGray : white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
       elevation: 4.0,
+      margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── Header row ──────────────────────────────────────────────
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -68,16 +85,10 @@ class GlucoseCard extends StatelessWidget {
                   width: 60 * scale,
                   height: 60 * scale,
                   decoration: BoxDecoration(
-                    // ✅ Dark: dark purple tint | Light: light purple tint
-                    color:
-                        isDarkMode
-                            ? const Color(0xff2A1A4A)
-                            : const Color(0xffF5F4FE),
+                    color: isDarkMode
+                        ? const Color(0xff2A1A4A)
+                        : const Color(0xffF5F4FE),
                     borderRadius: BorderRadius.circular(6.0),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 10,
-                    horizontal: 16.0,
                   ),
                   child: Center(
                     child: Image.asset(
@@ -91,24 +102,33 @@ class GlucoseCard extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10.0),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Blood Glucose',
                         style: TextStyle(
                           fontSize: 18.0,
                           fontWeight: FontWeight.w600,
-                          // ✅ Dark: white | Light: default (black)
                           color: isDarkMode ? white : black,
                         ),
                       ),
                       const SizedBox(height: 8.0),
+                      // Show mmol/L + converted mg/dL
                       Text(
-                        ' $glucoseLevel mg/dL',
+                        '$glucoseLevel mmol/L',
                         style: TextStyle(
-                          fontSize: 28.0,
-                          // ✅ Already had this — kept
+                          fontSize: 24.0,
                           color: isDarkMode ? white : black,
                           fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        '≈ ${_toMgDl(glucoseLevel)} mg/dL',
+                        style: TextStyle(
+                          fontSize: 12.0,
+                          color: isDarkMode
+                              ? Colors.grey[400]
+                              : Colors.grey[600],
                         ),
                       ),
                     ],
@@ -120,7 +140,6 @@ class GlucoseCard extends StatelessWidget {
                   DateFormat('h:mm a').format(DateTime.parse(time)),
                   style: TextStyle(
                     fontSize: 14.0,
-                    // ✅ Dark: light grey | Light: dark grey
                     color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
                   ),
                 ),
@@ -129,6 +148,7 @@ class GlucoseCard extends StatelessWidget {
 
             SizedBox(height: 16.0 * scale),
 
+            // ── Status row ──────────────────────────────────────────────
             Row(
               children: [
                 Text(
@@ -137,7 +157,6 @@ class GlucoseCard extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     height: 1,
                     fontSize: 18,
-                    // ✅ Dark: white | Light: black
                     color: isDarkMode ? white : black,
                   ),
                 ),
@@ -164,134 +183,80 @@ class GlucoseCard extends StatelessWidget {
 
             SizedBox(height: 16 * scale),
 
+            // ── Type chip ───────────────────────────────────────────────
             Row(
               children: [
-                // Fasting chip
-                Container(
-                  height: 24 * scale,
-                  width: 130 * scale,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 4.5,
-                    horizontal: 12.5,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      // ✅ Dark: dim border | Light: original border
-                      color:
-                          isDarkMode ? Colors.grey[700]! : sugarTypeBorderColor,
-                      width: 1,
-                    ),
-                    borderRadius: const BorderRadius.all(Radius.circular(5)),
-                    color: isDarkMode ? darkGray : white,
-                    boxShadow: [
-                      BoxShadow(
-                        color:
-                            isDarkMode
-                                ? white.withOpacity(0.1)
-                                : sugarTypeShadowColor,
-                        offset: const Offset(1, 1),
-                        blurRadius: 1,
-                        spreadRadius: -1,
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        height: 15 * scale,
-                        width: 15 * scale,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.glucoseColor,
-                        ),
-                        padding: const EdgeInsets.all(2),
-                        child: const Center(
-                          child: Icon(Icons.bloodtype, color: white, size: 12),
-                        ),
-                      ),
-                      const Spacer(flex: 2),
-                      Text(
-                        "Fasting",
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w600,
-                          // ✅ Dark: white | Light: black
-                          color: isDarkMode ? white : black,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const Spacer(flex: 2),
-                    ],
-                  ),
-                ),
-
-                SizedBox(width: 18 * scale),
-
-                // Insulin chip
-                Container(
-                  height: 24 * scale,
-                  width: 130 * scale,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 4.5,
-                    horizontal: 12.5,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      // ✅ Dark: dim border | Light: original border
-                      color:
-                          isDarkMode ? Colors.grey[700]! : sugarTypeBorderColor,
-                      width: 1,
-                    ),
-                    borderRadius: const BorderRadius.all(Radius.circular(5)),
-                    color: isDarkMode ? darkGray : white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: sugarTypeShadowColor,
-                        offset: const Offset(1, 1),
-                        blurRadius: 1,
-                        spreadRadius: -1,
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        height: 15 * scale,
-                        width: 15 * scale,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isDarkMode ? darkGray : white,
-                          border: Border.all(
-                            color: AppColors.glucoseColor,
-                            width: 1,
-                          ),
-                        ),
-                        child: FaIcon(
-                          FontAwesomeIcons.syringe,
-                          color: AppColors.glucoseColor,
-                          size: 7 * scale,
-                        ),
-                      ),
-                      const Spacer(flex: 2),
-                      Text(
-                        "10 insulin units",
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w600,
-                          // ✅ Dark: white | Light: black
-                          color: isDarkMode ? white : black,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const Spacer(flex: 2),
-                    ],
-                  ),
+                _typeChip(
+                  icon: _getTypeIcon(),
+                  label: type,
+                  scale: scale,
+                  isDarkMode: isDarkMode,
                 ),
               ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// mmol/L → mg/dL
+  String _toMgDl(String mmol) {
+    final v = double.tryParse(mmol);
+    if (v == null) return '—';
+    return (v * 18).toStringAsFixed(0);
+  }
+
+  Widget _typeChip({
+    required IconData icon,
+    required String label,
+    required double scale,
+    required bool isDarkMode,
+  }) {
+    return Container(
+      height: 24 * scale,
+      padding: const EdgeInsets.symmetric(vertical: 4.5, horizontal: 12.5),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: isDarkMode ? Colors.grey[700]! : sugarTypeBorderColor,
+          width: 1,
+        ),
+        borderRadius: const BorderRadius.all(Radius.circular(5)),
+        color: isDarkMode ? darkGray : white,
+        boxShadow: [
+          BoxShadow(
+            color: isDarkMode ? white.withOpacity(0.1) : sugarTypeShadowColor,
+            offset: const Offset(1, 1),
+            blurRadius: 1,
+            spreadRadius: -1,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            height: 15 * scale,
+            width: 15 * scale,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.glucoseColor,
+            ),
+            padding: const EdgeInsets.all(2),
+            child: Center(
+              child: Icon(icon, color: white, size: 9),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+              color: isDarkMode ? white : black,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -145,7 +145,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                 final showLoader =
                     dietController.isSuggestionsLoadingMore.value;
                 return SizedBox(
-                  height: 170,
+                  height: 170 * scale,
                   child: ListView.separated(
                     controller: dietController.suggestionsScrollController,
                     scrollDirection: Axis.horizontal,
@@ -178,6 +178,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                           width: width,
                           heading: item.heading ?? "",
                           subHeading: item.title ?? "",
+                          scale: scale,
                           dietImg: item.thumbnailMedia ?? dietPlaceholder,
                           isDarkMode: isDarkMode,
                         ),
@@ -214,7 +215,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                 }
                 final showLoader = dietController.isCelebrityLoadingMore.value;
                 return SizedBox(
-                  height: 138 * scale,
+                  height: 170 * scale,
                   child: ListView.separated(
                     controller: dietController.celebrityScrollController,
                     scrollDirection: Axis.horizontal,
@@ -244,6 +245,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                           subHeading: item.title ?? "",
                           dietImg: item.thumbnailMedia ?? dietPlaceholder,
                           isGridItem: false,
+                          scale: scale,
                           isDarkMode: isDarkMode,
                         ),
                       );
@@ -278,8 +280,13 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                       left: index == 0 ? 20 : 10,
                       right: index == categoryDiets.length - 1 ? 20 : 0,
                     ),
-                    child: dietCategoryIcons(width, categoryText, icon, index),
-                  );
+                    child: dietCategoryIcons(
+                      width,
+                      categoryText,
+                      icon,
+                      scale,
+                      index,
+                    ));
                 }),
               ),
             ),
@@ -334,6 +341,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                       subHeading: item.title ?? "",
                       dietImg: item.thumbnailMedia ?? dietPlaceholder,
                       isDarkMode: isDarkMode,
+                      scale: scale,
                       isGridItem: true,
                     ),
                   );
@@ -355,6 +363,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     double width,
     String categoryText,
     String icon,
+    double scale,
     int index,
   ) {
     return Obx(() {
@@ -367,7 +376,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
           fetchCategoryReponse(categoryText);
         },
         child: SizedBox(
-          width: 74,
+          width: 74 * scale,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -402,6 +411,8 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     required String heading,
     required String subHeading,
     required String dietImg,
+    required double scale,
+
     required bool isDarkMode,
     bool isGridItem = false,
   }) {
@@ -425,7 +436,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
       child: Container(
         width: cardWidth,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(cardRadius),
           color: isDarkMode ? black : white,
           border: Border.all(width: border04px, color: mediumGrey),
           boxShadow: [

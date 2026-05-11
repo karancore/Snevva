@@ -9,6 +9,7 @@ import 'package:snevva/models/queryParamViewModels/bloodpressure.dart';
 import 'package:snevva/services/api_service.dart';
 
 import '../../common/custom_snackbar.dart';
+import '../../models/glucose_reading_model.dart';
 
 class VitalsController extends GetxController {
   var bpm = 0.obs;
@@ -16,10 +17,58 @@ class VitalsController extends GetxController {
   var dia = 0.obs; // Observable for DIA
   var bloodGlucose = 0.obs; // Observable for BloodGlucose
 
+  final glucoseController = TextEditingController();
   @override
   void onInit() {
     super.onInit();
+    loadGlucoseReadings();
     loadVitalsFromLocalStorage(); // Load vitals when the controller is initialized
+  }
+
+  // Reactive list — GlucoseScreen rebuilds automatically via Obx
+  final RxList<GlucoseReading> glucoseReadings = <GlucoseReading>[].obs;
+
+  static const _prefKey = 'glucose_readings';
+
+  @override
+  void onClose() {
+    glucoseController.dispose();
+    super.onClose();
+  }
+
+  // ── Persistence ──────────────────────────────────────────────────────────
+
+  Future<void> loadGlucoseReadings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String> raw = prefs.getStringList(_prefKey) ?? [];
+    glucoseReadings.assignAll(
+      raw.map((e) => GlucoseReading.fromJson(e)).toList(),
+    );
+  }
+
+  Future<void> _persist() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      _prefKey,
+      glucoseReadings.map((r) => r.toJson()).toList(),
+    );
+  }
+
+  // ── CRUD ─────────────────────────────────────────────────────────────────
+
+  Future<void> addGlucoseReading(String level, String type) async {
+    final reading = GlucoseReading(
+      glucoseLevel: level,
+      time: DateTime.now().toIso8601String(),
+      type: type,
+    );
+    glucoseReadings.insert(0, reading); // newest first
+    await _persist();
+  }
+
+  Future<void> deleteGlucoseReading(int index) async {
+    glucoseReadings.removeAt(index);
+    await _persist();
   }
 
   String getBpmStatus(int bpm) {

@@ -1,14 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_instance/src/extension_instance.dart';
+import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
 import 'package:snevva/widgets/add_glucose_card.dart';
 import 'package:snevva/widgets/glucose_card.dart';
 
+import '../../Controllers/Vitals/vitalsController.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../consts/colors.dart';
 import '../../consts/images.dart';
 
-class GlucoseScreen extends StatelessWidget {
+class GlucoseScreen extends StatefulWidget {
   const GlucoseScreen({super.key});
+
+  @override
+  State<GlucoseScreen> createState() => _GlucoseScreenState();
+}
+
+class _GlucoseScreenState extends State<GlucoseScreen> {
+  late VitalsController vitalsController;
+
+  @override
+  void initState() {
+    vitalsController = Get.find<VitalsController>();
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +39,7 @@ class GlucoseScreen extends StatelessWidget {
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       body: Stack(
         children: [
-          const BloodGlucoseHeader(),
+          BloodGlucoseHeader(vitalsController: vitalsController),
           Positioned(
             top: height * 0.32,
             right: 10,
@@ -50,30 +67,78 @@ class GlucoseScreen extends StatelessWidget {
               ),
             ),
           ),
+
+          // Replace the ListView.builder section in GlucoseScreen
           Positioned(
             left: 0,
             right: 0,
             top: height * 0.36,
             child: SizedBox(
               height: height * 0.49,
-              child: MediaQuery.removePadding(
-                context: context,
-                removeTop: true,
-                removeBottom: true,
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 0.0,
-                    horizontal: 24.0,
+              child: Obx(() {
+                final readings = vitalsController.glucoseReadings;
+
+                if (readings.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.water_drop_outlined,
+                          size: 48,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No readings yet.\nTap + to add your first entry.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return MediaQuery.removePadding(
+                  context: context,
+                  removeTop: true,
+                  removeBottom: true,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 0.0,
+                      horizontal: 24.0,
+                    ),
+                    itemCount: readings.length,
+                    itemBuilder: (context, index) {
+                      final reading = readings[index];
+                      return Dismissible(
+                        key: ValueKey(reading.time),
+                        // unique per entry
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20),
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.delete, color: Colors.white),
+                        ),
+                        onDismissed:
+                            (_) => vitalsController.deleteGlucoseReading(index),
+                        child: GlucoseCard(
+                          glucoseLevel: reading.glucoseLevel,
+                          time: reading.time,
+                          type: reading.type,
+                        ),
+                      );
+                    },
                   ),
-                  itemCount: 3,
-                  itemBuilder: (context, index) {
-                    return GlucoseCard(
-                      glucoseLevel: 4.2.toString(),
-                      time: DateTime.now().toString(),
-                    );
-                  },
-                ),
-              ),
+                );
+              }),
             ),
           ),
           Align(
@@ -92,7 +157,9 @@ class GlucoseScreen extends StatelessWidget {
 }
 
 class BloodGlucoseHeader extends StatelessWidget {
-  const BloodGlucoseHeader({super.key});
+  const BloodGlucoseHeader({super.key, required this.vitalsController});
+
+  final VitalsController vitalsController;
 
   @override
   Widget build(BuildContext context) {
@@ -157,7 +224,10 @@ class BloodGlucoseHeader extends StatelessWidget {
 
                 // Glucose Drop + Text Overlay
                 Positioned(
-                  bottom: 120 * scale,
+                  bottom:
+                      vitalsController.glucoseController.text.isEmpty
+                          ? 100 * scale
+                          : 120 * scale,
                   left: 0,
                   right: 0,
                   child: Align(
@@ -178,7 +248,7 @@ class BloodGlucoseHeader extends StatelessWidget {
                             children: [
                               Text(" ", style: TextStyle(height: 0.5 * scale)),
                               Text(
-                                '5.4',
+                                vitalsController.glucoseController.text,
                                 style: TextStyle(
                                   // ✅ Dark: white text | Light: black text
                                   color: isDarkMode ? darkGray : black,
@@ -188,7 +258,9 @@ class BloodGlucoseHeader extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                'mmol/L',
+                                vitalsController.glucoseController.text.isEmpty
+                                    ? ''
+                                    : 'mmol/L',
                                 style: TextStyle(
                                   // ✅ Dark: white text | Light: black text
                                   color: isDarkMode ? darkGray : black,
@@ -206,54 +278,58 @@ class BloodGlucoseHeader extends StatelessWidget {
                 ),
 
                 // Status Badge
-                Positioned(
-                  bottom: 90 * scale,
-                  left: 0,
-                  right: 0,
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: Container(
-                      width: 106 * scale,
-                      height: 26 * scale,
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: isDarkMode ? darkGray : white,
-                        borderRadius: BorderRadius.circular(7),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Low Blood Sugar',
-                          style: TextStyle(
-                            // ✅ Dark: white text | Light: black text
-                            color: isDarkMode ? white : black,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
+                vitalsController.glucoseController.text.isEmpty
+                    ? SizedBox.shrink()
+                    : Positioned(
+                      bottom: 90 * scale,
+                      left: 0,
+                      right: 0,
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: Container(
+                          width: 106 * scale,
+                          height: 26 * scale,
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isDarkMode ? darkGray : white,
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Low Blood Sugar',
+                              style: TextStyle(
+                                // ✅ Dark: white text | Light: black text
+                                color: isDarkMode ? white : black,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ),
 
                 // "Need Attention" label
-                Positioned(
-                  bottom: 75 * scale,
-                  left: 0,
-                  right: 0,
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: Center(
-                      child: Text(
-                        'Need Attention',
-                        style: TextStyle(
-                          color: white, // always white on purple bg
-                          fontSize: 8,
-                          fontWeight: FontWeight.w600,
+                vitalsController.glucoseController.text.isEmpty
+                    ? SizedBox.shrink()
+                    : Positioned(
+                      bottom: 75 * scale,
+                      left: 0,
+                      right: 0,
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: Center(
+                          child: Text(
+                            'Need Attention',
+                            style: TextStyle(
+                              color: white, // always white on purple bg
+                              fontSize: 8,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
 
                 // Random Raindrops (unchanged — decorative only)
                 Positioned(

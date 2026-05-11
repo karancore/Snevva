@@ -3,18 +3,21 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:get/instance_manager.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/views/Dashboard/dashboard.dart';
 import 'package:snevva/views/Information/menu_screen.dart';
-import 'package:snevva/views/Reminder/reminder_wrapper.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
+import 'package:snevva/views/Reminder/reminder_wrapper.dart';
 import 'package:snevva/widgets/navbar.dart';
+
 import '../services/notification_channel.dart';
 import '../views/My_Health/my_health_screen.dart';
 import 'Drawer/drawer_menu_wigdet.dart';
+import 'birthday_popup_dialog.dart';
 
 // 👈 make sure you have this
 
@@ -33,6 +36,7 @@ class _HomeWrapperState extends State<HomeWrapper> {
   static Future<void>? _sharedStartupTask;
   late final List<Widget?> _pages;
   bool _hasRedirectedToProfileSetup = false;
+  bool _birthdayShown = false;
 
   Widget _buildPage(int index) {
     switch (index) {
@@ -75,6 +79,26 @@ class _HomeWrapperState extends State<HomeWrapper> {
       if (!mounted) return;
       if (_redirectToProfileSetupIfNeeded()) return;
       await _ensureStartupSequence();
+
+      // ── Birthday popup (ADD THIS BLOCK) ──────────────────────────────
+      if (!_birthdayShown && mounted) {
+        _birthdayShown = true;
+        final today = DateTime.now();
+        final lastShownKey =
+            'birthday_shown_${today.year}_${today.month}_${today.day}';
+        final prefs = await SharedPreferences.getInstance();
+        final alreadyShownToday = prefs.getBool(lastShownKey) ?? false;
+
+        if (!alreadyShownToday && mounted) {
+          await BirthdayPopupHelper.showIfBirthday(
+            context,
+            localStorageManager.userMap,
+          );
+          // Mark as shown so reloading the app mid-day doesn't repeat it
+          await prefs.setBool(lastShownKey, true);
+        }
+      }
+      // ─────────────────────────────────────────────────────────────────
     });
   }
 
