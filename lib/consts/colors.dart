@@ -20,6 +20,7 @@ final LinearGradient docAppContiner = LinearGradient(
 class AppColors {
   // App's Primary Color
   static const Color primaryColor = Color(0xFFA95BFF);
+  static const Color glucoseColor = Color(0xffB475FF);
   static const Color primaryLight4PercentOpacity = Color(0x0A62FF0A);
 
   static const Color activeSwitch = Color(0xFFA95BFF);

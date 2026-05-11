@@ -10,7 +10,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/services/auth_service.dart';
 
-import '../common/custom_snackbar.dart';
 import '../env/env.dart';
 import 'api_service.dart';
 
@@ -22,11 +21,14 @@ class GoogleAuthService extends GetxService {
   bool _initialized = false;
 
   // ---------------- INIT ----------------
-  Future<void> init(BuildContext context) async {
+  Future<void> init() async {
     if (_initialized) {
       debugPrint("ℹ️ GoogleAuthService already initialized");
       return;
     }
+
+    await _authEventsSub?.cancel();
+    _authEventsSub = null;
 
     debugPrint("🔵 GoogleAuthService: init started");
 
@@ -34,12 +36,10 @@ class GoogleAuthService extends GetxService {
 
     debugPrint("🟢 GoogleSignIn initialized with clientId: $WEB");
 
-    // LISTEN AUTH EVENTS
     _authEventsSub = _google.authenticationEvents.listen(
-      (event) async {
+          (event) async {
         debugPrint("📡 Authentication event received: ${event.runtimeType}");
 
-        // SIGNED IN
         if (event is GoogleSignInAuthenticationEventSignIn) {
           final GoogleSignInAccount account = event.user;
 
@@ -50,48 +50,55 @@ class GoogleAuthService extends GetxService {
 
           user.value = account;
 
-          await precacheImage(
-              CachedNetworkImageProvider(account.photoUrl ?? ''), context);
+          // Non-critical — silently skip if URL absent or network fails
+          final photoUrl = account.photoUrl;
+          if (photoUrl != null && photoUrl.isNotEmpty) {
+            final ctx = Get.context;
+            if (ctx != null) {
+              try {
+                await precacheImage(CachedNetworkImageProvider(photoUrl), ctx);
+              } catch (_) {
+                debugPrint(
+                    "⚠️ precacheImage failed (non-critical), continuing login");
+              }
+            }
+          }
 
-          await _handleBackendLogin(account, context, account.email);
-        }
-        // SIGNED OUT
-        else if (event is GoogleSignInAuthenticationEventSignOut) {
+          debugPrint("Account photo $photoUrl");
+
+          await _handleBackendLogin(account);
+        } else if (event is GoogleSignInAuthenticationEventSignOut) {
           debugPrint("🚪 User signed out");
           user.value = null;
         }
       },
       onError: (error) {
         debugPrint("❌ authenticationEvents error triggered");
-        _initialized = false; // Reset init state to allow re-init if needed
+
         if (error is GoogleSignInException) {
           debugPrint("   Error code: ${error.code}");
           debugPrint("   Error message: ${error.description}");
+
+          if (error.code == GoogleSignInExceptionCode.canceled) {
+            debugPrint("⚠️ User cancelled Google sign-in UI");
+            return;
+          }
         } else {
           debugPrint("   Unknown error: $error");
         }
 
-        // Ignore cancel (user just closed popup)
-        if (error is GoogleSignInException &&
-            error.code == GoogleSignInExceptionCode.canceled) {
-          debugPrint("⚠️ User cancelled Google sign-in UI");
-        }
+        _initialized = false;
       },
     );
 
-    // Attempt auto login
+    _initialized = true;
+
     debugPrint("🔄 Attempting lightweight authentication...");
     try {
       await _google.attemptLightweightAuthentication();
     } catch (e) {
       debugPrint("❌ Lightweight auth failed: $e");
-
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Sign-in Issue',
-        message: 'Google auto sign-in failed. Please try manually.',
-      );
-      _initialized = true;
+      // Silent — user hasn't attempted login yet, no snackbar needed
     }
   }
 
@@ -119,20 +126,15 @@ class GoogleAuthService extends GetxService {
   }
 
   // ---------------- BACKEND LOGIN ----------------
-  Future<void> _handleBackendLogin(
-    GoogleSignInAccount account,
-    BuildContext context,
-    String email,
-  ) async {
+  // No BuildContext — all UI feedback via Get.snackbar
+  Future<void> _handleBackendLogin(GoogleSignInAccount account) async {
     try {
       debugPrint("🔐 Fetching Google authentication tokens...");
 
       final GoogleSignInAuthentication auth = account.authentication;
-
       final String? idToken = auth.idToken;
 
       debugPrint("ID Token present: ${idToken != null}");
-
       logLong("ID Token ", idToken ?? '');
 
       if (idToken == null) {
@@ -140,24 +142,22 @@ class GoogleAuthService extends GetxService {
         return;
       }
 
-      /// THIS is what backend needs
-      final payload = {'AuthToken': idToken};
-
       debugPrint("📤 Sending ID token to backend...");
 
       final response = await ApiService.post(
         googleApi,
-        payload,
+        {'AuthToken': idToken},
         withAuth: false,
         encryptionRequired: true,
       );
 
       if (response is http.Response) {
         debugPrint("❌ HTTP error: ${response.statusCode}");
-        CustomSnackbar.showError(
-          context: context,
-          title: 'Error',
-          message: 'Failed to sign in with google: ${response.statusCode}',
+        Get.snackbar(
+          'Sign-in Error',
+          'Failed to sign in with Google (${response
+              .statusCode}). Please try again.',
+          snackPosition: SnackPosition.BOTTOM,
         );
         return;
       }
@@ -169,11 +169,11 @@ class GoogleAuthService extends GetxService {
       debugPrint("🔑 Extracted token: $token");
 
       if (token == null || token.toString().trim().isEmpty) {
-        debugPrint("❌ Token is null/empty — aborting login to prevent forced logout cascade");
-        CustomSnackbar.showError(
-          context: context,
-          title: 'Login Failed',
-          message: 'Could not retrieve session token from server. Please try again.',
+        debugPrint("❌ Token is null/empty — aborting login");
+        Get.snackbar(
+          'Login Failed',
+          'Could not retrieve session token from server. Please try again.',
+          snackPosition: SnackPosition.BOTTOM,
         );
         return;
       }
@@ -185,19 +185,25 @@ class GoogleAuthService extends GetxService {
       await authService.handleSuccessfulSignIn(
         emailOrPhone: account.email,
         prefs: await SharedPreferences.getInstance(),
-        context: context,
+        context: Get.context!,
         rememberMe: true,
       );
 
-      _initialized = false; // Reset init state to allow re-init if needed
-
       debugPrint("📥 Backend response: $response");
-
       debugPrint("🎉 Backend login completed");
     } catch (e, stack) {
       debugPrint("🔥 Backend login failed: $e");
       debugPrint("$stack");
     }
+  }
+
+  // ---------------- RESET (called on logout) ----------------
+  void reset() {
+    _authEventsSub?.cancel();
+    _authEventsSub = null;
+    _initialized = false;
+    user.value = null;
+    debugPrint("🔄 GoogleAuthService reset");
   }
 
   @override

@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:alarm/alarm.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
@@ -11,6 +13,8 @@ import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
 import 'package:snevva/Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_questions_controller.dart';
+import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
+import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
 import 'package:snevva/Controllers/Reminder/event_controller.dart';
 import 'package:snevva/Controllers/Reminder/meal_controller.dart';
 import 'package:snevva/Controllers/Reminder/medicine_controller.dart';
@@ -58,7 +62,8 @@ class AuthService {
   SleepController get sleepController => Get.find<SleepController>();
   HydrationStatController get waterController =>
       Get.find<HydrationStatController>();
-  VitalsController get vitalsController => Get.find<VitalsController>();
+
+  VitalsController get vitalsController => Get.put(VitalsController());
   LocalStorageManager get localStorageManager =>
       Get.find<LocalStorageManager>();
   ReminderController get reminderController =>
@@ -387,6 +392,49 @@ class AuthService {
     Get.delete<EventController>(force: true);
   }
 
+  static Future<void> clearProfileImageStateOnLogout() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedPath = prefs.getString('profileImagePath');
+
+    if (Get.isRegistered<ProfileSetupController>()) {
+      try {
+        await Get.find<ProfileSetupController>().clearImage();
+      } catch (e) {
+        debugPrint('⚠️ Failed to clear ProfileSetupController image: $e');
+      }
+    } else {
+      await prefs.remove('profileImagePath');
+    }
+
+    if (savedPath != null && savedPath.isNotEmpty) {
+      try {
+        await FileImage(File(savedPath)).evict();
+      } catch (e) {
+        debugPrint('⚠️ Failed to evict saved profile image: $e');
+      }
+    }
+
+    if (Get.isRegistered<LocalStorageManager>()) {
+      final localStorageManager = Get.find<LocalStorageManager>();
+      final cdnUrl =
+          localStorageManager.userMap['ProfilePicture']?['CdnUrl']?.toString();
+      if (cdnUrl != null && cdnUrl.isNotEmpty) {
+        final imageUrl = cdnUrl.startsWith('http') ? cdnUrl : 'https://$cdnUrl';
+        try {
+          await CachedNetworkImage.evictFromCache(imageUrl);
+          await CachedNetworkImageProvider(imageUrl).evict();
+        } catch (e) {
+          debugPrint('⚠️ Failed to evict profile network image: $e');
+        }
+      }
+      localStorageManager.userMap.remove('ProfilePicture');
+      localStorageManager.userMap.refresh();
+    }
+
+    imageCache.clear();
+    imageCache.clearLiveImages();
+  }
+
   static Future<void> forceLogout() async {
     if (_isLoggingOut) return;
     _isLoggingOut = true;
@@ -401,7 +449,9 @@ class AuthService {
         if (Get.isRegistered<StepCounterController>()) {
           final ctrl = Get.find<StepCounterController>();
           if (ctrl.todaySteps.value > 0) {
-            debugPrint('📤 Logout: syncing today\'s steps (${ctrl.todaySteps.value}) before token clear...');
+            debugPrint(
+              '📤 Logout: syncing today\'s steps (${ctrl.todaySteps.value}) before token clear...',
+            );
             await ctrl.saveStepRecordToServer();
             debugPrint('✅ Logout step sync done');
           }
@@ -438,6 +488,7 @@ class AuthService {
 
       // Clear alarms while prefs still contain native_reminder_alarms
       await clearReminderRuntimeOnLogout();
+      await clearProfileImageStateOnLogout();
 
       await prefs.clear();
 
@@ -473,6 +524,8 @@ class AuthService {
       Get.delete<MentalWellnessController>();
       Get.delete<MoodController>();
       Get.delete<MoodQuestionController>();
+      Get.delete<ProfileSetupController>(force: true);
+      Get.delete<EditprofileController>(force: true);
       Get.delete<SignInController>(force: true);
       Get.delete<OTPVerificationController>(force: true);
       Get.delete<SleepController>();

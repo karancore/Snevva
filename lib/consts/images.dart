@@ -111,6 +111,9 @@ const clockRemIcon = "assets/Icons/reminder/clock.svg";
 //Vitals Screen
 const heartVitalIcon = "assets/Icons/vitals/heart.webp";
 const bloodDropsIcon = "assets/Icons/vitals/blood_drops.webp";
+const waterDrops = "assets/Images/,.png";
+const glucoseDrop = "assets/Images/glucose-drop.png";
+const glucoseBanner = "assets/Images/glucose-banner.png";
 //Mental Wellness
 const wellnessContainerImg1 =
     "assets/Images/MentalWellness/person_Sitting.webp";

@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/queryParamViewModels/bloodpressure.dart';
+import 'package:snevva/views/Vitals/glucose_screen.dart';
 import 'package:snevva/views/information/bmi_status.dart';
 
 import '../../Controllers/Vitals/vitalsController.dart';
@@ -503,49 +504,54 @@ class _VitalScreenState extends State<VitalScreen> {
                         ],
                       ),
                       const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Image.asset(bloodDropsIcon, width: 24, height: 24),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Blood Glucose:',
-                              style:
-                              TextStyle(color: textColor, fontSize: 13),
-                            ),
-                          ),
-                          SizedBox(
-                            width: 70,
-                            child: TextFormField(
-                              controller: glucoseController,
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.center,
-                              inputFormatters: [
-                                MaxValueTextInputFormatter(300),
-                              ],
-                              style:
-                              TextStyle(color: textColor, fontSize: 14),
-                              decoration: InputDecoration(
-                                hintText: '$bloodGlucose',
-                                hintStyle: TextStyle(
-                                  color: textColor.withOpacity(0.3),
-                                  fontSize: 14,
-                                ),
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                disabledBorder: InputBorder.none,
-                                errorBorder: InputBorder.none,
-                                focusedErrorBorder: InputBorder.none,
-                                contentPadding: EdgeInsets.zero,
+                      InkWell(
+                        onTap: () {
+                          Get.to(() => const GlucoseScreen());
+                        },
+                        child: Row(
+                          children: [
+                            Image.asset(bloodDropsIcon, width: 24, height: 24),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Blood Glucose:',
+                                style:
+                                TextStyle(color: textColor, fontSize: 13),
                               ),
                             ),
-                          ),
-                          Text(
-                            ' mg/dL',
-                            style: TextStyle(color: textColor, fontSize: 12),
-                          ),
-                        ],
+                            SizedBox(
+                              width: 70,
+                              child: TextFormField(
+                                controller: glucoseController,
+                                keyboardType: TextInputType.number,
+                                textAlign: TextAlign.center,
+                                inputFormatters: [
+                                  MaxValueTextInputFormatter(300),
+                                ],
+                                style:
+                                TextStyle(color: textColor, fontSize: 14),
+                                decoration: InputDecoration(
+                                  hintText: '$bloodGlucose',
+                                  hintStyle: TextStyle(
+                                    color: textColor.withOpacity(0.3),
+                                    fontSize: 14,
+                                  ),
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  disabledBorder: InputBorder.none,
+                                  errorBorder: InputBorder.none,
+                                  focusedErrorBorder: InputBorder.none,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              ' mg/dL',
+                              style: TextStyle(color: textColor, fontSize: 12),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),

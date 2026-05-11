@@ -1,13 +1,12 @@
 import 'dart:math';
-import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+
 import 'package:intl/intl.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/widgets/CommonWidgets/step_stat_graph_widget.dart';
+
 import '../../../widgets/Drawer/drawer_menu_wigdet.dart';
 
 class StepReportScreen extends StatefulWidget {
@@ -55,18 +54,17 @@ class _StepReportScreenState extends State<StepReportScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final spots = stepController.stepSpots;
       final yesterday = DateTime.now().subtract(const Duration(days: 1));
+      final yesterdayKey = "${yesterday.year}-${yesterday.month
+          .toString()
+          .padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}";
 
-      if (spots.isNotEmpty) {
-        // Find yesterday's spot or last spot
-        final spot = spots.length >= 2 ? spots[spots.length - 2] : spots.last;
-        selectedSteps.value = spot.y.toInt();
-        selectedDateLabel.value = "${yesterday.day}-${yesterday.month}-${yesterday.year}";
-      } else {
-        selectedSteps.value = stepController.todaySteps.value;
-        selectedDateLabel.value = "${yesterday.day}-${yesterday.month}-${yesterday.year}";
-      }
+      final yesterdaySteps = stepController.stepsHistoryByDate[yesterdayKey] ??
+          0;
+
+      selectedSteps.value = yesterdaySteps;
+      selectedDateLabel.value =
+      "${yesterday.day}-${yesterday.month}-${yesterday.year}";
     });
   }
 
@@ -323,9 +321,11 @@ class _StepReportScreenState extends State<StepReportScreen> {
                       children: [
                         Expanded(
                           child: _buildKeyPointCard(
-                            title: 'Steps',
-                            value: steps.toString(),
-                            subtitle: '',
+                            title: 'Progress',
+                            value: '${(stepController.stepGoal.value > 0
+                                ? (steps / stepController.stepGoal.value * 100)
+                                : 0).toStringAsFixed(0)}%',
+                            subtitle: '/goal',
                             color: Colors.blue,
                             iconPath: run,
                           ),

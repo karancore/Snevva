@@ -34,6 +34,7 @@ class DietPlanController extends GetxController {
   int suggestionsPageIndex = 1;
   int celebrityPageIndex = 1;
   String selectedCategoryText = 'Vegetarian';
+  List<String> _activeSuggestionTags = <String>[];
   final ScrollController categoryScrollController = ScrollController();
   final ScrollController suggestionsScrollController = ScrollController();
   final ScrollController celebrityScrollController = ScrollController();
@@ -201,6 +202,7 @@ class DietPlanController extends GetxController {
       debugPrint(
         "✅ [API - getAllDiets] Success. Items found: ${categoryResponse.value.data?.length ?? 0}",
       );
+      return categoryResponse.value;
     } catch (e) {
       debugPrint("🔥 [API - getAllDiets] Exception: $e");
     } finally {
@@ -209,23 +211,6 @@ class DietPlanController extends GetxController {
       } else {
         isCategoryLoading.value = false;
       }
-    }
-    return null;
-  }
-
-  /// Helper to normalize media fields. Accepts either String or Map and returns a usable URL string.
-  String? _extractMediaUrl(dynamic media) {
-    if (media == null) return null;
-    if (media is String) {
-      return media.isEmpty ? null : media;
-    }
-    if (media is Map) {
-      final cdn =
-          media['CdnUrl'] ?? media['cdnUrl'] ?? media['Url'] ?? media['url'];
-      if (cdn == null) return null;
-      final cdnStr = cdn.toString();
-      if (cdnStr.startsWith('http')) return cdnStr;
-      return 'https://$cdnStr';
     }
     return null;
   }
@@ -269,49 +254,10 @@ class DietPlanController extends GetxController {
         return;
       }
 
-      final Map<String, dynamic> parsed = Map<String, dynamic>.from(
-        response as Map,
+      final parsedResponse = DietTagsResponse.fromJson(
+        Map<String, dynamic>.from(response as Map),
       );
-      final List<dynamic> data = parsed['data'] ?? [];
-
-      final List<DietTagData> parsedList =
-          data.map((item) {
-            final Map<String, dynamic> it = Map<String, dynamic>.from(
-              item as Map,
-            );
-
-            // Convert meal plan
-            final mealPlanRaw = it['MealPlan'] as List? ?? [];
-            final List<MealPlanItem> mealPlan =
-                mealPlanRaw.map((mp) {
-                  final Map<String, dynamic> mpMap = Map<String, dynamic>.from(
-                    mp as Map,
-                  );
-                  return MealPlanItem(
-                    day: mpMap['Day'] ?? 0,
-                    breakFast: (mpMap['BreakFast'] ?? '').toString(),
-                    breakFastMedia: _extractMediaUrl(mpMap['BreakFastMedia']),
-                    lunch: (mpMap['Lunch'] ?? '').toString(),
-                    lunchMedia: _extractMediaUrl(mpMap['LunchMedia']),
-                    evening: (mpMap['Evening'] ?? '').toString(),
-                    eveningMedia: _extractMediaUrl(mpMap['EveningMedia']),
-                    dinner: (mpMap['Dinner'] ?? '').toString(),
-                    dinnerMedia: _extractMediaUrl(mpMap['DinnerMedia']),
-                  );
-                }).toList();
-
-            return DietTagData(
-              id: it['Id'],
-              dataCode: it['DataCode']?.toString(),
-              thumbnailMedia: _extractMediaUrl(it['ThumbnailMedia']),
-              heading: it['Heading']?.toString(),
-              title: it['Title']?.toString(),
-              shortDescription: it['ShortDescription']?.toString(),
-              mealPlan: mealPlan,
-              tags: List<String>.from(it['Tags'] ?? []),
-              isActive: it['IsActive'],
-            );
-          }).toList();
+      final parsedList = List<DietTagData>.from(parsedResponse.data ?? []);
 
       if (parsedList.isEmpty) {
         hasMoreCelebrityData.value = false;
@@ -364,40 +310,50 @@ class DietPlanController extends GetxController {
         suggestionsPageIndex = 1;
         hasMoreSuggestionsData.value = true;
         suggestionsResponse.value = DietTagsResponse(data: []);
+        _activeSuggestionTags = <String>[];
       }
 
-      final tags = _buildSuggestionTags();
-      debugPrint("🚀 [Suggestions] Final Tag List: $tags");
+      final profileTags = _buildSuggestionTags();
+      debugPrint("🚀 [Suggestions] Final Tag List: $profileTags");
 
-      final payload = {
-        "Tags": tags,
-        "FetchAll": false,
-        "Count": _pageSize,
-        "Index": targetPage,
-      };
-      debugPrint("🚀 [Suggestions] Payload: $payload");
+      final tagAttempts =
+          loadMore && _activeSuggestionTags.isNotEmpty
+              ? <List<String>>[_activeSuggestionTags]
+              : _buildSuggestionTagAttempts(profileTags);
 
-      final response = await ApiService.post(
-        getDietByTags,
-        payload,
-        withAuth: true,
-        encryptionRequired: true,
-      );
+      DietTagsResponse? parsedResponse;
+      List<DietTagData> fetchedItems = <DietTagData>[];
+      List<String> usedTags = <String>[];
 
-      if (response is http.Response) {
-        debugPrint("❌ [Suggestions] HTTP Error: ${response.statusCode}");
-        return null;
+      for (var index = 0; index < tagAttempts.length; index++) {
+        final tags = tagAttempts[index];
+        if (index > 0) {
+          debugPrint("ℹ️ [Suggestions] Trying fallback tags: $tags");
+        }
+
+        final response = await _fetchDietTagsByTags(
+          tags,
+          targetPage,
+          "[Suggestions]",
+        );
+        if (response == null) return null;
+
+        parsedResponse = response;
+        fetchedItems = List<DietTagData>.from(response.data ?? []);
+        usedTags = tags;
+
+        if (fetchedItems.isNotEmpty) break;
       }
 
-      final parsedResponse = DietTagsResponse.fromJson(
-        Map<String, dynamic>.from(response as Map),
-      );
-      final fetchedItems = List<DietTagData>.from(parsedResponse.data ?? []);
       if (fetchedItems.isEmpty) {
         hasMoreSuggestionsData.value = false;
         return parsedResponse;
       }
 
+      final responseWithItems = parsedResponse;
+      if (responseWithItems == null) return null;
+
+      _activeSuggestionTags = usedTags;
       suggestionsPageIndex = targetPage;
       final mergedItems =
           loadMore
@@ -407,9 +363,9 @@ class DietPlanController extends GetxController {
               ]
               : fetchedItems;
       suggestionsResponse.value = DietTagsResponse(
-        status: parsedResponse.status,
-        statusType: parsedResponse.statusType,
-        message: parsedResponse.message,
+        status: responseWithItems.status,
+        statusType: responseWithItems.statusType,
+        message: responseWithItems.message,
         data: mergedItems,
       );
       hasMoreSuggestionsData.value = fetchedItems.length == _pageSize;
@@ -421,6 +377,7 @@ class DietPlanController extends GetxController {
       debugPrint(
         "📊 [Suggestions] Parsing complete. Suggestions found: ${suggestionsResponse.value.data?.length}",
       );
+      return suggestionsResponse.value;
     } catch (e, stack) {
       debugPrint("🔥 [Suggestions] Critical Error: $e\n$stack");
     } finally {
@@ -431,6 +388,74 @@ class DietPlanController extends GetxController {
       }
     }
     return null;
+  }
+
+  Future<DietTagsResponse?> _fetchDietTagsByTags(
+    List<String> tags,
+    int page,
+    String logPrefix,
+  ) async {
+    final payload = {
+      "Tags": tags,
+      "FetchAll": false,
+      "Count": _pageSize,
+      "Index": page,
+    };
+    debugPrint("🚀 $logPrefix Payload: $payload");
+
+    final response = await ApiService.post(
+      getDietByTags,
+      payload,
+      withAuth: true,
+      encryptionRequired: true,
+    );
+
+    if (response is http.Response) {
+      debugPrint("❌ $logPrefix HTTP Error: ${response.statusCode}");
+      return null;
+    }
+
+    return DietTagsResponse.fromJson(
+      Map<String, dynamic>.from(response as Map),
+    );
+  }
+
+  List<List<String>> _buildSuggestionTagAttempts(List<String> profileTags) {
+    final attempts = <List<String>>[];
+
+    void addAttempt(Iterable<String> tags) {
+      final cleaned = _cleanTags(tags);
+      if (cleaned.isEmpty || attempts.any((item) => _sameTags(item, cleaned))) {
+        return;
+      }
+      attempts.add(cleaned);
+    }
+
+    addAttempt(profileTags);
+    addAttempt(<String>['General', ...profileTags]);
+    addAttempt(<String>['General', selectedCategoryText]);
+    addAttempt(<String>['General', 'Vegetarian']);
+    addAttempt(<String>['General']);
+
+    return attempts;
+  }
+
+  List<String> _cleanTags(Iterable<String> tags) {
+    final cleaned = <String>[];
+    for (final tag in tags) {
+      final value = tag.trim();
+      if (value.isEmpty || cleaned.contains(value)) continue;
+      cleaned.add(value);
+    }
+    return cleaned;
+  }
+
+  bool _sameTags(List<String> left, List<String> right) {
+    if (left.length != right.length) return false;
+    for (var index = 0; index < left.length; index++) {
+      if (left[index] != right[index]) return false;
+    }
+    return true;
   }
 
   List<String> _buildSuggestionTags() {

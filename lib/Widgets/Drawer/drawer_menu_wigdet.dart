@@ -11,6 +11,7 @@ import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
 import 'package:snevva/Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_questions_controller.dart';
+import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
 import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
@@ -153,7 +154,7 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
         final ctrl = Get.find<StepCounterController>();
         if (ctrl.todaySteps.value > 0) {
           debugPrint(
-            '📤 Logout: syncing ${ctrl.todaySteps.value} steps before token clear...'
+            '📤 Logout: syncing ${ctrl.todaySteps.value} steps before token clear...',
           );
           await ctrl.saveStepRecordToServer();
           debugPrint('✅ Logout: step sync done');
@@ -198,8 +199,6 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
       debugPrint('⚠️ DecisionTree cleanup failed: $e');
     }
 
-
-
     debugPrint('🗑️ Deleting GetX controllers...');
     _deleteControllerIfRegistered<DietPlanController>(force: true);
     _deleteControllerIfRegistered<HealthTipsController>(force: true);
@@ -209,6 +208,8 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
     _deleteControllerIfRegistered<MoodController>(force: true);
     _deleteControllerIfRegistered<SignInController>(force: true);
     _deleteControllerIfRegistered<MoodQuestionController>(force: true);
+    _deleteControllerIfRegistered<ProfileSetupController>(force: true);
+    _deleteControllerIfRegistered<EditprofileController>(force: true);
     _deleteControllerIfRegistered<SleepController>(force: true);
     _deleteControllerIfRegistered<StepCounterController>(force: true);
     _deleteControllerIfRegistered<VitalsController>(force: true);
@@ -231,11 +232,12 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
       // ── 2. Start heavy background cleanup (does not need the token) ──────────
       // Must clear reminder runtime BEFORE prefs.clear() so we know which alarms to cancel!
       await AuthService.clearReminderRuntimeOnLogout();
-      
+
       final stopAndHiveFuture = _stopServicesAndClearHive();
       final apiSuccess = await _callLogoutApiBestEffort();
 
       // ── 3. Clear auth credentials (token wiped here) ─────────────────────────
+      await AuthService.clearProfileImageStateOnLogout();
       await _clearAuthPrefs();
       _resetLocalStorageManager();
 

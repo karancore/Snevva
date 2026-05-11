@@ -60,9 +60,11 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await dietController.getCelebrity(context);
-      await dietController.getAllSuggestions(context);
-      await dietController.getAllDiets(context, "Vegetarian");
+      await dietController.getCelebrity(null);
+      if (!mounted) return;
+      await dietController.getAllSuggestions(null);
+      if (!mounted) return;
+      await dietController.getAllDiets(null, "Vegetarian");
       // logLong("Celebrity Diet Response:" ,  celebrity.toString());
     });
 
@@ -73,7 +75,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
   }
 
   Future<void> fetchSuggestions() async {
-    final result = await dietController.getAllSuggestions(context);
+    final result = await dietController.getAllSuggestions(null);
     debugPrint(result.toString());
   }
 
@@ -148,7 +150,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                     controller: dietController.suggestionsScrollController,
                     scrollDirection: Axis.horizontal,
                     itemCount: data.length + (showLoader ? 1 : 0),
-                    separatorBuilder: (_, __) => SizedBox(width: defaultSize),
+                    separatorBuilder: (_, _) => SizedBox(width: defaultSize),
                     itemBuilder: (context, index) {
                       if (index >= data.length) {
                         return const Center(
@@ -164,6 +166,10 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                       debugPrint(
                         "Runtime Type of meal plan is: ${item.runtimeType}",
                       );
+                      debugPrint(
+                        "Suggested item images ${item.thumbnailMedia}",
+                      );
+
 
                       return KeyedSubtree(
                         key: ValueKey(item.id ?? index), // if id exists, use it
@@ -208,12 +214,12 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                 }
                 final showLoader = dietController.isCelebrityLoadingMore.value;
                 return SizedBox(
-                  height: 170 * scale,
+                  height: 138 * scale,
                   child: ListView.separated(
                     controller: dietController.celebrityScrollController,
                     scrollDirection: Axis.horizontal,
                     itemCount: data.length + (showLoader ? 1 : 0),
-                    separatorBuilder: (_, __) => SizedBox(width: defaultSize),
+                    separatorBuilder: (_, _) => SizedBox(width: defaultSize),
                     itemBuilder: (context, index) {
                       if (index >= data.length) {
                         return const Center(
@@ -226,6 +232,9 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                       }
                       final item = data[index];
 
+                      debugPrint(
+                        "Celebrity item images ${item.thumbnailMedia}",
+                      );
                       return KeyedSubtree(
                         key: ValueKey(item.id ?? index),
                         child: suggestedItem(
@@ -313,6 +322,9 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                     );
                   }
                   final item = data[index];
+                  debugPrint(
+                    "Category item images ${item.thumbnailMedia}",
+                  );
                   return KeyedSubtree(
                     key: ValueKey(item.id ?? index), // if id exists, use it
                     child: suggestedItem(
@@ -335,7 +347,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
   }
 
   Future<void> fetchCategoryReponse(String categoryText) async {
-    final result = await dietController.getAllDiets(context, categoryText);
+    final result = await dietController.getAllDiets(null, categoryText);
     debugPrint(result?.data.toString());
   }
 
@@ -401,6 +413,8 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
             ? const EdgeInsets.symmetric(horizontal: 8, vertical: 6)
             : const EdgeInsets.symmetric(horizontal: 8, vertical: 8);
 
+    debugPrint("Diets images are $dietImg");
+
     return InkWell(
       onTap: () {
         dietController.dietTagsDataResponse.value = item;
@@ -411,7 +425,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
       child: Container(
         width: cardWidth,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(cardRadius),
+          borderRadius: BorderRadius.circular(8),
           color: isDarkMode ? black : white,
           border: Border.all(width: border04px, color: mediumGrey),
           boxShadow: [

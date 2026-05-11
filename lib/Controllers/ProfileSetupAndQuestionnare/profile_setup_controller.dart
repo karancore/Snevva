@@ -194,8 +194,18 @@ class ProfileSetupController extends GetxService {
   }
 
   Future<void> clearImage() async {
+    final imageFile = pickedImage.value;
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('profileImagePath');
+
+    if (imageFile != null) {
+      try {
+        await FileImage(imageFile).evict();
+      } catch (e) {
+        debugPrint('⚠️ Failed to evict selected profile image: $e');
+      }
+    }
+
     pickedImage.value = null;
   }
 

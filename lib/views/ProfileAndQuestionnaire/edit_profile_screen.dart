@@ -26,60 +26,51 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _showAppBar = true;
 
+
   @override
   void initState() {
     super.initState();
 
-    // logLong("User Map", ${localStorageManager.userMap.values.toString()});
-    // logLong("User Goal Data Map", ${localStorageManager.userGoalDataMap});
-
-    /// Initialize values from localStorageManager
+    // ✅ Non-reactive fields are fine to set immediately
     controller.name = localStorageManager.userMap['Name']?.toString() ?? '';
-
-    controller.email.value =
-        localStorageManager.userMap['Email']?.toString() ?? '';
     controller.phoneNumber =
         localStorageManager.userMap['PhoneNumber']?.toString() ?? '';
 
-    // debugPrint('Edit Profile Screen phone : ${controller.phoneNumber}');
-
-    final heightValue =
-        localStorageManager.userGoalDataMap['HeightData']?['Value'];
-
+    final heightValue = localStorageManager
+        .userGoalDataMap['HeightData']?['Value'];
     controller.heightValue =
-        (heightValue is num) ? heightValue.toStringAsFixed(2) : '';
+    (heightValue is num) ? heightValue.toStringAsFixed(2) : '';
 
-    // debugPrint(localStorageManager.userGoalDataMap['HeightData']?['Value']);
-    // debugPrint(controller.heightValue);
-
-    final weightValue =
-        localStorageManager.userGoalDataMap['WeightData']?['Value'];
+    final weightValue = localStorageManager
+        .userGoalDataMap['WeightData']?['Value'];
     controller.weightValue =
-        (weightValue is num) ? weightValue.toStringAsFixed(2) : '';
-
-    controller.gender.value =
-        (localStorageManager.userMap['Gender']?.toString() ?? '');
+    (weightValue is num) ? weightValue.toStringAsFixed(2) : '';
 
     controller.occupation =
         localStorageManager.userMap['OccupationData']?['Name']?.toString() ??
-        '';
+            '';
     controller.address =
         localStorageManager.userMap['AddressByUser']?.toString() ?? '';
 
     final day = localStorageManager.userMap['DayOfBirth'];
     final month = localStorageManager.userMap['MonthOfBirth'];
     final year = localStorageManager.userMap['YearOfBirth'];
-
     if (day != null && month != null && year != null) {
       controller.dob = DateTime(year, month, day);
     }
 
-    final String? cdnUrl =
-        localStorageManager.userMap['ProfilePicture']?['CdnUrl'];
-
+    final String? cdnUrl = localStorageManager
+        .userMap['ProfilePicture']?['CdnUrl'];
     profilePictureUrl = 'https://$cdnUrl';
 
-    // loadProfilePicture();
+    // ✅ Defer Rx assignments until after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.email.value =
+          localStorageManager.userMap['Email']?.toString() ?? '';
+      controller.gender.value =
+          localStorageManager.userMap['Gender']?.toString() ?? '';
+    });
+
 
     _scrollController.addListener(() {
       if (_scrollController.position.userScrollDirection ==

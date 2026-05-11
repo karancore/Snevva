@@ -57,6 +57,11 @@ class _SleepReportScreenState extends State<SleepReportScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Pre-calculate daysSinceMonday here so it's ready for initState logic
+    final now = DateTime.now();
+    daysSinceMonday = now.weekday - DateTime.monday;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (sleepController.deepSleepSpots.isEmpty) {
         sleepController.loadDeepSleepData();
@@ -65,15 +70,25 @@ class _SleepReportScreenState extends State<SleepReportScreen> {
       final spots = sleepController.deepSleepSpots;
       final yesterday = DateTime.now().subtract(const Duration(days: 1));
 
-      if (spots.isNotEmpty) {
-        // Take second-to-last spot (yesterday), fallback to last if only 1 entry
-        final yesterdaySpot = spots.length >= 2 ? spots[spots.length - 2] : spots.last;
+      print("Deep Sleep Spots: ${spots.map((s) => "(${s.x}, ${s.y})").join(
+          ", ")}");
+
+      // ✅ FIX: Use daysSinceMonday - 1 to get yesterday's index
+      final yesterdayIndex = daysSinceMonday - 1;
+
+      if (spots.isNotEmpty && yesterdayIndex >= 0 &&
+          yesterdayIndex < spots.length) {
+        final yesterdaySpot = spots[yesterdayIndex];
         selectedSleepDuration.value = Duration(minutes: (yesterdaySpot.y * 60).round());
-        selectedDateLabel.value = "${yesterday.day}-${yesterday.month}-${yesterday.year}";
+        print("Selected Sleep Duration: ${selectedSleepDuration.value}");
       } else {
+        // Monday or no prior data — fallback to controller value
         selectedSleepDuration.value = sleepController.deepSleepDuration.value;
-        selectedDateLabel.value = "${yesterday.day}-${yesterday.month}-${yesterday.year}";
+        print("else Selected Sleep Duration: ${selectedSleepDuration.value}");
       }
+
+      selectedDateLabel.value =
+      "${yesterday.day}-${yesterday.month}-${yesterday.year}";
     });
   }
 
@@ -190,7 +205,7 @@ class _SleepReportScreenState extends State<SleepReportScreen> {
                 final totalMinutes = duration.inMinutes;
                 final hours = totalMinutes ~/ 60;
                 final minutes = totalMinutes % 60;
-                
+
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -326,21 +341,21 @@ class _SleepReportScreenState extends State<SleepReportScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               Obx(() {
                 // Mock logic to extract percentages from actual sleep duration
                 final duration = selectedSleepDuration.value ?? sleepController.deepSleepDuration.value;
                 final totalMinutes = duration.inMinutes;
-                
-                // Typical sleep cycle approximation: 
+
+                // Typical sleep cycle approximation:
                 // Deep: ~20%, REM: ~25%, Core (Light): ~55%
                 final deepMinutes = (totalMinutes * 0.20).toInt();
                 final remMinutes = (totalMinutes * 0.25).toInt();
                 final coreMinutes = (totalMinutes * 0.55).toInt();
-                
+
                 // Mock interruptions based on total sleep
                 final interruptions = totalMinutes > 0 ? (totalMinutes / 120).round() + 1 : 0;
-                
+
                 String formatMins(int mins) {
                   final h = mins ~/ 60;
                   final m = mins % 60;

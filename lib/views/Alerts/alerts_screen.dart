@@ -126,7 +126,6 @@ class _AlertsScreenState extends State<AlertsScreen>
     required List<Alerts> underlyingList,
     Animation<double>? animation,
   }) {
-    final dismissibleKey = ValueKey(item.dataCode ?? item.title);
 
     Widget content = Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -183,8 +182,27 @@ class _AlertsScreenState extends State<AlertsScreen>
     }
 
     return Dismissible(
-      key: dismissibleKey,
+      key: ValueKey('${item.dataCode}_$index'),
       direction: DismissDirection.endToStart,
+      confirmDismiss: (direction) async {
+        if (isAnimatedList) {
+          final idx = underlyingList.indexWhere(
+            (a) => a.dataCode == item.dataCode,
+          );
+
+          if (idx != -1) {
+            _removeAnimatedItem(idx, key, underlyingList);
+          }
+        } else {
+          await alertsController.markAsDeleted(item.dataCode);
+
+          alertsController.notifications.removeWhere(
+            (a) => a.dataCode == item.dataCode,
+          );
+        }
+
+        return false;
+      },
       background: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
@@ -213,24 +231,6 @@ class _AlertsScreenState extends State<AlertsScreen>
           ],
         ),
       ),
-      onDismissed: (direction) async {
-        if (isAnimatedList) {
-          // remove via AnimatedList helper
-          final idx = underlyingList.indexWhere(
-            (a) => a.dataCode == item.dataCode,
-          );
-          if (idx != -1) {
-            _removeAnimatedItem(idx, key, underlyingList);
-          }
-        } else {
-          // API list: update controller (make sure controller has method to persist deletion)
-          await alertsController.markAsDeleted(item.dataCode);
-          // remove from the controller list (GetX will rebuild)
-          alertsController.notifications.removeWhere(
-            (a) => a.dataCode == item.dataCode,
-          );
-        }
-      },
       child: content,
     );
   }
