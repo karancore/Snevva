@@ -566,7 +566,7 @@ class _BirthdayCard extends StatelessWidget {
                     SizedBox(height: s * 0.020),
 
                     Text(
-                      '— from Snevva Health 💙',
+                      '— from Snevva  💙',
 
                       style: TextStyle(
                         fontSize: s * 0.028,

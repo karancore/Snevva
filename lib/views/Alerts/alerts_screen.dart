@@ -19,7 +19,7 @@ class _AlertsScreenState extends State<AlertsScreen>
   late FirebaseMessaging messaging;
 
   final alertsController = Get.find<AlertsController>();
-  List<Alerts> _alerts = [];
+  final List<Alerts> _alerts = [];
 
   @override
   void initState() {
@@ -28,33 +28,9 @@ class _AlertsScreenState extends State<AlertsScreen>
     messaging = FirebaseMessaging.instance;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       alertsController.hitAlertsNotifications();
-      // alertsController.scheduleAllAlerts(_dummyAlerts);
+      // alertsController.scheduleAllAlerts(_alerts);
     });
   }
-
-  final List<Alerts> _dummyAlerts = [
-    Alerts(
-      dataCode: "N001",
-      heading: "Fitness Motivation",
-      title: "Workout Reminder",
-      times: ["12:20", "08:00"],
-      isActive: true,
-    ),
-    Alerts(
-      dataCode: "N002",
-      heading: "General Info",
-      title: "Stay Safe!",
-      times: ["08:30", "08:15"],
-      isActive: true,
-    ),
-    Alerts(
-      dataCode: "N003",
-      heading: "Fitness Motivation",
-      title: "Workout Reminder",
-      times: ["07:30", "08:30"],
-      isActive: true,
-    ),
-  ];
 
   bool _isClearing = false;
   final GlobalKey<AnimatedListState> _dummyListKey =
@@ -126,7 +102,6 @@ class _AlertsScreenState extends State<AlertsScreen>
     required List<Alerts> underlyingList,
     Animation<double>? animation,
   }) {
-
     Widget content = Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -265,9 +240,9 @@ class _AlertsScreenState extends State<AlertsScreen>
         actions: [
           TextButton(
             onPressed:
-                _dummyAlerts.isEmpty
+                _alerts.isEmpty
                     ? null
-                    : () => _clearAll(_dummyListKey, _dummyAlerts),
+                    : () => _clearAll(_dummyListKey, _alerts),
             child: const Text("Clear All", style: TextStyle(color: Colors.red)),
           ),
         ],
@@ -296,26 +271,26 @@ class _AlertsScreenState extends State<AlertsScreen>
             }
 
             // 2️⃣ If dummy has data -> use AnimatedList
-            if (_dummyAlerts.isNotEmpty) {
+            if (_alerts.isNotEmpty) {
               return AnimatedList(
                 key: _dummyListKey,
                 padding: const EdgeInsets.all(16),
-                initialItemCount: _dummyAlerts.length,
+                initialItemCount: _alerts.length,
                 itemBuilder: (context, index, animation) {
-                  final item = _dummyAlerts[index];
+                  final item = _alerts[index];
                   return _buildDismissibleItem(
                     item,
                     index,
                     _dummyListKey,
                     isAnimatedList: true,
-                    underlyingList: _dummyAlerts,
+                    underlyingList: _alerts,
                     animation: animation,
                   );
                 },
               );
             }
 
-            if (_showEmptyState || _dummyAlerts.isEmpty || apiList.isEmpty) {
+            if (_showEmptyState || _alerts.isEmpty || apiList.isEmpty) {
               return _noNotificationsWidget(
                 Theme.of(context).brightness == Brightness.dark,
               );

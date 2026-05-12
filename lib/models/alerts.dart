@@ -4,7 +4,12 @@ class AlertsResponse {
   AlertsResponse({required this.alerts});
 
   factory AlertsResponse.fromJson(Map<String, dynamic> json) {
-    final List list = json['data']['pushNotifications'] ?? [];
+    final data = json['data'];
+    final List list =
+        data is Map<String, dynamic>
+            ? (data['pushNotifications'] ?? data['PushNotifications'] ?? [])
+                as List
+            : [];
 
     return AlertsResponse(alerts: list.map((e) => Alerts.fromJson(e)).toList());
   }
@@ -27,11 +32,14 @@ class Alerts {
 
   factory Alerts.fromJson(Map<String, dynamic> json) {
     return Alerts(
-      dataCode: json['dataCode'] ?? '',
-      heading: json['heading'] ?? '',
-      title: json['title'] ?? '',
-      times: List<String>.from(json['time'] ?? []),
-      isActive: json['isActive'] ?? false,
+      dataCode: (json['dataCode'] ?? json['DataCode'] ?? '').toString(),
+      heading: (json['heading'] ?? json['Heading'] ?? '').toString(),
+      title: (json['title'] ?? json['Title'] ?? '').toString(),
+      times:
+          ((json['time'] ?? json['Time'] ?? []) as List)
+              .map((time) => time.toString())
+              .toList(),
+      isActive: json['isActive'] ?? json['IsActive'] ?? false,
     );
   }
 }
