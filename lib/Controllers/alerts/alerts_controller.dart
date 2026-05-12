@@ -12,12 +12,13 @@ class AlertsController extends GetxService {
   static const deletedKey = 'deleted_notifications';
 
   final RxSet<String> deletedCodes = <String>{}.obs;
+  final bool isLoading = false;
 
   @override
   void onInit() {
     super.onInit();
     // _loadNotifications();
-    _loadDeletedNotifications();
+    // _loadDeletedNotifications();
   }
 
   Future<void> _loadDeletedNotifications() async {
@@ -63,6 +64,36 @@ class AlertsController extends GetxService {
     } catch (e) {
       debugPrint("❌ error: $e");
       return [];
+    }
+  }
+
+  Future<void> readNotifications(String dcode) async {
+    try {
+
+      debugPrint("🚀 readNotifications() called");
+
+      final payload = {
+        "DataCode" : dcode
+      };
+
+      final response = await ApiService.post(
+        dnd,
+        payload,
+        withAuth: true,
+        encryptionRequired: true,
+      );
+
+      if (response is http.Response) {
+        debugPrint(
+          "❌ HTTP ${response.statusCode}",
+        );
+
+        return;
+      }
+
+    } catch (e, stackTrace) {
+      debugPrint("❌ Error: $e");
+      debugPrint("$stackTrace");
     }
   }
 
