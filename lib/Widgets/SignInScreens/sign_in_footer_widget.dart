@@ -122,12 +122,7 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
 
                 icon:
                     isSigningIn
-                        ? CircularProgressIndicator(
-                          backgroundColor:
-                              (Theme.of(context).brightness == Brightness.dark)
-                                  ? white
-                                  : black,
-                        )
+                        ? const AppLoader(size: 28)
                         : Image.asset(google, height: 28, width: 28),
                 padding: const EdgeInsets.all(12),
                 splashRadius: 28,
