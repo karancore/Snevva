@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
+import 'dart:ui';
 
 import 'package:alarm/alarm.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -312,8 +314,6 @@ List<int> _findExpiredBeforeAlarmIdsForStartup(Map<String, dynamic> payload) {
   return expiredIds;
 }
 
-
-
 int _countLargePrefsCandidates(List<String> keys) {
   var count = 0;
   for (final key in keys) {
@@ -360,7 +360,6 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     _themeController = Get.find<ThemeController>();
 
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final updatedProfile = RefreshRateBootstrap.updateFromContext(context);
@@ -389,19 +388,19 @@ class _MyAppState extends State<MyApp> {
       }
     });
 
-    _connectivitySub =
-        ConnectivityService().onConnectivityChanged.listen((isConnected) {
-          final context = Get.overlayContext;
-          if (context == null) return;
-          if (!isConnected) {
-            NoInternetBanner.show(context);
-          } else {
-            debugPrint('Connectivity restored, hiding banner');
-            NoInternetBanner.hide();
-          }
-        });
+    _connectivitySub = ConnectivityService().onConnectivityChanged.listen((
+      isConnected,
+    ) {
+      final context = Get.overlayContext;
+      if (context == null) return;
+      if (!isConnected) {
+        NoInternetBanner.show(context);
+      } else {
+        debugPrint('Connectivity restored, hiding banner');
+        NoInternetBanner.hide();
+      }
+    });
   }
-
 
   @override
   void dispose() {
@@ -533,7 +532,6 @@ class _MyAppState extends State<MyApp> {
       // was dead code (blocked by _stage3Started guard) but had a dangerous
       // hardcoded hasSession=true which could start the background service
       // for logged-out users if the guard was ever removed.
-
     } catch (e, s) {
       logLong('INIT ERROR', '$e\n$s');
 
@@ -564,17 +562,19 @@ class _MyAppState extends State<MyApp> {
           // ✅ Use batch mode so all per-reminder saves during reconciliation
           // are accumulated in memory and flushed in a single Hive pass at
           // the end, instead of N × (4 reads + 4 writes) on the event loop.
-          final controller = Get.isRegistered<ReminderController>(tag: 'reminder')
-              ? Get.find<ReminderController>(tag: 'reminder')
-              : null;
+          final controller =
+              Get.isRegistered<ReminderController>(tag: 'reminder')
+                  ? Get.find<ReminderController>(tag: 'reminder')
+                  : null;
 
           controller?.beginBatchUpdate();
           try {
             final engine = snevva_reconciliation.ReconciliationEngine(
               saveReminder: (reminder) async {
                 if (Get.isRegistered<ReminderController>(tag: 'reminder')) {
-                  Get.find<ReminderController>(tag: 'reminder')
-                      .updateReminderLocalOnly(reminder);
+                  Get.find<ReminderController>(
+                    tag: 'reminder',
+                  ).updateReminderLocalOnly(reminder);
                 }
               },
             );
@@ -711,7 +711,7 @@ class InitializationSplash extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-              const AppLoader(),
+              const HeartBeatLoader(),
               const SizedBox(height: 24),
               Text(
                 "Monitoring What Matters",
@@ -728,6 +728,232 @@ class InitializationSplash extends StatelessWidget {
       ),
     );
   }
+}
+
+class HeartBeatLoader extends StatefulWidget {
+  final Duration duration;
+  final bool isDarkMode;
+
+  const HeartBeatLoader({
+    super.key,
+    this.duration = const Duration(milliseconds: 2400),
+    this.isDarkMode = false,
+  });
+
+  @override
+  State<HeartBeatLoader> createState() => _HeartBeatLoaderState();
+}
+
+class _HeartBeatLoaderState extends State<HeartBeatLoader>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  // ✅ Painter caches are owned here so they survive rebuilds.
+  final _HeartBeatCaches _caches = _HeartBeatCaches();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.duration);
+    _controller.forward(); // one-shot
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // ✅ RepaintBoundary is OUTSIDE AnimatedBuilder so the layer is only
+    // re-composited when the painter signals repaint — not on every build.
+    return RepaintBoundary(
+      child: SizedBox(
+        height: 120,
+        width: 120,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (_, _) {
+            final progress = _controller.value;
+            final scale = 0.95 + (0.05 * progress);
+
+            return Transform.scale(
+              scale: scale,
+              child: Opacity(
+                opacity: Curves.easeIn.transform(progress),
+                child: SizedBox(
+                  height: 140,
+                  width: 140,
+                  child: CustomPaint(
+                    painter: _HeartBeatLoaderPainter(
+                      progress: progress,
+                      isDarkMode: widget.isDarkMode,
+                      caches: _caches,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+/// ECG loader painter.
+///
+/// Key performance rules enforced here:
+///  1. Path + PathMetric are computed ONCE per unique canvas size (cached).
+///  2. Gradient shaders are allocated ONCE per unique rect (cached).
+///  3. MaskFilter.blur is REMOVED — it forces software rasterization on
+///     Android and was causing 400–800 ms frame spikes on the raster thread.
+///     The glow effect is replicated with a translucent saveLayer instead,
+///     which stays on the GPU compositing path.
+///  4. Grid paint object is reused (not reallocated every frame).
+class _HeartBeatCaches {
+  Rect? rect;
+  Path? fullPath;
+  PathMetric? metric;
+  Shader? lineShader;
+  Shader? glowShader;
+}
+
+class _HeartBeatLoaderPainter extends CustomPainter {
+  final double progress;
+  final bool isDarkMode;
+  final _HeartBeatCaches caches;
+
+  _HeartBeatLoaderPainter({
+    required this.progress,
+    required this.isDarkMode,
+    required this.caches,
+  });
+
+  // ── Reusable paint objects ─────────────────────────────────────────────
+  final Paint _gridPaint = Paint()..strokeWidth = 1;
+  final Paint _linePaint =
+      Paint()
+        ..strokeWidth = 2.5
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+  final Paint _glowPaint =
+      Paint()
+        ..strokeWidth =
+            8 // wider than line → visible halo
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+  final Paint _layerPaint = Paint()..color = const Color(0x55FFFFFF);
+  final Paint _dotPaint = Paint()..color = const Color(0xFF5A189A);
+
+  static const _gradient = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [
+      Color(0xFFD9B8FF),
+      Color(0xFFB579FF),
+      Color(0xFFA95BFF),
+      Color(0xFF8A2BE2),
+    ],
+  );
+
+  // Build path + metric + shaders once per canvas size.
+  void _buildCaches(Size size) {
+    final rect = Offset.zero & size;
+    if (caches.rect == rect && caches.fullPath != null) return;
+    caches.rect = rect;
+
+    final midY = size.height / 2;
+    final path = Path();
+    double x = 0;
+    path.moveTo(0, midY);
+
+    while (x < size.width - 20) {
+      path.lineTo(x += 15, midY);
+      path.lineTo(x += 2, midY - 7);
+      path.lineTo(x += 2, midY);
+
+      path.lineTo(x += 12, midY);
+      path.lineTo(x += 8, midY - 32);
+      path.lineTo(x += 6, midY + 24);
+      path.lineTo(x += 6, midY - 10);
+      path.lineTo(x += 2, midY);
+
+      path.lineTo(x += 15, midY);
+      path.lineTo(x += 2, midY - 7);
+      path.lineTo(x += 2, midY);
+
+      path.lineTo(x += 18, midY);
+      path.lineTo(x += 4, midY - 16);
+      path.lineTo(x += 6, midY + 12);
+      path.lineTo(x += 2, midY);
+
+      path.lineTo(x += 8, midY);
+      path.lineTo(x += 2, midY - 7);
+      path.lineTo(x += 2, midY);
+
+      path.lineTo(x += 10, midY - 32);
+      path.lineTo(x += 10, midY + 24);
+
+      path.lineTo(x += 8, midY);
+      path.lineTo(x += 16, midY);
+
+      path.lineTo(x += 4, midY - 16);
+      path.lineTo(x += 6, midY + 12);
+
+      path.lineTo(x += 2, midY);
+      path.lineTo(x += 18, midY);
+    }
+
+    caches.fullPath = path;
+    caches.metric = path.computeMetrics().first;
+    caches.lineShader = _gradient.createShader(rect);
+    caches.glowShader = _gradient.createShader(rect);
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    _buildCaches(size); // no-op if size unchanged
+
+    final metric = caches.metric!;
+    if (metric.isClosed) return;
+
+    // 1️⃣ Grid
+    _gridPaint.color = (isDarkMode ? Colors.white : Colors.black).withValues(
+      alpha: isDarkMode ? 0.08 : 0.06,
+    );
+    for (double i = 0; i < size.width; i += 20) {
+      canvas.drawLine(Offset(i, 0), Offset(i, size.height), _gridPaint);
+    }
+    for (double i = 0; i < size.height; i += 20) {
+      canvas.drawLine(Offset(0, i), Offset(size.width, i), _gridPaint);
+    }
+
+    // 2️⃣ Extract the animated slice
+    final animatedPath = metric.extractPath(0, metric.length * progress);
+    final tangent = metric.getTangentForOffset(metric.length * progress);
+
+    // 3️⃣ Glow — GPU-accelerated saveLayer alpha composite
+    canvas.saveLayer(Offset.zero & size, _layerPaint);
+    _glowPaint.shader = caches.glowShader;
+    canvas.drawPath(animatedPath, _glowPaint);
+    canvas.restore();
+
+    // 4️⃣ Main ECG line
+    _linePaint.shader = caches.lineShader;
+    canvas.drawPath(animatedPath, _linePaint);
+
+    // 5️⃣ Pulsing dot
+    if (tangent != null) {
+      final pulse = 4 + (2 * sin(progress * pi * 6));
+      canvas.drawCircle(tangent.position, pulse, _dotPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _HeartBeatLoaderPainter oldDelegate) =>
+      oldDelegate.progress != progress || oldDelegate.isDarkMode != isDarkMode;
 }
 
 class ErrorPlaceholder extends StatelessWidget {

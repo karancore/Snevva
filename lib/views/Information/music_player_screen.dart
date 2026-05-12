@@ -926,7 +926,10 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
                                     },
                                     icon:
                                         isDownloading
-                                            ? const AppLoader(size: 28)
+                                            ? CircularProgressIndicator(
+                                              value: downloadProgress,
+                                              color: Colors.white,
+                                            )
                                             : _isCurrentTrackDownloaded
                                             ? const Icon(
                                               Icons.download_done,
