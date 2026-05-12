@@ -143,19 +143,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child:
-                      isLoading
-                          ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            ),
-                          )
-                          : Text(AppLocalizations.of(context)!.nextText),
+                  child: AppLoadingButtonChild(
+                    isLoading: isLoading,
+                    loaderSize: 24,
+                    child: Text(AppLocalizations.of(context)!.nextText),
+                  ),
                 ),
               ),
 

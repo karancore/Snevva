@@ -1,13 +1,12 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
-import 'package:flutter/material.dart';
 import 'package:snevva/consts/colors.dart';
 import 'package:snevva/consts/images.dart';
+import 'package:snevva/widgets/app_loader.dart';
 
 class NutritionTipsPage extends StatelessWidget {
   @override
@@ -114,7 +113,7 @@ class NutritionTipsPage extends StatelessWidget {
                             return Container(
                               height: 120,
                               color: Colors.grey[200],
-                              child: const Center(child: CircularProgressIndicator()),
+                              child: const AppLoader(size: 40),
                             );
                           },
                         ),

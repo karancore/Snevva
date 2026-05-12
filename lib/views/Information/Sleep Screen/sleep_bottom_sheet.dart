@@ -265,9 +265,7 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
     if (!_controllersInitialized) {
       return Padding(
         padding: const EdgeInsets.all(40.0),
-        child: Center(
-          child: CircularProgressIndicator(color: AppColors.primaryColor),
-        ),
+        child: const AppLoader(),
       );
     }
 
@@ -296,13 +294,12 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
               SizedBox(
                 height: 160,
                 width: 160,
-                child: CircularProgressIndicator(
+                child: AppProgressRing(
                   value: _progress,
+                  size: 160,
                   strokeWidth: 12,
+                  color: AppColors.primaryColor,
                   backgroundColor: mediumGrey.withValues(alpha: 0.3),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    AppColors.primaryColor,
-                  ),
                 ),
               ),
               Column(

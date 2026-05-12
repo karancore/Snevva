@@ -532,25 +532,19 @@ class EditprofileController extends GetxService {
                                 Navigator.of(dialogCtx).pop();
                                 if (onUpdated != null) onUpdated();
                               },
-                      child:
-                          isLoading.value
-                              ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                              : Text(
-                                "Update",
-                                style: TextStyle(
-                                  color:
-                                      isDarkMode
-                                          ? scaffoldColorDark
-                                          : scaffoldColorLight,
-                                ),
-                              ),
+                      child: AppLoadingButtonChild(
+                        isLoading: isLoading.value,
+                        loaderSize: 20,
+                        child: Text(
+                          "Update",
+                          style: TextStyle(
+                            color:
+                                isDarkMode
+                                    ? scaffoldColorDark
+                                    : scaffoldColorLight,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),

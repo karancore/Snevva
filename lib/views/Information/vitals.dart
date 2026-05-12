@@ -364,18 +364,12 @@ class _VitalScreenState extends State<VitalScreen> {
                       valueListenable: heartRateNotifier,
                       builder: (context, heartRate, _) {
                         final bpmStatus = getBpmStatus(heartRate);
-                        return SizedBox(
-                          width: 260 * scale,
-                          height: 260 * scale,
-                          child: CircularProgressIndicator(
-                            value: (heartRate / 200).clamp(0.0, 1.0),
-                            strokeWidth: 25 * scale,
-                            strokeCap: StrokeCap.round,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              bpmStatus.color,
-                            ),
-                            backgroundColor: bpmStatus.color.withOpacity(0.05),
-                          ),
+                        return AppProgressRing(
+                          value: (heartRate / 200).clamp(0.0, 1.0).toDouble(),
+                          size: 260 * scale,
+                          strokeWidth: 25 * scale,
+                          color: bpmStatus.color,
+                          backgroundColor: bpmStatus.color.withOpacity(0.05),
                         );
                       },
                     ),

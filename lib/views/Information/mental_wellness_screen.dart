@@ -1,13 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:snevva/Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/MentalWellness/mental_wellness_footer_widget.dart';
 import 'package:snevva/env/env.dart';
-import '../../Widgets/MentalWellness/mental_wellness_header_widget.dart';
+
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
+import '../../Widgets/MentalWellness/mental_wellness_header_widget.dart';
 import '../../common/global_variables.dart';
-import '../../common/loader.dart';
 import '../../consts/consts.dart';
 
 class MentalWellnessScreen extends StatefulWidget {
@@ -54,7 +52,7 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
       appBar: CustomAppBar(appbarText: "Mental Wellness"),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: Loader());
+          return const AppLoader();
         }
 
         if (controller.hasError.value) {
@@ -100,11 +98,7 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                   itemBuilder: (context, index) {
                     if (index >= generalMusic.length) {
                       return const Center(
-                        child: SizedBox(
-                          width: 30,
-                          height: 30,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
+                        child: AppLoader(size: 34),
                       );
                     }
 
@@ -152,13 +146,7 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                         itemBuilder: (context, index) {
                           if (index >= meditationMusic.length) {
                             return const Center(
-                              child: SizedBox(
-                                width: 30,
-                                height: 30,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              ),
+                              child: AppLoader(size: 34),
                             );
                           }
 
@@ -208,11 +196,7 @@ class _MentalWellnessScreenState extends State<MentalWellnessScreen> {
                     itemBuilder: (context, index) {
                       if (index >= natureMusic.length) {
                         return const Center(
-                          child: SizedBox(
-                            width: 30,
-                            height: 30,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
+                          child: AppLoader(size: 34),
                         );
                       }
 

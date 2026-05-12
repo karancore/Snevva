@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:snevva/widgets/app_loader.dart';
 
 class DebugApiSyncScreen extends StatefulWidget {
   const DebugApiSyncScreen({super.key});
@@ -55,7 +56,7 @@ class _DebugApiSyncScreenState extends State<DebugApiSyncScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text("API Sync History")),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const AppLoader()
           : logs.isEmpty
               ? const Center(child: Text("No API sync logs found."))
               : ListView.builder(

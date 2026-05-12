@@ -3,7 +3,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
-import 'package:snevva/common/loader.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
 import 'package:snevva/views/Reminder/add_reminder_screen.dart';
@@ -130,9 +129,8 @@ class _ReminderScreenState extends State<ReminderScreen>
         ),
       ),
       body: Obx(() {
-        //Show loading indicator
         if (controller.isLoading.value) {
-          return Loader();
+          return const AppLoader();
         }
 
         // Show empty state

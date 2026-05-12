@@ -1,21 +1,11 @@
-import 'package:flutter/material.dart';
-
-import 'package:get/get.dart';
-
 import 'package:intl/intl.dart';
-
 import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
-
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
-
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 
 import '../../../Widgets/CommonWidgets/common_stat_graph_widget.dart';
-
 import '../../../common/global_variables.dart';
-
 import '../../../consts/consts.dart';
-
 import '../../../models/water_history_model.dart';
 
 class HydrationStatistics extends StatefulWidget {
@@ -389,11 +379,7 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
 
                 child: Obx(() {
                   if (controller.isLoading.value) {
-                    return Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primaryColor,
-                      ),
-                    );
+                    return const AppLoader();
                   }
 
                   final labels =
@@ -598,11 +584,7 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                 );
 
                 if (controller.isLoading.value) {
-                  return Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.primaryColor,
-                    ),
-                  );
+                  return const AppLoader();
                 }
 
                 if (todayEntries.isEmpty) {

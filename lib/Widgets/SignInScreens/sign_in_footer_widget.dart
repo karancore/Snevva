@@ -1,7 +1,6 @@
 import 'package:flutter/gestures.dart';
 
 import '../../common/custom_snackbar.dart';
-import '../../common/loader.dart';
 import '../../consts/consts.dart';
 import '../../services/google_auth.dart';
 
@@ -57,17 +56,11 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            child:
-                widget.isLoading
-                    ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                    : Text(widget.buttonText),
+            child: AppLoadingButtonChild(
+              isLoading: widget.isLoading,
+              loaderSize: 24,
+              child: Text(widget.buttonText),
+            ),
           ),
         ),
 
@@ -129,7 +122,12 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
 
                 icon:
                     isSigningIn
-                        ? SizedBox(height: 28, width: 28, child: const Loader())
+                        ? CircularProgressIndicator(
+                          backgroundColor:
+                              (Theme.of(context).brightness == Brightness.dark)
+                                  ? white
+                                  : black,
+                        )
                         : Image.asset(google, height: 28, width: 28),
                 padding: const EdgeInsets.all(12),
                 splashRadius: 28,

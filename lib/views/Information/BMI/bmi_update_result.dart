@@ -6,6 +6,7 @@ import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/consts/colors.dart';
 import 'package:snevva/consts/images.dart';
 import 'package:snevva/views/Information/BMI/bmi_updateCal.dart';
+import 'package:snevva/widgets/app_loader.dart';
 
 import '../../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../Health Tips/Nutrition_tips.dart/nutrition_tips.dart';
@@ -243,11 +244,7 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
                 final tips = controller.randomTips;
 
                 if (controller.isLoading.value) {
-                  return const Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.primaryColor,
-                    ),
-                  );
+                  return const AppLoader();
                 }
 
                 if (tips.isEmpty) {
@@ -291,7 +288,7 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
                     controller.isLoadingMore.value
                         ? const Padding(
                           padding: EdgeInsets.only(top: 16),
-                          child: Center(child: CircularProgressIndicator()),
+                          child: AppLoader(size: 36),
                         )
                         : const SizedBox.shrink(),
               ),
@@ -336,7 +333,7 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
                 return Container(
                   height: 120,
                   color: Colors.grey[200],
-                  child: const Center(child: CircularProgressIndicator()),
+                  child: const AppLoader(size: 40),
                 );
               },
             ),
