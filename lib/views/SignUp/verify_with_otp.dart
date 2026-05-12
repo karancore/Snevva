@@ -8,7 +8,6 @@ import '../../Controllers/signupAndSignIn/forgot_password_controller.dart';
 import '../../Controllers/signupAndSignIn/otp_verification_controller.dart';
 import '../../Controllers/signupAndSignIn/sign_up_controller.dart';
 import '../../common/custom_snackbar.dart';
-import '../../common/loader.dart';
 import '../../consts/consts.dart';
 
 class VerifyWithOtpScreen extends StatefulWidget {
@@ -279,7 +278,11 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: _isLoading ? const Loader() : const Text('Verify'),
+                  child: AppLoadingButtonChild(
+                    isLoading: _isLoading,
+                    loaderSize: 24,
+                    child: const Text('Verify'),
+                  ),
                 ),
               ),
             ],

@@ -390,14 +390,7 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
                             ),
                             child:
                                 _requesting
-                                    ? const SizedBox(
-                                      height: 18,
-                                      width: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
+                                    ? const AppLoader(size: 18)
                                     : Text(
                                       _allGranted
                                           ? 'Continue'

@@ -317,9 +317,12 @@ class _DashboardServiceOverviewDynamicWidgetsState
                 valuePraisingText: '',
                 valueText: Obx(() {
                   final steps = stepController.todaySteps.value;
+                  if (steps < 0) {
+                    return const AppLoader(size: 20);
+                  }
                   return RichText(
                     text: TextSpan(
-                      text: steps > -1 ? '$steps' : 'Loading...',
+                      text: '$steps',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 12,

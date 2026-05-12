@@ -46,7 +46,10 @@ class MentalWellnessFooterWidget extends StatelessWidget {
                 CachedNetworkImage(
                   imageUrl: wellnessContainerImage,
                   placeholder:
-                      (context, url) => Container(color: Colors.black12),
+                      (context, url) => Container(
+                        color: Colors.black12,
+                        child: const AppLoader(size: 40),
+                      ),
                   errorWidget:
                       (context, url, error) => Image.asset(
                         wellnessContainerImage,

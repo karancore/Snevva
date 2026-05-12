@@ -451,47 +451,32 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child:
-                            isLoading
-                                ? SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    color: white,
+                      child: AppLoadingButtonChild(
+                        isLoading: isLoading,
+                        loaderSize: 20,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SvgPicture.asset(
+                              logoutIcon,
+                              width: 24,
+                              height: 24,
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              "Log Out",
+                              style: TextStyle(
+                                fontSize: 18,
+                                foreground:
+                                Paint()
+                                  ..shader = AppColors.primaryGradient
+                                      .createShader(
+                                    const Rect.fromLTWH(0, 0, 200, 70),
                                   ),
-                                )
-                                : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SvgPicture.asset(
-                                      logoutIcon,
-                                      width: 24,
-                                      height: 24,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      "Log Out",
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        foreground:
-                                            Paint()
-                                              ..shader = AppColors
-                                                  .primaryGradient
-                                                  .createShader(
-                                                    const Rect.fromLTWH(
-                                                      0,
-                                                      0,
-                                                      200,
-                                                      70,
-                                                    ),
-                                                  ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

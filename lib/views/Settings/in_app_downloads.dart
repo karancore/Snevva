@@ -78,7 +78,7 @@ class _InAppDownloadsState extends State<InAppDownloads> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: [
                   SizedBox(height: height * 0.25),
-                  const Center(child: CircularProgressIndicator()),
+                  const AppLoader(),
                 ],
               );
             }

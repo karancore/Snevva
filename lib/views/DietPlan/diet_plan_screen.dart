@@ -5,7 +5,6 @@ import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/models/diet_tags_response.dart';
 import 'package:snevva/views/DietPlan/diet_details_screen.dart';
 
-import '../../common/loader.dart';
 import '../../consts/consts.dart';
 import '../../env/env.dart';
 
@@ -134,7 +133,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Obx(() {
                 if (dietController.isSuggestionsLoading.value) {
-                  return const Loader();
+                  return const AppLoader();
                 }
 
                 final data = dietController.suggestionsResponse.value.data;
@@ -154,11 +153,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                     itemBuilder: (context, index) {
                       if (index >= data.length) {
                         return const Center(
-                          child: SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
+                          child: AppLoader(size: 32),
                         );
                       }
                       final item = data[index];
@@ -206,7 +201,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Obx(() {
                 if (dietController.isCelebrityLoading.value) {
-                  return const Loader();
+                  return const AppLoader();
                 }
 
                 final data = dietController.celebrityList;
@@ -224,11 +219,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                     itemBuilder: (context, index) {
                       if (index >= data.length) {
                         return const Center(
-                          child: SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
+                          child: AppLoader(size: 32),
                         );
                       }
                       final item = data[index];
@@ -294,7 +285,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
             SizedBox(height: defaultSize - 20),
             Obx(() {
               if (dietController.isCategoryLoading.value) {
-                return const Loader();
+                return const AppLoader();
               }
 
               final data = dietController.categoryResponse.value.data;
@@ -321,11 +312,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                 itemBuilder: (context, index) {
                   if (index >= data.length) {
                     return const Center(
-                      child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
+                      child: AppLoader(size: 32),
                     );
                   }
                   final item = data[index];

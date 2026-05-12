@@ -137,7 +137,6 @@ class _ForgotPasswordState extends State<ForgotPassword> {
 
               const SizedBox(height: 30),
 
-              /// Button with loader
               Container(
                 decoration: BoxDecoration(
                   gradient: AppColors.primaryGradient,
@@ -158,17 +157,11 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child:
-                      isLoading
-                          ? const SizedBox(
-                            height: 22,
-                            width: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                          : Text(AppLocalizations.of(context)!.sendCode),
+                  child: AppLoadingButtonChild(
+                    isLoading: isLoading,
+                    loaderSize: 22,
+                    child: Text(AppLocalizations.of(context)!.sendCode),
+                  ),
                 ),
               ),
             ],

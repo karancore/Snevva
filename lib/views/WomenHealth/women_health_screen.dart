@@ -231,11 +231,7 @@ class _WomenHealthScreenState extends State<WomenHealthScreen> {
                       womenController.isTipsLoadingMore.value
                           ? const Padding(
                             padding: EdgeInsets.only(top: 12),
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                color: AppColors.primaryColor,
-                              ),
-                            ),
+                            child: AppLoader(size: 36),
                           )
                           : const SizedBox.shrink(),
                 ),

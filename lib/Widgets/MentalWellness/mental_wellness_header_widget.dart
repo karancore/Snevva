@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
-
 import 'package:snevva/views/information/music_player_screen.dart';
+
 import '../../consts/consts.dart';
 import '../../models/music/music_response.dart';
 
@@ -53,7 +53,10 @@ class MentalWellnessHeaderWidget extends StatelessWidget {
                 CachedNetworkImage(
                   imageUrl: wellnessContainerImage,
                   placeholder:
-                      (context, url) => Container(color: Colors.black12),
+                      (context, url) => Container(
+                        color: Colors.black12,
+                        child: const AppLoader(size: 44),
+                      ),
                   errorWidget:
                       (context, url, error) => Container(
                         color: Colors.black12,

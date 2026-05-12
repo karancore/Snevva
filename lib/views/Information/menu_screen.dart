@@ -263,7 +263,7 @@ class _MenuScreenState extends State<MenuScreen>
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: AppLoader());
     }
 
     final mediaQuery = MediaQuery.of(

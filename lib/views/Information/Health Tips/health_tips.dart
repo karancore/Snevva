@@ -5,8 +5,6 @@ import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Information/Health%20Tips/Nutrition_tips.dart/nutrition_tips.dart';
 
-import '../../../common/loader.dart';
-
 class HealthTipsScreen extends StatefulWidget {
   @override
   State<HealthTipsScreen> createState() => _HealthTipsScreenState();
@@ -35,7 +33,7 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
         final count = controller.randomTips.length;
         final numRows = (count / 2).ceil();
         if (controller.isLoading.value) {
-          return const Loader();
+          return const AppLoader();
         }
 
         if (controller.hasError.value) {
@@ -95,15 +93,6 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
                               child: Icon(Icons.broken_image, size: 40),
                             ),
                           ),
-                      // loadingBuilder: (context, child, progress) {
-                      //   if (progress == null) return child;
-                      //   return Container(
-                      //     height: 200,
-                      //     color: Colors.grey[100],
-                      //     child: const Center(
-                      //         child: CircularProgressIndicator()),
-                      //   );
-                      //},
                     ),
                   ),
                 ),
@@ -209,7 +198,7 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
               if (controller.isLoadingMore.value)
                 const Padding(
                   padding: EdgeInsets.only(bottom: 16),
-                  child: Center(child: CircularProgressIndicator()),
+                  child: AppLoader(size: 36),
                 ),
               const SizedBox(height: 20),
             ],
@@ -252,7 +241,7 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
                 return Container(
                   height: 120,
                   color: Colors.grey[200],
-                  child: const Center(child: CircularProgressIndicator()),
+                  child: const AppLoader(size: 40),
                 );
               },
             ),
