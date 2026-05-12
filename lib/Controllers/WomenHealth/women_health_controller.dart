@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -15,10 +14,6 @@ import '../../common/custom_snackbar.dart';
 
 class WomenHealthController extends GetxService {
   static const int _pageSize = 8;
-
-  // ── MethodChannel to trigger PeriodSyncWorker from Kotlin ───────────────
-  static const _periodSyncChannel =
-      MethodChannel('com.coretegra.snevvaa/period_sync');
 
   var periodDays = "5".obs;
   var periodCycleDays = "28".obs;
@@ -58,6 +53,7 @@ class WomenHealthController extends GetxService {
     super.onReady();
     formattedDate();
     loadWomenHealthFromLocalStorage();
+    _flushPendingSyncOnAppOpen();
   }
 
   @override
@@ -84,33 +80,32 @@ class WomenHealthController extends GetxService {
     formattedCurrentDate.value = DateFormat('EEE dd MMM').format(DateTime.now());
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Date / cycle logic
+  // ─────────────────────────────────────────────────────────────────────────
+
   void onDateChanged(DateTime newDate) {
-    int year = newDate.year;
-    int month = newDate.month;
-    int day = newDate.day;
+    periodDay = newDate.day;
+    periodMonth = newDate.month;
+    periodYear = newDate.year;
 
-    periodDay = day;
-    periodMonth = month;
-    periodYear = year;
-
-    // 🔥 Update PeriodData values for calendar
-    periodDataStartDay.value = day;
-    periodDataStartMonth.value = month;
-    periodDataStartYear.value = year;
+    // Update PeriodData values for calendar
+    periodDataStartDay.value = newDate.day;
+    periodDataStartMonth.value = newDate.month;
+    periodDataStartYear.value = newDate.year;
     hasPeriodData.value = true;
 
-    final formattedDate =
-        "${day.toString().padLeft(2, '0')}/"
-        "${month.toString().padLeft(2, '0')}/"
-        "$year";
-
-    periodLastPeriodDay.value = formattedDate;
+    periodLastPeriodDay.value =
+        "${newDate.day.toString().padLeft(2, '0')}/"
+        "${newDate.month.toString().padLeft(2, '0')}/"
+        "${newDate.year}";
 
     _calculateNextDates();
     saveWomenHealthToLocalStorage();
+
     final lastPeriodDate = DateTime(periodYear, periodMonth, periodDay);
 
-    // ✅ Use the rolled-forward nextPeriodDay that _calculateNextDates already
+    // Use the rolled-forward nextPeriodDay that _calculateNextDates already
     // computed, so the API prediction always matches what is shown in the UI.
     DateTime predictedDate;
     try {
@@ -120,7 +115,10 @@ class WomenHealthController extends GetxService {
       // Handle year rollover (e.g. next period is in January next year)
       if (predictedDate.isBefore(DateTime.now())) {
         predictedDate = DateTime(
-            predictedDate.year + 1, predictedDate.month, predictedDate.day);
+          predictedDate.year + 1,
+          predictedDate.month,
+          predictedDate.day,
+        );
       }
     } catch (_) {
       // Fallback: single-cycle addition if parse fails
@@ -153,10 +151,10 @@ class WomenHealthController extends GetxService {
 
   /// Calculates next period / ovulation / fertility dates.
   ///
-  /// If the cycle had to roll forward (meaning a new cycle started since the
-  /// last saved period date), we queue a background sync via [_enqueuePeriodSync]
-  /// so the server is updated with the new cycle's start date and predicted date —
-  /// without blocking the UI or requiring the user to do anything.
+  /// If the stored last-period date is old enough that we've already passed
+  /// one or more cycle boundaries, rolls forward to the current cycle and
+  /// writes a pending sync so the server gets the new start date on next
+  /// app open (or immediately if network is available).
   void _calculateNextDates() {
     if (periodLastPeriodDay.value.isEmpty ||
         periodCycleDays.value.isEmpty ||
@@ -171,37 +169,34 @@ class WomenHealthController extends GetxService {
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
 
-      // ✅ Roll forward until we find the NEXT upcoming period start.
-      // Track whether we actually advanced (= new cycle started).
+      // Roll forward until we find the NEXT upcoming period start.
       bool cycleRolledForward = false;
       DateTime nextPeriod = cycleStart.add(Duration(days: cycleLength));
-      while (nextPeriod.isBefore(today) || nextPeriod.isAtSameMomentAs(today)) {
+      while (
+          nextPeriod.isBefore(today) || nextPeriod.isAtSameMomentAs(today)) {
         cycleStart = nextPeriod;
         nextPeriod = cycleStart.add(Duration(days: cycleLength));
         cycleRolledForward = true;
       }
 
-      // Ovulation & fertile window are relative to the CURRENT cycle start
+      // Ovulation & fertile window are relative to the CURRENT cycle start.
       final ovulationDay = cycleStart.add(Duration(days: cycleLength - 14));
       final fertilityStart = ovulationDay.subtract(const Duration(days: 5));
 
       final format = DateFormat("d MMM");
-
       nextPeriodDay.value = format.format(nextPeriod);
       nextOvulationDay.value = format.format(ovulationDay);
       nextFertilityDay.value = format.format(fertilityStart);
       dayLeftNextPeriod.value = nextPeriod.difference(today).inDays.toString();
 
-      // 🔔 New cycle detected — queue background API sync with the new values.
+      // New cycle detected — write pending sync so _flushPendingSyncOnAppOpen
+      // (or the next editperioddatatoAPI call) pushes the new data to the server.
       if (cycleRolledForward) {
         debugPrint(
-          '🔄 New cycle detected — queueing background period sync. '
+          '🔄 New cycle detected — writing pending sync. '
           'cycleStart=${format.format(cycleStart)}, nextPeriod=${format.format(nextPeriod)}',
         );
-        _enqueuePeriodSync(
-          startDate: cycleStart,
-          predictedDate: nextPeriod,
-        );
+        _writePendingSync(startDate: cycleStart, predictedDate: nextPeriod);
       }
     } catch (e) {
       debugPrint('❌ _calculateNextDates error: $e');
@@ -209,16 +204,14 @@ class WomenHealthController extends GetxService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Background period sync
+  // Pending sync helpers
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Writes the pending payload to SharedPreferences and kicks off
-  /// [PeriodSyncWorker] via MethodChannel. The worker handles network
-  /// availability, retries, and auth — exactly like ApiSyncWorker.
-  ///
-  /// Safe to call from [_calculateNextDates] because it's fire-and-forget;
-  /// any exception is caught so it never breaks the UI flow.
-  Future<void> _enqueuePeriodSync({
+  /// Writes the period payload to SharedPreferences only.
+  /// No Kotlin worker is involved — the flush happens on the next app open
+  /// via [_flushPendingSyncOnAppOpen], or immediately inside
+  /// [editperioddatatoAPI] when the user manually sets a date.
+  Future<void> _writePendingSync({
     required DateTime startDate,
     required DateTime predictedDate,
   }) async {
@@ -232,26 +225,50 @@ class WomenHealthController extends GetxService {
         'PredictedYear': predictedDate.year,
         'IsMatched': false,
       };
-
-      // 1. Persist payload so PeriodSyncWorker can read it even after a restart.
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        'pending_period_sync', // worker reads "flutter.pending_period_sync"
-        jsonEncode(payload),
+      await prefs.setString('pending_period_sync', jsonEncode(payload));
+      debugPrint('📝 pending_period_sync written: $payload');
+    } catch (e) {
+      debugPrint('⚠️ _writePendingSync error (non-fatal): $e');
+    }
+  }
+
+  /// Called on every app open via [onReady].
+  ///
+  /// If a previous [editperioddatatoAPI] call failed (network down, app
+  /// killed mid-request) or a new cycle was auto-detected while offline,
+  /// this flushes the stored payload to the server before the user
+  /// interacts with anything.
+  Future<void> _flushPendingSyncOnAppOpen() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final pending = prefs.getString('pending_period_sync');
+      if (pending == null) {
+        debugPrint('🔍 No pending period sync to flush');
+        return;
+      }
+
+      debugPrint('🔄 Found pending period sync on app open — flushing...');
+      final payload = jsonDecode(pending) as Map<String, dynamic>;
+
+      final response = await ApiService.post(
+        addperioddata,
+        payload,
+        withAuth: true,
+        encryptionRequired: true,
       );
 
-      debugPrint('📝 Pending period sync written to prefs: $payload');
-
-      // 2. Signal Kotlin to enqueue PeriodSyncWorker.
-      //    If the Flutter engine is not the active one (e.g. background isolate),
-      //    the MethodChannel call will fail silently — that's fine because
-      //    BootReceiver / ConnectivityReceiver can also call PeriodSyncWorker.enqueue().
-      await _periodSyncChannel.invokeMethod('enqueuePeriodSync');
-      debugPrint('✅ PeriodSyncWorker enqueue triggered via MethodChannel');
+      if (response is! http.Response) {
+        await prefs.remove('pending_period_sync');
+        debugPrint('✅ Pending period sync flushed on app open');
+      } else {
+        debugPrint(
+          '⚠️ Flush attempt failed (${response.statusCode}) — will retry next open',
+        );
+      }
     } catch (e) {
-      // Non-fatal: the prefs payload is already written so the worker
-      // will be picked up the next time enqueue() is called (boot, connectivity, etc.)
-      debugPrint('⚠️ _enqueuePeriodSync channel error (non-fatal): $e');
+      // Non-fatal — key stays in prefs, will retry next app open
+      debugPrint('⚠️ _flushPendingSyncOnAppOpen error (non-fatal): $e');
     }
   }
 
@@ -277,7 +294,7 @@ class WomenHealthController extends GetxService {
       await prefs.setInt('periodDataStartMonth', periodDataStartMonth.value);
       await prefs.setInt('periodDataStartYear', periodDataStartYear.value);
 
-      debugPrint('✅ Women Health Data saved successfully!');
+      debugPrint('✅ Women Health Data saved to local storage');
     } catch (e) {
       debugPrint('❌ Error saving Women Health Data: $e');
     }
@@ -307,7 +324,7 @@ class WomenHealthController extends GetxService {
         periodDay = date.day;
         periodMonth = date.month;
         periodYear = date.year;
-        // _calculateNextDates will detect a new cycle and auto-queue sync if needed
+        // Will auto-write pending sync if a new cycle is detected
         _calculateNextDates();
       }
 
@@ -365,7 +382,9 @@ class WomenHealthController extends GetxService {
         hasPeriodData.value = true;
 
         periodLastPeriodDay.value =
-            "${periodDataStartDay.value.toString().padLeft(2, '0')}/${periodDataStartMonth.value.toString().padLeft(2, '0')}/${periodDataStartYear.value}";
+            "${periodDataStartDay.value.toString().padLeft(2, '0')}/"
+            "${periodDataStartMonth.value.toString().padLeft(2, '0')}/"
+            "${periodDataStartYear.value}";
 
         _calculateNextDates();
         await saveWomenHealthToLocalStorage();
@@ -381,23 +400,35 @@ class WomenHealthController extends GetxService {
     }
   }
 
+  /// Local-first period sync.
+  ///
+  /// 1. Writes the payload to SharedPreferences BEFORE touching the network.
+  /// 2. Attempts a direct API call.
+  /// 3. Clears the pending key on success; leaves it on failure so
+  ///    [_flushPendingSyncOnAppOpen] retries it on next launch.
   Future<void> editperioddatatoAPI({
     required DateTime startDate,
     required DateTime predictedDate,
     required bool isMatched,
     required BuildContext context,
   }) async {
-    try {
-      final payload = {
-        "StartDay": startDate.day,
-        "StartMonth": startDate.month,
-        "StartYear": startDate.year,
-        "PredictedDay": predictedDate.day,
-        "PredictedMonth": predictedDate.month,
-        "PredictedYear": predictedDate.year,
-        "IsMatched": isMatched,
-      };
+    final payload = {
+      "StartDay": startDate.day,
+      "StartMonth": startDate.month,
+      "StartYear": startDate.year,
+      "PredictedDay": predictedDate.day,
+      "PredictedMonth": predictedDate.month,
+      "PredictedYear": predictedDate.year,
+      "IsMatched": isMatched,
+    };
 
+    // ── 1. Persist locally first — never loses the data even if app dies.
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('pending_period_sync', jsonEncode(payload));
+    debugPrint('📝 pending_period_sync written before API call');
+
+    // ── 2. Attempt direct API call.
+    try {
       final response = await ApiService.post(
         addperioddata,
         payload,
@@ -406,13 +437,16 @@ class WomenHealthController extends GetxService {
       );
 
       if (response is http.Response) {
-        CustomSnackbar.showError(
-          context: context,
-          title: 'Error',
-          message: 'Failed to update period data',
+        // Server error — keep pending key, flush on next open
+        debugPrint(
+          '⚠️ editperioddatatoAPI failed (${response.statusCode}) — pending key kept for retry',
         );
         return;
       }
+
+      // ── 3. Success — clear pending key so next app open skips the flush.
+      await prefs.remove('pending_period_sync');
+      debugPrint('✅ Period data synced & pending key cleared');
 
       CustomSnackbar.showSuccess(
         context: context,
@@ -420,11 +454,8 @@ class WomenHealthController extends GetxService {
         message: 'Period data updated successfully!',
       );
     } catch (e) {
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'Something went wrong',
-      );
+      // Network down / timeout — pending key stays, retried on next open
+      debugPrint('⚠️ editperioddatatoAPI exception (non-fatal, will retry): $e');
     }
   }
 
@@ -437,7 +468,7 @@ class WomenHealthController extends GetxService {
     BuildContext context,
   ) async {
     try {
-      Map<String, dynamic> payload = {
+      final payload = {
         'PeroidsDuration': periodDays,
         'PeroidsCycleCount': periodCycleDays,
         'PeriodDay': periodDay,
@@ -445,6 +476,7 @@ class WomenHealthController extends GetxService {
         'PeriodYear': periodYear,
         'Disorder': null,
       };
+
       final response = await ApiService.post(
         womenhealth,
         payload,
@@ -466,6 +498,7 @@ class WomenHealthController extends GetxService {
         title: 'Success',
         message: 'Women Health Data saved successfully!',
       );
+
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('is_first_time_women', false);
       isFirstTimeWomen.value = false;
@@ -499,7 +532,7 @@ class WomenHealthController extends GetxService {
     }
 
     try {
-      Map<String, dynamic> payload = {
+      final payload = {
         'Tags': ["Female", "Women Health", "Pre-Period Nudges"],
         'FetchAll': false,
         'Count': _pageSize,
@@ -513,11 +546,11 @@ class WomenHealthController extends GetxService {
         encryptionRequired: true,
       );
       debugPrint("women health tips : $response", wrapWidth: 1024);
-      final parsedData = jsonDecode(jsonEncode(response));
-      debugPrint(" women health tips : $parsedData", wrapWidth: 1024);
 
+      final parsedData = jsonDecode(jsonEncode(response));
       final List list = parsedData['data'] ?? [];
       final fetchedTips = list.map((e) => TipData.fromJson(e)).toList();
+
       if (fetchedTips.isEmpty) {
         hasMoreTipsData.value = false;
         return;
@@ -530,11 +563,8 @@ class WomenHealthController extends GetxService {
         womenHealthTips.assignAll(fetchedTips);
       }
       hasMoreTipsData.value = fetchedTips.length == _pageSize;
-      debugPrint("general tips : $womenHealthTips", wrapWidth: 1024);
     } catch (e) {
-      if (!loadMore) {
-        womenHealthTips.value = [];
-      }
+      if (!loadMore) womenHealthTips.value = [];
       debugPrint(e.toString());
       CustomSnackbar.showError(
         context: context,
@@ -542,9 +572,7 @@ class WomenHealthController extends GetxService {
         message: 'Failed to load women health tips',
       );
     } finally {
-      if (loadMore) {
-        isTipsLoadingMore.value = false;
-      }
+      if (loadMore) isTipsLoadingMore.value = false;
     }
   }
 }
