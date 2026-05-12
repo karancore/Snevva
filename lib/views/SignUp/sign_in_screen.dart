@@ -67,6 +67,8 @@ class _SignInScreenState extends State<SignInScreen> {
     // that blow the 16.67ms frame budget and produce visible jank.
     FocusScope.of(context).unfocus();
 
+    if (!mounted) return;
+
     setState(() => isLoading = true);
 
     final prefs = await SharedPreferences.getInstance();
