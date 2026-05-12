@@ -37,6 +37,7 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
         // Main Button
@@ -122,7 +123,9 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
 
                 icon:
                     isSigningIn
-                        ? const AppLoader(size: 28)
+                        ? CircularProgressIndicator(
+                          backgroundColor: isDarkMode ? white : black,
+                        )
                         : Image.asset(google, height: 28, width: 28),
                 padding: const EdgeInsets.all(12),
                 splashRadius: 28,
