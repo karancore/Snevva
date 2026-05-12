@@ -155,7 +155,6 @@ class _AlertsScreenState extends State<AlertsScreen>
             ],
           ),
         ),
-    ),
     );
 
     // If this is from AnimatedList, wrap with SizeTransition (animation supplied)
