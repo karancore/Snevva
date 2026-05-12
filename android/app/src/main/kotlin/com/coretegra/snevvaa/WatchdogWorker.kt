@@ -9,8 +9,10 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
 import org.json.JSONArray
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-class WatchdogWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
+class WatchdogWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     private fun appendLog(prefs: android.content.SharedPreferences, message: String) {
         try {
@@ -37,41 +39,45 @@ class WatchdogWorker(context: Context, params: WorkerParameters) : Worker(contex
         }
     }
 
-    override fun doWork(): Result {
+    override suspend fun doWork(): Result {
         Log.d("WatchdogWorker", "Bark! Checking if FlutterBackgroundService is alive...")
 
-        // ── 1. Flush buffers first — ensures data survives even if the service is dead
-        try {
-            BufferManager.flushStepsToDaily(applicationContext)
-            BufferManager.flushSleepToDaily(applicationContext)
-        } catch (e: Exception) {
-            Log.e("WatchdogWorker", "Buffer flush error: ${e.message}")
-        }
-
-        // ── 2. Native new-cycle detection — fires API even if app is never opened
-        try {
-            checkAndSyncNewCycle()
-        } catch (e: Exception) {
-            Log.e("WatchdogWorker", "checkAndSyncNewCycle error: ${e.message}")
-        }
-
-        // ── 3. Keep flutter_background_service alive
-        try {
-            val serviceIntent = Intent()
-            serviceIntent.setClassName(
-                applicationContext,
-                "id.flutter.flutter_background_service.BackgroundService"
-            )
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                applicationContext.startForegroundService(serviceIntent)
-            } else {
-                applicationContext.startService(serviceIntent)
+        return withContext(Dispatchers.IO) {
+            // ── 1. Flush buffers first — ensures data survives even if the service is dead
+            try {
+                BufferManager.flushStepsToDaily(applicationContext)
+                BufferManager.flushSleepToDaily(applicationContext)
+            } catch (e: Exception) {
+                Log.e("WatchdogWorker", "Buffer flush error: ${e.message}")
             }
-            Log.d("WatchdogWorker", "Background service kickstarted!")
-            return Result.success()
-        } catch (e: Exception) {
-            Log.e("WatchdogWorker", "Failed to start flutter background service", e)
-            return Result.failure()
+
+            // ── 2. Native new-cycle detection — fires API even if app is never opened
+            try {
+                checkAndSyncNewCycle()
+            } catch (e: Exception) {
+                Log.e("WatchdogWorker", "checkAndSyncNewCycle error: ${e.message}")
+            }
+
+            // ── 3. Keep flutter_background_service alive
+            try {
+                val serviceIntent = Intent()
+                serviceIntent.setClassName(
+                    applicationContext,
+                    "id.flutter.flutter_background_service.BackgroundService"
+                )
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    applicationContext.startForegroundService(serviceIntent)
+                } else {
+                    applicationContext.startService(serviceIntent)
+                }
+                Log.d("WatchdogWorker", "Background service kickstarted!")
+                Result.success()
+            } catch (e: Exception) {
+                Log.e("WatchdogWorker", "Failed to start flutter background service", e)
+                // Don't return failure — the critical work (flush + cycle sync) already ran.
+                // Returning failure causes exponential back-off on the periodic worker.
+                Result.success()
+            }
         }
     }
 
@@ -188,11 +194,13 @@ class WatchdogWorker(context: Context, params: WorkerParameters) : Worker(contex
         fun start(context: Context) {
             val workRequest = PeriodicWorkRequestBuilder<WatchdogWorker>(15, TimeUnit.MINUTES)
                 .setConstraints(Constraints.Builder().build())
+                .setBackoffCriteria(BackoffPolicy.LINEAR, 5, TimeUnit.MINUTES)
                 .build()
 
+            // UPDATE replaces any stale deferred request so new ticks are never silently skipped.
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                 "SERVICE_WATCHDOG",
-                ExistingPeriodicWorkPolicy.KEEP,
+                ExistingPeriodicWorkPolicy.UPDATE,
                 workRequest
             )
             Log.d("WatchdogWorker", "Watchdog scheduled every 15 minutes.")
