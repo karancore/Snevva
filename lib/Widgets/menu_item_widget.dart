@@ -133,13 +133,18 @@ class MenuItemWidget extends StatelessWidget {
                 Row(
                   children: [
                     // Icon
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: SvgPicture.asset(
+                          imagePath,
+                          fit: BoxFit.cover,
+                          width: 28,
+                          height: 28,
+                        ),
                       ),
-                      child: SvgPicture.asset(imagePath, fit: BoxFit.cover),
                     ),
                     const SizedBox(width: 12),
 

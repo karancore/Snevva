@@ -74,6 +74,8 @@ class _BpmInputWidgetState extends State<BpmInputWidget> {
                     height: 57 * scale,
                     child: TextFormField(
                       focusNode: _bpmFocusNode,
+                      autofocus: true,
+
                       controller: widget.bpmController,
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
@@ -84,7 +86,7 @@ class _BpmInputWidgetState extends State<BpmInputWidget> {
                         fontWeight: FontWeight.bold,
                       ),
                       decoration: InputDecoration(
-                        hintText: '--',
+                        hintText: '',
                         hintStyle: TextStyle(
                           color: textColor.withOpacity(0.3),
                           fontSize: 56,
@@ -508,41 +510,10 @@ class _VitalScreenState extends State<VitalScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Blood Glucose:',
+                                'Tap to check your glucose levels',
                                 style:
                                 TextStyle(color: textColor, fontSize: 13),
                               ),
-                            ),
-                            SizedBox(
-                              width: 70,
-                              child: TextFormField(
-                                controller: glucoseController,
-                                keyboardType: TextInputType.number,
-                                textAlign: TextAlign.center,
-                                inputFormatters: [
-                                  MaxValueTextInputFormatter(300),
-                                ],
-                                style:
-                                TextStyle(color: textColor, fontSize: 14),
-                                decoration: InputDecoration(
-                                  hintText: '$bloodGlucose',
-                                  hintStyle: TextStyle(
-                                    color: textColor.withOpacity(0.3),
-                                    fontSize: 14,
-                                  ),
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  disabledBorder: InputBorder.none,
-                                  errorBorder: InputBorder.none,
-                                  focusedErrorBorder: InputBorder.none,
-                                  contentPadding: EdgeInsets.zero,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              ' mg/dL',
-                              style: TextStyle(color: textColor, fontSize: 12),
                             ),
                           ],
                         ),

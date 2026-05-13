@@ -33,6 +33,7 @@ import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
 import 'package:snevva/views/Settings/in_app_downloads.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
+import 'package:snevva/views/health_report/health_report_screen.dart';
 
 import '../../consts/consts.dart';
 import 'drawer_menu_item.dart';
@@ -377,9 +378,11 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                         // ),
                         DrawerMenuItem(
                           menuIcon: scannerIcon,
-                          itemName: 'Scan Report ',
-                          isDisabled: true,
-                          onWidgetTap: () {}, // ignored because disabled
+                          itemName: 'Health Report ',
+                          isDisabled: false,
+                          onWidgetTap: () {
+                            Get.to(() => HealthReportScreen());
+                          }, // ignored because disabled
                         ),
 
                         // DrawerMenuItem(

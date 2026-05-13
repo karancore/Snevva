@@ -170,11 +170,13 @@ flutter:
     - assets/Images/DietPlan/
     - assets/Icons/Info/
     - assets/Icons/SleepScreen/
+    - assets/Icons/health_report/
     - assets/decision_tree.json
     - assets/sounds/
     - assets/Icons/reminder/
     - assets/chat/
     - assets/animations/Birthday_Confetti_Ballon.json
+    - assets/lottie/app_loader.json
 
     - .env
     - secrets/key.json

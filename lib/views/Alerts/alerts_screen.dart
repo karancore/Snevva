@@ -166,32 +166,30 @@ class _AlertsScreenState extends State<AlertsScreen>
       key: ValueKey('${item.dataCode}_$index'),
       direction: DismissDirection.endToStart,
       confirmDismiss: (direction) async {
-        if (isAnimatedList) {
-          final idx = underlyingList.indexWhere(
-            (a) => a.dataCode == item.dataCode,
-          );
+        // if (isAnimatedList) {
+        //   final idx = underlyingList.indexWhere(
+        //     (a) => a.dataCode == item.dataCode,
+        //   );
+        //
+        //   if (idx != -1) {
+        //     _removeAnimatedItem(idx, key, underlyingList);
+        //   }
+        // } else {
+        //   await alertsController.markAsDeleted(item.dataCode);
+        //
+        //   alertsController.notifications.removeWhere(
+        //     (a) => a.dataCode == item.dataCode,
+        //   );
+        // }
 
-          if (idx != -1) {
-            _removeAnimatedItem(idx, key, underlyingList);
-          }
-        } else {
-          await alertsController.markAsDeleted(item.dataCode);
-
-          alertsController.notifications.removeWhere(
-            (a) => a.dataCode == item.dataCode,
-          );
-        }
+        alertsController.readNotifications(item.dataCode);
 
         return false;
       },
       background: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFFFF5F6D), Color(0xFFFF2E63)],
-            begin: Alignment.centerRight,
-            end: Alignment.centerLeft,
-          ),
+          gradient: AppColors.greenGradient,
           borderRadius: BorderRadius.circular(16),
         ),
         alignment: Alignment.centerRight,
@@ -199,10 +197,10 @@ class _AlertsScreenState extends State<AlertsScreen>
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: const [
-            Icon(Icons.delete_outline, color: Colors.white, size: 26),
+            Icon(Icons.mark_chat_read, color: Colors.white, size: 26),
             SizedBox(width: 8),
             Text(
-              "Delete",
+              "Read",
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
