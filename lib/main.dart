@@ -24,6 +24,7 @@ import 'package:snevva/Controllers/Reminder/medicine_controller.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
+import 'package:snevva/Controllers/health_report/health_report_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/otp_verification_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
@@ -274,6 +275,7 @@ void _registerLazyDependencies() {
   _lazyPut<EventController>(() => EventController());
   _lazyPut<MealController>(() => MealController());
   _lazyPut<AlertsController>(() => AlertsController());
+  _lazyPut<HealthReportController>(() => HealthReportController());
 }
 
 void _lazyPut<T>(T Function() builder) {

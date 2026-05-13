@@ -9,6 +9,57 @@ enum GlucoseStatus { low, normal, high }
 const Color sugarTypeBorderColor = Color(0xffD2D2D2);
 const Color sugarTypeShadowColor = Color(0x40000000);
 
+
+String getStatusLabel(GlucoseStatus status) {
+  return switch (status) {
+    GlucoseStatus.low => 'Low',
+    GlucoseStatus.high => 'High',
+    GlucoseStatus.normal => 'Normal',
+  };
+}
+
+GlucoseStatus getStatus(String level) {
+  final value = double.tryParse(level);
+  if (value == null) return GlucoseStatus.normal;
+  // mmol/L thresholds: <3.9 low, >10.0 high
+  if (value < 3.9) return GlucoseStatus.low;
+  if (value > 10.0) return GlucoseStatus.high;
+  return GlucoseStatus.normal;
+}
+
+String getHealthBanner(String status) {
+  switch (status.toLowerCase()) {
+    case 'low':
+      return 'Below Normal';
+
+    case 'high':
+      return 'Above Normal';
+
+    case 'normal':
+      return 'Normal Range';
+
+    default:
+      return 'Unknown Status';
+  }
+}
+
+String getFooter(String status) {
+  switch (status.toLowerCase()) {
+    case 'low':
+      return glucoseBanner;
+
+    case 'high':
+      return highGlucose;
+
+    case 'normal':
+      return normalGlucose;
+
+    default:
+      return '';
+  }
+}
+//
+
 class GlucoseCard extends StatelessWidget {
   final String glucoseLevel; // mmol/L value as string
   final String time; // ISO8601
@@ -21,28 +72,14 @@ class GlucoseCard extends StatelessWidget {
     required this.type,
   });
 
-  GlucoseStatus _getStatus(String level) {
-    final value = double.tryParse(level);
-    if (value == null) return GlucoseStatus.normal;
-    // mmol/L thresholds: <3.9 low, >10.0 high
-    if (value < 3.9) return GlucoseStatus.low;
-    if (value > 10.0) return GlucoseStatus.high;
-    return GlucoseStatus.normal;
-  }
 
-  String _getStatusLabel(GlucoseStatus status) {
-    return switch (status) {
-      GlucoseStatus.low => 'Low',
-      GlucoseStatus.high => 'High',
-      GlucoseStatus.normal => 'Normal',
-    };
-  }
+
 
   Color _getStatusColor(GlucoseStatus status) {
     return switch (status) {
       GlucoseStatus.low => const Color(0xffE05050),
       GlucoseStatus.high => const Color(0xffE08A00),
-      GlucoseStatus.normal => AppColors.glucoseColor,
+      GlucoseStatus.normal => AppColors.secondaryColor,
     };
   }
 
@@ -56,7 +93,7 @@ class GlucoseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = _getStatus(glucoseLevel);
+    final status = getStatus(glucoseLevel);
     final statusColor = _getStatusColor(status);
     final bool isDarkMode = Theme
         .of(context)
@@ -170,7 +207,7 @@ class GlucoseCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(5.0),
                   ),
                   child: Text(
-                    _getStatusLabel(status),
+                    getStatusLabel(status),
                     style: const TextStyle(
                       fontSize: 14.0,
                       color: white,
@@ -240,7 +277,7 @@ class GlucoseCard extends StatelessWidget {
             width: 15 * scale,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.glucoseColor,
+              color: AppColors.secondaryColor,
             ),
             padding: const EdgeInsets.all(2),
             child: Center(

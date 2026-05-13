@@ -1,5 +1,6 @@
 import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:snevva/Controllers/alerts/alerts_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Alerts/alerts_screen.dart';
@@ -32,6 +33,7 @@ class _DashboardState extends State<Dashboard>
   late Animation<double> _fadeAnimation;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final notificationController = NotificationService();
+  late final AlertsController alertsController;
 
   final scrollController = ScrollController();
   bool _showAppBar = true;
@@ -39,6 +41,8 @@ class _DashboardState extends State<Dashboard>
   @override
   void initState() {
     super.initState();
+
+    alertsController = Get.find<AlertsController>();
 
     // Initialize controllers
     _animationController = AnimationController(
@@ -74,6 +78,10 @@ class _DashboardState extends State<Dashboard>
           });
         }
       }
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await alertsController.hitAlertsNotifications();
     });
   }
 
@@ -126,8 +134,8 @@ class _DashboardState extends State<Dashboard>
                   ),
                   const Spacer(),
                   Obx(() {
-                    bool hasNewNotif =
-                        notificationController.hasNewNotification.value;
+                    var alertsEmpty = alertsController.notifications.isNotEmpty;
+                    debugPrint("alerts runtimetype ${alertsEmpty.runtimeType}");
                     return Stack(
                       children: [
                         IconButton(
@@ -142,7 +150,7 @@ class _DashboardState extends State<Dashboard>
                                 false;
                           },
                         ),
-                        if (hasNewNotif)
+                        if (alertsEmpty)
                           Positioned(
                             right: 8,
                             top: 8,

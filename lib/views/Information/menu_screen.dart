@@ -171,7 +171,7 @@ class _MenuScreenState extends State<MenuScreen>
       MenuItem(
         title: "Blood Glucose",
         subtitle: "Monitor blood sugar levels",
-        imagePath: vitalIcon,
+        imagePath: bloodGlucoseIcon,
         navigateTo: GlucoseScreen(),
       ),
 

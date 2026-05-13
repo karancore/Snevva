@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:get/get_connect/http/src/response/response.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/models/alerts.dart';
 import 'package:snevva/services/notification_service.dart';

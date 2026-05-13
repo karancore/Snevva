@@ -8,6 +8,9 @@ import 'package:flutter/rendering.dart';
 import 'package:lottie/lottie.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+const String _cardKey = 'birthday_card_seen';
 
 class BirthdayPopupHelper {
   BirthdayPopupHelper._();
@@ -34,6 +37,16 @@ class BirthdayPopupHelper {
     }
 
     final now = DateTime.now();
+
+    final prefs = await SharedPreferences.getInstance();
+    final todayKey = 'birthday_popup_${now.year}_${now.month}_${now.day}';
+
+    final alreadyShown = prefs.getBool(todayKey) ?? false;
+
+    if (alreadyShown) {
+      debugPrint("Birthday popup shown");
+      return;
+    }
 
     debugPrint(
       '🎂 BirthdayPopup: today=${now.day}/${now.month}, dob=$dobDay/$dobMonth',
@@ -87,6 +100,8 @@ class BirthdayPopupHelper {
             child: FadeTransition(opacity: anim, child: child),
           ),
     );
+
+    await prefs.setBool(todayKey, true);
   }
 
   static int? _parseInt(dynamic value) {
@@ -219,10 +234,12 @@ class _BirthdayDialogState extends State<BirthdayDialog>
 
         text: '🎂 Happy Birthday ${widget.name}! Wishing you a wonderful day!',
       );
+
     } catch (e) {
       debugPrint('Share error: $e');
     } finally {
       if (mounted) setState(() => _isCapturing = false);
+
     }
   }
 
@@ -279,10 +296,11 @@ class _BirthdayDialogState extends State<BirthdayDialog>
                             label: 'Thank you!',
                             isPrimary: false,
                             onTap:
-                                () =>
+                                () async {
                                     Navigator.of(
                                       context,
-                                    ).pop(), // ✅ only way to close
+                                    ).pop();
+                            }, // ✅ only way to close
                           ),
                         ),
                       ],
@@ -566,7 +584,7 @@ class _BirthdayCard extends StatelessWidget {
                     SizedBox(height: s * 0.020),
 
                     Text(
-                      '— from Snevva  💙',
+                      '— from Snevva',
 
                       style: TextStyle(
                         fontSize: s * 0.028,

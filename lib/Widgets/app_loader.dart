@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
+import '../consts/colors.dart';
+
 class AppLoader extends StatelessWidget {
   static const String assetPath = 'assets/lottie/app_loader.json';
   static const double defaultSize = 120;
@@ -156,6 +158,7 @@ class AppLoadingButtonChild extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 180),
       switchInCurve: Curves.easeOutCubic,
@@ -164,11 +167,11 @@ class AppLoadingButtonChild extends StatelessWidget {
           ? SizedBox.square(
               key: const ValueKey('app-button-loader'),
               dimension: loaderSize,
-              child: AppLoader(
-                size: loaderSize,
-                semanticsLabel: 'Button loading',
-              ),
-            )
+                child: CircularProgressIndicator(
+                  color: isDarkMode ? black : white,
+                  strokeWidth: 1.5,
+                ),
+              )
           : KeyedSubtree(
               key: const ValueKey('app-button-child'),
               child: child,

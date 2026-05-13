@@ -213,6 +213,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                                     height: 1,
                                     fontWeight: FontWeight.w600,
                                   ),
+                                  autofocus: true,
                                   decoration: const InputDecoration(
                                     border: InputBorder.none,
                                     enabledBorder: InputBorder.none,

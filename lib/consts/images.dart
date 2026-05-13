@@ -56,6 +56,7 @@ const bookDocIcon = "assets/Icons/Info/shield-cross-fill-4.svg";
 const womenIcon = "assets/Icons/Info/shield-cross-fill-5.svg";
 const waterTrackingIcon = "assets/Icons/Info/shield-cross-fill-6.svg";
 const stepsTrackingIcon = "assets/Icons/Info/shield-cross-fill-7.svg";
+const bloodGlucoseIcon = "assets/Dashboard/glucose-menu-icon.svg";
 
 //Sign up screen
 const apple = 'assets/Icons/Apple.webp';
@@ -109,11 +110,13 @@ const pen = "assets/Icons/reminder/pencil.svg";
 const clockRemIcon = "assets/Icons/reminder/clock.svg";
 
 //Vitals Screen
-const heartVitalIcon = "assets/Icons/vitals/heart.webp";
-const bloodDropsIcon = "assets/Icons/vitals/blood_drops.webp";
+const heartVitalIcon = "assets/Icons/vitals/heart.png";
+const bloodDropsIcon = "assets/Icons/vitals/blood_drops.png";
 const waterDrops = "assets/Images/,.png";
 const glucoseDrop = "assets/Images/glucose-drop.png";
 const glucoseBanner = "assets/Images/glucose-banner.png";
+const normalGlucose = "assets/Images/health_Range.png";
+const highGlucose = "assets/Images/need_control.png";
 //Mental Wellness
 const wellnessContainerImg1 =
     "assets/Images/MentalWellness/person_Sitting.webp";
@@ -297,3 +300,14 @@ const errorIcon = "assets/Images/error.webp";
 const noNotif = "assets/Images/notificon.webp";
 const fatty = "assets/Images/BMI/fatty.webp";
 const skinny = "assets/Images/BMI/skiiny.webp";
+
+//Health Report
+const pdfIcon = "assets/Icons/ScanReport/hhh.png";
+const stepsHealthReportIcon = "assets/Icons/health_report/steps.svg";
+const bpHealthReportIcon = "assets/Icons/health_report/bp.svg";
+const hydrationHealthReportIcon = "assets/Icons/health_report/hydration.svg";
+const bloodHealthReportIcon = "assets/Icons/health_report/glucose.svg";
+const sleepHealthReportIcon = "assets/Icons/health_report/sleep.svg";
+const bmiHealthReportIcon = "assets/Icons/health_report/bmi.svg";
+const smileyHealthReportIcon = "assets/Icons/health_report/smiley.svg";
+const genderHealthReportIcon = "assets/Icons/health_report/gender.svg";

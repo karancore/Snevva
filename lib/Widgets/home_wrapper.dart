@@ -84,6 +84,7 @@ class _HomeWrapperState extends State<HomeWrapper> {
       if (!_birthdayShown && mounted) {
         _birthdayShown = true;
         final today = DateTime.now();
+        debugPrint("2027 ${DateTime.now().year + 1}");
         final lastShownKey =
             'birthday_shown_${today.year}_${today.month}_${today.day}';
         final prefs = await SharedPreferences.getInstance();
