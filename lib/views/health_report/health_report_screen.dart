@@ -1,295 +1,179 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:get/get_navigation/src/snackbar/snackbar.dart';
+import 'package:get/get.dart';
+import 'package:snevva/Controllers/health_report/health_report_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/consts/images.dart';
 import 'package:snevva/widgets/reminder/custom_Radio.dart';
 
 import '../../consts/colors.dart';
-import '../../models/requested_health_record.dart';
-
-class HealthReportScreen extends StatefulWidget {
-  const HealthReportScreen({super.key});
-
-  @override
-  State<HealthReportScreen> createState() => _HealthReportScreenState();
-}
 
 const healthServiceBackgroundCardColor = Color(0xffF8F5FC);
 
-class _HealthReportScreenState extends State<HealthReportScreen> {
-  int segmentedControlGroupValue = 0;
+class HealthReportScreen extends StatelessWidget {
+  const HealthReportScreen({super.key});
 
-  Map<int, bool> isDownloadingMap = {};
-  Map<int, bool> isDownloadedMap = {};
-  Map<int, double> downloadProgressMap = {};
-  int selectedHealthIndex = 0;
-  bool isAllSelected = false;
-  Set<int> selectedHealthIndexes = {};
-  int selectedIndex = 0;
-  List<RequestedHealthRecord> requestedReports = [];
+  // ─── Static data (no state, safe as local constants) ─────────────
+  static const List<String> dateRangeList = [
+    'Last 1 Month',
+    'Last 3 Month',
+    'Last 6 Month',
+    'Last 1 Year',
+    'Custom Date Range',
+  ];
 
-  Future<void> _downloadReport(int reportIndex) async {
-    if (isDownloadedMap[reportIndex] == true) {
-      Get.snackbar(
-        'Aye!',
-        'This report is already downloaded',
-        snackPosition: SnackPosition.TOP,
-        colorText: white,
-        backgroundColor: AppColors.primaryColor,
-        duration: const Duration(seconds: 3),
-      );
-      return;
-    }
+  static List<Map<String, dynamic>> get healthServices => [
+    {"title": "Steps", "icon": stepsHealthReportIcon},
+    {"title": "Blood Pressure", "icon": bpHealthReportIcon},
+    {"title": "Hydration", "icon": hydrationHealthReportIcon},
+    {"title": "Blood Glucose", "icon": bloodHealthReportIcon},
+    {"title": "Sleep", "icon": sleepHealthReportIcon},
+    {"title": "BMI", "icon": bmiHealthReportIcon},
+    {"title": "Mood", "icon": smileyHealthReportIcon},
+    {"title": "Women Health", "icon": genderHealthReportIcon},
+  ];
 
-    setState(() {
-      isDownloadingMap[reportIndex] = true;
-      downloadProgressMap[reportIndex] = 0;
-    });
-
-    for (int i = 1; i <= 100; i++) {
-      await Future.delayed(const Duration(milliseconds: 30));
-      if (!mounted) return;
-      setState(() {
-        downloadProgressMap[reportIndex] = i / 100;
-      });
-    }
-
-    if (!mounted) return;
-    setState(() {
-      isDownloadingMap[reportIndex] = false;
-      isDownloadedMap[reportIndex] = true;
-    });
-
-    Get.snackbar(
-      'Notice Here!',
-      'Report downloaded',
-      snackPosition: SnackPosition.TOP,
-      colorText: white,
-      backgroundColor: AppColors.primaryColor,
-      duration: const Duration(seconds: 3),
-    );
-  }
-
-  Future<void> requestHealthRecord({
-    required List<String> type,
-    required String timePeriod,
-  }) async {
-    final newReport = RequestedHealthRecord(
-      serviceType: type,
-      timePeriod: timePeriod,
-      requestedOn: DateTime.now(),
-    );
-
-    setState(() {
-      requestedReports.insert(0, newReport);
-    });
-
-    Get.snackbar(
-      'Success',
-      'Health record requested successfully',
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: AppColors.primaryColor,
-      colorText: Colors.white,
-      duration: const Duration(seconds: 1),
-    );
-
-    debugPrint("Time Period is $timePeriod and title is $type");
+  static List<String> get yearRangeList {
+    final currentYear = DateTime.now().year;
+    return List.generate(3, (index) {
+      final startYear = currentYear - 1 + index;
+      return '$startYear-${(startYear + 1).toString().substring(2)}';
+    }).reversed.toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    // ── Put controller once at root ──────────────────────────────────
+    final controller = Get.put(HealthReportController());
 
-    final mediaQuery = MediaQuery.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final width = MediaQuery.of(context).size.width;
+    final double scale = width / 360;
+    const double itemHeight = 52.0;
 
-    final height = mediaQuery.size.height;
-
-    final width = mediaQuery.size.width;
-
-    double scale = width / 360;
-
-    double itemHeight = 52.00;
-
-    final List<String> dateRangeList = [
-      'Last 1 Month',
-      'Last 3 Month',
-      'Last 6 Month',
-      'Last 1 Year',
-      'Custom Date Range',
-    ];
-
-    //7527884869
-
-    final List<Map<String, dynamic>> healthServices = [
-      {"title": "Steps", "icon": stepsHealthReportIcon, "isSelected": true},
-      {
-        "title": "Blood Pressure",
-        "icon": bpHealthReportIcon,
-        "isSelected": false,
-      },
-      {
-        "title": "Hydration",
-        "icon": hydrationHealthReportIcon,
-        "isSelected": false,
-      },
-      {
-        "title": "Blood Glucose",
-        "icon": bloodHealthReportIcon,
-        "isSelected": false,
-      },
-      {"title": "Sleep", "icon": sleepHealthReportIcon, "isSelected": false},
-      {"title": "BMI", "icon": bmiHealthReportIcon, "isSelected": false},
-      {"title": "Mood", "icon": smileyHealthReportIcon, "isSelected": false},
-      {
-        "title": "Women Health",
-        "icon": genderHealthReportIcon,
-        "isSelected": false,
-      },
-    ];
-    final currentYear = DateTime.now().year;
-
-    final List<String> yearRangeList = List.generate(3, (index) {
-      final startYear = currentYear - 1 + index;
-
-      return '$startYear-${(startYear + 1).toString().substring(2)}';
-    });
     return Scaffold(
       appBar: CustomAppBar(appbarText: 'Health Record', showDrawerIcon: false),
-
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.all(2),
-                  height: scale * 36,
-                  width: scale * 332,
-                  decoration: BoxDecoration(
-                    color:
-                        isDarkMode
-                            ? Colors.grey.shade900
-                            : Colors.grey.shade200,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.25),
-                        offset: const Offset(1, 1),
-                        blurRadius: 3,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-
-                  child: CupertinoSlidingSegmentedControl<int>(
-                    groupValue: segmentedControlGroupValue,
-                    thumbColor: AppColors.secondaryColor,
-                    backgroundColor: Colors.transparent,
-                    padding: const EdgeInsets.all(4),
-                    children: {
-                      0: _buildSegment(
-                        title: "Date Range",
-                        selected: segmentedControlGroupValue == 0,
-                      ),
-                      1: _buildSegment(
-                        title: "Year",
-                        selected: segmentedControlGroupValue == 1,
-                      ),
-                    },
-                    onValueChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          segmentedControlGroupValue = value;
-                        });
-                      }
-                    },
+              // ── Segmented Control ──────────────────────────────────
+              Obx(
+                () => Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    height: scale * 36,
+                    width: scale * 332,
+                    decoration: BoxDecoration(
+                      color:
+                          isDarkMode
+                              ? Colors.grey.shade900
+                              : Colors.grey.shade200,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.25),
+                          offset: const Offset(1, 1),
+                          blurRadius: 3,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: CupertinoSlidingSegmentedControl<int>(
+                      groupValue: controller.segmentedControlGroupValue.value,
+                      thumbColor: AppColors.secondaryColor,
+                      backgroundColor: Colors.transparent,
+                      padding: const EdgeInsets.all(4),
+                      children: {
+                        0: _buildSegment(
+                          title: "Date Range",
+                          selected:
+                              controller.segmentedControlGroupValue.value == 0,
+                        ),
+                        1: _buildSegment(
+                          title: "Year",
+                          selected:
+                              controller.segmentedControlGroupValue.value == 1,
+                        ),
+                      },
+                      onValueChanged: (value) {
+                        if (value != null) controller.onSegmentChanged(value);
+                      },
+                    ),
                   ),
                 ),
               ),
+
               SizedBox(height: scale * 18),
-              segmentedControlGroupValue == 0
-                  ? _rangeColumn(
-                    scale: scale,
-                    itemHeight: itemHeight,
-                    items: dateRangeList,
-                    isDarkMode: isDarkMode,
-                  )
-                  : _rangeColumn(
-                    scale: scale,
-                    itemHeight: itemHeight,
-                    items: yearRangeList.reversed.toList(),
-                    isDarkMode: isDarkMode,
-                  ),
+
+              // ── Range List ────────────────────────────────────────
+              Obx(
+                () => _rangeColumn(
+                  controller: controller,
+                  scale: scale,
+                  itemHeight: itemHeight,
+                  items:
+                      controller.segmentedControlGroupValue.value == 0
+                          ? dateRangeList
+                          : yearRangeList,
+                  isDarkMode: isDarkMode,
+                ),
+              ),
 
               SizedBox(height: 16 * scale),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: InkWell(
-                  onTap: () {
-                    setState(() {
-                      isAllSelected = !isAllSelected;
 
-                      if (isAllSelected) {
-                        selectedHealthIndexes = Set.from(
-                          List.generate(
-                            healthServices.length,
-                            (index) => index,
-                          ),
-                        );
-                      } else {
-                        selectedHealthIndexes.clear();
-                      }
-                    });
-                  },
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Checkbox(
-                        value: isAllSelected,
-                        activeColor: AppColors.secondaryColor,
-                        onChanged: (val) {
-                          setState(() {
-                            isAllSelected = val ?? false;
-
-                            if (isAllSelected) {
-                              selectedHealthIndexes = Set.from(
-                                List.generate(
-                                  healthServices.length,
-                                  (index) => index,
-                                ),
-                              );
-                            } else {
-                              selectedHealthIndexes.clear();
-                            }
-                          });
-                        },
-                      ),
-
-                      const Text(
-                        "Select All",
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+              // ── Select All ────────────────────────────────────────
+              Obx(
+                () => Align(
+                  alignment: Alignment.centerLeft,
+                  child: InkWell(
+                    onTap:
+                        () => controller.toggleSelectAll(
+                          !controller.isAllSelected.value,
+                          healthServices.length,
                         ),
-                      ),
-                    ],
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Checkbox(
+                          value: controller.isAllSelected.value,
+                          activeColor: AppColors.secondaryColor,
+                          onChanged:
+                              (val) => controller.toggleSelectAll(
+                                val,
+                                healthServices.length,
+                              ),
+                        ),
+                        const Text(
+                          "Select All",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-              _healthServiceList(
-                healthServices: healthServices,
-                scale: scale,
-                isDarkMode: isDarkMode,
-                index: selectedHealthIndex,
+
+              // ── Health Service Grid ───────────────────────────────
+              Obx(
+                () => _healthServiceList(
+                  controller: controller,
+                  healthServices: healthServices,
+                  scale: scale,
+                  isDarkMode: isDarkMode,
+                ),
               ),
+
               SizedBox(height: 18 * scale),
+
+              // ── Request Button ────────────────────────────────────
               CustomOutlinedButton(
                 width: width,
                 isDarkMode: isDarkMode,
@@ -297,54 +181,42 @@ class _HealthReportScreenState extends State<HealthReportScreen> {
                 backgroundColor: AppColors.secondaryColor,
                 buttonName: 'Request Health Record',
                 onTap: () {
-                  if (selectedHealthIndexes.isEmpty) {
-                    Get.snackbar(
-                      'Select Health Type',
-                      'Please select at least one health service',
-                      snackPosition: SnackPosition.TOP,
-                      backgroundColor: Colors.red,
-                      colorText: Colors.white,
-                    );
-                    return;
-                  }
-
-                  final selectedTime =
-                      segmentedControlGroupValue == 0
-                          ? dateRangeList[selectedIndex]
-                          : yearRangeList.reversed.toList()[selectedIndex];
-
-                  final selectedServices =
-                      selectedHealthIndexes
-                          .map((i) => healthServices[i]['title'] as String)
-                          .toList();
-                  requestHealthRecord(
-                    type: selectedServices,
-                    timePeriod: selectedTime,
+                  controller.requestHealthRecord(
+                    healthServices: HealthReportScreen.healthServices,
+                    dateRangeList: HealthReportScreen.dateRangeList,
+                    yearRangeList: HealthReportScreen.yearRangeList,
                   );
                 },
               ),
+
               SizedBox(height: 11 * scale),
-              Text(
+
+              const Text(
                 " Requested Health Record",
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
               ),
-              SizedBox(height: 12 * scale),
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: requestedReports.length,
-                separatorBuilder: (_, __) => SizedBox(height: 10 * scale),
-                itemBuilder: (context, index) {
-                  final report = requestedReports[index];
 
-                  return _downloadedReportContainer(
-                    reportIndex: index,
-                    scale: scale,
-                    serviceType: report.serviceType,
-                    timePeriod: report.timePeriod,
-                    isDarkMode: isDarkMode,
-                  );
-                },
+              SizedBox(height: 12 * scale),
+
+              // ── Requested Reports List ────────────────────────────
+              Obx(
+                () => ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: controller.requestedReports.length,
+                  separatorBuilder: (_, __) => SizedBox(height: 10 * scale),
+                  itemBuilder: (context, index) {
+                    final report = controller.requestedReports[index];
+                    return _downloadedReportContainer(
+                      controller: controller,
+                      reportIndex: index,
+                      scale: scale,
+                      serviceType: report.serviceType,
+                      timePeriod: report.timePeriod,
+                      isDarkMode: isDarkMode,
+                    );
+                  },
+                ),
               ),
             ],
           ),
@@ -353,11 +225,13 @@ class _HealthReportScreenState extends State<HealthReportScreen> {
     );
   }
 
+  // ─── Widgets ──────────────────────────────────────────────────────
+
   Widget _healthServiceList({
+    required HealthReportController controller,
     required List healthServices,
     required double scale,
     required bool isDarkMode,
-    required int index,
   }) {
     return Container(
       height: 136 * scale,
@@ -389,17 +263,11 @@ class _HealthReportScreenState extends State<HealthReportScreen> {
           itemBuilder: (context, index) {
             final item = healthServices[index];
             return InkWell(
-              onTap: () {
-                setState(() {
-                  if (selectedHealthIndexes.contains(index)) {
-                    selectedHealthIndexes.remove(index);
-                  } else {
-                    selectedHealthIndexes.add(index);
-                  }
-                });
-
-                debugPrint("Selected: $selectedHealthIndexes");
-              },
+              onTap:
+                  () => controller.toggleHealthService(
+                    index,
+                    healthServices.length,
+                  ),
               child: SizedBox(
                 width: 72 * scale,
                 height: 52 * scale,
@@ -408,7 +276,7 @@ class _HealthReportScreenState extends State<HealthReportScreen> {
                   title: item['title'],
                   icon: item['icon'],
                   isDarkMode: isDarkMode,
-                  isSelected: selectedHealthIndexes.contains(index),
+                  isSelected: controller.selectedHealthIndexes.contains(index),
                 ),
               ),
             );
@@ -416,25 +284,6 @@ class _HealthReportScreenState extends State<HealthReportScreen> {
         ),
       ),
     );
-  }
-
-  String _monthName(int month) {
-    const months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
-
-    return months[month - 1];
   }
 
   Widget _healthServiceCard({
@@ -480,118 +329,96 @@ class _HealthReportScreenState extends State<HealthReportScreen> {
   }
 
   Widget _rangeColumn({
+    required HealthReportController controller,
     required double scale,
     required double itemHeight,
     required List<String> items,
     required bool isDarkMode,
   }) {
-    return Column(
-      children: [
-        Container(
-          width: 332 * scale,
-          height: itemHeight * items.length,
-          decoration: BoxDecoration(
-            color: isDarkMode ? darkGray : white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.25),
-                offset: const Offset(1, 1),
-                blurRadius: 3,
-                spreadRadius: 1,
+    return Container(
+      width: 332 * scale,
+      height: itemHeight * items.length,
+      decoration: BoxDecoration(
+        color: isDarkMode ? darkGray : white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.25),
+            offset: const Offset(1, 1),
+            blurRadius: 3,
+            spreadRadius: 1,
+          ),
+        ],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListView.separated(
+        padding: EdgeInsets.zero,
+        itemCount: items.length,
+        separatorBuilder:
+            (_, __) => Divider(
+              height: 1,
+              thickness: 1,
+              color: Colors.grey.withOpacity(0.2),
+            ),
+        itemBuilder: (context, index) {
+          final isSelected = controller.selectedIndex.value == index;
+          return Container(
+            height: itemHeight,
+            decoration: BoxDecoration(
+              color:
+                  isSelected
+                      ? AppColors.secondaryColor.withOpacity(0.1)
+                      : Colors.transparent,
+              borderRadius: BorderRadius.only(
+                topLeft: index == 0 ? const Radius.circular(12) : Radius.zero,
+                topRight: index == 0 ? const Radius.circular(12) : Radius.zero,
+                bottomLeft:
+                    index == items.length - 1
+                        ? const Radius.circular(12)
+                        : Radius.zero,
+                bottomRight:
+                    index == items.length - 1
+                        ? const Radius.circular(12)
+                        : Radius.zero,
               ),
-            ],
-            borderRadius: BorderRadius.circular(12),
-          ),
-
-          child: ListView.separated(
-            padding: EdgeInsets.zero,
-            itemCount: items.length,
-
-            separatorBuilder: (context, index) {
-              return Divider(
-                height: 1,
-                thickness: 1,
-                color: Colors.grey.withOpacity(0.2),
-              );
-            },
-
-            itemBuilder: (context, index) {
-              final isSelected = selectedIndex == index;
-
-              return Container(
-                height: itemHeight,
-                decoration: BoxDecoration(
-                  color:
-                      isSelected
-                          ? AppColors.secondaryColor.withOpacity(0.1)
-                          : Colors.transparent,
-                  borderRadius: BorderRadius.only(
-                    topLeft:
-                        index == 0 ? const Radius.circular(12) : Radius.zero,
-
-                    topRight:
-                        index == 0 ? const Radius.circular(12) : Radius.zero,
-
-                    bottomLeft:
-                        index == items.length - 1
-                            ? const Radius.circular(12)
-                            : Radius.zero,
-
-                    bottomRight:
-                        index == items.length - 1
-                            ? const Radius.circular(12)
-                            : Radius.zero,
+            ),
+            child: Center(
+              child: ListTile(
+                onTap: () => controller.onRangeSelected(index),
+                leading: CustomRadio(
+                  selected: isSelected,
+                  onTap: () => controller.onRangeSelected(index),
+                  activeColor: AppColors.secondaryColor,
+                ),
+                title: Text(
+                  items[index],
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w400,
+                    fontSize: 12,
                   ),
                 ),
-
-                child: Center(
-                  child: ListTile(
-                    onTap: () {
-                      setState(() {
-                        selectedIndex = index;
-                      });
-                    },
-
-                    leading: CustomRadio(
-                      selected: isSelected,
-                      onTap: () {
-                        setState(() {
-                          selectedIndex = index;
-                        });
-                      },
-                      activeColor: AppColors.secondaryColor,
-                    ),
-
-                    title: Text(
-                      items[index],
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w400,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 
   Widget _downloadedReportContainer({
+    required HealthReportController controller,
     required int reportIndex,
     required double scale,
     required List<String> serviceType,
     required String timePeriod,
     required bool isDarkMode,
   }) {
-    final isDownloading = isDownloadingMap[reportIndex] ?? false;
-    final isDownloaded = isDownloadedMap[reportIndex] ?? false;
-    final downloadProgress = downloadProgressMap[reportIndex] ?? 0.0;
+    final isDownloading = controller.isDownloadingMap[reportIndex] ?? false;
+    final isDownloaded = controller.isDownloadedMap[reportIndex] ?? false;
+    final downloadProgress = controller.downloadProgressMap[reportIndex] ?? 0.0;
 
     return InkWell(
-      onTap: isDownloading ? null : () => _downloadReport(reportIndex),
+      onTap:
+          isDownloading ? null : () => controller.downloadReport(reportIndex),
       child: Container(
         height: 53 * scale,
         width: double.infinity,
@@ -608,7 +435,6 @@ class _HealthReportScreenState extends State<HealthReportScreen> {
                 backgroundColor: AppColors.secondaryColor.withOpacity(0.2),
                 child: Image.asset(
                   pdfIcon,
-
                   color: AppColors.secondaryColor.withOpacity(0.9),
                 ),
               ),
@@ -627,7 +453,6 @@ class _HealthReportScreenState extends State<HealthReportScreen> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-
                     Text(
                       "Requested on ${DateTime.now().day} "
                       "${_monthName(DateTime.now().month)}",
@@ -642,9 +467,10 @@ class _HealthReportScreenState extends State<HealthReportScreen> {
               ),
               const Spacer(),
               InkWell(
-                // ✅ Correct — wraps in a lambda
                 onTap:
-                    isDownloading ? null : () => _downloadReport(reportIndex),
+                    isDownloading
+                        ? null
+                        : () => controller.downloadReport(reportIndex),
                 child: Container(
                   height: 26 * scale,
                   width: 110 * scale,
@@ -656,14 +482,12 @@ class _HealthReportScreenState extends State<HealthReportScreen> {
                             : AppColors.primaryGradient,
                     borderRadius: BorderRadius.circular(16),
                   ),
-
                   child: Container(
                     decoration: BoxDecoration(
                       color:
                           isDarkMode ? darkGray.withOpacity(0.3) : Colors.white,
                       borderRadius: BorderRadius.circular(14),
                     ),
-
                     child:
                         isDownloading
                             ? Stack(
@@ -686,7 +510,6 @@ class _HealthReportScreenState extends State<HealthReportScreen> {
                                     ),
                                   ),
                                 ),
-
                                 Text(
                                   "${(downloadProgress * 100).toInt()}%",
                                   style: TextStyle(
@@ -710,9 +533,7 @@ class _HealthReportScreenState extends State<HealthReportScreen> {
                                           ? Colors.green
                                           : (isDarkMode ? white : black),
                                 ),
-
                                 const SizedBox(width: 4),
-
                                 Text(
                                   isDownloaded ? "Downloaded" : "Download",
                                   style: TextStyle(
@@ -739,17 +560,32 @@ class _HealthReportScreenState extends State<HealthReportScreen> {
   Widget _buildSegment({required String title, required bool selected}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
-
       child: Text(
         title,
-
         style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
-
           color: selected ? Colors.white : Colors.grey.shade700,
         ),
       ),
     );
+  }
+
+  String _monthName(int month) {
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    return months[month - 1];
   }
 }
