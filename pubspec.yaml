@@ -93,6 +93,7 @@ dependencies:
   url_launcher: ^6.3.2
   audioplayers: ^6.5.1
 
+  open_file: ^3.3.2
 
   alarm: ^5.1.5
   get_storage: ^2.1.1

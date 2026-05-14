@@ -179,4 +179,4 @@ const String dnd = '/api/upsert/notificationsubsciption';
 
 const String readNotification = "/api/upsert/readNotification";
 
-const String healthreport = "/api/upsert/healthreport";
+const String healthreport = "/api/fetchinfo/healthreport";

@@ -1,19 +1,21 @@
 import 'dart:convert';
+
 import 'package:get/get_connect/http/src/response/response.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/models/alerts.dart';
 import 'package:snevva/services/notification_service.dart';
+
 import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
 import '../../env/env.dart';
 import '../../services/api_service.dart';
-import 'package:get/get_connect/http/src/response/response.dart' as http;
 
 class AlertsController extends GetxService {
   RxList<Alerts> notifications = <Alerts>[].obs;
   static const deletedKey = 'deleted_notifications';
 
   final RxSet<String> deletedCodes = <String>{}.obs;
+  final RxSet<String> readCodes = <String>{}.obs;
   final bool isLoading = false;
 
   @override
@@ -69,13 +71,18 @@ class AlertsController extends GetxService {
     }
   }
 
-  Future<void> readNotifications(String dcode) async {
+  List<Alerts> get unreadNotifications =>
+      notifications.where((a) => !readCodes.contains(a.id)).toList(); // ✅
+
+  List<Alerts> get readNotifications_ =>
+      notifications.where((a) => readCodes.contains(a.id)).toList(); // ✅
+  Future<void> readNotifications(String id) async {
     try {
 
       debugPrint("🚀 readNotifications() called");
 
       final payload = {
-        "DataCode" : dcode
+        "DataCode": id
       };
 
       final response = await ApiService.post(

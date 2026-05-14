@@ -66,6 +66,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
         .brightness == Brightness.dark;
 
     return Stack(
+
       children: [
         BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -74,13 +75,14 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
 
         Center(
           child: Material(
+
             color: Colors.transparent,
             child: Container(
               width: 360 * scale,
               margin: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(28),
-                color: isDarkMode ? scaffoldColorDark : white,
+                color: isDarkMode ? darkGray : white,
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.25),
@@ -208,7 +210,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                                   ),
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: isDarkMode ? white : black,
+                                    color: isDarkMode ? black : white,
                                     fontSize: 18,
                                     height: 1,
                                     fontWeight: FontWeight.w600,
@@ -379,7 +381,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                             label: "Save Readings",
                             color: AppColors.primaryColor,
                             borderColor: AppColors.primaryColor,
-                            textColor: isDarkMode ? black : white,
+                            textColor: white,
                             scale: scale,
                             isDarkMode: isDarkMode,
                           ),
@@ -387,7 +389,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                             label: "Cancel",
                             color: cancelButtonColor,
                             borderColor: cancelButtonColor,
-                            textColor: isDarkMode ? white : black,
+                            textColor: isDarkMode ? black : white,
                             scale: scale,
                             isDarkMode: isDarkMode,
                           ),
@@ -531,7 +533,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                   style: TextStyle(
                     color: isSelected
                         ? white
-                        : (isDarkMode ? white : black),
+                        : (isDarkMode ? black : white),
                     fontSize: 11 * scale,
                     fontWeight: FontWeight.w600,
                   ),

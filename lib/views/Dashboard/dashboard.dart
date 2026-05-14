@@ -11,6 +11,8 @@ import '../../widgets/dashboard/dashboard_ads_carousel_slider.dart';
 import '../../widgets/dashboard/dashboard_header_widget.dart';
 import '../../widgets/dashboard/dashboard_service_overview_dynamic_widgets.dart';
 import '../../widgets/dashboard/dashboard_services_widget.dart';
+import '../../widgets/incomplete_profile_card.dart';
+import '../ProfileAndQuestionnaire/edit_profile_screen.dart';
 
 class Dashboard extends StatefulWidget {
   final Function(int)? onTabSelected;
@@ -92,6 +94,40 @@ class _DashboardState extends State<Dashboard>
     super.dispose();
   }
 
+  bool get _isPhoneMissing {
+    final phone = localStorageManager.userMap['PhoneNumber']?.toString().trim();
+    return phone == null || phone.isEmpty;
+  }
+
+  bool hasEmptyValue(Map<String, dynamic> map) {
+    final fieldsToCheck = [
+      'Name',
+      'PhoneNumber',
+      'Email',
+      'Gender',
+      'DayOfBirth',
+      'MonthOfBirth',
+      'YearOfBirth',
+      'AddressByUser',
+    ];
+
+    for (final key in fieldsToCheck) {
+      final value = map[key];
+      if (value == null) return true;
+      if (value is String && value.trim().isEmpty) return true;
+    }
+
+    // Check nested maps
+    final occupation = map['OccupationData'];
+    if (occupation == null ||
+        occupation is! Map ||
+        occupation['Name']?.toString().trim().isEmpty != false) {
+      return true;
+    }
+
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
@@ -134,8 +170,9 @@ class _DashboardState extends State<Dashboard>
                   ),
                   const Spacer(),
                   Obx(() {
-                    var alertsEmpty = alertsController.notifications.isNotEmpty;
-                    debugPrint("alerts runtimetype ${alertsEmpty.runtimeType}");
+                    final unreadCount =
+                        alertsController.unreadNotifications.length;
+
                     return Stack(
                       children: [
                         IconButton(
@@ -150,16 +187,28 @@ class _DashboardState extends State<Dashboard>
                                 false;
                           },
                         ),
-                        if (alertsEmpty)
+                        if (unreadCount > 0)
                           Positioned(
-                            right: 8,
-                            top: 8,
+                            right: 6,
+                            top: 6,
                             child: Container(
-                              height: 10,
-                              width: 10,
+                              padding: const EdgeInsets.all(3),
                               decoration: const BoxDecoration(
                                 color: Colors.red,
                                 shape: BoxShape.circle,
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                unreadCount > 99 ? '99+' : '$unreadCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
                             ),
                           ),
@@ -179,137 +228,122 @@ class _DashboardState extends State<Dashboard>
           ),
         ),
       ),
-      body: GestureDetector(
-        onHorizontalDragUpdate: (details) {
-          if (details.delta.dx > 10) {
-            _scaffoldKey.currentState?.openDrawer();
-          } else if (details.delta.dx < -10) {
-            if (_scaffoldKey.currentState?.isDrawerOpen == true) {
-              Navigator.of(context).pop();
-            }
-          }
-        },
-        child: SafeArea(
-          child: ScrollConfiguration(
-            behavior: ScrollBehavior().copyWith(
-              scrollbars: false,
-              overscroll: false,
-            ),
-            child: SingleChildScrollView(
-              controller: scrollController,
-              padding: const EdgeInsets.only(
-                left: 16,
-                right: 16,
-                bottom: 24,
-                top: 4,
-              ),
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: 32),
-
-                      // if (isVisible)
-                      //   Obx(() {
-                      //     bool anyEmpty =
-                      //         hasEmptyValue(localStorageManager.userMap) ||
-                      //         hasEmptyValue(
-                      //           localStorageManager.userGoalDataMap,
-                      //         );
-                      //     debugPrint(anyEmpty);
-                      //
-                      //     return anyEmpty
-                      //         ? SizedBox.shrink()
-                      //         : Container(
-                      //           height: 48,
-                      //           margin: EdgeInsets.zero,
-                      //           padding: EdgeInsets.symmetric(
-                      //             horizontal: 10,
-                      //             vertical: 4,
-                      //           ),
-                      //           decoration: BoxDecoration(
-                      //             color: grey.withOpacity(0.1),
-                      //             borderRadius: BorderRadius.circular(4),
-                      //           ),
-                      //           child: Row(
-                      //             mainAxisSize: MainAxisSize.min,
-                      //             children: [
-                      //               Padding(
-                      //                 padding: const EdgeInsets.symmetric(
-                      //                   horizontal: 4.0,
-                      //                 ),
-                      //                 child: InkWell(
-                      //                   onTap: () {
-                      //                     setState(() {
-                      //                       isVisible = !isVisible;
-                      //                     });
-                      //                   },
-                      //                   child: Icon(
-                      //                     Icons.close,
-                      //                     color: grey,
-                      //                     size: 20,
-                      //                   ),
-                      //                 ),
-                      //               ),
-                      //
-                      //               // WRAP TEXT INSIDE EXPANDED
-                      //               Expanded(
-                      //                 child: Text(
-                      //                   "Complete your profile to get full insights",
-                      //                   style: TextStyle(
-                      //                     color: grey,
-                      //                     fontSize: 12,
-                      //                   ),
-                      //                   maxLines: 2,
-                      //                   overflow: TextOverflow.ellipsis,
-                      //                 ),
-                      //               ),
-                      //
-                      //               Padding(
-                      //                 padding: const EdgeInsets.symmetric(
-                      //                   horizontal: 4.0,
-                      //                 ),
-                      //
-                      //                 child: InkWell(
-                      //                   onTap: () {},
-                      //                   child: Icon(
-                      //                     Icons.info,
-                      //                     color: grey,
-                      //                     size: 20,
-                      //                   ),
-                      //                 ),
-                      //               ),
-                      //             ],
-                      //           ),
-                      //         );
-                      //   })
-                      // else
-                      //   SizedBox.shrink(),
-                      // if (isVisible)
-                      //
-                      // else
-                      //   SizedBox.shrink(),
-                      DashboardHeaderWidget(),
-                      const SizedBox(height: 24),
-                      DashboardServiceOverviewDynamicWidgets(
-                        width: width,
-                        height: height,
-                        isDarkMode: isDarkMode,
+      body: Stack(
+        children: [
+          AbsorbPointer(
+            absorbing: _isPhoneMissing,
+            child: Opacity(
+              opacity: _isPhoneMissing ? 0.35 : 1,
+              child: GestureDetector(
+                onHorizontalDragUpdate: (details) {
+                  if (details.delta.dx > 10) {
+                    _scaffoldKey.currentState?.openDrawer();
+                  } else if (details.delta.dx < -10) {
+                    if (_scaffoldKey.currentState?.isDrawerOpen == true) {
+                      Navigator.of(context).pop();
+                    }
+                  }
+                },
+                child: SafeArea(
+                  child: ScrollConfiguration(
+                    behavior: ScrollBehavior().copyWith(
+                      scrollbars: false,
+                      overscroll: false,
+                    ),
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.only(
+                        left: 16,
+                        right: 16,
+                        bottom: 24,
+                        top: 4,
                       ),
-                      const SizedBox(height: 24),
-                      DashboardServicesWidget(),
-                      DashboardAdsCarouselSlider(),
-                      const SizedBox(height: 20),
-                    ],
+                      child: FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: SlideTransition(
+                          position: _slideAnimation,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (isVisible)
+                                Obx(() {
+                                  bool anyEmpty = hasEmptyValue(
+                                    localStorageManager.userMap,
+                                  );
+                                  debugPrint(anyEmpty.toString());
+
+                                  return anyEmpty
+                                      ? SizedBox(height: 16)
+                                      : SizedBox(height: 32);
+                                })
+                              else
+                                SizedBox.shrink(),
+                              if (isVisible)
+                                Obx(() {
+                                  bool anyEmpty = hasEmptyValue(
+                                    localStorageManager.userMap,
+                                  );
+                                  debugPrint(anyEmpty.toString());
+
+                                  return anyEmpty
+                                      ? Column(
+                                        children: [
+                                          IncompleteProfileCard(
+                                            onTapComplete:
+                                                () => Get.to(
+                                                  () =>
+                                                      const EditProfileScreen(),
+                                                ),
+                                          ),
+                                          SizedBox(height: 16),
+                                        ],
+                                      )
+                                      : SizedBox.shrink();
+                                })
+                              else
+                                SizedBox.shrink(),
+
+                              DashboardHeaderWidget(),
+                              const SizedBox(height: 24),
+                              DashboardServiceOverviewDynamicWidgets(
+                                width: width,
+                                height: height,
+                                isDarkMode: isDarkMode,
+                              ),
+                              const SizedBox(height: 24),
+                              DashboardServicesWidget(),
+                              DashboardAdsCarouselSlider(),
+                              const SizedBox(height: 20),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
+          if (_isPhoneMissing)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.05),
+                padding: const EdgeInsets.all(16),
+                child: SafeArea(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 12),
+                      IncompleteProfileCard(
+                        onTapComplete: () {
+                          Get.to(() => const EditProfileScreen());
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

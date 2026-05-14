@@ -1,7 +1,7 @@
 const doc1 = "assets/Images/Doc1.webp";
 const doc2 = "assets/Images/Doc2.webp";
 const doc3 = "assets/Images/Doc3.webp";
-
+const bdayCard = "assets/Icons/Common_Icons/bday-card.png";
 const forgotpass = "assets/Images/forgotPassword.webp";
 const newPass = "assets/Images/newPassword.webp";
 const veriemail = "assets/Images/verifyEmail.webp";
@@ -302,7 +302,8 @@ const fatty = "assets/Images/BMI/fatty.webp";
 const skinny = "assets/Images/BMI/skiiny.webp";
 
 //Health Report
-const pdfIcon = "assets/Icons/ScanReport/hhh.png";
+const pdfIcon = "assets/Icons/ScanReport/pdf.png";
+const excelIcon = "assets/Icons/ScanReport/excel.png";
 const stepsHealthReportIcon = "assets/Icons/health_report/steps.svg";
 const bpHealthReportIcon = "assets/Icons/health_report/bp.svg";
 const hydrationHealthReportIcon = "assets/Icons/health_report/hydration.svg";

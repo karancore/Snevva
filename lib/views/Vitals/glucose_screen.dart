@@ -51,8 +51,14 @@ class _GlucoseScreenState extends State<GlucoseScreen> {
                   onTap:
                       () => showDialog(
                         context: context,
-                        barrierColor: Colors.black26,
-                        builder: (_) => const AddGlucoseCard(),
+                        builder: (context) {
+                          return MediaQuery(
+                            // ✅ Keyboard ke viewInsets override kar do
+                            data: MediaQuery.of(context).copyWith(
+                                viewInsets: EdgeInsets.zero),
+                            child: const AddGlucoseCard(),
+                          );
+                        },
                       ),
                   child: Container(
                     width: 32,

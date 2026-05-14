@@ -19,10 +19,12 @@ class Alerts {
   final String heading;
   final String title;
   final String dataCode;
+  final String id;
   final List<String> times;
   final bool isActive;
 
   Alerts({
+    required this.id,
     required this.dataCode,
     required this.heading,
     required this.title,
@@ -32,7 +34,10 @@ class Alerts {
 
   factory Alerts.fromJson(Map<String, dynamic> json) {
     return Alerts(
+      id: (json['id'] ?? json['Id'] ?? '').toString(),
+
       dataCode: (json['dataCode'] ?? json['DataCode'] ?? '').toString(),
+
       heading: (json['heading'] ?? json['Heading'] ?? '').toString(),
       title: (json['title'] ?? json['Title'] ?? '').toString(),
       times:

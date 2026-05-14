@@ -83,124 +83,34 @@ class _AlertsScreenState extends State<AlertsScreen>
       index,
       (context, animation) => _buildDismissibleItem(
         removedItem,
-        index,
-        key,
-        isAnimatedList: true,
-        underlyingList: list,
-        animation: animation,
       ),
       duration: const Duration(milliseconds: 300),
     );
   }
 
-  // General builder for both AnimatedList (dummy) and ListView (API)
-  Widget _buildDismissibleItem(
-    Alerts item,
-    int index,
-    GlobalKey<AnimatedListState> key, {
-    required bool isAnimatedList,
-    required List<Alerts> underlyingList,
-    Animation<double>? animation,
-  }) {
-    Widget content = GestureDetector(
-  onTap: () {
-    if (!isAnimatedList) {
-      alertsController.readNotifications(item.dataCode);
-    }
-  },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color:
-              Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade900
-                  : Colors.white,
-          borderRadius: BorderRadius.circular(16),      
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.3),
-                spreadRadius: 2,
-                blurRadius: 6,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.heading,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      item.title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-    );
-
-    // If this is from AnimatedList, wrap with SizeTransition (animation supplied)
-    if (animation != null) {
-      content = SizeTransition(sizeFactor: animation, child: content);
-    }
-
+  // General builder for both AnimatedList (dummy) and ListView (API)idget _buildDismissibleItem(Alerts item, {bool isRead = false}) {
     return Dismissible(
-      key: ValueKey('${item.dataCode}_$index'),
+      key: ValueKey('${item.dataCode}_${isRead ? "read" : "unread"}'),
       direction: DismissDirection.endToStart,
-      confirmDismiss: (direction) async {
-        // if (isAnimatedList) {
-        //   final idx = underlyingList.indexWhere(
-        //     (a) => a.dataCode == item.dataCode,
-        //   );
-        //
-        //   if (idx != -1) {
-        //     _removeAnimatedItem(idx, key, underlyingList);
-        //   }
-        // } else {
-        //   await alertsController.markAsDeleted(item.dataCode);
-        //
-        //   alertsController.notifications.removeWhere(
-        //     (a) => a.dataCode == item.dataCode,
-        //   );
-        // }
-
-        alertsController.readNotifications(item.dataCode);
-
-        return false;
+      confirmDismiss: (_) async {
+        await alertsController.readNotifications(item.dataCode);
+        return false; // don't auto-remove; reactive list rebuilds
       },
       background: Container(
-        margin: const EdgeInsets.only(bottom: 16),
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           gradient: AppColors.greenGradient,
           borderRadius: BorderRadius.circular(16),
         ),
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Row(
+        child: const Row(
           mainAxisAlignment: MainAxisAlignment.end,
-          children: const [
+          children: [
             Icon(Icons.mark_chat_read, color: Colors.white, size: 26),
             SizedBox(width: 8),
             Text(
-              "Read",
+              "Mark Read",
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
@@ -210,27 +120,135 @@ class _AlertsScreenState extends State<AlertsScreen>
           ],
         ),
       ),
-      child: content,
+      child: GestureDetector(
+        onTap: () {
+          if (!isRead) alertsController.readNotifications(item.dataCode);
+        },
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color:
+                Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade900
+                    : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            // ✅ Unread items get a left accent border
+            border:
+                isRead
+                    ? null
+                    : Border(
+                      left: BorderSide(
+                        color: AppColors.greenGradient.colors.first,
+                        width: 4,
+                      ),
+                    ),
+            bboxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.15),
+                spreadRadius: 1,
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ✅ Unread dot indicator
+              if (!isRead)
+                Padding(
+                  padding: const EdgeInsets.only(top: 5, right: 10),
+                  child: CircleAvatar(
+                    radius: 5,
+                    backgroundColor: AppColors.greenGradient.colors.first,
+                  ),
+                ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.heading,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.title,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight:
+                        isRead ? FontWeight.normal : FontWeight.bold,
+                        color: isRead ? Colors.grey.shade600 : null,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionHeader(String label, int count) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 10),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(width: 8),
+          if (count > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.greenGradient.colors.first.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.greenGradient.colors.first,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme
+        .of(context)
+        .brightness == Brightness.dark;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: isDarkMode ? black : white,
+        backgroundColor: isDark ? black : white,
         centerTitle: true,
         scrolledUnderElevation: 0.0,
-        surfaceTintColor: isDarkMode ? black : white,
+        surfaceTintColor: isDark ? black : white,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios,
-            size: 24,
-            color: isDarkMode ? white : black,
-          ),
+          icon: Icon(Icons.arrow_back_ios,
+              size: 24, color: isDark ? white : black),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -238,70 +256,41 @@ class _AlertsScreenState extends State<AlertsScreen>
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: isDarkMode ? white : black,
+            color: isDark ? white : black,
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed:
-                _alerts.isEmpty
-                    ? null
-                    : () => _clearAll(_dummyListKey, _alerts),
-            child: const Text("Clear All", style: TextStyle(color: Colors.red)),
-          ),
-        ],
       ),
       body: SafeArea(
         child: GetX<AlertsController>(
           builder: (controller) {
-            final apiList = controller.notifications;
+            final unread = controller.unreadNotifications;
+            final read = controller.readNotifications_;
 
-            // 1️⃣ If API has data -> use ListView to avoid AnimatedList coordination issues
-            if (apiList.isNotEmpty) {
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: apiList.length,
-                itemBuilder: (context, index) {
-                  final item = apiList[index];
-                  return _buildDismissibleItem(
-                    item,
-                    index,
-                    _apiListKey,
-                    isAnimatedList: false,
-                    underlyingList: apiList,
-                  );
-                },
-              );
+            if (unread.isEmpty && read.isEmpty) {
+              return _noNotificationsWidget();
             }
 
-            // 2️⃣ If dummy has data -> use AnimatedList
-            if (_alerts.isNotEmpty) {
-              return AnimatedList(
-                key: _dummyListKey,
-                padding: const EdgeInsets.all(16),
-                initialItemCount: _alerts.length,
-                itemBuilder: (context, index, animation) {
-                  final item = _alerts[index];
-                  return _buildDismissibleItem(
-                    item,
-                    index,
-                    _dummyListKey,
-                    isAnimatedList: true,
-                    underlyingList: _alerts,
-                    animation: animation,
-                  );
-                },
-              );
+            // Build a flat list of widgets:
+            // [Unread header] + unread tiles + [Read header] + read tiles
+            final List<Widget> items = [];
+
+            if (unread.isNotEmpty) {
+              items.add(_sectionHeader("NEW", unread.length));
+              for (final alert in unread) {
+                items.add(_buildDismissibleItem(alert, isRead: false));
+              }
             }
 
-            if (_showEmptyState || _alerts.isEmpty || apiList.isEmpty) {
-              return _noNotificationsWidget(
-                Theme.of(context).brightness == Brightness.dark,
-              );
+            if (read.isNotEmpty) {
+              items.add(_sectionHeader("EARLIER", read.length));
+              for (final alert in read) {
+                items.add(_buildDismissibleItem(alert, isRead: true));
+              }
             }
 
-            return _noNotificationsWidget(
-              Theme.of(context).brightness == Brightness.dark,
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              children: items,
             );
           },
         ),
@@ -309,7 +298,7 @@ class _AlertsScreenState extends State<AlertsScreen>
     );
   }
 
-  Widget _noNotificationsWidget(bool isDarkMode) {
+  Widget _noNotificationsWidget() {
     return Center(child: Image.asset(noNotif, scale: 3.5));
   }
 }
