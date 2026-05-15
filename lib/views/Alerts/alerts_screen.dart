@@ -86,10 +86,9 @@ class _AlertsScreenState extends State<AlertsScreen>
       ),
       duration: const Duration(milliseconds: 300),
     );
-  }
-
-  // General builder for both AnimatedList (dummy) and ListView (API)idget _buildDismissibleItem(Alerts item, {bool isRead = false}) {
-    return Dismissible(
+  }/ General builder for both AnimatedList (dummy) and ListView (API)
+  Widget _buildDismissibleItem(Alerts item, {bool isRead = false}) {
+    rreturn Dismissible(
       key: ValueKey('${item.dataCode}_${isRead ? "read" : "unread"}'),
       direction: DismissDirection.endToStart,
       confirmDismiss: (_) async {
@@ -128,22 +127,22 @@ class _AlertsScreenState extends State<AlertsScreen>
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color:
-                Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade900
-                    : Colors.white,
+            color: Theme
+                .of(context)
+                .brightness == Brightness.dark
+                ? Colors.grey.shade900
+                : Colors.white,
             borderRadius: BorderRadius.circular(16),
             // ✅ Unread items get a left accent border
-            border:
-                isRead
-                    ? null
-                    : Border(
-                      left: BorderSide(
-                        color: AppColors.greenGradient.colors.first,
-                        width: 4,
-                      ),
-                    ),
-            bboxShadow: [
+            border: isRead
+                ? null
+                : Border(
+              left: BorderSide(
+                color: AppColors.greenGradient.colors.first,
+                width: 4,
+              ),
+            ),
+            boxShadow: [
               BoxShadow(
                 color: Colors.grey.withOpacity(0.15),
                 spreadRadius: 1,

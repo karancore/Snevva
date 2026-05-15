@@ -5,8 +5,10 @@ import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/queryParamViewModels/bloodpressure.dart';
 import 'package:snevva/views/Vitals/glucose_screen.dart';
 import 'package:snevva/views/information/bmi_status.dart';
+import 'package:snevva/widgets/common/common_tip_widget.dart';
 
 import '../../Controllers/Vitals/vitalsController.dart';
+import '../../Controllers/common/common_tips_controller.dart';
 import '../../common/global_variables.dart';
 import '../../widgets/CommonWidgets/custom_appbar.dart';
 import '../../widgets/CommonWidgets/custom_outlined_button.dart';
@@ -30,6 +32,7 @@ class BpmInputWidget extends StatefulWidget {
 class _BpmInputWidgetState extends State<BpmInputWidget> {
   // ✅ FocusNode lives HERE — in its own stable state, never recreated
   final FocusNode _bpmFocusNode = FocusNode();
+
 
   @override
   void dispose() {
@@ -139,12 +142,12 @@ class _BpmInputWidgetState extends State<BpmInputWidget> {
                       return Text(
                         hasData ? bpmStatus.label : "Enter BPM",
                         style: TextStyle(
-                            color: hasData
-                                ? bpmStatus.color
-                                : textColor.withOpacity(0.4),
-                            fontSize: 20,
-                            fontWeight: FontWeight.w500
-
+                          color:
+                          hasData
+                              ? bpmStatus.color
+                              : textColor.withOpacity(0.4),
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
                         ),
                       );
                     },
@@ -184,6 +187,8 @@ class _VitalScreenState extends State<VitalScreen> {
   final TextEditingController glucoseController = TextEditingController();
   final TextEditingController bpmController = TextEditingController();
 
+  late CommonTipsController commonTipsController;
+
   static const bpmMax = 200;
   static const sysMax = 200;
   static const diaMax = 120;
@@ -196,6 +201,12 @@ class _VitalScreenState extends State<VitalScreen> {
   void initState() {
     super.initState();
     toggleVitalsCard();
+
+    commonTipsController = Get.find<CommonTipsController>();
+
+    commonTipsController.getCommonTips(
+        context: context, tag: 'Heart Rate & Blood Pressure');
+
 
     if (_controller.bpm.value > 0) {
       bpmController.text = _controller.bpm.value.toString();
@@ -394,8 +405,7 @@ class _VitalScreenState extends State<VitalScreen> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color:
-                        isDarkMode ? Colors.transparent : Colors.black12,
+                        color: isDarkMode ? Colors.transparent : Colors.black12,
                         blurRadius: 10,
                       ),
                     ],
@@ -410,8 +420,7 @@ class _VitalScreenState extends State<VitalScreen> {
                           Expanded(
                             child: Text(
                               'Blood Pressure:',
-                              style:
-                              TextStyle(color: textColor, fontSize: 13),
+                              style: TextStyle(color: textColor, fontSize: 13),
                             ),
                           ),
                           SizedBox(
@@ -420,8 +429,7 @@ class _VitalScreenState extends State<VitalScreen> {
                               controller: systolicController,
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
-                              style:
-                              TextStyle(color: textColor, fontSize: 14),
+                              style: TextStyle(color: textColor, fontSize: 14),
                               inputFormatters: [
                                 MaxValueTextInputFormatter(200),
                               ],
@@ -457,7 +465,8 @@ class _VitalScreenState extends State<VitalScreen> {
                               return Text(
                                 '/',
                                 style: TextStyle(
-                                  color: hasData
+                                  color:
+                                  hasData
                                       ? (isDarkMode
                                       ? Colors.white
                                       : Colors.black)
@@ -472,8 +481,7 @@ class _VitalScreenState extends State<VitalScreen> {
                               controller: diastolicController,
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
-                              style:
-                              TextStyle(color: textColor, fontSize: 14),
+                              style: TextStyle(color: textColor, fontSize: 14),
                               inputFormatters: [
                                 MaxValueTextInputFormatter(120),
                               ],
@@ -511,8 +519,10 @@ class _VitalScreenState extends State<VitalScreen> {
                             Expanded(
                               child: Text(
                                 'Tap to check your glucose levels',
-                                style:
-                                TextStyle(color: textColor, fontSize: 13),
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: 13,
+                                ),
                               ),
                             ),
                           ],
@@ -522,7 +532,8 @@ class _VitalScreenState extends State<VitalScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 30),
+                CommonTipsList()
               ],
             ),
           ),

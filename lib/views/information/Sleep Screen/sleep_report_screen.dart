@@ -17,98 +17,266 @@ class SleepReportScreen extends StatefulWidget {
 
 class _SleepReportScreenState extends State<SleepReportScreen> {
   final sleepController = Get.find<SleepController>();
-  int daysSinceMonday = 0;
+
+  // ── view state ──────────────────────────────────────────────────
+  bool _isMonthlyView = false;
   DateTime _selectedMonth = DateTime.now();
-  final Rx<Duration?> selectedSleepDuration = Rx<Duration?>(null);
-  final RxString selectedDateLabel = "".obs;
+  int _weekOffset = 0; // 0 = current week, -1 = last week, etc.
 
-  void _toggleView() async {
-    final nextIsMonthly = !sleepController.isMonthlyView.value;
-    sleepController.isMonthlyView.value = nextIsMonthly;
+  // ── display values (plain state, no Rx) ─────────────────────────
+  int _displayMinutes = 0; // total minutes to show in header
+  String _displayLabel = ''; // e.g. "Avg – May 2026" or "12-5-2026"
+  bool _showingAverage = false; // true = avg mode, false = tapped-bar mode
 
-    if (nextIsMonthly) {
+  // ── cached graph data ────────────────────────────────────────────
+  List<FlSpot> _weekSpots = [];
+  List<String> _weekLabels = [];
+  List<FlSpot> _monthSpots = [];
+  List<String> _monthLabels = [];
+  double _maxY = 8;
+  double _interval = 2;
+  int _highlightIndex = -1;
+
+  // ────────────────────────────────────────────────────────────────
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (sleepController.weeklyDeepSleepHistory.isEmpty) {
+        await sleepController.loadDeepSleepData();
+      }
+      _rebuildGraph();
+      _setAverage();
+    });
+  }
+
+  // ── Monday of the displayed week ────────────────────────────────
+  DateTime _mondayOfWeek() {
+    final now = DateTime.now();
+    final monday = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: now.weekday - DateTime.monday));
+    return monday.add(Duration(days: 7 * _weekOffset));
+  }
+
+  // ── Build week spots for the current _weekOffset ─────────────────
+  List<FlSpot> _weekSpotsForOffset() {
+    final monday = _mondayOfWeek();
+    final history =
+    Map<String, Duration>.from(sleepController.weeklyDeepSleepHistory)
+      ..addAll(Map<String, Duration>.from(
+          sleepController.monthlyDeepSleepHistory));
+
+    final List<FlSpot> spots = [];
+    final now = DateTime.now();
+    final isCurrentWeek = _weekOffset == 0;
+
+    for (int i = 0; i < 7; i++) {
+      final date = monday.add(Duration(days: i));
+      // For current week, don't show future days
+      if (isCurrentWeek && date.isAfter(now)) break;
+      final key =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day
+          .toString().padLeft(2, '0')}';
+      final minutes = history[key]?.inMinutes ?? 0;
+      spots.add(FlSpot(i.toDouble(), minutes / 60.0));
+    }
+    return spots;
+  }
+
+  List<String> _weekLabelsForOffset() {
+    final monday = _mondayOfWeek();
+    final now = DateTime.now();
+    final isCurrentWeek = _weekOffset == 0;
+    final labels = <String>[];
+    for (int i = 0; i < 7; i++) {
+      final date = monday.add(Duration(days: i));
+      if (isCurrentWeek && date.isAfter(now)) break;
+      labels.add(DateFormat('E').format(date));
+    }
+    return labels;
+  }
+
+  String _weekRangeLabel() {
+    final monday = _mondayOfWeek();
+    final sunday = monday.add(const Duration(days: 6));
+    return '${DateFormat('d MMM').format(monday)} – ${DateFormat('d MMM')
+        .format(sunday)}';
+  }
+
+  // ── Rebuild all cached graph data (call after any nav change) ────
+  void _rebuildGraph() {
+    final spots = _isMonthlyView
+        ? (sleepController.monthlySleepSpots.isNotEmpty
+        ? sleepController.monthlySleepSpots.toList()
+        : <FlSpot>[])
+        : _weekSpotsForOffset();
+
+    final labels = _isMonthlyView
+        ? generateMonthLabels(_selectedMonth)
+        : _weekLabelsForOffset();
+
+    final rawMax = spots.isEmpty
+        ? 0.0
+        : spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
+    final maxY = getNiceSleepMaxY(rawMax);
+    final interval = getNiceSleepInterval(maxY);
+
+    // Highlight: current week → today's column; past week / monthly → nothing
+    int highlight = -1;
+    if (!_isMonthlyView && _weekOffset == 0) {
+      final now = DateTime.now();
+      highlight = now.weekday - DateTime.monday; // 0=Mon … 6=Sun
+      if (highlight >= labels.length) highlight = labels.length - 1;
+    }
+
+    setState(() {
+      _weekSpots = spots;
+      _weekLabels = labels;
+      _monthSpots = spots;
+      _monthLabels = labels;
+      _maxY = maxY == 0 ? 8 : maxY;
+      _interval = interval == 0 ? 2 : interval;
+      _highlightIndex = highlight;
+    });
+  }
+
+  // ── Compute and display average for the current view ─────────────
+  void _setAverage() {
+    final spots = _isMonthlyView ? _monthSpots : _weekSpots;
+    final nonZero = spots.where((s) => s.y > 0).toList();
+
+    if (nonZero.isEmpty) {
+      setState(() {
+        _displayMinutes = 0;
+        _displayLabel = _isMonthlyView
+            ? 'Avg – ${DateFormat('MMMM yyyy').format(_selectedMonth)}'
+            : 'Avg – ${_weekRangeLabel()}';
+        _showingAverage = true;
+      });
+      return;
+    }
+
+    final avgMinutes =
+    (nonZero.map((s) => s.y).reduce((a, b) => a + b) / nonZero.length *
+        60)
+        .round();
+
+    setState(() {
+      _displayMinutes = avgMinutes;
+      _displayLabel = _isMonthlyView
+          ? 'Avg – ${DateFormat('MMMM yyyy').format(_selectedMonth)}'
+          : 'Avg – ${_weekRangeLabel()}';
+      _showingAverage = true;
+    });
+  }
+
+  // ── Toggle weekly / monthly ──────────────────────────────────────
+  Future<void> _toggleView() async {
+    final next = !_isMonthlyView;
+    if (next) {
       await sleepController.loadMonthlySleep(
         month: _selectedMonth.month,
         year: _selectedMonth.year,
       );
-      return;
+    } else {
+      await sleepController.loadDeepSleepData();
     }
-
-    sleepController.updateDeepSleepSpots();
+    setState(() => _isMonthlyView = next);
+    _rebuildGraph();
+    _setAverage();
   }
 
-  void _changeMonth(int delta) async {
-    final newMonth = DateTime(
-      _selectedMonth.year,
-      _selectedMonth.month + delta,
-      1,
-    );
-
+  // ── Month navigation ─────────────────────────────────────────────
+  Future<void> _changeMonth(int delta) async {
+    final newMonth =
+    DateTime(_selectedMonth.year, _selectedMonth.month + delta, 1);
     setState(() => _selectedMonth = newMonth);
+    await sleepController.loadMonthlySleep(
+      month: newMonth.month,
+      year: newMonth.year,
+    );
+    _rebuildGraph();
+    _setAverage();
+  }
 
-    if (sleepController.isMonthlyView.value) {
+  // ── Week navigation ──────────────────────────────────────────────
+  Future<void> _changeWeek(int delta) async {
+    final next = _weekOffset + delta;
+    // Don't go into the future
+    if (next > 0) return;
+    setState(() => _weekOffset = next);
+
+    // When navigating to a past week we may need to fetch that month's data
+    final monday = _mondayOfWeek();
+    if (monday.month != DateTime
+        .now()
+        .month ||
+        monday.year != DateTime
+            .now()
+            .year) {
       await sleepController.loadMonthlySleep(
-        month: newMonth.month,
-        year: newMonth.year,
+        month: monday.month,
+        year: monday.year,
       );
     }
+    _rebuildGraph();
+    _setAverage();
   }
 
-  @override
-  void initState() {
-    super.initState();
+  // ── Swipe handler (wraps both graph sections) ────────────────────
+  void _onHorizontalDrag(DragEndDetails details) {
+    const kVelocityThreshold = 300.0;
+    final vx = details.primaryVelocity ?? 0;
+    if (vx.abs() < kVelocityThreshold) return;
 
-    // Pre-calculate daysSinceMonday here so it's ready for initState logic
-    final now = DateTime.now();
-    daysSinceMonday = now.weekday - DateTime.monday;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (sleepController.deepSleepSpots.isEmpty) {
-        sleepController.loadDeepSleepData();
-      }
-
-      final spots = sleepController.deepSleepSpots;
-      final yesterday = DateTime.now().subtract(const Duration(days: 1));
-
-      print("Deep Sleep Spots: ${spots.map((s) => "(${s.x}, ${s.y})").join(
-          ", ")}");
-
-      // ✅ FIX: Use daysSinceMonday - 1 to get yesterday's index
-      final yesterdayIndex = daysSinceMonday - 1;
-
-      if (spots.isNotEmpty && yesterdayIndex >= 0 &&
-          yesterdayIndex < spots.length) {
-        final yesterdaySpot = spots[yesterdayIndex];
-        selectedSleepDuration.value = Duration(minutes: (yesterdaySpot.y * 60).round());
-        print("Selected Sleep Duration: ${selectedSleepDuration.value}");
+    if (_isMonthlyView) {
+      // swipe right = older month, left = newer month
+      if (vx > 0) {
+        _changeMonth(-1);
       } else {
-        // Monday or no prior data — fallback to controller value
-        selectedSleepDuration.value = sleepController.deepSleepDuration.value;
-        print("else Selected Sleep Duration: ${selectedSleepDuration.value}");
+        if (_selectedMonth.year < DateTime
+            .now()
+            .year ||
+            _selectedMonth.month < DateTime
+                .now()
+                .month) {
+          _changeMonth(1);
+        }
       }
+    } else {
+      // swipe right = older week, left = newer week
+      if (vx > 0) {
+        _changeWeek(-1);
+      } else {
+        _changeWeek(1);
+      }
+    }
+  }
 
-      selectedDateLabel.value =
-      "${yesterday.day}-${yesterday.month}-${yesterday.year}";
+  // ── Bar touched ──────────────────────────────────────────────────
+  void _onBarTouched(int index, FlSpot spot) {
+    DateTime tappedDate;
+    if (_isMonthlyView) {
+      tappedDate =
+          DateTime(_selectedMonth.year, _selectedMonth.month, index + 1);
+    } else {
+      tappedDate = _mondayOfWeek().add(Duration(days: index));
+    }
+
+    setState(() {
+      _displayMinutes = (spot.y * 60).round();
+      _displayLabel =
+      '${tappedDate.day}-${tappedDate.month}-${tappedDate.year}';
+      _showingAverage = false;
     });
   }
 
-  List<String> generateShortWeekdays() {
-    List<String> shortWeekdays = [];
-    DateTime now = DateTime.now();
-    daysSinceMonday = (now.weekday - DateTime.monday);
-
-    DateTime startOfWeek = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: daysSinceMonday));
-
-    for (int i = 0; i <= daysSinceMonday; i++) {
-      DateTime date = startOfWeek.add(Duration(days: i));
-      String dayName = DateFormat('E').format(date);
-      shortWeekdays.add(dayName);
-    }
-    return shortWeekdays;
+  // ── helpers ──────────────────────────────────────────────────────
+  String _fmtMinutes(int mins) {
+    final h = mins ~/ 60;
+    final m = mins % 60;
+    if (h > 0) return '${h}h ${m}m';
+    return '${m}m';
   }
 
   Widget _buildKeyPointCard({
@@ -166,14 +334,13 @@ class _SleepReportScreenState extends State<SleepReportScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[500],
+                    if (subtitle.isNotEmpty) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ],
@@ -184,12 +351,24 @@ class _SleepReportScreenState extends State<SleepReportScreen> {
     );
   }
 
+  // ────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    final currentSpots = _isMonthlyView ? _monthSpots : _weekSpots;
+    final currentLabels = _isMonthlyView ? _monthLabels : _weekLabels;
+
+    // Sleep highlights from displayed minutes
+    final totalMinutes = _displayMinutes;
+    final deepMinutes = (totalMinutes * 0.20).toInt();
+    final remMinutes = (totalMinutes * 0.25).toInt();
+    final coreMinutes = (totalMinutes * 0.55).toInt();
+    final interruptions =
+    totalMinutes > 0 ? (totalMinutes / 120).round() + 1 : 0;
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
@@ -200,221 +379,172 @@ class _SleepReportScreenState extends State<SleepReportScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Obx(() {
-                final duration = selectedSleepDuration.value ?? sleepController.deepSleepDuration.value;
-                final totalMinutes = duration.inMinutes;
-                final hours = totalMinutes ~/ 60;
-                final minutes = totalMinutes % 60;
+              // ── Header: sleep duration ──────────────────────────
+              Text(
+                _showingAverage ? _displayLabel : 'Sleep on $_displayLabel',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _displayMinutes > 0 ? _fmtMinutes(_displayMinutes) : '--',
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 12),
+
+              // ── Navigation bar ─────────────────────────────────
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
                   children: [
-                    Text(
-                      selectedDateLabel.value.isNotEmpty ? "Sleep on ${selectedDateLabel.value}" : "Sleep Analysis",
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                        fontWeight: FontWeight.w500,
+                    // Week chevrons (weekly view)
+                    if (!_isMonthlyView) ...[
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left),
+                        onPressed: () => _changeWeek(-1),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      hours > 0 ? "${hours}h ${minutes}m" : "${minutes}m",
-                      style: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
+                      Text(
+                        _weekRangeLabel(),
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.chevron_right,
+                          color: _weekOffset < 0 ? null : Colors.grey,
+                        ),
+                        onPressed: _weekOffset < 0
+                            ? () => _changeWeek(1)
+                            : null,
+                      ),
+                    ],
+                    // Month chevrons (monthly view)
+                    if (_isMonthlyView) ...[
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left),
+                        onPressed: () => _changeMonth(-1),
+                      ),
+                      Text(
+                        DateFormat('MMMM yyyy').format(_selectedMonth),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed: () => _changeMonth(1),
+                      ),
+                    ],
+                    TextButton(
+                      onPressed: _toggleView,
+                      child: Text(
+                        _isMonthlyView
+                            ? 'Switch to Weekly'
+                            : 'Switch to Monthly',
+                        style:
+                        const TextStyle(color: AppColors.primaryColor),
                       ),
                     ),
                   ],
-                );
-              }),
-              Obx(() {
-                final isMonthly = sleepController.isMonthlyView.value;
+                ),
+              ),
 
-                return Column(
-                  children: [
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          if (isMonthly) ...[
-                            IconButton(
-                              icon: const Icon(Icons.chevron_left),
-                              onPressed: () => _changeMonth(-1),
-                            ),
-                            Text(
-                              DateFormat('MMMM yyyy').format(_selectedMonth),
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.chevron_right),
-                              onPressed: () => _changeMonth(1),
-                            ),
-                          ],
-                          TextButton(
-                            onPressed: _toggleView,
-                            child: Text(
-                              isMonthly
-                                  ? "Switch to Weekly"
-                                  : "Switch to Monthly",
-                              style: TextStyle(color: AppColors.primaryColor),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-              }),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: height * 0.37,
-                child: Obx(() {
-                  final labels =
-                      sleepController.isMonthlyView.value
-                          ? generateMonthLabels(_selectedMonth)
-                          : generateShortWeekdays();
+              const SizedBox(height: 8),
 
-                  final points =
-                      sleepController.isMonthlyView.value
-                          ? (sleepController.monthlySleepSpots.isEmpty
-                              ? <FlSpot>[]
-                              : sleepController.monthlySleepSpots.toList())
-                          : sleepController.deepSleepSpots
-                              .take(daysSinceMonday + 1)
-                              .toList();
-
-                  final double rawMax =
-                      points.isEmpty
-                          ? 0
-                          : points
-                              .map((e) => e.y)
-                              .reduce((a, b) => a > b ? a : b);
-
-                  final double maxY = getNiceSleepMaxY(rawMax);
-                  final double interval = getNiceSleepInterval(maxY);
-
-                  return CommonStatGraphWidget(
+              // ── Graph (with swipe gesture) ─────────────────────
+              GestureDetector(
+                onHorizontalDragEnd: _onHorizontalDrag,
+                child: SizedBox(
+                  height: height * 0.37,
+                  child: CommonStatGraphWidget(
                     isDarkMode: isDarkMode,
                     height: height,
                     graphTitle: 'Sleep Statistics',
-                    points: points,
-                    maxXForWeek: daysSinceMonday,
-                    isMonthlyView: sleepController.isMonthlyView.value,
-                    weekLabels: labels,
-                    yAxisMaxValue: maxY,
-                    yAxisInterval: interval,
-                    gridLineInterval: interval,
+                    points: currentSpots,
+                    isMonthlyView: _isMonthlyView,
+                    weekLabels: currentLabels,
+                    yAxisMaxValue: _maxY,
+                    yAxisInterval: _interval,
+                    gridLineInterval: _interval,
                     measureUnit: 'h',
                     isSleepGraph: true,
                     isWaterGraph: false,
                     selectedMonthForHeader: _selectedMonth,
-                    onBarTouched: (index, spot) {
-                      selectedSleepDuration.value = Duration(minutes: (spot.y * 60).round());
-
-                      DateTime tappedDate;
-
-                      if (sleepController.isMonthlyView.value) {
-                        // index = day of month (0-based → day 1, 2, 3...)
-                        tappedDate = DateTime(_selectedMonth.year, _selectedMonth.month, index + 1);
-                      } else {
-                        // index = days offset from Monday of current week
-                        final now = DateTime.now();
-                        final startOfWeek = DateTime(now.year, now.month, now.day)
-                            .subtract(Duration(days: now.weekday - DateTime.monday));
-                        tappedDate = startOfWeek.add(Duration(days: index));
-                      }
-
-                      selectedDateLabel.value =
-                      "${tappedDate.day}-${tappedDate.month}-${tappedDate.year}";
-                    },
-                  );
-                }),
+                    highlightIndex: _highlightIndex,
+                    onBarTouched: _onBarTouched,
+                  ),
+                ),
               ),
+
               const SizedBox(height: 24),
-              const Text(
-                "Sleep Highlights",
-                style: TextStyle(
+
+              // ── Section title ──────────────────────────────────
+              Text(
+                _showingAverage ? 'Average Highlights' : 'Sleep Highlights',
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 16),
 
-              Obx(() {
-                // Mock logic to extract percentages from actual sleep duration
-                final duration = selectedSleepDuration.value ?? sleepController.deepSleepDuration.value;
-                final totalMinutes = duration.inMinutes;
-
-                // Typical sleep cycle approximation:
-                // Deep: ~20%, REM: ~25%, Core (Light): ~55%
-                final deepMinutes = (totalMinutes * 0.20).toInt();
-                final remMinutes = (totalMinutes * 0.25).toInt();
-                final coreMinutes = (totalMinutes * 0.55).toInt();
-
-                // Mock interruptions based on total sleep
-                final interruptions = totalMinutes > 0 ? (totalMinutes / 120).round() + 1 : 0;
-
-                String formatMins(int mins) {
-                  final h = mins ~/ 60;
-                  final m = mins % 60;
-                  if (h > 0) return '${h}h ${m}m';
-                  return '${m}m';
-                }
-
-                return Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildKeyPointCard(
-                            title: 'Deep Sleep',
-                            value: formatMins(deepMinutes),
-                            subtitle: '',
-                            color: Colors.deepPurple,
-                            icon: Icons.nightlight_round,
-                          ),
+              // ── Metric cards ───────────────────────────────────
+              Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildKeyPointCard(
+                          title: 'Deep Sleep',
+                          value: _fmtMinutes(deepMinutes),
+                          subtitle: '',
+                          color: Colors.deepPurple,
+                          icon: Icons.nightlight_round,
                         ),
-                        const SizedBox(width: 12), // 👈 width, not height
-                        Expanded(
-                          child: _buildKeyPointCard(
-                            title: 'REM Sleep',
-                            value: formatMins(remMinutes),
-                            subtitle: '',
-                            color: Colors.blue,
-                            icon: Icons.waves,
-                          ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildKeyPointCard(
+                          title: 'REM Sleep',
+                          value: _fmtMinutes(remMinutes),
+                          subtitle: '',
+                          color: Colors.blue,
+                          icon: Icons.waves,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12), // 👈 between rows, outside Row
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildKeyPointCard(
-                            title: 'Core Sleep',
-                            value: formatMins(coreMinutes),
-                            subtitle: '',
-                            color: Colors.teal,
-                            icon: Icons.wb_twilight,
-                          ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildKeyPointCard(
+                          title: 'Core Sleep',
+                          value: _fmtMinutes(coreMinutes),
+                          subtitle: '',
+                          color: Colors.teal,
+                          icon: Icons.wb_twilight,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildKeyPointCard(
-                            title: 'Interruption',
-                            value: interruptions.toString(),
-                            subtitle: '',
-                            color: Colors.orange,
-                            icon: Icons.notifications_active_outlined,
-                          ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildKeyPointCard(
+                          title: 'Interruptions',
+                          value: interruptions.toString(),
+                          subtitle: '',
+                          color: Colors.orange,
+                          icon: Icons.notifications_active_outlined,
                         ),
-                      ],
-                    ),
-                  ],
-                );
-              }),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
               const SizedBox(height: 30),
             ],
           ),

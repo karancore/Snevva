@@ -21,6 +21,9 @@ class StepStatGraphWidget extends StatelessWidget {
     required this.maxY,
     this.selectedMonthForHeader,
     this.onBarTouched,
+
+    /// Index of the bar to highlight (today). Pass -1 to highlight none.
+    this.highlightIndex,
   });
 
   final bool isDarkMode;
@@ -34,6 +37,7 @@ class StepStatGraphWidget extends StatelessWidget {
   final double maxY;
   final DateTime? selectedMonthForHeader;
   final Function(int, FlSpot)? onBarTouched;
+  final int? highlightIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +76,7 @@ class StepStatGraphWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ===== HEADER =====
+            // ── Header ──
             Row(
               children: [
                 SvgPicture.asset(statisticIcon, height: 22),
@@ -81,30 +85,25 @@ class StepStatGraphWidget extends StatelessWidget {
                   child: Text(
                     graphTitle,
                     style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
+                        fontWeight: FontWeight.w600, fontSize: 14),
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
+                      horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    border: Border.all(color: mediumGrey, width: border04px),
+                    border:
+                    Border.all(color: mediumGrey, width: border04px),
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Text(
-                    formattedDate,
-                    style: const TextStyle(fontSize: 10),
-                  ),
+                  child: Text(formattedDate,
+                      style: const TextStyle(fontSize: 10)),
                 ),
               ],
             ),
             const SizedBox(height: 15),
 
-            // ===== GRAPH =====
+            // ── Chart ──
             isMonthlyView
                 ? SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -128,15 +127,6 @@ class StepStatGraphWidget extends StatelessWidget {
     );
   }
 
-  double getNiceMaxY(double value) {
-    if (value <= 1000) return 1000;
-    if (value <= 5000) return 5000;
-    if (value <= 10000) return 10000;
-    if (value <= 20000) return 20000;
-    if (value <= 50000) return 50000;
-    return (value / 10000).ceil() * 10000;
-  }
-
   double getNiceInterval(double maxY) {
     if (maxY <= 5000) return 1000;
     if (maxY <= 10000) return 2000;
@@ -146,13 +136,12 @@ class StepStatGraphWidget extends StatelessWidget {
 
   double get _dynamicBarWidth {
     final count = points.length;
-    if (count <= 3) return 40;
-    if (count <= 5) return 40;
     if (count <= 7) return 40;
     if (count <= 15) return 30;
     if (count <= 20) return 30;
     return 30;
   }
+
   Widget _buildChart({
     required List<String> labels,
     required List<FlSpot> points,
@@ -166,42 +155,37 @@ class StepStatGraphWidget extends StatelessWidget {
       labels.length * 42.0,
       MediaQuery.of(context).size.width - 40,
     );
-
     if (isMonthly) chartWidth += 1;
 
-    final now = DateTime.now();
-    final selectedMonth = selectedMonthForHeader;
-    final bool highlightCurrentMonth = selectedMonth != null &&
-        selectedMonth.year == now.year &&
-        selectedMonth.month == now.month;
+    // Resolve the "today" bar index
+    // If highlightIndex is provided, prefer it; otherwise fall back to old logic.
+    final int todayIdx;
+    if (highlightIndex != null) {
+      todayIdx = highlightIndex!;
+    } else if (isMonthly) {
+      todayIdx = getCurrentDateIndex();
+    } else {
+      todayIdx = maxXForWeek ?? -1;
+    }
 
-    // ✅ Convert FlSpot list → BarChartGroupData list
     final barGroups = List.generate(labels.length, (index) {
       final spot = points.firstWhere(
             (p) => p.x.toInt() == index,
         orElse: () => FlSpot(index.toDouble(), 0),
       );
-
-      final bool isToday = isMonthly
-          ? (highlightCurrentMonth && index == getCurrentDateIndex())
-          : index == maxXForWeek;
+      final bool isToday = index == todayIdx && todayIdx >= 0;
 
       return BarChartGroupData(
         x: index,
         barRods: [
           BarChartRodData(
             toY: spot.y,
-            width: _dynamicBarWidth, // thinner for monthly (more bars)
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(4),
-            ),
-            // ✅ Highlight today's bar differently
+            width: _dynamicBarWidth,
+            borderRadius:
+            const BorderRadius.vertical(top: Radius.circular(4)),
             gradient: LinearGradient(
               colors: isToday
-                  ? [
-                AppColors.primaryColor,
-                AppColors.primaryColor,
-              ]
+                  ? [AppColors.primaryColor, AppColors.primaryColor]
                   : [
                 AppColors.primaryColor.withOpacity(0.5),
                 AppColors.primaryColor,
@@ -232,11 +216,8 @@ class StepStatGraphWidget extends StatelessWidget {
                   getTitlesWidget: (value, _) {
                     final int index = value.toInt();
                     if (index >= 0 && index < labels.length) {
-                      final bool isToday = isMonthly
-                          ? (highlightCurrentMonth &&
-                          index == getCurrentDateIndex())
-                          : index == maxXForWeek;
-
+                      final bool isToday =
+                          index == todayIdx && todayIdx >= 0;
                       return Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(
@@ -269,11 +250,9 @@ class StepStatGraphWidget extends StatelessWidget {
                 ),
               ),
               rightTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
+                  sideTitles: SideTitles(showTitles: false)),
               topTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
+                  sideTitles: SideTitles(showTitles: false)),
             ),
             gridData: FlGridData(
               show: true,
@@ -291,33 +270,30 @@ class StepStatGraphWidget extends StatelessWidget {
                 top: BorderSide(color: Colors.transparent),
               ),
             ),
-            // ✅ Tooltip on tap
             barTouchData: BarTouchData(
               enabled: true,
               touchTooltipData: BarTouchTooltipData(
                 getTooltipColor: (_) => AppColors.primaryColor,
                 tooltipPadding: const EdgeInsets.all(8),
                 tooltipBorderRadius: BorderRadius.circular(24),
-                getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                  return BarTooltipItem(
-                    '${rod.toY.round()} Steps',
-                    const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: white,
+                getTooltipItem: (group, groupIndex, rod, rodIndex) =>
+                    BarTooltipItem(
+                      '${rod.toY.round()} Steps',
+                      const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: white),
                     ),
-                  );
-                },
               ),
               touchCallback: (FlTouchEvent event, barTouchResponse) {
                 if (!event.isInterestedForInteractions ||
                     barTouchResponse == null ||
-                    barTouchResponse.spot == null) {
-                  return;
-                }
+                    barTouchResponse.spot == null) return;
                 if (onBarTouched != null) {
-                  final index = barTouchResponse.spot!.touchedBarGroupIndex;
-                  final yVal = barTouchResponse.spot!.touchedRodData.toY;
+                  final index =
+                      barTouchResponse.spot!.touchedBarGroupIndex;
+                  final yVal =
+                      barTouchResponse.spot!.touchedRodData.toY;
                   onBarTouched!(index, FlSpot(index.toDouble(), yVal));
                 }
               },

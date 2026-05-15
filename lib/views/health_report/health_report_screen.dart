@@ -666,7 +666,7 @@ class HealthReportScreen extends StatelessWidget {
                                 fontSize: 10,
                                 fontWeight: FontWeight.w500,
                                 color: isDownloaded
-                                    ? Colors.green
+                                    ? (isDarkMode ? white : black)
                                     : (isDarkMode ? white : black),
                               ),
                             ),

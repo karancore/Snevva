@@ -9,7 +9,7 @@ class IncompleteProfileCard extends StatelessWidget {
 
   const IncompleteProfileCard({super.key, required this.onTapComplete});
 
-  bool isFilled(dynamic value) {
+  bbool isFilled(dynamic value) {
     if (value == null) return false;
     if (value is String && value.trim().isEmpty) return false;
     return true;
@@ -43,10 +43,10 @@ class IncompleteProfileCard extends StatelessWidget {
   }
 
   String getNextMissingField(Map<String, dynamic> userInfo) {
+    if (!isFilled(userInfo['PhoneNumber'])) return 'Add phone number';
     if (!isFilled(userInfo['Email'])) return 'Add email';
     if (!isFilled(userInfo['AddressByUser'])) return 'Add address';
     if (!isFilled(userInfo['PostalCodeUser'])) return 'Add postal code';
-    if (!isFilled(userInfo['PhoneNumber'])) return 'Add phone number';
     return 'Complete profile';
   }
 
@@ -63,26 +63,24 @@ class IncompleteProfileCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         // Light: soft purple tint at 10% | Dark: white at 10%
-        color:
-            isDarkMode
-                ? Colors.white.withOpacity(0.10)
-                : AppColors.primaryColor.withOpacity(0.08),
+        color: isDarkMode
+            ? Colors.white.withOpacity(0.10)
+            : AppColors.primaryColor.withOpacity(0.08),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppColors.primaryColor.withOpacity(0.20),
           width: 1,
         ),
         // Card shadow matching Snevva spec
-        boxShadow:
-            isDarkMode
-                ? []
-                : [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+        boxShadow: isDarkMode
+            ? []
+            : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,10 +119,8 @@ class IncompleteProfileCard extends StatelessWidget {
 
               // "X% left" badge
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: AppColors.primaryColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(30),
@@ -151,10 +147,9 @@ class IncompleteProfileCard extends StatelessWidget {
               Container(
                 height: 7,
                 decoration: BoxDecoration(
-                  color:
-                      isDarkMode
-                          ? Colors.white.withOpacity(0.12)
-                          : Colors.black.withOpacity(0.08),
+                  color: isDarkMode
+                      ? Colors.white.withOpacity(0.12)
+                      : Colors.black.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
@@ -185,7 +180,9 @@ class IncompleteProfileCard extends StatelessWidget {
               fontFamily: 'Inter',
               fontSize: 12,
               fontWeight: FontWeight.w400,
-              color: isDarkMode ? Colors.white.withOpacity(0.55) : mediumGrey,
+              color: isDarkMode
+                  ? Colors.white.withOpacity(0.55)
+                  : mediumGrey,
             ),
           ),
 

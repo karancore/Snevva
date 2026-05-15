@@ -88,6 +88,7 @@ const adImg5 = "assets/Dashboard/Slider 5 - Health Companion.png";
 //Drawer_menu
 const homeIcon = "assets/Icons/Drawer/home-line.svg";
 const scannerIcon = "assets/Icons/Drawer/qr-scan-line.svg";
+const healthReportIcon = "assets/Icons/Drawer/health-report.svg";
 const profileIcon = "assets/Icons/Drawer/user-3-line.svg";
 const addEmergencyContactIcon = "assets/Icons/Drawer/team-line.svg";
 const appointmentIcon = "assets/Icons/Drawer/user-3-line.svg";

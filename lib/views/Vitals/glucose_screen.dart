@@ -151,13 +151,15 @@ class _GlucoseScreenState extends State<GlucoseScreen> {
               ? SizedBox.shrink()
               : Align(
             alignment: Alignment.bottomCenter,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.only(left: 20.0, right: 14.0),
-                child: Image.asset(getFooter(getStatusLabel(getStatus(
-                    vitalsController.glucoseReadings.first.glucoseLevel)))),
-              ),
-            ),
+            child: Obx(() {
+              return SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 20.0, right: 14.0),
+                  child: Image.asset(getFooter(getStatusLabel(getStatus(
+                      vitalsController.glucoseReadings.first.glucoseLevel)))),
+                ),
+              );
+            }),
           ),
         ],
       ),

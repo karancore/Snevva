@@ -180,3 +180,5 @@ const String dnd = '/api/upsert/notificationsubsciption';
 const String readNotification = "/api/upsert/readNotification";
 
 const String healthreport = "/api/fetchinfo/healthreport";
+
+const String scanreportapi = "/api/aichat/report/analyze";

@@ -3,7 +3,9 @@ import 'package:intl/intl.dart' show DateFormat;
 import 'package:snevva/Controllers/WomenHealth/bottom_sheet_controller.dart';
 import 'package:snevva/Widgets/WomenHealth/calender.dart';
 import 'package:snevva/views/WomenHealth/symptoms_bottom_sheet.dart';
+import 'package:snevva/widgets/common/common_tip_widget.dart';
 
+import '../../Controllers/common/common_tips_controller.dart';
 import '../../Widgets/CommonWidgets/custom_appbar.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../consts/consts.dart';
@@ -18,10 +20,17 @@ class WomenHealthHistory extends StatefulWidget {
 class _WomenHealthHistoryState extends State<WomenHealthHistory> {
   final BottomSheetController bottom = Get.find<BottomSheetController>();
 
+  late CommonTipsController commonTipsController;
+
+
   @override
   void initState() {
     super.initState();
     // 🔥 Load symptoms from API when screen initializes
+
+    commonTipsController = Get.find<CommonTipsController>();
+
+    commonTipsController.getCommonTips(context: context, tag: 'Women Health');
     _initializeSymptomsData();
   }
 
@@ -146,6 +155,12 @@ class _WomenHealthHistoryState extends State<WomenHealthHistory> {
                   ),
                 ),
               ),
+            ),
+            const SizedBox(height: 20,),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: CommonTipsList(),
             ),
             // SizedBox(height: 20),
             // Padding(

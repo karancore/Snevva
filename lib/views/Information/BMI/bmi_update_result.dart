@@ -5,6 +5,7 @@ import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/consts/colors.dart';
 import 'package:snevva/consts/images.dart';
+import 'package:snevva/models/common_tips_response.dart';
 import 'package:snevva/views/Information/BMI/bmi_updateCal.dart';
 import 'package:snevva/widgets/app_loader.dart';
 
@@ -27,7 +28,7 @@ class BMIUpdateResultScreen extends StatefulWidget {
 
 String getStatus(double bmi) {
   if (bmi < 18.5) return 'Underweight';
-  if (bmi < 25) return 'Great Shape';
+  if (bmi < 25) return 'Great-Shape';
   if (bmi < 30) return 'Overweight';
   return 'Obese';
 }
@@ -259,23 +260,21 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
                   spacing: 16,
                   runSpacing: 16,
                   children:
-                      tips.map((tip) {
-                        debugPrint(
-                          "Image URL: ${tip['ThumbnailMedia']?['CdnUrl']}",
-                        );
+                  tips.map((tipData) {
+                    final tip = CommonTip.fromJson(tipData);
 
                         return SizedBox(
                           width: (width - 56) / 2,
                           child: _buildTipCard(
-                            heading: tip['Heading'] ?? '',
-                            title: tip['Title'] ?? '',
+                            heading: tip.heading ?? '',
+                            title: tip.title ?? '',
                             image:
-                                "https://${tip['ThumbnailMedia']?['CdnUrl']}",
+                            "https://${tip.thumbnailMedia?.cdnUrl}",
                             isDarkMode: isDarkMode,
                             onButtonTap:
                                 () => Get.to(
-                                  () => NutritionTipsPage(),
-                                  arguments: tip,
+                                      () => NutritionTipsPage(commonTip: tip,),
+
                                 ),
                           ),
                         );

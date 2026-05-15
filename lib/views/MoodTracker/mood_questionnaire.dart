@@ -7,9 +7,11 @@ import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/consts/images.dart';
 
+import '../../Controllers/common/common_tips_controller.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../common/calendar_screen.dart';
 import '../../consts/colors.dart';
+import '../../widgets/common/common_tip_widget.dart';
 
 class MoodQuestionnaire extends StatefulWidget {
   const MoodQuestionnaire({super.key});
@@ -26,11 +28,22 @@ class _MoodQuestionnaireState extends State<MoodQuestionnaire> {
 
   final moodController = Get.find<MoodController>();
 
+  late CommonTipsController commonTipsController;
+
+
   @override
   void initState() {
     super.initState();
+
+    commonTipsController = Get.find<CommonTipsController>();
+
+    commonTipsController.getCommonTips(context: context,
+        tags: ["Mood Tracker", moodController.selectedUserMood],
+        tag: '');
+
     WidgetsBinding.instance.addPostFrameCallback((_){
       moodController.loadTodayMoods();
+
     });
   }
   // Example mood entries
@@ -215,34 +228,8 @@ class _MoodQuestionnaireState extends State<MoodQuestionnaire> {
                     }),
                   ),
                 ),
-                Text(
-                  "About Mood Tracker",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  "Take a moment for yourself.\n Log your mood and reflect.\n Your feelings matter—every single day.",
-                  style: const TextStyle(
-                    fontSize: 14,
-
-                    height: 1.5,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-                SizedBox(height: 15 * scale),
-                Align(
-                  alignment: Alignment.center,
-                  child: Image.asset(
-                    girlMood,
-                    width: 177 * scale,
-                    height: 173 * scale,
-                    fit: BoxFit.contain,
-                  ),
-                ),
+                const SizedBox(height: 16),
+                CommonTipsList()
               ],
             ),
           ),

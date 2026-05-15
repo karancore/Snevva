@@ -227,6 +227,7 @@ class _BirthdayDialogState extends State<BirthdayDialog>
   }
 
   Future<void> _shareCard() async {
+
     if (_isCapturing) return;
 
     setState(() => _isCapturing = true);

@@ -210,7 +210,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                                   ),
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: isDarkMode ? black : white,
+                                    color: isDarkMode ? white : black,
                                     fontSize: 18,
                                     height: 1,
                                     fontWeight: FontWeight.w600,
@@ -266,7 +266,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                             ),
                             _glucoseType(
                               icon: FontAwesomeIcons.droplet,
-                              label: "Custom",
+                              label: "Random",
                               scale: scale,
                               isDarkMode: isDarkMode,
                             ),
@@ -381,7 +381,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                             label: "Save Readings",
                             color: AppColors.primaryColor,
                             borderColor: AppColors.primaryColor,
-                            textColor: white,
+                            textColor: isDarkMode ? white : black,
                             scale: scale,
                             isDarkMode: isDarkMode,
                           ),
@@ -533,7 +533,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                   style: TextStyle(
                     color: isSelected
                         ? white
-                        : (isDarkMode ? black : white),
+                        : (isDarkMode ? white : black),
                     fontSize: 11 * scale,
                     fontWeight: FontWeight.w600,
                   ),

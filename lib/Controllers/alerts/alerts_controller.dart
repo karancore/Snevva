@@ -1,14 +1,13 @@
 import 'dart:convert';
-
 import 'package:get/get_connect/http/src/response/response.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/models/alerts.dart';
 import 'package:snevva/services/notification_service.dart';
-
 import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
 import '../../env/env.dart';
 import '../../services/api_service.dart';
+import 'package:get/get_connect/http/src/response/response.dart' as http;
 
 class AlertsController extends GetxService {
   RxList<Alerts> notifications = <Alerts>[].obs;

@@ -7,6 +7,7 @@ import 'package:snevva/consts/images.dart';
 import 'package:snevva/widgets/app_loader.dart';
 
 import '../../../Widgets/Drawer/drawer_menu_wigdet.dart';
+import '../../../models/common_tips_response.dart';
 import '../Health Tips/Nutrition_tips.dart/nutrition_tips.dart';
 
 class BmiResultPage extends StatefulWidget {
@@ -24,7 +25,7 @@ class _BmiResultPageState extends State<BmiResultPage> {
 
   String getStatus(double bmi) {
     if (bmi < 18.5) return 'Underweight';
-    if (bmi < 25) return 'Great Shape';
+    if (bmi < 25) return 'Great-Shape';
     if (bmi < 30) return 'Overweight';
     return 'Obese';
   }
@@ -169,7 +170,7 @@ class _BmiResultPageState extends State<BmiResultPage> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  "Suggestion",
+                  "Suggestions",
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -193,19 +194,20 @@ class _BmiResultPageState extends State<BmiResultPage> {
                   spacing: 16,
                   runSpacing: 16,
                   children:
-                      tips.map((tip) {
-                        return SizedBox(
+                  tips.map((tipData) {
+                    final tip = CommonTip.fromJson(tipData);
+
+                    return SizedBox(
                           width: (width - 56) / 2,
                           child: _buildTipCard(
-                            heading: tip['Heading'] ?? '',
-                            title: tip['Title'] ?? '',
+                            heading: tip.heading ?? '',
+                            title: tip.title ?? '',
                             image:
-                                "https://${tip['ThumbnailMedia']?['CdnUrl']}".isNotEmpty ? "https://${tip['ThumbnailMedia']?['CdnUrl']}" :                                "https://d3byuuhm0bg21i.cloudfront.net/derivatives/c3d47d00-8a25-46ef-bba3-ec5609c49b08/thumb.webp",
+                            "https://${tip.thumbnailMedia?.cdnUrl}",
                             isDarkMode: isDarkMode,
                             onButtonTap:
                                 () => Get.to(
-                                  () => NutritionTipsPage(),
-                                  arguments: tip,
+                                      () => NutritionTipsPage(commonTip: tip,),
                                 ),
                           ),
                         );
