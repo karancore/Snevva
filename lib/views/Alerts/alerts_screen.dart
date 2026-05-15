@@ -86,9 +86,9 @@ class _AlertsScreenState extends State<AlertsScreen>
       ),
       duration: const Duration(milliseconds: 300),
     );
-  }/ General builder for both AnimatedList (dummy) and ListView (API)
+  }
   Widget _buildDismissibleItem(Alerts item, {bool isRead = false}) {
-    rreturn Dismissible(
+    return Dismissible(
       key: ValueKey('${item.dataCode}_${isRead ? "read" : "unread"}'),
       direction: DismissDirection.endToStart,
       confirmDismiss: (_) async {

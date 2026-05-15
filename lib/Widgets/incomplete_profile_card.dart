@@ -9,7 +9,7 @@ class IncompleteProfileCard extends StatelessWidget {
 
   const IncompleteProfileCard({super.key, required this.onTapComplete});
 
-  bbool isFilled(dynamic value) {
+  bool isFilled(dynamic value) {
     if (value == null) return false;
     if (value is String && value.trim().isEmpty) return false;
     return true;
