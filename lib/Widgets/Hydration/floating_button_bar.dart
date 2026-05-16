@@ -22,9 +22,6 @@ class FloatingButtonBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    //   final width = mediaQuery.size.width;
-    // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final controller = Get.find<HydrationStatController>();
 
@@ -38,7 +35,8 @@ class FloatingButtonBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             child: Container(
               height: 70,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              // ✅ Fix 1: removed vertical: 8 — it was eating 16px from the 70px bar
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
                 gradient: AppColors.primaryGradient,
                 borderRadius: BorderRadius.circular(8),
@@ -49,24 +47,29 @@ class FloatingButtonBar extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    // ── Statistics button ──────────────────────────────────
                     InkWell(
                       onTap: onStatBtnTap,
                       borderRadius: BorderRadius.circular(20),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
+                        // ✅ Fix 2: removed vertical: 4 — was eating another 8px
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,     // ✅ Fix 3: min not max
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            SvgPicture.asset(statIcon),
+                            // ✅ Fix 4: explicit size — unsized SVG defaulted to ~32px
+                            SvgPicture.asset(
+                              statIcon,
+                              width: 20,
+                              height: 20,
+                            ),
                             const SizedBox(height: 4),
                             const AutoSizeText(
                               'Statistics',
                               maxLines: 1,
                               minFontSize: 8,
-                              maxFontSize: 14,
+                              maxFontSize: 12,   // ✅ Fix 5: 14 → 12
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(color: Colors.white),
                             ),
@@ -74,54 +77,56 @@ class FloatingButtonBar extends StatelessWidget {
                         ),
                       ),
                     ),
+
+                    // ── Reminder / Mood button ─────────────────────────────
                     InkWell(
                       onTap: onReminderBtnTap,
                       borderRadius: BorderRadius.circular(20),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
+                        // ✅ Fix 6: removed vertical: 4
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: (isMood! == true)
+                            ? Column(
+                          mainAxisSize: MainAxisSize.min,   // ✅ Fix 7
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SvgPicture.asset(
+                              smileyIcon,
+                              width: 20,
+                              height: 20,
+                            ),
+                            const SizedBox(height: 4),
+                            const AutoSizeText(
+                              'Mood',
+                              maxLines: 1,
+                              minFontSize: 8,
+                              maxFontSize: 12,   // ✅
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ],
+                        )
+                            : Column(
+                          mainAxisSize: MainAxisSize.min,   // ✅ Fix 8
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // ✅ Fix 9: explicit size on gearIcon2
+                            SvgPicture.asset(
+                              gearIcon2,
+                              width: 20,
+                              height: 20,
+                            ),
+                            const SizedBox(height: 4),
+                            const AutoSizeText(
+                              'Reminder',
+                              maxLines: 1,
+                              minFontSize: 8,
+                              maxFontSize: 12,   // ✅
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ],
                         ),
-                        child:
-                            (isMood! == true)
-                                ? Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SvgPicture.asset(
-                                      smileyIcon,
-                                      width: 20,
-                                      height: 20,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    AutoSizeText(
-                                      'Mood',
-                                      maxLines: 1,
-                                      minFontSize: 8,
-                                      maxFontSize: 14,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                                : Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SvgPicture.asset(gearIcon2),
-                                    const SizedBox(height: 4),
-                                    AutoSizeText(
-                                      'Reminder',
-                                      maxLines: 1,
-                                      minFontSize: 8,
-                                      maxFontSize: 14,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
                       ),
                     ),
                   ],
@@ -130,7 +135,7 @@ class FloatingButtonBar extends StatelessWidget {
             ),
           ),
 
-          // Center white circle container
+          // ── Center white circle button ─────────────────────────────────────
           Positioned(
             top: -20,
             bottom: -20,
@@ -144,8 +149,8 @@ class FloatingButtonBar extends StatelessWidget {
                   width: 98,
                   decoration: BoxDecoration(
                     color: isDarkMode ? black : white,
-                    borderRadius: BorderRadius.circular(90), // circle
-                    boxShadow: [
+                    borderRadius: BorderRadius.circular(90),
+                    boxShadow: const [
                       BoxShadow(
                         color: Colors.black12,
                         spreadRadius: 0.2,

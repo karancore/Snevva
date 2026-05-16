@@ -25,6 +25,8 @@ import '../../Widgets/menu_item_widget.dart';
 import '../../common/statement_of_use_bottom_sheet.dart';
 import '../Information/BMI/bmi_cal.dart';
 import '../WomenHealth/women_bottom_sheets.dart';
+import '../scan_report/scan_report_landing_screen.dart';
+import '../scan_report/scan_report_screen.dart';
 import 'Sleep Screen/sleep_tracker_screen.dart';
 
 class MenuScreen extends StatefulWidget {
@@ -197,7 +199,7 @@ class _MenuScreenState extends State<MenuScreen>
         title: "AI Symptom Checker",
         subtitle: "AI-based symptom analysis",
         imagePath: aiSymptomIcon,
-        isDisabled: true,
+        navigateTo: ScanReportLandingScreen(),
       ),
       MenuItem(
         title: "Women's Health",

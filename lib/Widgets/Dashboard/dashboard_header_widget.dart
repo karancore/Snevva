@@ -41,7 +41,7 @@ class DashboardHeaderWidget extends StatelessWidget {
                         'Track, learn, and improve with Elly.',
                         style: TextStyle(color: Colors.white, fontSize: 10),
                       ),
-                      SizedBox(height: 8),
+                      SizedBox(height: 3),
                       Container(
                         margin: EdgeInsets.only(bottom: 5, top: 15),
                         decoration: BoxDecoration(

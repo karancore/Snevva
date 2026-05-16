@@ -44,6 +44,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
 
   Future<void> _saveReading() async {
     final text = vitalsController.glucoseController.text.trim();
+
     if (text.isEmpty || double.tryParse(text) == null) {
       Get.snackbar(
         'Invalid Input',
@@ -52,9 +53,17 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
       );
       return;
     }
-    await vitalsController.addGlucoseReading(text, _selectedType);
-    vitalsController.glucoseController.clear();
-    if (mounted) Navigator.pop(context);
+
+    final success = await vitalsController.submitBloodGlucose(
+      glucoseValue: double.parse(text),
+      type: _selectedType,
+      context: context,
+    );
+
+    if (success) {
+      vitalsController.glucoseController.clear();
+      if (mounted) Navigator.pop(context);
+    }
   }
 
   @override
@@ -210,7 +219,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                                   ),
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: isDarkMode ? white : black,
+                                    color: isDarkMode ? black : black,
                                     fontSize: 18,
                                     height: 1,
                                     fontWeight: FontWeight.w600,
@@ -378,17 +387,17 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
                           _cancelOrSave(
-                            label: "Save Readings",
-                            color: AppColors.primaryColor,
-                            borderColor: AppColors.primaryColor,
+                            label: "Cancel",
+                            color: cancelButtonColor,
+                            borderColor: cancelButtonColor,
                             textColor: isDarkMode ? white : black,
                             scale: scale,
                             isDarkMode: isDarkMode,
                           ),
                           _cancelOrSave(
-                            label: "Cancel",
-                            color: cancelButtonColor,
-                            borderColor: cancelButtonColor,
+                            label: "Save Readings",
+                            color: AppColors.primaryColor,
+                            borderColor: AppColors.primaryColor,
                             textColor: isDarkMode ? black : white,
                             scale: scale,
                             isDarkMode: isDarkMode,
@@ -533,7 +542,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                   style: TextStyle(
                     color: isSelected
                         ? white
-                        : (isDarkMode ? white : black),
+                        : (isDarkMode ? black : black),
                     fontSize: 11 * scale,
                     fontWeight: FontWeight.w600,
                   ),

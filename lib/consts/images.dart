@@ -260,7 +260,9 @@ const spottingIcon = "assets/Icons/WomenHealth/zczdsx.webp";
 
 //Chat Screem
 
-const chatWallpaper = "assets/chat/chat_wallpaper_new.webp";
+// const chatWallpaper = "assets/chat/chat_wallpaper_new.webp";
+const chatWallpaper = "assets/chat/Isolated Doodle Background.webp";
+const chatwallpaperdark = "assets/chat/Doodle Background _ Dark.webp";
 
 //Step Counter
 const run = "assets/Images/Steps/run.webp";

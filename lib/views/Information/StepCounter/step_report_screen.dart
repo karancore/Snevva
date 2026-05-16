@@ -141,15 +141,7 @@ class _StepReportScreenState extends State<StepReportScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final yesterday = DateTime.now().subtract(const Duration(days: 1));
-      final key =
-          "${yesterday.year}-${yesterday.month.toString().padLeft(
-          2, '0')}-${yesterday.day.toString().padLeft(2, '0')}";
-      setState(() {
-        _displaySteps = stepController.stepsHistoryByDate[key] ?? 0;
-        _displayLabel =
-        "${yesterday.day}-${yesterday.month}-${yesterday.year}";
-      });
+      _setAverage();
     });
   }
 

@@ -81,6 +81,7 @@ const String sleepGoalAPI = "/api/upsert/sleepgoal";
 const String sleepRecord = "/api/upsert/addsleeprecord";
 
 const String bloodpressure = '/api/upsert/addbloodpressurerecord';
+const String bloodglucoseapi = '/api/upsert/addbloodglucoserecord';
 const String logmood = '/api/upsert/logmood';
 const String womenhealth = '/api/upsert/womenhealthquestionnaire';
 const String editperioddata = '/api/upsert/editperioddata';

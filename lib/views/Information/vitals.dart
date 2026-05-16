@@ -180,11 +180,9 @@ class _VitalScreenState extends State<VitalScreen> {
 
   int systolic = 120;
   int diastolic = 80;
-  int bloodGlucose = 93;
 
   final TextEditingController systolicController = TextEditingController();
   final TextEditingController diastolicController = TextEditingController();
-  final TextEditingController glucoseController = TextEditingController();
   final TextEditingController bpmController = TextEditingController();
 
   late CommonTipsController commonTipsController;
@@ -192,7 +190,6 @@ class _VitalScreenState extends State<VitalScreen> {
   static const bpmMax = 200;
   static const sysMax = 200;
   static const diaMax = 120;
-  static const glucoseMax = 300;
 
   final vitalsKey = GlobalKey<FormState>();
   final _controller = Get.put(VitalsController());
@@ -218,9 +215,6 @@ class _VitalScreenState extends State<VitalScreen> {
     if (_controller.dia.value > 0) {
       diastolicController.text = _controller.dia.value.toString();
     }
-    if (_controller.bloodGlucose.value > 0) {
-      glucoseController.text = _controller.bloodGlucose.value.toString();
-    }
 
     _controller.loadVitalsFromLocalStorage().then((_) {
       if (!mounted) return;
@@ -233,9 +227,6 @@ class _VitalScreenState extends State<VitalScreen> {
       }
       if (_controller.dia.value > 0) {
         diastolicController.text = _controller.dia.value.toString();
-      }
-      if (_controller.bloodGlucose.value > 0) {
-        glucoseController.text = _controller.bloodGlucose.value.toString();
       }
     });
 
@@ -253,7 +244,6 @@ class _VitalScreenState extends State<VitalScreen> {
     bpmController.dispose();
     systolicController.dispose();
     diastolicController.dispose();
-    glucoseController.dispose();
     super.dispose();
   }
 
@@ -268,12 +258,10 @@ class _VitalScreenState extends State<VitalScreen> {
     int bpm = int.tryParse(bpmController.text.trim()) ?? 0;
     int sys = int.tryParse(systolicController.text.trim()) ?? 0;
     int dia = int.tryParse(diastolicController.text.trim()) ?? 0;
-    int glucose = int.tryParse(glucoseController.text.trim()) ?? 0;
 
     if (bpm <= 0) missingFields.add("Heart Rate (BPM)");
     if (sys <= 0) missingFields.add("Systolic (SYS)");
     if (dia <= 0) missingFields.add("Diastolic (DIA)");
-    if (glucose <= 0) missingFields.add("Blood Glucose");
 
     if (missingFields.isNotEmpty) {
       CustomSnackbar.showError(
@@ -289,7 +277,6 @@ class _VitalScreenState extends State<VitalScreen> {
         heartRate: bpm.toDouble(),
         sys: sys.toDouble(),
         dia: dia.toDouble(),
-        bloodGlucose: glucose.toDouble(),
         day: DateTime.now().day,
         month: DateTime.now().month,
         year: DateTime.now().year,
@@ -304,7 +291,6 @@ class _VitalScreenState extends State<VitalScreen> {
           bpmController.clear();
           systolicController.clear();
           diastolicController.clear();
-          glucoseController.clear();
           Get.until((route) => route.isFirst);
         }
       });
@@ -315,16 +301,13 @@ class _VitalScreenState extends State<VitalScreen> {
     required int bpm,
     required int sys,
     required int dia,
-    required int glucose,
   }) {
     return bpm >= 40 &&
         bpm <= 200 &&
         sys >= 90 &&
         sys <= 200 &&
         dia >= 60 &&
-        dia <= 120 &&
-        glucose >= 70 &&
-        glucose <= 300;
+        dia <= 120;
   }
 
   @override

@@ -854,7 +854,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     Text(
                       displayDosage,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -862,7 +862,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       unit,
                       style: const TextStyle(
                         fontWeight: FontWeight.w400,
-                        fontSize: 10,
+                        fontSize: 9,
                       ),
                     ),
                   ],
@@ -1127,7 +1127,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                               : white)
                           : grey,
                   value: reminderController.selectedValue.value,
-                  isExpanded: false,
+                  isExpanded: true,
                   iconSize: 18,
                   items:
                       ['minutes', 'hours']
@@ -1679,7 +1679,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                                   ? black
                                   : white)
                               : grey,
-                      isExpanded: false,
+                      isExpanded: true,
                       iconSize: 18,
                       items:
                           ['minutes', 'hours']
@@ -1698,7 +1698,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                                                       Brightness.dark)
                                                   ? white
                                                   : black)
-                                              : grey,
+                                              : black,
                                     ),
                                   ),
                                 ),

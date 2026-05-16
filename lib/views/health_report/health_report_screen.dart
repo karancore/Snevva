@@ -128,7 +128,7 @@ class HealthReportScreen extends StatelessWidget {
                 );
               }),
 
-              SizedBox(height: 16 * scale),
+              SizedBox(height: 8 * scale),
 
               // ── Export Type Choice Chips ───────────────────────────
               Obx(() {
@@ -198,7 +198,7 @@ class HealthReportScreen extends StatelessWidget {
                 );
               }),
 
-              SizedBox(height: 4 * scale),
+              SizedBox(height: 1 * scale),
 
               // ── Select All ────────────────────────────────────────
               Obx(() {
@@ -236,7 +236,7 @@ class HealthReportScreen extends StatelessWidget {
                 );
               }),
 
-              SizedBox(height: 16 * scale),
+              SizedBox(height: 1 * scale),
 
               // ── Health Service Grid ───────────────────────────────
               Obx(() {
@@ -273,7 +273,7 @@ class HealthReportScreen extends StatelessWidget {
                 );
               }),
 
-              SizedBox(height: 11 * scale),
+              SizedBox(height: 16 * scale),
 
               const Text(
                 " Requested Health Record",

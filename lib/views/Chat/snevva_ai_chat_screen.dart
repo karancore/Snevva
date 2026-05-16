@@ -225,7 +225,15 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
       body: Stack(
         children: [
           // Background Image
-          Positioned.fill(child: Image.asset(chatWallpaper, fit: BoxFit.cover)),
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.5,
+              child: Image.asset(
+                isDarkMode ? chatwallpaperdark : chatWallpaper,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
 
           SafeArea(
             child: Column(
@@ -309,7 +317,7 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
                             msg.isUser
                                 ? SizedBox.shrink()
                                 : Text(
-                                  "SNEVVAI  ${DateFormat('hh:mm a').format(msg.time)}",
+                                  "Elly  ${DateFormat('hh:mm a').format(msg.time)}",
                                   style: TextStyle(fontSize: 10),
                                 ),
 

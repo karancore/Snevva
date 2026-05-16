@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -47,24 +48,46 @@ class HealthReportController extends GetxController {
 
   // ─── Static total used for "select all" guard ─────────────────────────────────
   int _totalServices = 0;
+  Timer? _yearCheckTimer;
+  int _lastKnownYear = DateTime.now().year;
 
   // ────────────────────────────────────────────────────────────────────────────
   @override
   void onInit() {
     super.onInit();
     _buildFinancialYearList();
+    _startYearChangeWatcher();
+  }
+
+  @override
+  void onClose() {
+    _yearCheckTimer?.cancel();
+    super.onClose();
+  }
+
+  void _startYearChangeWatcher() {
+    // Check every hour — zero overhead, fires only ~8760x/year
+    _yearCheckTimer = Timer.periodic(const Duration(hours: 1), (_) {
+      final int nowYear = DateTime.now().year;
+      if (nowYear != _lastKnownYear) {
+        _lastKnownYear = nowYear;
+        _buildFinancialYearList();         // rebuild list — new year appended
+        selectedYearIndex.value = 0;       // reset selection to first (2026-27)
+      }
+    });
   }
 
   // ─── Financial year list (e.g. "2024-25") ────────────────────────────────────
   void _buildFinancialYearList() {
-    final int currentYear = DateTime
-        .now()
-        .year;
+    const int baseYear = 2026; // always starts from 2026-27
+    final int currentYear = DateTime.now().year;
+
+    // Generate from baseYear up to currentYear (inclusive), so list grows each year
     final List<String> years = [];
-    for (int i = 0; i < 5; i++) {
-      final int start = currentYear - i;
+    for (int start = baseYear; start <= currentYear; start++) {
       years.add('$start-${(start + 1).toString().substring(2)}');
     }
+
     yearRangeList.assignAll(years);
   }
 
@@ -359,14 +382,14 @@ class HealthReportController extends GetxController {
 
       final label =
       report.exportType == ExportType.pdf ? 'PDF' : 'Excel';
-      Get.snackbar(
-        'Downloaded!',
-        '$label report saved to your device.',
-        snackPosition: SnackPosition.TOP,
-        colorText: Colors.white,
-        backgroundColor: AppColors.primaryColor,
-        duration: const Duration(seconds: 3),
-      );
+      // Get.snackbar(
+      //   'Downloaded!',
+      //   '$label report saved to your device.',
+      //   snackPosition: SnackPosition.TOP,
+      //   colorText: Colors.white,
+      //   backgroundColor: AppColors.primaryColor,
+      //   duration: const Duration(seconds: 3),
+      // );
     } catch (e) {
       debugPrint('❌ downloadReport error: $e');
       isDownloadingMap[reportIndex] = false;
