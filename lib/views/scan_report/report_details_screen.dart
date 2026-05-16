@@ -40,8 +40,13 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
     try {
       final result = await _controller.uploadReport(widget.file);
 
+      await _controller.addToHistory(
+        title: widget.fileName,
+        content: result,
+      );
+
       setState(() {
-        _reportContent = result; // ← content string set karo
+        _reportContent = result;
       });
     } catch (e) {
       setState(() {

@@ -331,18 +331,6 @@ class HealthReportController extends GetxController {
 
   // ─── STEP 2 : Download — no API call, reads stored base64 ────────────────────
   Future<void> downloadReport(int reportIndex) async {
-    if (isDownloadedMap[reportIndex] == true) {
-      Get.snackbar(
-        'Already Downloaded',
-        'This report is already saved on your device.',
-        snackPosition: SnackPosition.TOP,
-        colorText: Colors.white,
-        backgroundColor: AppColors.primaryColor,
-        duration: const Duration(seconds: 3),
-      );
-      return;
-    }
-
     final report = requestedReports[reportIndex];
 
     if (report.isFailed ||

@@ -112,13 +112,18 @@ class HealthReportScreen extends StatelessWidget {
               Obx(() {
                 final segValue = controller.segmentedControlGroupValue.value;
                 final selectedIdx = controller.selectedIndex.value;
+                final customFrom = controller.customFromDate.value;
+                final customTo = controller.customToDate.value;
                 return _rangeColumn(
+                  context: context,
                   controller: controller,
                   scale: scale,
                   itemHeight: itemHeight,
-                  items: segValue == 0 ? dateRangeList : controller
-                      .yearRangeList,
+                  items: segValue == 0 ? dateRangeList : controller.yearRangeList,
                   selectedIndex: selectedIdx,
+                  segmentedValue: segValue,
+                  customFromDate: customFrom,
+                  customToDate: customTo,
                   isDarkMode: isDarkMode,
                 );
               }),
@@ -417,16 +422,23 @@ class HealthReportScreen extends StatelessWidget {
   }
 
   Widget _rangeColumn({
+    required BuildContext context,
     required HealthReportController controller,
     required double scale,
     required double itemHeight,
     required List<String> items,
     required int selectedIndex,
+    required int segmentedValue,
+    required DateTime? customFromDate,
+    required DateTime? customToDate,
     required bool isDarkMode,
   }) {
+    final bool isCustomSelected =
+        segmentedValue == 0 && selectedIndex == 4 && items.length > 4;
+    final bool hasDates = customFromDate != null && customToDate != null;
+
     return Container(
       width: 332 * scale,
-      height: itemHeight * items.length,
       decoration: BoxDecoration(
         color: isDarkMode ? darkGray : white,
         boxShadow: [
@@ -441,49 +453,125 @@ class HealthReportScreen extends StatelessWidget {
       ),
       child: ListView.separated(
         padding: EdgeInsets.zero,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
         itemCount: items.length,
-        separatorBuilder: (_, __) =>
-            Divider(
-              height: 1,
-              thickness: 1,
-              color: Colors.grey.withOpacity(0.2),
-            ),
-        itemBuilder: (context, index) {
+        separatorBuilder: (_, _) => Divider(
+          height: 1,
+          thickness: 1,
+          color: Colors.grey.withOpacity(0.2),
+        ),
+        itemBuilder: (ctx, index) {
           final isSelected = selectedIndex == index;
-          return Container(
-            height: itemHeight,
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? AppColors.secondaryColor.withOpacity(0.1)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.only(
-                topLeft:
-                index == 0 ? const Radius.circular(12) : Radius.zero,
-                topRight:
-                index == 0 ? const Radius.circular(12) : Radius.zero,
-                bottomLeft: index == items.length - 1
-                    ? const Radius.circular(12)
-                    : Radius.zero,
-                bottomRight: index == items.length - 1
-                    ? const Radius.circular(12)
-                    : Radius.zero,
-              ),
+          final isCustomRow = segmentedValue == 0 && index == 4;
+          final showDateSubtitle =
+              isCustomRow && isCustomSelected && hasDates;
+
+          return InkWell(
+            borderRadius: BorderRadius.only(
+              topLeft: index == 0 ? const Radius.circular(12) : Radius.zero,
+              topRight: index == 0 ? const Radius.circular(12) : Radius.zero,
+              bottomLeft: index == items.length - 1
+                  ? const Radius.circular(12)
+                  : Radius.zero,
+              bottomRight: index == items.length - 1
+                  ? const Radius.circular(12)
+                  : Radius.zero,
             ),
-            child: Center(
-              child: ListTile(
-                onTap: () => controller.onRangeSelected(index),
-                leading: CustomRadio(
-                  selected: isSelected,
-                  onTap: () => controller.onRangeSelected(index),
-                  activeColor: AppColors.secondaryColor,
-                ),
-                title: Text(
-                  items[index],
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w400,
-                    fontSize: 12,
+            onTap: () async {
+              controller.onRangeSelected(index);
+              if (isCustomRow) {
+                final picked = await showDateRangePicker(
+                  context: context,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime.now(),
+                  initialDateRange: hasDates
+                      ? DateTimeRange(
+                          start: customFromDate,
+                          end: customToDate,
+                        )
+                      : null,
+                  builder: (ctx, child) => Theme(
+                    data: Theme.of(ctx).copyWith(
+                      colorScheme: ColorScheme.fromSeed(
+                        seedColor: AppColors.secondaryColor,
+                        brightness: Theme.of(ctx).brightness,
+                      ).copyWith(
+                        primary: AppColors.secondaryColor,
+                        onPrimary: Colors.white,
+                      ),
+                    ),
+                    child: child!,
                   ),
+                );
+                if (picked != null) {
+                  controller.setCustomFromDate(picked.start);
+                  controller.setCustomToDate(picked.end);
+                }
+              }
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.secondaryColor.withOpacity(0.1)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.only(
+                  topLeft:
+                      index == 0 ? const Radius.circular(12) : Radius.zero,
+                  topRight:
+                      index == 0 ? const Radius.circular(12) : Radius.zero,
+                  bottomLeft: index == items.length - 1
+                      ? const Radius.circular(12)
+                      : Radius.zero,
+                  bottomRight: index == items.length - 1
+                      ? const Radius.circular(12)
+                      : Radius.zero,
                 ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  CustomRadio(
+                    selected: isSelected,
+                    onTap: () {},
+                    activeColor: AppColors.secondaryColor,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          items[index],
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w400,
+                            fontSize: 12,
+                          ),
+                        ),
+                        if (showDateSubtitle) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            '${_fmt(customFromDate)} – ${_fmt(customToDate)}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: AppColors.secondaryColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (isCustomRow)
+                    Icon(
+                      Icons.calendar_month_outlined,
+                      size: 16,
+                      color: isSelected
+                          ? AppColors.secondaryColor
+                          : Colors.grey,
+                    ),
+                ],
               ),
             ),
           );
@@ -491,6 +579,11 @@ class HealthReportScreen extends StatelessWidget {
       ),
     );
   }
+
+  String _fmt(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/'
+      '${d.month.toString().padLeft(2, '0')}/'
+      '${d.year}';
 
   Widget _downloadedReportContainer({
     required HealthReportController controller,
