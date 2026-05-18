@@ -25,6 +25,7 @@ class HydrationStatController extends GetxService {
   final RxMap<String, int> waterHistoryByDate = <String, int>{}.obs;
   final RxList<FlSpot> waterSpots = <FlSpot>[].obs;
   var isLoading = true.obs;
+  bool _fetchInProgress = false;
 
   @override
   void onInit() {
@@ -266,6 +267,8 @@ class HydrationStatController extends GetxService {
     required int month,
     required int year,
   }) async {
+    if (_fetchInProgress) return;
+    _fetchInProgress = true;
     try {
       isLoading.value = true;
 
@@ -323,6 +326,7 @@ class HydrationStatController extends GetxService {
       debugPrint("Error fetching water records: $e");
     } finally {
       isLoading.value = false;
+      _fetchInProgress = false;
     }
   }
 

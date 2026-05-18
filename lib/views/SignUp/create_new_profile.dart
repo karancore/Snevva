@@ -195,6 +195,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         try {
                           final googleAuth = Get.find<GoogleAuthService>();
                           await googleAuth.init();
+                          await googleAuth.signIn();
                           // await googleAuth.signIn();
                         } finally {
                           if (mounted) {

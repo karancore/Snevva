@@ -17,20 +17,7 @@ class AlertsController extends GetxService {
   final RxSet<String> readCodes = <String>{}.obs;
   final bool isLoading = false;
 
-  @override
-  void onInit() {
-    super.onInit();
-    // _loadNotifications();
-    // _loadDeletedNotifications();
-  }
 
-  Future<void> _loadDeletedNotifications() async {
-    final prefs = await SharedPreferences.getInstance();
-    final stored = prefs.getStringList(deletedKey) ?? [];
-
-    deletedCodes.clear();
-    deletedCodes.addAll(stored);
-  }
 
   Future<void> markAsDeleted(String code) async {
     deletedCodes.add(code);
@@ -80,6 +67,9 @@ class AlertsController extends GetxService {
 
       debugPrint("🚀 readNotifications() called");
 
+      readCodes.add(id);
+
+
       final payload = {
         "DataCode": id
       };
@@ -96,12 +86,19 @@ class AlertsController extends GetxService {
           "❌ HTTP ${response.statusCode}",
         );
 
+        readCodes.remove(id);
+
+
         return;
       }
 
     } catch (e, stackTrace) {
       debugPrint("❌ Error: $e");
       debugPrint("$stackTrace");
+
+      readCodes.remove(id);
+
+
     }
   }
 

@@ -19,7 +19,6 @@ class _AlertsScreenState extends State<AlertsScreen>
   late FirebaseMessaging messaging;
 
   final alertsController = Get.find<AlertsController>();
-  final List<Alerts> _alerts = [];
 
   @override
   void initState() {
@@ -32,67 +31,12 @@ class _AlertsScreenState extends State<AlertsScreen>
     });
   }
 
-  bool _isClearing = false;
-  final GlobalKey<AnimatedListState> _dummyListKey =
-      GlobalKey<AnimatedListState>();
-  final GlobalKey<AnimatedListState> _apiListKey =
-      GlobalKey<AnimatedListState>();
-
-  Future<void> _clearAll(
-    GlobalKey<AnimatedListState> key,
-    List<Alerts> list,
-  ) async {
-    if (_isClearing || list.isEmpty) return;
-
-    _isClearing = true;
-
-    for (int i = list.length - 1; i >= 0; i--) {
-      await Future.delayed(const Duration(milliseconds: 120));
-      // use the general remove helper
-      if (key == _dummyListKey) {
-        _removeAnimatedItem(i, key, list);
-      } else {
-        // for non-animated lists, just remove normally
-        setState(() {
-          list.removeAt(i);
-        });
-      }
-    }
-
-    await Future.delayed(const Duration(milliseconds: 350));
-
-    setState(() {
-      _showEmptyState = true;
-    });
-
-    _isClearing = false;
-  }
-
-  bool _showEmptyState = false;
-
-  // Removes an item from an AnimatedList safely.
-  void _removeAnimatedItem(
-    int index,
-    GlobalKey<AnimatedListState> key,
-    List<Alerts> list,
-  ) {
-    if (index < 0 || index >= list.length) return;
-    final removedItem = list.removeAt(index);
-
-    key.currentState?.removeItem(
-      index,
-      (context, animation) => _buildDismissibleItem(
-        removedItem,
-      ),
-      duration: const Duration(milliseconds: 300),
-    );
-  }
   Widget _buildDismissibleItem(Alerts item, {bool isRead = false}) {
     return Dismissible(
       key: ValueKey('${item.dataCode}_${isRead ? "read" : "unread"}'),
       direction: DismissDirection.endToStart,
       confirmDismiss: (_) async {
-        await alertsController.readNotifications(item.dataCode);
+        await alertsController.readNotifications(item.id);
         return false; // don't auto-remove; reactive list rebuilds
       },
       background: Container(
@@ -121,7 +65,7 @@ class _AlertsScreenState extends State<AlertsScreen>
       ),
       child: GestureDetector(
         onTap: () {
-          if (!isRead) alertsController.readNotifications(item.dataCode);
+          if (!isRead) alertsController.readNotifications(item.id);
         },
         child: Container(
           margin: const EdgeInsets.only(bottom: 12),

@@ -245,14 +245,14 @@ class VitalsController extends GetxController {
   }) async {
     try {
       // Validate range (mmol/L: 1.0 – 33.3)
-      if (glucoseValue < 1.0 || glucoseValue > 33.3) {
-        CustomSnackbar.showError(
-          context: context,
-          title: 'Invalid Value',
-          message: 'Glucose must be between 1.0 and 33.3 mmol/L.',
-        );
-        return false;
-      }
+      // if (glucoseValue < 1.0 || glucoseValue > 33.3) {
+      //   CustomSnackbar.showError(
+      //     context: context,
+      //     title: 'Invalid Value',
+      //     message: 'Glucose must be between 1.0 and 33.3 mmol/L.',
+      //   );
+      //   return false;
+      // }
 
       // 1️⃣ Save locally in the readings list (persisted via SharedPreferences)
       await addGlucoseReading(glucoseValue.toString(), type);
@@ -293,28 +293,28 @@ class VitalsController extends GetxController {
       );
 
       if (response is http.Response) {
-        CustomSnackbar.showError(
-          context: context,
-          title: 'Error',
-          message: 'Failed to save glucose record: ${response.statusCode}',
-        );
+        // CustomSnackbar.showError(
+        //   context: context,
+        //   title: 'Error',
+        //   message: 'Failed to save glucose record: ${response.statusCode}',
+        // );
         return false;
       }
 
-      CustomSnackbar.showSuccess(
-        context: context,
-        title: 'Saved!',
-        message: 'Blood glucose recorded successfully.',
-      );
+      // CustomSnackbar.showSuccess(
+      //   context: context,
+      //   title: 'Saved!',
+      //   message: 'Blood glucose recorded successfully.',
+      // );
       return true;
 
     } catch (e) {
       debugPrint('submitBloodGlucose error: $e');
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'Failed to save blood glucose record.',
-      );
+      // CustomSnackbar.showError(
+      //   context: context,
+      //   title: 'Error',
+      //   message: 'Failed to save blood glucose record.',
+      // );
       return false;
     }
   }

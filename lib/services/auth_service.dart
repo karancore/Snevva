@@ -239,9 +239,9 @@ class AuthService {
     );
     loginLog("Mood loaded");
 
-    /// USER INFO
-    loginLog("Fetching user info...");
-    final userInfo = await signInController.userInfo();
+    /// USER INFO — already fetched during signInUsing*; reuse cached data.
+    loginLog("Using cached user info...");
+    final userInfo = signInController.userProfData;
     final userData = userInfo['data'];
     loginLog("User info received");
     debugPrint('User data: ${jsonEncode(userData)}');

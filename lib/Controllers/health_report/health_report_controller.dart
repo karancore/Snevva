@@ -7,10 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/colors.dart';
 import 'package:snevva/models/queryParamViewModels/fetch_health_report_vm.dart';
 import 'package:snevva/models/requested_health_record.dart';
+
+import '../../Services/api_service.dart';
+import '../../env/env.dart';
 
 class HealthReportController extends GetxController {
   // ─── Loading ──────────────────────────────────────────────────────────────────
@@ -282,24 +284,24 @@ class HealthReportController extends GetxController {
 
 
       // FIX: cast response correctly
-      // final dynamic raw = await ApiService.post(
-      //   healthreport,
-      //   vm.toJson(),
-      //   withAuth: true,
-      //   encryptionRequired: true,
-      // );
-      //
-      // final Map<String, dynamic>? response =
-      // raw != null ? Map<String, dynamic>.from(raw as Map) : null;
+      final dynamic raw = await ApiService.post(
+        healthreport,
+        vm.toJson(),
+        withAuth: true,
+        encryptionRequired: true,
+      );
 
-      // final String? base64Data = response?['data'] as String?;
-      // final bool    failed     = base64Data == null || base64Data.isEmpty;
+      final Map<String, dynamic>? response =
+      raw != null ? Map<String, dynamic>.from(raw as Map) : null;
+
+      final String? base64Data = response?['data'] as String?;
+      final bool failed = base64Data == null || base64Data.isEmpty;
 
       await Future.delayed(const Duration(seconds: 1)); // simulate network
-      final String? base64Data = vm.exportType == ExportType.pdf
-          ? pdfDummy
-          : excelDummy;
-      final bool failed = base64Data == null || base64Data.isEmpty;
+      // final String? base64Data = vm.exportType == ExportType.pdf
+      //     ? pdfDummy
+      //     : excelDummy;
+      // final bool failed = base64Data == null || base64Data.isEmpty;
 
       // Shift existing card indices to make room at 0
       final newDownloadedMap = <int, bool>{};

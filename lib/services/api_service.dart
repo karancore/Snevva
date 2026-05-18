@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:snevva/common/debug_logger.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/services/encryption_service.dart';
+
 import '../env/env.dart';
 import 'auth_header_helper.dart';
 
@@ -82,9 +84,13 @@ class ApiService {
       final encryptedRequestBody = jsonEncode({
         'data': encrypted['encryptedData'],
       });
-      if (kDebugMode) {
-        debugPrint("encryptedRequestBody, $encryptedRequestBody");
-      }
+
+      debugPrint("══════════════════════════════════════════");
+      debugPrint("ENDPOINT   : $uri");
+      debugPrint("HASH       : ${encrypted['Hash']}");
+      debugPrint("PAYLOAD    :");
+      logLong("BODY", encryptedRequestBody);
+      debugPrint("══════════════════════════════════════════");
 
       final response = await http
           .post(uri, headers: headers, body: encryptedRequestBody)

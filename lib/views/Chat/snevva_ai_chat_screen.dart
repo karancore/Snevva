@@ -203,7 +203,7 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
       appBar: AppBar(
         elevation: 0,
         automaticallyImplyLeading: false,
-        backgroundColor: isDarkMode ? black : white,
+        backgroundColor: Colors.transparent,
         leading: IconButton(
           onPressed: () {
             Get.back();

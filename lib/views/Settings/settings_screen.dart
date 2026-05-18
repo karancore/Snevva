@@ -11,7 +11,6 @@ import '../../consts/consts.dart';
 import '../debug_log_page.dart';
 import 'about_screen.dart';
 import 'debug_api_sync_screen.dart';
-import 'debug_period_sync_screen.dart';
 import 'debug_sleep_buffer_screen.dart';
 import 'debug_steps_buffer_screen.dart';
 
@@ -253,16 +252,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               //   ),
               // ),
               // SizedBox(height: height * 0.0117),
-              InkWell(
-                onTap: () {
-                  Get.to(() => AboutScreen());
-                },
-                child: Text(
-                  "About app",
-                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
-                ),
-              ),
-              SizedBox(height: height * 0.0164),
+              // InkWell(
+              //   onTap: () {
+              //     Get.to(() => AboutScreen());
+              //   },
+              //   child: Text(
+              //     "About app",
+              //     style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+              //   ),
+              // ),
+              //
+              // SizedBox(height: height * 0.0164),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -280,6 +280,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               InkWell(
                 onTap: launchEmail,
                 child: buildTile('Contact Us', 'Feedbacks Appreciated!'),
+              ),
+
+              InkWell(
+                onTap: () {
+                  Get.to(() => AboutScreen());
+                },
+                child: buildTile('About app', 'Tap to know more'),
               ),
 
               const SizedBox(height: 10),
@@ -354,25 +361,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
 
-              Text(
-                "Developer Debug",
-                style: TextStyle(
-                  color: Theme.of(context).hintColor,
-                  fontWeight: FontWeight.w400,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              InkWell(
-                onTap: () {
-                  Get.to(() => const DebugPeriodSyncScreen());
-                },
-                child: buildTile(
-                  'Period Sync Logs',
-                  'View background sync logs & API responses',
-                ),
-              ),
+              // Text(
+              //   "Developer Debug",
+              //   style: TextStyle(
+              //     color: Theme.of(context).hintColor,
+              //     fontWeight: FontWeight.w400,
+              //     fontSize: 14,
+              //   ),
+              // ),
+              // const SizedBox(height: 20),
+              //
+              // InkWell(
+              //   onTap: () {
+              //     Get.to(() => const DebugPeriodSyncScreen());
+              //   },
+              //   child: buildTile(
+              //     'Period Sync Logs',
+              //     'View background sync logs & API responses',
+              //   ),
+              // ),
 
             ],
           ),
