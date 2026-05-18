@@ -39,6 +39,12 @@ class _HomeWrapperState extends State<HomeWrapper> {
   bool _hasRedirectedToProfileSetup = false;
   bool _birthdayShown = false;
 
+  // ✅ One-shot gate: set to true once userMap is confirmed non-empty.
+  // Using a plain bool + single setState() avoids rebuilding the Scaffold
+  // on every subsequent userMap change (login refresh, FCM, ever watchers).
+  bool _userMapReady = false;
+  Worker? _userMapWorker;
+
   Widget _buildPage(int index) {
     switch (index) {
       case 0:
@@ -73,7 +79,29 @@ class _HomeWrapperState extends State<HomeWrapper> {
   void initState() {
     super.initState();
     _pages = List<Widget?>.filled(4, null, growable: false);
-    _ensurePageInitialized(_selectedIndex);
+
+    // ✅ If userMap already has data (cold-start with cached session), go
+    // straight to ready state without waiting for an ever() notification.
+    if (localStorageManager.userMap.isNotEmpty) {
+      _userMapReady = true;
+      _ensurePageInitialized(_selectedIndex);
+    } else {
+      // ✅ Fresh login: wait for the first non-empty userMap, flip the flag
+      // exactly once, then cancel the worker so future userMap changes
+      // (FCM, profile updates, etc.) never trigger a rebuild here.
+      _userMapWorker = ever<Map<String, dynamic>>(
+        localStorageManager.userMap,
+        (map) {
+          if (map.isNotEmpty && !_userMapReady && mounted) {
+            _userMapWorker?.dispose();
+            _userMapWorker = null;
+            _ensurePageInitialized(_selectedIndex);
+            setState(() => _userMapReady = true);
+          }
+        },
+      );
+    }
+
     bmiController.loadUserBMI();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -81,7 +109,7 @@ class _HomeWrapperState extends State<HomeWrapper> {
       if (_redirectToProfileSetupIfNeeded()) return;
       await _ensureStartupSequence();
 
-      // ── Birthday popup (ADD THIS BLOCK) ──────────────────────────────
+      // ── Birthday popup ────────────────────────────────────────────────
       if (!_birthdayShown && mounted) {
         _birthdayShown = true;
         final today = DateTime.now();
@@ -137,26 +165,23 @@ class _HomeWrapperState extends State<HomeWrapper> {
 
   @override
   void dispose() {
+    _userMapWorker?.dispose();
     _setStepRealtimeTracking(false);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Gate: don't render the full UI until userMap is populated.
-    // This prevents the ghost/double-render when HomeWrapper builds
-    // before auth_service has finished writing user data into LocalStorageManager.
-    return Obx(() {
-      if (localStorageManager.userMap.isEmpty) {
-        return const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        );
-      }
-      return _buildScaffold(context);
-    });
-  }
+    // ✅ Show a plain loading screen until userMap is ready.
+    // This is a normal StatefulWidget build — no Obx here — so subsequent
+    // userMap changes (FCM, ever watchers, profile refresh) never cause
+    // the IndexedStack/Dashboard to be re-mounted, eliminating the ghost UI.
+    if (!_userMapReady) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
-  Widget _buildScaffold(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;

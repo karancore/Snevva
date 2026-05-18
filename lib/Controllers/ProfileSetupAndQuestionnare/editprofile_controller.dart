@@ -59,7 +59,11 @@ class EditprofileController extends GetxService {
   void _syncGenderFromStorage() {
     final storedGender =
         localStorageManager.userMap['Gender']?.toString() ?? '';
-    if (storedGender.isNotEmpty && storedGender != 'null') {
+    // ✅ Guard: only update if value actually changed — prevents unnecessary
+    // Obx rebuilds in DashboardServicesWidget on repeated userMap refreshes.
+    if (storedGender.isNotEmpty &&
+        storedGender != 'null' &&
+        storedGender != gender.value) {
       gender.value = storedGender;
     }
   }

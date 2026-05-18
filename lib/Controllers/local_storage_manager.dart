@@ -18,24 +18,36 @@ class LocalStorageManager extends GetxService {
   @override
   void onInit() {
     super.onInit();
-    reloadUserMap();
-    loadProfilePicture();
+    // ✅ Load user map first, then attempt to precache profile picture.
+    // Calling loadProfilePicture() before reloadUserMap() completes causes
+    // the 'https://null' precache crash (ProfilePicture not yet in map).
+    reloadUserMap().then((_) => loadProfilePicture());
   }
 
   Future<void> loadProfilePicture() async {
-    final String? cdnUrl = userMap['ProfilePicture']?['CdnUrl'];
+    final String? cdnUrl = userMap['ProfilePicture']?['CdnUrl']?.toString();
+    final trimmedCdnUrl = cdnUrl?.trim();
 
-    String profilePictureUrl = 'https://$cdnUrl';
-    if (profilePictureUrl.isNotEmpty) {
-      try {
-        // Preload the image to cache it
-        await precacheImage(
-          CachedNetworkImageProvider(profilePictureUrl),
-          Get.context!,
-        );
-      } catch (e) {
-        debugPrint('Error preloading profile picture: $e');
-      }
+    if (trimmedCdnUrl == null ||
+        trimmedCdnUrl.isEmpty ||
+        trimmedCdnUrl.toLowerCase() == 'null') {
+      return;
+    }
+
+    final context = Get.context;
+    if (context == null) return;
+
+    final profilePictureUrl =
+        trimmedCdnUrl.startsWith('http')
+            ? trimmedCdnUrl
+            : 'https://$trimmedCdnUrl';
+    try {
+      await precacheImage(
+        CachedNetworkImageProvider(profilePictureUrl),
+        context,
+      );
+    } catch (e) {
+      debugPrint('Error preloading profile picture: $e');
     }
   }
   // // Optional: use this if you need async init
@@ -70,10 +82,7 @@ class LocalStorageManager extends GetxService {
   Future<void> saveUserMap() async {
     final prefs = await SharedPreferences.getInstance();
 
-    await prefs.setString(
-      'userdata',
-      jsonEncode(userMap),
-    );
+    await prefs.setString('userdata', jsonEncode(userMap));
 
     userMap.refresh();
   }
@@ -81,10 +90,7 @@ class LocalStorageManager extends GetxService {
   Future<void> saveUserGoalMap() async {
     final prefs = await SharedPreferences.getInstance();
 
-    await prefs.setString(
-      'userGoaldata',
-      jsonEncode(userGoalDataMap),
-    );
+    await prefs.setString('userGoaldata', jsonEncode(userGoalDataMap));
 
     userGoalDataMap.refresh();
   }
@@ -118,7 +124,6 @@ class LocalStorageManager extends GetxService {
     userMap['AddressByUser'] ??= '';
 
     userMap['OccupationData']?['Name'] ??= {'Name': null};
-
 
     userMap['WeightData']?['Value'] ??= {'Value': null};
   }
