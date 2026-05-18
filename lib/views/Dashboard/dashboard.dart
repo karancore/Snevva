@@ -267,41 +267,34 @@ class _DashboardState extends State<Dashboard>
                             children: [
                               if (isVisible)
                                 Obx(() {
-                                  bool anyEmpty = hasEmptyValue(
+                                  final anyEmpty = hasEmptyValue(
                                     localStorageManager.userMap,
                                   );
-                                  debugPrint(anyEmpty.toString());
+                                  final phoneMissing = localStorageManager
+                                              .userMap['PhoneNumber']
+                                              ?.toString()
+                                              .trim()
+                                              .isEmpty !=
+                                          false ||
+                                      localStorageManager.userMap['PhoneNumber'] ==
+                                          null;
 
-                                  return anyEmpty
-                                      ? SizedBox(height: 16)
-                                      : SizedBox(height: 32);
-                                })
-                              else
-                                SizedBox.shrink(),
-                              if (isVisible)
-                                Obx(() {
-                                  bool anyEmpty = hasEmptyValue(
-                                    localStorageManager.userMap,
+                                  if (!anyEmpty) return const SizedBox(height: 32);
+                                  if (phoneMissing) {
+                                    // overlay already shows the card; just add spacing
+                                    return const SizedBox(height: 16);
+                                  }
+                                  return Column(
+                                    children: [
+                                      const SizedBox(height: 16),
+                                      IncompleteProfileCard(
+                                        onTapComplete: () =>
+                                            Get.to(() => const EditProfileScreen()),
+                                      ),
+                                      const SizedBox(height: 16),
+                                    ],
                                   );
-                                  debugPrint(anyEmpty.toString());
-
-                                  return anyEmpty
-                                      ? Column(
-                                        children: [
-                                          IncompleteProfileCard(
-                                            onTapComplete:
-                                                () => Get.to(
-                                                  () =>
-                                                      const EditProfileScreen(),
-                                                ),
-                                          ),
-                                          SizedBox(height: 16),
-                                        ],
-                                      )
-                                      : SizedBox.shrink();
-                                })
-                              else
-                                SizedBox.shrink(),
+                                }),
 
                               DashboardHeaderWidget(),
                               const SizedBox(height: 24),
