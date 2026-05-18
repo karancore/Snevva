@@ -48,6 +48,20 @@ class EditprofileController extends GetxService {
     super.onInit();
     otpVerificationController = Get.find<OTPVerificationController>();
     initialProfileController = Get.find<ProfileSetupController>();
+
+    // ✅ Seed gender immediately so Obx widgets never render with empty gender
+    _syncGenderFromStorage();
+
+    // ✅ Keep gender in sync if userMap is reloaded (e.g. after login)
+    ever(localStorageManager.userMap, (_) => _syncGenderFromStorage());
+  }
+
+  void _syncGenderFromStorage() {
+    final storedGender =
+        localStorageManager.userMap['Gender']?.toString() ?? '';
+    if (storedGender.isNotEmpty && storedGender != 'null') {
+      gender.value = storedGender;
+    }
   }
 
   // void updateField(String key, dynamic value) {

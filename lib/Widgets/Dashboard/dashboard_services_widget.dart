@@ -29,25 +29,8 @@ class DashboardServicesWidget extends StatefulWidget {
 }
 
 class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
-  String? localGender;
-  bool isLoading = true;
-  String? selectedGender;
-  String? gender;
-
-
   final localstorage = Get.find<LocalStorageManager>();
-  final editprofileController = Get.find<EditprofileController>(); // ✅ add
-
-  @override
-  void initState() {
-    super.initState();
-
-
-    final savedGender = localstorage.userMap['Gender']?.toString();
-    if (savedGender != null && editprofileController.gender.value.isEmpty) {
-      editprofileController.gender.value = savedGender;
-    }
-  }
+  final editprofileController = Get.find<EditprofileController>();
 
 
   @override
@@ -76,12 +59,6 @@ class _DashboardServicesWidgetState extends State<DashboardServicesWidget> {
     final SleepGoalData = userActiveData['SleepGoalData'];
 
     logLong('userActiveData:  ', userActiveData.toString());
-    // Safe check for userData and gender
-    // final gender = selectedGender ?? localgender ?? 'Unknown';
-    // gender = (localGender != null) ? localGender : userData['Gender'];
-
-    debugPrint('User Gender: $gender');
-    // debugPrint(userInfo);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,6 +1,7 @@
 import 'package:alarm/alarm.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:get/instance_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -142,6 +143,20 @@ class _HomeWrapperState extends State<HomeWrapper> {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ Gate: don't render the full UI until userMap is populated.
+    // This prevents the ghost/double-render when HomeWrapper builds
+    // before auth_service has finished writing user data into LocalStorageManager.
+    return Obx(() {
+      if (localStorageManager.userMap.isEmpty) {
+        return const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        );
+      }
+      return _buildScaffold(context);
+    });
+  }
+
+  Widget _buildScaffold(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
