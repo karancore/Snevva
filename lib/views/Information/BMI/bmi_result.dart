@@ -6,9 +6,11 @@ import 'package:snevva/consts/colors.dart';
 import 'package:snevva/consts/images.dart';
 import 'package:snevva/widgets/app_loader.dart';
 
+import '../../../Controllers/local_storage_manager.dart';
 import '../../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../../models/common_tips_response.dart';
 import '../Health Tips/Nutrition_tips.dart/nutrition_tips.dart';
+import 'bmi_update_result.dart';
 
 class BmiResultPage extends StatefulWidget {
   final double bmi;
@@ -22,6 +24,9 @@ class BmiResultPage extends StatefulWidget {
 
 class _BmiResultPageState extends State<BmiResultPage> {
   late final BmiController controller;
+  late final LocalStorageManager localstorage;
+
+  String bubbleText = '';
 
   String getStatus(double bmi) {
     if (bmi < 18.5) return 'Underweight';
@@ -50,15 +55,33 @@ class _BmiResultPageState extends State<BmiResultPage> {
     return (bmi - 12) / (40 - 12);
   }
 
+  String getGenderPicture({required String gender}) {
+    if (gender == 'Female') return female;
+    if (gender == 'Male') return male;
+    return male;
+  }
+
+  String imagePath = '';
+
   @override
   void initState() {
     super.initState();
-    controller = Get.put(BmiController());
+    controller = Get.find<BmiController>();
+    localstorage = Get.find<LocalStorageManager>();
+    final userInfo = localstorage.userMap;
+
+    imagePath = getGenderPicture(gender: userInfo['Gender'].toString());
+
+    debugPrint("image path is $imagePath");
+
     controller.age.value = widget.age;
     controller.bmi_text.value = getStatus(widget.bmi);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.loadAllHealthTips(context);
     });
+
+    bubbleText = getBubbleText(status: getStatus(widget.bmi));
   }
 
   @override
@@ -66,12 +89,14 @@ class _BmiResultPageState extends State<BmiResultPage> {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
+    double screenWidth = mediaQuery.size.width;
+    double scale = screenWidth / 360;
 
     // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final status = getStatus(widget.bmi);
     final statusColor = getStatusColor(widget.bmi);
-    final imagePath = getImg(widget.bmi);
+    // final imagePath = getImg(widget.bmi);
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
@@ -80,154 +105,186 @@ class _BmiResultPageState extends State<BmiResultPage> {
       appBar: CustomAppBar(appbarText: "BMI Result"),
       body: SingleChildScrollView(
         controller: controller.scrollController,
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 90),
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                children: [
+                  const SizedBox(height: 90),
 
-              // Elephant Image
-              Image.asset(
-                imagePath, // Replace with your image path
-                height: 150,
-              ),
-
-              const SizedBox(height: 20),
-
-              // BMI Value Card
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 10,
-                  horizontal: 20,
-                ),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  widget.bmi.toStringAsFixed(2),
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: statusColor,
+                  // Elephant Image
+                  Image.asset(
+                    imagePath, // Replace with your image path
+                    height: 150,
                   ),
-                ),
-              ),
 
-              const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-              // Color-coded BMI Indicator Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Stack(
-                  alignment: Alignment.centerLeft,
-                  children: [
-                    Container(
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.yellow,
-                            Colors.green,
-                            Colors.orange,
-                            Colors.red,
-                          ],
-                          stops: [0.25, 0.5, 0.75, 1],
+                  // BMI Value Card
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 20,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      widget.bmi.toStringAsFixed(2),
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: statusColor,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Color-coded BMI Indicator Bar
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Stack(
+                      alignment: Alignment.centerLeft,
+                      children: [
+                        Container(
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.yellow,
+                                Colors.green,
+                                Colors.orange,
+                                Colors.red,
+                              ],
+                              stops: [0.25, 0.5, 0.75, 1],
+                            ),
+                            borderRadius: BorderRadius.all(Radius.circular(3)),
+                          ),
                         ),
-                        borderRadius: BorderRadius.all(Radius.circular(3)),
-                      ),
+                        Positioned(
+                          left:
+                              getSliderPosition(widget.bmi) *
+                              MediaQuery.of(context).size.width *
+                              0.8,
+                          child: const Icon(
+                            Icons.arrow_drop_down,
+                            size: 30,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ],
                     ),
-                    Positioned(
-                      left:
-                          getSliderPosition(widget.bmi) *
-                          MediaQuery.of(context).size.width *
-                          0.8,
-                      child: const Icon(
-                        Icons.arrow_drop_down,
-                        size: 30,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Status Text
-              Text(
-                status,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: statusColor,
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              // Suggestions Section
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Suggestions",
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
                   ),
-                ),
-              ),
 
-              const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-              Obx(() {
-                final tips = controller.randomTips;
+                  // Status Text
+                  Text(
+                    status,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: statusColor,
+                    ),
+                  ),
 
-                if (controller.isLoading.value) {
-                  return const AppLoader();
-                }
+                  const SizedBox(height: 30),
 
-                if (tips.isEmpty) {
-                  return const Text("No suggestions found.");
-                }
+                  // Suggestions Section
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "Suggestions",
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
 
-                return Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
-                  children:
-                  tips.map((tipData) {
-                    final tip = CommonTip.fromJson(tipData);
+                  const SizedBox(height: 12),
 
-                    return SizedBox(
+                  Obx(() {
+                    final tips = controller.randomTips;
+
+                    if (controller.isLoading.value) {
+                      return const AppLoader();
+                    }
+
+                    if (tips.isEmpty) {
+                      return const Text("No suggestions found.");
+                    }
+
+                    return Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
+                      children:
+                          tips.map((tipData) {
+                            final tip = CommonTip.fromJson(tipData);
+
+                            return SizedBox(
                           width: (width - 56) / 2,
                           child: _buildTipCard(
                             heading: tip.heading ?? '',
                             title: tip.title ?? '',
-                            image:
-                            "https://${tip.thumbnailMedia?.cdnUrl}",
+                            image: "https://${tip.thumbnailMedia?.cdnUrl}",
                             isDarkMode: isDarkMode,
                             onButtonTap:
-                                () => Get.to(
-                                      () => NutritionTipsPage(commonTip: tip,),
+                                () =>
+                                Get.to(
+                                      () => NutritionTipsPage(commonTip: tip),
                                 ),
                           ),
                         );
                       }).toList(),
-                );
-              }),
+                    );
+                  }),
 
-              Obx(
-                () =>
-                    controller.isLoadingMore.value
-                        ? const Padding(
-                          padding: EdgeInsets.only(top: 16),
-                          child: AppLoader(size: 36),
-                        )
-                        : const SizedBox.shrink(),
+                  Obx(
+                    () =>
+                        controller.isLoadingMore.value
+                            ? const Padding(
+                              padding: EdgeInsets.only(top: 16),
+                              child: AppLoader(size: 36),
+                            )
+                            : const SizedBox.shrink(),
+                  ),
+
+                  const SizedBox(height: 40),
+                ],
               ),
+            ),
+            Positioned(
+              top: -18 * scale,
+              left: 40 * scale,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Image.asset(bubble, height: 150),
 
-              const SizedBox(height: 40),
-            ],
-          ),
+                  Positioned(
+                    top: 40 * scale,
+                    left: 26 * scale,
+
+                    child: Text(
+                      getBubbleText(status: getStatus(widget.bmi)),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        color: isDarkMode ? black : white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: getFontSize(status: bubbleText),
+                        height: 1.0,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

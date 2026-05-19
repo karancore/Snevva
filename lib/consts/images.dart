@@ -202,6 +202,9 @@ const bmiElephant = 'assets/Images/BMI/bmi_Eli.svg';
 const bmidiet = 'assets/Images/BMI/bmiDiet.webp';
 const bmiCalculator = 'assets/Images/BMI/bmi-calculator-hero-img.webp';
 const circularArrowButton = "assets/Images/Emergency/circularArrowButton.svg";
+const bubble = "assets/Images/BMI/bubble.png";
+const female = "assets/Images/BMI/female.png";
+const male = "assets/Images/BMI/male.png";
 //Emergency Screen
 const emergencyButton = "assets/Images/Emergency/emergencyButton.svg";
 
