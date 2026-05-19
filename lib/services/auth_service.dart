@@ -280,9 +280,12 @@ class AuthService {
 
       debugPrint('User active data: ${jsonEncode(userActiveData)}');
       localStorageManager.userGoalDataMap.value = userActiveData ?? {};
-      prefs.setString('userGoalDataMap', jsonEncode(userActiveData));
 
       if (userActiveData != null && userActiveData is Map) {
+        await prefs.setString(
+          LocalStorageManager.userGoalDataPrefsKey,
+          jsonEncode(userActiveData),
+        );
         await prefs.setString('useractivedata', jsonEncode(userActiveData));
 
         /// HOME

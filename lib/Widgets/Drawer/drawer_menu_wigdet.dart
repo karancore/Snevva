@@ -493,7 +493,7 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                         onPressed: isLoading ? null : performLogout,
                         style: OutlinedButton.styleFrom(
                           backgroundColor: isLoading
-                              ? grey.withOpacity(0.5)
+                              ? white.withOpacity(0.5)
                               : isDarkMode
                               ? const Color(
                               0xFF1E1028) // deep dark purple, visible on black

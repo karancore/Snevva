@@ -40,10 +40,7 @@ class SignInController extends GetxService {
 
     final hashedPassword = encryptPasswordRuntime(password);
 
-    final plainEmail = jsonEncode({
-      'Gmail': email,
-      'Password': hashedPassword,
-    });
+    final plainEmail = jsonEncode({'Gmail': email, 'Password': hashedPassword});
 
     try {
       final uri = Uri.parse("$baseUrl$signInEmailEndpoint");
@@ -188,7 +185,10 @@ class SignInController extends GetxService {
 
         if (data is Map) {
           final userGoalJson = jsonEncode(data);
-          await prefs.setString('userGoaldata', userGoalJson);
+          await prefs.setString(
+            LocalStorageManager.userGoalDataPrefsKey,
+            userGoalJson,
+          );
           debugPrint('💾 userGoaldata saved to SharedPreferences');
         } else {
           debugPrint('⚠️ userGoaldata is NOT a Map — nothing saved');
@@ -289,7 +289,8 @@ class SignInController extends GetxService {
         CustomSnackbar.showError(
           context: context,
           title: 'Server Unreachable',
-          message: 'Our servers are currently unavailable or responding too slowly.\n Please try again in a moment.',
+          message:
+              'Our servers are currently unavailable or responding too slowly.\n Please try again in a moment.',
         );
       } else {
         CustomSnackbar.showError(
@@ -497,7 +498,10 @@ class SignInController extends GetxService {
 
         if (data is Map) {
           final userGoalJson = jsonEncode(data);
-          await prefs.setString('userGoaldata', userGoalJson);
+          await prefs.setString(
+            LocalStorageManager.userGoalDataPrefsKey,
+            userGoalJson,
+          );
           debugPrint('💾 userGoaldata saved to SharedPreferences');
         } else {
           debugPrint('⚠️ userGoaldata is NOT a Map — nothing saved');
@@ -604,7 +608,8 @@ class SignInController extends GetxService {
         CustomSnackbar.showError(
           context: context,
           title: 'Server Unreachable',
-          message: 'Our servers are currently unavailable or responding too slowly.\n Please try again in a moment.',
+          message:
+              'Our servers are currently unavailable or responding too slowly.\n Please try again in a moment.',
         );
       } else {
         CustomSnackbar.showError(

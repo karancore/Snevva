@@ -50,15 +50,18 @@ class _BmiCalState extends State<BmiCal> {
     _middleIndex = _virtualItemCount ~/ 2;
 
     // Height
-    final heightValue = localStorageManager
-        .userGoalDataMap['HeightData']?['Value'];
-    height = heightValue is num ? heightValue.toDouble() : 185.0;
+    final heightValue =
+        localStorageManager.userGoalDataMap['HeightData']?['Value'];
+    height =
+        heightValue is num && heightValue > 0 ? heightValue.toDouble() : 185.0;
 
     // Weight
-    final weightValue = localStorageManager
-        .userGoalDataMap['WeightData']?['Value'];
-    weight = weightValue is num ? weightValue.toDouble() : 52.0;
-    selectedWeight = weightValue is num ? weightValue.toInt() : 52;
+    final weightValue =
+        localStorageManager.userGoalDataMap['WeightData']?['Value'];
+    weight =
+        weightValue is num && weightValue > 0 ? weightValue.toDouble() : 52.0;
+    selectedWeight =
+        weightValue is num && weightValue > 0 ? weightValue.toInt() : 52;
 
     // Age  ← was hardcoded to 19
 
@@ -89,19 +92,20 @@ class _BmiCalState extends State<BmiCal> {
     }
 
     // Gender  ← was hardcoded to true
-    final genderValue = localStorageManager.userMap['Gender']
-        ?.toString()
-        .toLowerCase();
+    final genderValue =
+        localStorageManager.userMap['Gender']?.toString().toLowerCase();
     isMale = genderValue == 'male' || genderValue == 'm' || genderValue == '1';
 
     debugPrint(
-        "Height: $height | Weight: $weight | Age: $age | isMale: $isMale");
+      "Height: $height | Weight: $weight | Age: $age | isMale: $isMale",
+    );
     debugPrint(
-        "HeightValue: $heightValue | WeightValue: $weightValue | isMale: $isMale");
+      "HeightValue: $heightValue | WeightValue: $weightValue | isMale: $isMale",
+    );
 
-
-    weightController =
-        FixedExtentScrollController(initialItem: selectedWeight - 1);
+    weightController = FixedExtentScrollController(
+      initialItem: selectedWeight - 1,
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 50), () {
@@ -322,11 +326,14 @@ class _BmiCalState extends State<BmiCal> {
                                           setState(() => age--);
                                         } else {
                                           // debounce logic
-                                          if (_ageDebounce?.isActive ?? false)
+                                          if (_ageDebounce?.isActive ?? false) {
                                             return;
+                                          }
 
-                                          _ageDebounce = Timer(const Duration(
-                                              seconds: 2), () {});
+                                          _ageDebounce = Timer(
+                                            const Duration(seconds: 2),
+                                            () {},
+                                          );
 
                                           Get.snackbar(
                                             "Minimum Age Reached",
@@ -337,15 +344,16 @@ class _BmiCalState extends State<BmiCal> {
                                             backgroundColor: Colors.orange
                                                 .withOpacity(0.9),
                                             colorText: Colors.white,
-                                            icon: const Icon(Icons.info_outline,
-                                                color: Colors.white),
+                                            icon: const Icon(
+                                              Icons.info_outline,
+                                              color: Colors.white,
+                                            ),
                                             duration: const Duration(
-                                                seconds: 2),
+                                              seconds: 2,
+                                            ),
                                           );
                                         }
                                       },
-
-
                                     ),
                                     AutoSizeText(
                                       "$age",
@@ -364,13 +372,15 @@ class _BmiCalState extends State<BmiCal> {
                                       ),
                                       onPressed: () async {
                                         if (age < 5 || age > 120) {
-                                          Timer? _ageDebounce;
                                           // debounce logic
-                                          if (_ageDebounce?.isActive ?? false)
+                                          if (_ageDebounce?.isActive ?? false) {
                                             return;
+                                          }
 
-                                          _ageDebounce = Timer(const Duration(
-                                              seconds: 2), () {});
+                                          _ageDebounce = Timer(
+                                            const Duration(seconds: 2),
+                                            () {},
+                                          );
                                           Get.snackbar(
                                             "Invalid Age",
                                             "Please select an age between 5 and 120 years.",
@@ -378,10 +388,12 @@ class _BmiCalState extends State<BmiCal> {
                                             margin: const EdgeInsets.all(12),
                                             borderRadius: 10,
                                             backgroundColor: AppColors
-                                                .primaryColor.withOpacity(0.8),
+                                                .primaryColor
+                                                .withOpacity(0.8),
                                             colorText: Colors.white,
                                             duration: const Duration(
-                                                seconds: 2),
+                                              seconds: 2,
+                                            ),
                                           );
                                           return;
                                         }
@@ -389,24 +401,22 @@ class _BmiCalState extends State<BmiCal> {
                                         double bmi =
                                             weight / pow(height / 100, 2);
 
-                                        final bmicontroller = Get.put(
-                                          BmiUpdateController(),
-                                        );
+                                        final bmicontroller =
+                                            Get.find<BmiUpdateController>();
                                         bool flag = await bmicontroller
                                             .setHeightAndWeight(
-                                          context,
-                                          age,
-                                          height,
-                                          weight,
-                                        );
+                                              context,
+                                              age,
+                                              height,
+                                              weight,
+                                            );
 
                                         if (flag) {
                                           Get.to(
-                                                () =>
-                                                BmiResultPage(
-                                                  bmi: bmi,
-                                                  age: age,
-                                                ),
+                                            () => BmiResultPage(
+                                              bmi: bmi,
+                                              age: age,
+                                            ),
                                           );
                                         }
                                       },
@@ -587,7 +597,7 @@ class _BmiCalState extends State<BmiCal> {
             onTap: () async {
               double bmi = weight / pow(height / 100, 2);
 
-              final bmicontroller = Get.put(BmiUpdateController());
+              final bmicontroller = Get.find<BmiUpdateController>();
               bool flag = await bmicontroller.setHeightAndWeight(
                 context,
                 age,
@@ -606,5 +616,4 @@ class _BmiCalState extends State<BmiCal> {
       ),
     );
   }
-
 }

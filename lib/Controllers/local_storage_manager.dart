@@ -8,8 +8,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/device_token_service.dart';
 
 class LocalStorageManager extends GetxService {
+  static const String userGoalDataPrefsKey = 'userGoaldata';
+  static const List<String> legacyUserGoalDataPrefsKeys = [
+    'userGoalDataMap',
+    'useractivedata',
+  ];
+
   RxMap<String, dynamic> userMap = <String, dynamic>{}.obs;
-  bool _sessionChecked = false;
 
   RxMap<String, dynamic> userGoalDataMap = <String, dynamic>{}.obs;
 
@@ -90,7 +95,7 @@ class LocalStorageManager extends GetxService {
   Future<void> saveUserGoalMap() async {
     final prefs = await SharedPreferences.getInstance();
 
-    await prefs.setString('userGoaldata', jsonEncode(userGoalDataMap));
+    await prefs.setString(userGoalDataPrefsKey, jsonEncode(userGoalDataMap));
 
     userGoalDataMap.refresh();
   }
@@ -115,7 +120,7 @@ class LocalStorageManager extends GetxService {
     final prefs = await SharedPreferences.getInstance();
 
     userMap.value = _safeDecode(prefs.getString('userdata'));
-    userGoalDataMap.value = _safeDecode(prefs.getString('userGoaldata'));
+    userGoalDataMap.value = _safeDecode(_readUserGoalDataJson(prefs));
 
     userMap['HeightData']?['Value'] ??= {'Value': null};
     userMap['Email'] ??= '';
@@ -126,6 +131,18 @@ class LocalStorageManager extends GetxService {
     userMap['OccupationData']?['Name'] ??= {'Name': null};
 
     userMap['WeightData']?['Value'] ??= {'Value': null};
+  }
+
+  String? _readUserGoalDataJson(SharedPreferences prefs) {
+    final current = prefs.getString(userGoalDataPrefsKey);
+    if (current != null && current.isNotEmpty) return current;
+
+    for (final key in legacyUserGoalDataPrefsKeys) {
+      final legacy = prefs.getString(key);
+      if (legacy != null && legacy.isNotEmpty) return legacy;
+    }
+
+    return null;
   }
 
   Map<String, dynamic> _safeDecode(String? jsonStr) {

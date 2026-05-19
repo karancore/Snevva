@@ -174,17 +174,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Obx(
                     () => CupertinoSwitch(
                       value:
-                          pushNotificationsController.isNotificationEnabled.value,
+                          pushNotificationsController
+                              .isNotificationEnabled
+                              .value,
 
                       activeColor: AppColors.activeSwitch,
 
                       onChanged:
-                          pushNotificationsController.isUpdatingNotification.value
+                          pushNotificationsController
+                                  .isUpdatingNotification
+                                  .value
                               ? null
                               : (value) {
-                                pushNotificationsController.disableNotifications(
-                                  value,
-                                );
+                                pushNotificationsController
+                                    .disableNotifications(value);
                               },
                     ),
                   ),
@@ -289,25 +292,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: buildTile('About app', 'Tap to know more'),
               ),
 
-              const SizedBox(height: 10),
+              // 🔥 Debug Logs (Visible only in debug mode)
+              if (kDebugMode) const SizedBox(height: 10),
               const Divider(thickness: border04px, color: mediumGrey),
               const SizedBox(height: 20),
 
-
               Text(
                 "Developer Debug",
-
                 style: TextStyle(
                   color: Theme.of(context).hintColor,
-
                   fontWeight: FontWeight.w400,
-
                   fontSize: 14,
                 ),
               ),
-
               const SizedBox(height: 20),
-
               InkWell(
                 onTap: () {
                   Get.to(() => const DebugSleepBufferScreen());
@@ -343,23 +341,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
 
-              // 🔥 Debug Logs (Visible only in debug mode)
-              if (kDebugMode)
-                InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
+              InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
 
-                      MaterialPageRoute(builder: (_) => const DebugLogPage()),
-                    );
-                  },
+                    MaterialPageRoute(builder: (_) => const DebugLogPage()),
+                  );
+                },
 
-                  child: buildTile(
-                    'Debug Logs',
+                child: buildTile(
+                  'Debug Logs',
 
-                    'View API responses, errors & logs',
-                  ),
+                  'View API responses, errors & logs',
                 ),
+              ),
 
               // Text(
               //   "Developer Debug",
@@ -380,7 +376,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               //     'View background sync logs & API responses',
               //   ),
               // ),
-
             ],
           ),
         ),

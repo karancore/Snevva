@@ -57,27 +57,29 @@ class _BmiUpdatecalState extends State<BmiUpdatecal> {
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
 
-
     final heightValue =
-    localStorageManager.userGoalDataMap['HeightData']?['Value'];
+        localStorageManager.userGoalDataMap['HeightData']?['Value'];
 
     print("Heightvalue is $heightValue");
 
-    height = double.tryParse(
-        (heightValue is num) ? heightValue.toStringAsFixed(2) : '') ?? 185;
+    height =
+        heightValue is num && heightValue > 0
+            ? double.parse(heightValue.toStringAsFixed(2))
+            : 185;
     print("height is $height");
 
     // debugPrint(localStorageManager.userGoalDataMap['HeightData']?['Value']);
     // debugPrint(controller.heightValue);
 
     final weightValue =
-    localStorageManager.userGoalDataMap['WeightData']?['Value'];
-    weight = weightValue is num ? weightValue.toDouble() : 52.0;
-    selectedWeight = weightValue is num ? weightValue.toInt() : 85;
+        localStorageManager.userGoalDataMap['WeightData']?['Value'];
+    weight =
+        weightValue is num && weightValue > 0 ? weightValue.toDouble() : 52.0;
+    selectedWeight =
+        weightValue is num && weightValue > 0 ? weightValue.toInt() : 52;
 
     print("Weight value is $weightValue");
     print("height is $weight");
-
 
     _middleIndex = _virtualItemCount ~/ 2;
 

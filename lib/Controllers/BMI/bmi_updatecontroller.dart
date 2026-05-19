@@ -52,18 +52,9 @@ class BmiUpdateController extends GetxService {
   }
 
   void updateBmiValues() {
-    // Guard: ensure sub-maps exist before writing, in case the goal data
-    // hasn't been loaded from SharedPreferences yet (e.g. first-time save).
-    if (localStorageManager.userGoalDataMap['HeightData'] == null) {
-      localStorageManager.userGoalDataMap['HeightData'] = <String, dynamic>{};
-    }
-    if (localStorageManager.userGoalDataMap['WeightData'] == null) {
-      localStorageManager.userGoalDataMap['WeightData'] = <String, dynamic>{};
-    }
-    localStorageManager.userGoalDataMap['HeightData']['Value'] = height.value;
-    localStorageManager.userGoalDataMap['WeightData']['Value'] = weight.value;
-
-    // ✅ Recalculate BMI
+    // This controller may initialize before active profile data is loaded.
+    // Keep this method calculation-only so default 0.0 values never overwrite
+    // the user's cached height/weight.
     if (height.value > 0 && weight.value > 0) {
       final heightInMeters = height.value / 100;
       bmi.value = double.parse(
@@ -90,9 +81,21 @@ class BmiUpdateController extends GetxService {
     dynamic height,
     dynamic weight,
   ) async {
+    final heightValue = _positiveDoubleOrNull(height);
+    final weightValue = _positiveDoubleOrNull(weight);
+
+    if (heightValue == null || weightValue == null) {
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Invalid value',
+        message: 'Height and weight must be greater than zero.',
+      );
+      return false;
+    }
+
     final flag1 = await editprofileController.saveHeight(
       context,
-      height,
+      heightValue,
       day: DateTime.now().day,
       month: DateTime.now().month,
       year: DateTime.now().year,
@@ -100,7 +103,7 @@ class BmiUpdateController extends GetxService {
     );
     final flag2 = await editprofileController.saveWeight(
       context,
-      weight,
+      weightValue,
       day: DateTime.now().day,
       month: DateTime.now().month,
       year: DateTime.now().year,
@@ -117,10 +120,13 @@ class BmiUpdateController extends GetxService {
     }
 
     this.age.value = age;
-    this.height.value = height;
-    this.weight.value = weight;
+    this.height.value = heightValue;
+    this.weight.value = weightValue;
+    await _saveHeightAndWeightLocally(heightValue, weightValue);
 
-    debugPrint('Set Age: $age, Height: $height cm, Weight: $weight kg');
+    debugPrint(
+      'Set Age: $age, Height: $heightValue cm, Weight: $weightValue kg',
+    );
     // updateBmiValues();
     return true;
   }
@@ -130,22 +136,16 @@ class BmiUpdateController extends GetxService {
     // final savedHeight = prefs.getDouble('height') ?? 0.0; // cm
     // final savedWeight = prefs.getDouble('weight') ?? 0.0; // kg
 
-    final savedHeight =
-        localStorageManager.userGoalDataMap['HeightData'] != null
-            ? double.tryParse(
-                  localStorageManager.userGoalDataMap['HeightData']['Value']
-                      .toString(),
-                ) ??
-                0.0
-            : 0.0;
-    final savedWeight =
-        localStorageManager.userGoalDataMap['WeightData'] != null
-            ? double.tryParse(
-                  localStorageManager.userGoalDataMap['WeightData']['Value']
-                      .toString(),
-                ) ??
-                0.0
-            : 0.0;
+    final savedHeight = _readGoalValue('HeightData');
+    final savedWeight = _readGoalValue('WeightData');
+
+    if (savedHeight == null || savedWeight == null) {
+      height.value = 0.0;
+      weight.value = 0.0;
+      bmi.value = 0.0;
+      debugPrint('BMI data unavailable; skipping height/weight cache update');
+      return;
+    }
 
     height.value = savedHeight;
     weight.value = savedWeight;
@@ -170,6 +170,36 @@ class BmiUpdateController extends GetxService {
     }
 
     debugPrint('Calculated BMI: ${bmi.value}');
+  }
+
+  double? _readGoalValue(String key) {
+    final rawValue = localStorageManager.userGoalDataMap[key]?['Value'];
+    return _positiveDoubleOrNull(rawValue);
+  }
+
+  double? _positiveDoubleOrNull(dynamic value) {
+    final parsed =
+        value is num ? value.toDouble() : double.tryParse(value.toString());
+    if (parsed == null || parsed <= 0) return null;
+    return parsed;
+  }
+
+  Map<String, dynamic> _goalDataMapFor(String key) {
+    final current = localStorageManager.userGoalDataMap[key];
+    if (current is Map) return Map<String, dynamic>.from(current);
+    return <String, dynamic>{};
+  }
+
+  Future<void> _saveHeightAndWeightLocally(
+    double heightValue,
+    double weightValue,
+  ) async {
+    final heightData = _goalDataMapFor('HeightData')..['Value'] = heightValue;
+    final weightData = _goalDataMapFor('WeightData')..['Value'] = weightValue;
+
+    localStorageManager.userGoalDataMap['HeightData'] = heightData;
+    localStorageManager.userGoalDataMap['WeightData'] = weightData;
+    await localStorageManager.saveUserGoalMap();
   }
 
   Future<void> loadAllHealthTips(BuildContext context) async {

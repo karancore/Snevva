@@ -64,7 +64,7 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
   @override
   void initState() {
     super.initState();
-    controller = Get.put(BmiUpdateController());
+    controller = Get.find<BmiUpdateController>();
     controller.age.value = widget.age;
     controller.bmi_text.value = getStatus(widget.bmi);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -106,7 +106,6 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
     final status = getStatus(widget.bmi);
     final statusColor = getStatusColor(widget.bmi);
     final imagePath = getImg(widget.bmi);
-
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
@@ -223,7 +222,7 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
                   "Update BMI",
                   style: TextStyle(
                     fontSize: 16,
-                    color: isDarkMode ? white : black,
+                    color: isDarkMode ? white : white,
                   ),
                 ),
               ),
@@ -262,21 +261,19 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
                   spacing: 16,
                   runSpacing: 16,
                   children:
-                  tips.map((tipData) {
-                    final tip = CommonTip.fromJson(tipData);
+                      tips.map((tipData) {
+                        final tip = CommonTip.fromJson(tipData);
 
                         return SizedBox(
                           width: (width - 56) / 2,
                           child: _buildTipCard(
                             heading: tip.heading ?? '',
                             title: tip.title ?? '',
-                            image:
-                            "https://${tip.thumbnailMedia?.cdnUrl}",
+                            image: "https://${tip.thumbnailMedia?.cdnUrl}",
                             isDarkMode: isDarkMode,
                             onButtonTap:
                                 () => Get.to(
-                                      () => NutritionTipsPage(commonTip: tip,),
-
+                                  () => NutritionTipsPage(commonTip: tip),
                                 ),
                           ),
                         );
@@ -364,11 +361,13 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
                 vertical: 6,
               ),
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(ackgroundColor: AppColors.primaryColor,
-                  mminimumSize: const Size(75, 18),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryColor,
+                  minimumSize: const Size(75, 18),
 
-                  // OR fixedSize: const Size(90, 32),hape: RoundedRectangleBorder(
-                    bborderRadius: BorderRadius.circular(30),
+                  // OR fixedSize: const Size(90, 32),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
                   ),
 
                   // Inner spacing
@@ -384,33 +383,34 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
                   children: [
                     const Text(
                       "Know More",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Colors.white, fontSize: 12),
                     ),
-                    const SizedBox(width: 4,),
+                    const SizedBox(width: 4),
                     SizedBox(
                       height: 14,
                       width: 14,
                       child: Container(
                         decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isDarkMode
-                                ? darkGray.withOpacity(0.9)
-                                : white
+                          shape: BoxShape.circle,
+                          color: isDarkMode ? darkGray.withOpacity(0.9) : white,
                         ),
                         child: Center(
-                          child: Transform.rotate(angle: 135 * math.pi / 180,
-                              child: Icon(Icons.arrow_back, size: 10,)),
+                          child: Transform.rotate(
+                            angle: 135 * math.pi / 180,
+                            child: Icon(
+                              Icons.arrow_back,
+                              size: 10,
+                              color: isDarkMode ? white : black,
+                            ),
+                          ),
                         ),
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),
             ),
-          )
+          ),
         ],
       ),
     );

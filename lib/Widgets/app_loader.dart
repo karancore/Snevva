@@ -168,7 +168,7 @@ class AppLoadingButtonChild extends StatelessWidget {
               key: const ValueKey('app-button-loader'),
               dimension: loaderSize,
                 child: CircularProgressIndicator(
-                  color: isDarkMode ? white : black,
+                  color: isDarkMode ? black : white,
                   strokeWidth: 1.5,
                 ),
               )
