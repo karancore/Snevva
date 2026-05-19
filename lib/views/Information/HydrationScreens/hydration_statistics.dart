@@ -21,6 +21,7 @@ class HydrationStatistics extends StatefulWidget {
 class _HydrationStatisticsState extends State<HydrationStatistics> {
   final controller = Get.find<HydrationStatController>();
   late CommonTipsController commonTipsController;
+  final ScrollController _scrollController = ScrollController();
 
   // ── view state ──────────────────────────────────────────────────
   bool _isMonthlyView = false;
@@ -44,6 +45,7 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
   void initState() {
     super.initState();
     commonTipsController = Get.find<CommonTipsController>();
+    _scrollController.addListener(_onTipsScroll);
     commonTipsController.getCommonTips(context: context, tag: 'Water');
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -56,11 +58,30 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
     });
   }
 
+  void _onTipsScroll() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    if (position.maxScrollExtent <= 0) return;
+    if (position.pixels >= position.maxScrollExtent - 200) {
+      commonTipsController.loadMoreCommonTips(context);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onTipsScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   // ── Monday of the displayed week ────────────────────────────────
   DateTime _mondayOfWeek() {
     final now = DateTime.now();
-    final monday = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: now.weekday - DateTime.monday));
+    final monday = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - DateTime.monday));
     return monday.add(Duration(days: 7 * _weekOffset));
   }
 
@@ -69,8 +90,7 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
     final monday = _mondayOfWeek();
     final now = DateTime.now();
     final isCurrentWeek = _weekOffset == 0;
-    final history =
-    Map<String, int>.from(controller.waterHistoryByDate);
+    final history = Map<String, int>.from(controller.waterHistoryByDate);
     final List<FlSpot> spots = [];
 
     for (int i = 0; i < 7; i++) {
@@ -100,23 +120,25 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
   String _weekRangeLabel() {
     final monday = _mondayOfWeek();
     final sunday = monday.add(const Duration(days: 6));
-    return '${DateFormat('d MMM').format(monday)} – ${DateFormat('d MMM')
-        .format(sunday)}';
+    return '${DateFormat('d MMM').format(monday)} – ${DateFormat('d MMM').format(sunday)}';
   }
 
   // ── Rebuild cached graph data ────────────────────────────────────
   void _rebuildGraph() {
-    final spots = _isMonthlyView
-        ? controller.getMonthlyWaterSpots(_selectedMonth)
-        : _weekSpotsForOffset();
+    final spots =
+        _isMonthlyView
+            ? controller.getMonthlyWaterSpots(_selectedMonth)
+            : _weekSpotsForOffset();
 
-    final labels = _isMonthlyView
-        ? generateMonthLabels(_selectedMonth)
-        : _weekLabelsForOffset();
+    final labels =
+        _isMonthlyView
+            ? generateMonthLabels(_selectedMonth)
+            : _weekLabelsForOffset();
 
-    final rawMax = spots.isEmpty
-        ? 0.0
-        : spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
+    final rawMax =
+        spots.isEmpty
+            ? 0.0
+            : spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
     final maxY = getNiceHydrationMaxY(rawMax);
     final interval = getNiceHydrationInterval(maxY);
 
@@ -144,24 +166,27 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
     if (nonZero.isEmpty) {
       setState(() {
         _displayMl = 0;
-        _displayLabel = _isMonthlyView
-            ? 'Avg – ${DateFormat('MMMM yyyy').format(_selectedMonth)}'
-            : 'Avg – ${_weekRangeLabel()}';
+        _displayLabel =
+            _isMonthlyView
+                ? 'Avg – ${DateFormat('MMMM yyyy').format(_selectedMonth)}'
+                : 'Avg – ${_weekRangeLabel()}';
         _showingAverage = true;
       });
       return;
     }
 
     final avgMl =
-    (nonZero.map((s) => s.y).reduce((a, b) => a + b) / nonZero.length *
-        1000)
-        .round();
+        (nonZero.map((s) => s.y).reduce((a, b) => a + b) /
+                nonZero.length *
+                1000)
+            .round();
 
     setState(() {
       _displayMl = avgMl;
-      _displayLabel = _isMonthlyView
-          ? 'Avg – ${DateFormat('MMMM yyyy').format(_selectedMonth)}'
-          : 'Avg – ${_weekRangeLabel()}';
+      _displayLabel =
+          _isMonthlyView
+              ? 'Avg – ${DateFormat('MMMM yyyy').format(_selectedMonth)}'
+              : 'Avg – ${_weekRangeLabel()}';
       _showingAverage = true;
     });
   }
@@ -182,8 +207,11 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
 
   // ── Month navigation ─────────────────────────────────────────────
   Future<void> _changeMonth(int delta) async {
-    final newMonth =
-    DateTime(_selectedMonth.year, _selectedMonth.month + delta, 1);
+    final newMonth = DateTime(
+      _selectedMonth.year,
+      _selectedMonth.month + delta,
+      1,
+    );
     setState(() => _selectedMonth = newMonth);
     await controller.loadWaterIntakefromAPI(
       month: newMonth.month,
@@ -201,12 +229,8 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
 
     // If the displayed week falls in a different month, fetch that month's data
     final monday = _mondayOfWeek();
-    if (monday.month != DateTime
-        .now()
-        .month ||
-        monday.year != DateTime
-            .now()
-            .year) {
+    if (monday.month != DateTime.now().month ||
+        monday.year != DateTime.now().year) {
       await controller.loadWaterIntakefromAPI(
         month: monday.month,
         year: monday.year,
@@ -226,12 +250,8 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
       if (vx > 0) {
         _changeMonth(-1);
       } else {
-        if (_selectedMonth.year < DateTime
-            .now()
-            .year ||
-            _selectedMonth.month < DateTime
-                .now()
-                .month) {
+        if (_selectedMonth.year < DateTime.now().year ||
+            _selectedMonth.month < DateTime.now().month) {
           _changeMonth(1);
         }
       }
@@ -248,8 +268,11 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
   void _onBarTouched(int index, FlSpot spot) {
     DateTime tappedDate;
     if (_isMonthlyView) {
-      tappedDate =
-          DateTime(_selectedMonth.year, _selectedMonth.month, index + 1);
+      tappedDate = DateTime(
+        _selectedMonth.year,
+        _selectedMonth.month,
+        index + 1,
+      );
     } else {
       tappedDate = _mondayOfWeek().add(Duration(days: index));
     }
@@ -257,14 +280,16 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
     setState(() {
       _displayMl = (spot.y * 1000).round();
       _displayLabel =
-      '${tappedDate.day}-${tappedDate.month}-${tappedDate.year}';
+          '${tappedDate.day}-${tappedDate.month}-${tappedDate.year}';
       _showingAverage = false;
     });
   }
 
   // ── Helpers ──────────────────────────────────────────────────────
-  List<WaterHistoryModel> _filterForDay(List<WaterHistoryModel> historyList,
-      DateTime day,) {
+  List<WaterHistoryModel> _filterForDay(
+    List<WaterHistoryModel> historyList,
+    DateTime day,
+  ) {
     return historyList.where((entry) {
       return entry.year == day.year &&
           entry.month == day.month &&
@@ -323,13 +348,16 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                     Text(
                       value,
                       style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold),
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     if (subtitle.isNotEmpty) ...[
                       const SizedBox(width: 4),
-                      Text(subtitle,
-                          style: TextStyle(
-                              fontSize: 12, color: Colors.grey[500])),
+                      Text(
+                        subtitle,
+                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                      ),
                     ],
                   ],
                 ),
@@ -370,17 +398,19 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
     // Hydration highlight values derived from _displayMl
     final intakeLiters = _displayMl / 1000.0;
     final goalLiters = controller.waterGoal.value / 1000.0;
-    final progressPercent = goalLiters > 0
-        ? ((_displayMl / controller.waterGoal.value) * 100)
-        .clamp(0, 100)
-        .toStringAsFixed(0)
-        : '0';
+    final progressPercent =
+        goalLiters > 0
+            ? ((_displayMl / controller.waterGoal.value) * 100)
+                .clamp(0, 100)
+                .toStringAsFixed(0)
+            : '0';
     final cups = (_displayMl / 240).toStringAsFixed(1);
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       appBar: const CustomAppBar(appbarText: 'Hydration Statistics'),
       body: SingleChildScrollView(
+        controller: _scrollController,
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
@@ -388,9 +418,7 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
             children: [
               // ── Header: selected intake ─────────────────────────
               Text(
-                _showingAverage
-                    ? _displayLabel
-                    : 'Hydration on $_displayLabel',
+                _showingAverage ? _displayLabel : 'Hydration on $_displayLabel',
                 style: const TextStyle(
                   fontSize: 14,
                   color: Colors.grey,
@@ -401,7 +429,9 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
               Text(
                 '$_displayMl ml',
                 style: const TextStyle(
-                    fontSize: 32, fontWeight: FontWeight.bold),
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
 
               const SizedBox(height: 12),
@@ -417,13 +447,17 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                         icon: const Icon(Icons.chevron_left),
                         onPressed: () => _changeWeek(-1),
                       ),
-                      Text(_weekRangeLabel(),
-                          style: const TextStyle(fontSize: 13)),
+                      Text(
+                        _weekRangeLabel(),
+                        style: const TextStyle(fontSize: 13),
+                      ),
                       IconButton(
-                        icon: Icon(Icons.chevron_right,
-                            color: _weekOffset < 0 ? null : Colors.grey),
+                        icon: Icon(
+                          Icons.chevron_right,
+                          color: _weekOffset < 0 ? null : Colors.grey,
+                        ),
                         onPressed:
-                        _weekOffset < 0 ? () => _changeWeek(1) : null,
+                            _weekOffset < 0 ? () => _changeWeek(1) : null,
                       ),
                     ],
                     // Month nav
@@ -462,7 +496,9 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
               Obx(() {
                 if (controller.isLoading.value) {
                   return SizedBox(
-                      height: height * 0.37, child: const AppLoader());
+                    height: height * 0.37,
+                    child: const AppLoader(),
+                  );
                 }
                 return const SizedBox.shrink();
               }),
@@ -473,25 +509,26 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                   onHorizontalDragEnd: _onHorizontalDrag,
                   child: SizedBox(
                     height: height * 0.37,
-                    child: _graphSpots.isEmpty
-                        ? _emptyStateContainer(height, isDarkMode)
-                        : CommonStatGraphWidget(
-                      isMonthlyView: _isMonthlyView,
-                      isWaterGraph: true,
-                      isDarkMode: isDarkMode,
-                      height: height,
-                      graphTitle: 'Hydration Statistics',
-                      yAxisInterval: _interval,
-                      yAxisMaxValue: _maxY,
-                      gridLineInterval: _interval,
-                      points: _graphSpots,
-                      weekLabels: _graphLabels,
-                      measureUnit: 'L',
-                      isSleepGraph: false,
-                      highlightIndex: _highlightIndex,
-                      selectedMonthForHeader: _selectedMonth,
-                      onBarTouched: _onBarTouched,
-                    ),
+                    child:
+                        _graphSpots.isEmpty
+                            ? _emptyStateContainer(height, isDarkMode)
+                            : CommonStatGraphWidget(
+                              isMonthlyView: _isMonthlyView,
+                              isWaterGraph: true,
+                              isDarkMode: isDarkMode,
+                              height: height,
+                              graphTitle: 'Hydration Statistics',
+                              yAxisInterval: _interval,
+                              yAxisMaxValue: _maxY,
+                              gridLineInterval: _interval,
+                              points: _graphSpots,
+                              weekLabels: _graphLabels,
+                              measureUnit: 'L',
+                              isSleepGraph: false,
+                              highlightIndex: _highlightIndex,
+                              selectedMonthForHeader: _selectedMonth,
+                              onBarTouched: _onBarTouched,
+                            ),
                   ),
                 ),
 
@@ -499,11 +536,11 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
 
               // ── Section title ──────────────────────────────────
               Text(
-                _showingAverage
-                    ? 'Average Highlights'
-                    : 'Hydration Highlights',
+                _showingAverage ? 'Average Highlights' : 'Hydration Highlights',
                 style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.w600),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 16),
 
@@ -564,16 +601,20 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
 
               // ── Today's log (Obx is fine here — only reads list/isLoading) ──
               Obx(() {
-                final todayEntries =
-                _filterForDay(controller.waterHistoryList, DateTime.now());
+                final todayEntries = _filterForDay(
+                  controller.waterHistoryList,
+                  DateTime.now(),
+                );
 
                 if (controller.isLoading.value) return const AppLoader();
 
                 if (todayEntries.isEmpty) {
                   return const Padding(
                     padding: EdgeInsets.all(8.0),
-                    child: Text('No water intake logged today.',
-                        style: TextStyle(color: Colors.grey, fontSize: 14)),
+                    child: Text(
+                      'No water intake logged today.',
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
                   );
                 }
 
@@ -582,26 +623,26 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                   children: [
                     Text(
                       "Today's Record (${todayEntries.length} "
-                          "entr${todayEntries.length == 1 ? 'y' : 'ies'})",
+                      "entr${todayEntries.length == 1 ? 'y' : 'ies'})",
                       style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w600),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 15),
                     ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: todayEntries.length,
-                      separatorBuilder: (_, __) =>
-                          Divider(
+                      separatorBuilder:
+                          (_, _) => Divider(
                             color: Colors.grey.withOpacity(0.4),
                             thickness: 0.6,
                           ),
                       itemBuilder: (context, index) {
                         final entry = todayEntries[index];
                         final bool isDarkMode =
-                            Theme
-                                .of(context)
-                                .brightness == Brightness.dark;
+                            Theme.of(context).brightness == Brightness.dark;
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 6),
                           child: Row(
@@ -614,9 +655,10 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 13,
-                                    color: isDarkMode
-                                        ? Colors.white
-                                        : Colors.black,
+                                    color:
+                                        isDarkMode
+                                            ? Colors.white
+                                            : Colors.black,
                                   ),
                                 ),
                               ),
@@ -625,9 +667,10 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
                                   '${entry.value ?? 0} ml',
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: isDarkMode
-                                        ? Colors.white
-                                        : Colors.black,
+                                    color:
+                                        isDarkMode
+                                            ? Colors.white
+                                            : Colors.black,
                                   ),
                                 ),
                               ),

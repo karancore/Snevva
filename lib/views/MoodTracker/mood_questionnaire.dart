@@ -29,23 +29,42 @@ class _MoodQuestionnaireState extends State<MoodQuestionnaire> {
   final moodController = Get.find<MoodController>();
 
   late CommonTipsController commonTipsController;
-
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
 
     commonTipsController = Get.find<CommonTipsController>();
+    _scrollController.addListener(_onTipsScroll);
 
-    commonTipsController.getCommonTips(context: context,
-        tags: ["Mood Tracker", moodController.selectedUserMood],
-        tag: '');
+    commonTipsController.getCommonTips(
+      context: context,
+      tags: ["Mood Tracker", moodController.selectedUserMood],
+      tag: '',
+    );
 
-    WidgetsBinding.instance.addPostFrameCallback((_){
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       moodController.loadTodayMoods();
-
     });
   }
+
+  void _onTipsScroll() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    if (position.maxScrollExtent <= 0) return;
+    if (position.pixels >= position.maxScrollExtent - 200) {
+      commonTipsController.loadMoreCommonTips(context);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onTipsScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   // Example mood entries
 
   @override
@@ -57,15 +76,13 @@ class _MoodQuestionnaireState extends State<MoodQuestionnaire> {
     double itemHeight = 42 * scale;
 
     final media = MediaQuery.of(context);
-    final bool isDarkMode = Theme
-        .of(context)
-        .brightness == Brightness.dark;
     final height = media.size.height;
     final width = media.size.width;
     return Scaffold(
       appBar: CustomAppBar(appbarText: "Mood Journal"),
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       body: SingleChildScrollView(
+        controller: _scrollController,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 24.0),
           child: SafeArea(
@@ -78,7 +95,9 @@ class _MoodQuestionnaireState extends State<MoodQuestionnaire> {
                     Text(
                       "Today, ${getCurrentDay()}",
                       style: TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w500),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     Spacer(),
                     Container(
@@ -148,79 +167,85 @@ class _MoodQuestionnaireState extends State<MoodQuestionnaire> {
                             ),
                             moodController.moodEntries.isNotEmpty
                                 ? Image.asset(
-                              face,
-                              width: 164 * scale,
-                              height: 164 * scale,
-                              fit: BoxFit.contain,
-                            )
+                                  face,
+                                  width: 164 * scale,
+                                  height: 164 * scale,
+                                  fit: BoxFit.contain,
+                                )
                                 : Image.asset(
-                              noEntries,
-                              width: 282 * scale,
-                              height: 282 * scale,
-                              fit: BoxFit.contain,
-                            ),
+                                  noEntries,
+                                  width: 282 * scale,
+                                  height: 282 * scale,
+                                  fit: BoxFit.contain,
+                                ),
                             moodController.moodEntries.isNotEmpty
                                 ? Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Momentary Emotions",
-                                  style: const TextStyle(
-                                    color: white,
-                                    fontWeight: FontWeight.w400,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                SizedBox(height: 6,
-                                    child: Divider(
-                                        color: white, thickness: 2.5)),
-                              ],
-                            )
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "Momentary Emotions",
+                                      style: const TextStyle(
+                                        color: white,
+                                        fontWeight: FontWeight.w400,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4),
+                                    SizedBox(
+                                      height: 6,
+                                      child: Divider(
+                                        color: white,
+                                        thickness: 2.5,
+                                      ),
+                                    ),
+                                  ],
+                                )
                                 : SizedBox.shrink(),
                             moodController.moodEntries.isNotEmpty
                                 ? SizedBox(
-                              height: itemHeight * 3,
-                              child: ListView.builder(
-                                padding: EdgeInsets.zero,
-                                itemCount: moodController.moodEntries.length,
-                                itemBuilder: (context, index) {
-                                  final mood = moodController
-                                      .moodEntries[index];
-                                  return ListTile(
-                                    contentPadding: EdgeInsets.zero,
-                                    dense: true,
-                                    leading: Image.asset(
-                                      moodController.getImage(
-                                          moodController.selectedUserMood),
-                                      width: 28 * scale,
-                                      height: 28 * scale,
-                                      fit: BoxFit.contain,
-                                    ),
-                                    title: Row(
-                                      mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          mood['Mood'] ?? '',
-                                          style: TextStyle(
-                                            color: white.withOpacity(0.8),
-                                            fontSize: 12,
+                                  height: itemHeight * 3,
+                                  child: ListView.builder(
+                                    padding: EdgeInsets.zero,
+                                    itemCount:
+                                        moodController.moodEntries.length,
+                                    itemBuilder: (context, index) {
+                                      final mood =
+                                          moodController.moodEntries[index];
+                                      return ListTile(
+                                        contentPadding: EdgeInsets.zero,
+                                        dense: true,
+                                        leading: Image.asset(
+                                          moodController.getImage(
+                                            moodController.selectedUserMood,
                                           ),
+                                          width: 28 * scale,
+                                          height: 28 * scale,
+                                          fit: BoxFit.contain,
                                         ),
-                                        Text(
-                                          mood['Time'] ?? '',
-                                          style: TextStyle(
-                                            color: white.withOpacity(0.8),
-                                            fontSize: 12,
-                                          ),
+                                        title: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              mood['Mood'] ?? '',
+                                              style: TextStyle(
+                                                color: white.withOpacity(0.8),
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            Text(
+                                              mood['Time'] ?? '',
+                                              style: TextStyle(
+                                                color: white.withOpacity(0.8),
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            )
+                                      );
+                                    },
+                                  ),
+                                )
                                 : SizedBox.shrink(),
                           ],
                         ),
@@ -229,7 +254,7 @@ class _MoodQuestionnaireState extends State<MoodQuestionnaire> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                CommonTipsList()
+                CommonTipsList(),
               ],
             ),
           ),

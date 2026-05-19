@@ -124,16 +124,37 @@ class CommonTipsController extends GetxController {
   RxList<CommonTip> commonTips = <CommonTip>[].obs;
 
   RxBool isLoading = false.obs;
+  RxBool isLoadingMore = false.obs;
+  RxBool hasMoreData = true.obs;
 
   static const int _pageSize = 4;
+  int pageIndex = 1;
+  String _activeTag = '';
+  List<String>? _activeTags;
 
   Future<List<CommonTip>> getCommonTips({
     required BuildContext context,
     required String tag,
     List<String>? tags,
+    bool loadMore = false,
   }) async {
+    if (loadMore && (isLoadingMore.value || !hasMoreData.value)) {
+      return commonTips;
+    }
+
+    final targetPage = loadMore ? pageIndex + 1 : 1;
+
     try {
-      isLoading.value = true;
+      if (loadMore) {
+        isLoadingMore.value = true;
+      } else {
+        _activeTag = tag;
+        _activeTags = tags == null ? null : List<String>.from(tags);
+        pageIndex = 1;
+        hasMoreData.value = true;
+        isLoading.value = true;
+        commonTips.clear();
+      }
 
       debugPrint("🟡 getCommonTips START");
       debugPrint("🏷 Tag: $tag");
@@ -141,8 +162,8 @@ class CommonTipsController extends GetxController {
       Map<String, dynamic> payload = {
         'Tags': tags ?? <String>[tag],
         'FetchAll': false,
-        'Count': int.parse(_pageSize.toString()),
-        'Index': 1,
+        'Count': _pageSize,
+        'Index': targetPage,
       };
 
       debugPrint("📤 Payload: $payload");
@@ -167,7 +188,9 @@ class CommonTipsController extends GetxController {
           message: 'Failed to load general tips: ${response.statusCode}',
         );
 
-        commonTips.clear();
+        if (!loadMore) {
+          commonTips.clear();
+        }
         update();
 
         return [];
@@ -181,7 +204,21 @@ class CommonTipsController extends GetxController {
 
       /// SUCCESS
       if (model.status == true) {
-        commonTips.value = model.data ?? [];
+        final fetchedTips = model.data ?? <CommonTip>[];
+
+        if (fetchedTips.isEmpty) {
+          hasMoreData.value = false;
+          update();
+          return commonTips;
+        }
+
+        pageIndex = targetPage;
+        if (loadMore) {
+          commonTips.addAll(fetchedTips);
+        } else {
+          commonTips.assignAll(fetchedTips);
+        }
+        hasMoreData.value = fetchedTips.length == _pageSize;
 
         debugPrint("🎯 Tips Count: ${commonTips.length}");
 
@@ -191,7 +228,10 @@ class CommonTipsController extends GetxController {
       } else {
         debugPrint("⚠ API returned false status");
 
-        commonTips.clear();
+        hasMoreData.value = false;
+        if (!loadMore) {
+          commonTips.clear();
+        }
       }
 
       update();
@@ -203,7 +243,9 @@ class CommonTipsController extends GetxController {
       debugPrint("❌ Exception in getCommonTips: $e");
       debugPrint("📛 StackTrace: $stackTrace");
 
-      commonTips.clear();
+      if (!loadMore) {
+        commonTips.clear();
+      }
 
       CustomSnackbar.showError(
         context: context,
@@ -215,7 +257,20 @@ class CommonTipsController extends GetxController {
 
       return [];
     } finally {
-      isLoading.value = false;
+      if (loadMore) {
+        isLoadingMore.value = false;
+      } else {
+        isLoading.value = false;
+      }
     }
+  }
+
+  Future<List<CommonTip>> loadMoreCommonTips(BuildContext context) {
+    return getCommonTips(
+      context: context,
+      tag: _activeTag,
+      tags: _activeTags,
+      loadMore: true,
+    );
   }
 }

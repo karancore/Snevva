@@ -19,6 +19,7 @@ class _CommonTipsListState extends State<CommonTipsList> {
   Widget build(BuildContext context) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final double scale = MediaQuery.of(context).size.width / 360;
+
     return Obx(() {
       if (controller.isLoading.value) {
         return AppLoader();
@@ -34,22 +35,33 @@ class _CommonTipsListState extends State<CommonTipsList> {
         );
       }
 
-      return ListView.separated(
+      final showLoader = controller.isLoadingMore.value;
+
+      return ListView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
+        itemCount: controller.commonTips.length + (showLoader ? 1 : 0),
         itemBuilder: (context, index) {
-          final item = controller.commonTips.value[index];
-          return _commonCard(
-            isDarkMode: isDarkMode,
-            heading: item.title ?? '',
-            subheading: item.heading ?? '',
-            imageUrl: item.thumbnailMedia?.cdnUrl ?? '',
-            scale: scale,
-            commonTip: item,
+          if (index >= controller.commonTips.length) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Center(child: AppLoader(size: 32)),
+            );
+          }
+
+          final item = controller.commonTips[index];
+          return Padding(
+            padding: EdgeInsets.only(bottom: 16 * scale),
+            child: _commonCard(
+              isDarkMode: isDarkMode,
+              heading: item.title ?? '',
+              subheading: item.heading ?? '',
+              imageUrl: item.thumbnailMedia?.cdnUrl ?? '',
+              scale: scale,
+              commonTip: item,
+            ),
           );
         },
-        separatorBuilder: (context, index) => SizedBox(height: 16 * scale),
-        itemCount: controller.commonTips.length,
       );
     });
   }
@@ -106,14 +118,14 @@ class _CommonTipsListState extends State<CommonTipsList> {
                     fit: BoxFit.cover,
 
                     placeholder:
-                        (_, __) => Container(
+                        (_, _) => Container(
                           height: 140,
                           alignment: Alignment.center,
                           child: const AppLoader(),
                         ),
 
                     errorWidget:
-                        (_, __, ___) => Container(
+                        (_, _, _) => Container(
                           height: 140,
                           alignment: Alignment.center,
                           child: const Icon(Icons.broken_image),

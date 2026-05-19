@@ -27,8 +27,7 @@ class StepCounter extends StatefulWidget {
   State<StepCounter> createState() => _StepCounterState();
 }
 
-class _StepCounterState extends State<StepCounter>
-    with WidgetsBindingObserver {
+class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
   final stepController = Get.find<StepCounterController>();
 
   /// 0 = current week, 1 = previous week, etc.
@@ -43,20 +42,22 @@ class _StepCounterState extends State<StepCounter>
   Timer? _secretResetTimer;
 
   late CommonTipsController commonTipsController;
+  final ScrollController _scrollController = ScrollController();
 
   // ───────── week helpers ─────────
 
   DateTime _mondayOfWeek(int offset) {
     final now = DateTime.now();
-    final monday = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: now.weekday - DateTime.monday));
+    final monday = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - DateTime.monday));
     return monday.subtract(Duration(days: offset * 7));
   }
 
   int _daysInWeek(int offset) {
-    if (offset == 0) return DateTime
-        .now()
-        .weekday; // Mon=1…Sun=7
+    if (offset == 0) return DateTime.now().weekday; // Mon=1…Sun=7
     return 7;
   }
 
@@ -76,9 +77,7 @@ class _StepCounterState extends State<StepCounter>
     for (int i = 0; i < count; i++) {
       final d = monday.add(Duration(days: i));
       final key =
-          "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day
-          .toString()
-          .padLeft(2, '0')}";
+          "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
       final steps = stepController.stepsHistoryByDate[key] ?? 0;
       spots.add(FlSpot(i.toDouble(), steps.toDouble()));
     }
@@ -112,7 +111,10 @@ class _StepCounterState extends State<StepCounter>
 
   void _changeMonth(int delta) async {
     final newMonth = DateTime(
-        _selectedMonth.year, _selectedMonth.month + delta, 1);
+      _selectedMonth.year,
+      _selectedMonth.month + delta,
+      1,
+    );
     setState(() => _selectedMonth = newMonth);
     await stepController.loadStepsfromAPI(
       month: newMonth.month,
@@ -127,9 +129,19 @@ class _StepCounterState extends State<StepCounter>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     commonTipsController = Get.find<CommonTipsController>();
+    _scrollController.addListener(_onTipsScroll);
     commonTipsController.getCommonTips(context: context, tag: 'Steps');
     stepController.activateRealtimeTracking();
     stepController.loadTodayStepsFromFile();
+  }
+
+  void _onTipsScroll() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    if (position.maxScrollExtent <= 0) return;
+    if (position.pixels >= position.maxScrollExtent - 200) {
+      commonTipsController.loadMoreCommonTips(context);
+    }
   }
 
   @override
@@ -137,6 +149,8 @@ class _StepCounterState extends State<StepCounter>
     _uiRefreshTimer?.cancel();
     _debounce?.cancel();
     _secretResetTimer?.cancel();
+    _scrollController.removeListener(_onTipsScroll);
+    _scrollController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     stepController.deactivateRealtimeTracking();
     super.dispose();
@@ -161,11 +175,7 @@ class _StepCounterState extends State<StepCounter>
   double getDynamicMaxY(double value, {double paddingFactor = 1.2}) {
     if (value <= 0) return 1000;
     double rawMax = value * paddingFactor;
-    double magnitude =
-    pow(10, rawMax
-        .floor()
-        .toString()
-        .length - 1).toDouble();
+    double magnitude = pow(10, rawMax.floor().toString().length - 1).toDouble();
     double normalized = rawMax / magnitude;
     double niceNormalized;
     if (normalized <= 1) {
@@ -184,10 +194,7 @@ class _StepCounterState extends State<StepCounter>
     if (maxY <= 0) return 1000;
     double rawInterval = maxY / targetSteps;
     double magnitude =
-    pow(10, rawInterval
-        .floor()
-        .toString()
-        .length - 1).toDouble();
+        pow(10, rawInterval.floor().toString().length - 1).toDouble();
     double normalized = rawInterval / magnitude;
     double niceNormalized;
     if (normalized <= 1) {
@@ -217,6 +224,7 @@ class _StepCounterState extends State<StepCounter>
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
+          controller: _scrollController,
           child: Column(
             children: [
               // ── Progress ring ──
@@ -231,18 +239,23 @@ class _StepCounterState extends State<StepCounter>
                   ),
                   Obx(() {
                     final goal = stepController.stepGoal.value;
-                    final percent = goal == 0
-                        ? 0.0
-                        : (stepController.todaySteps.value / goal)
-                        .clamp(0.0, 1.0);
+                    final percent =
+                        goal == 0
+                            ? 0.0
+                            : (stepController.todaySteps.value / goal).clamp(
+                              0.0,
+                              1.0,
+                            );
 
                     return TweenAnimationBuilder<double>(
                       key: ValueKey(stepController.todaySteps.value),
                       tween: Tween<double>(
-                          begin: stepController.lastPercent, end: percent),
+                        begin: stepController.lastPercent,
+                        end: percent,
+                      ),
                       duration: const Duration(milliseconds: 500),
-                      builder: (_, val, __) =>
-                          SemiCircularProgress(
+                      builder:
+                          (_, val, _) => SemiCircularProgress(
                             percent: val,
                             radius: width / 3,
                             strokeWidth: 12,
@@ -261,11 +274,13 @@ class _StepCounterState extends State<StepCounter>
                           key: ValueKey(end),
                           tween: IntTween(begin: begin, end: end),
                           duration: const Duration(milliseconds: 400),
-                          builder: (_, val, __) =>
-                              Text(
+                          builder:
+                              (_, val, _) => Text(
                                 "$val",
                                 style: const TextStyle(
-                                    fontSize: 38, fontWeight: FontWeight.bold),
+                                  fontSize: 38,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                         );
                       }),
@@ -275,7 +290,7 @@ class _StepCounterState extends State<StepCounter>
                           _secretResetTimer?.cancel();
                           _secretResetTimer = Timer(
                             const Duration(seconds: 2),
-                                () => _secretTapCount = 0,
+                            () => _secretTapCount = 0,
                           );
                           if (_secretTapCount == 7) {
                             debugPrint("🕵️ Secret API push activated");
@@ -283,29 +298,35 @@ class _StepCounterState extends State<StepCounter>
                             _secretTapCount = 0;
                           }
                         },
-                        child: const Text("Steps",
-                            style: TextStyle(fontSize: 16)),
+                        child: const Text(
+                          "Steps",
+                          style: TextStyle(fontSize: 16),
+                        ),
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Obx(() =>
-                              Text(
-                                  'Goal: ${stepController.stepGoal.value}')),
+                          Obx(
+                            () =>
+                                Text('Goal: ${stepController.stepGoal.value}'),
+                          ),
                           const SizedBox(width: 8),
                           InkWell(
                             onTap: () async {
-                              final updated =
-                              await showStepCounterBottomSheet(
-                                  context, isDarkMode);
+                              final updated = await showStepCounterBottomSheet(
+                                context,
+                                isDarkMode,
+                              );
                               if (updated != null) {
                                 stepController.updateStepGoal(updated);
                               }
                             },
-                            child: SvgPicture.asset(pen,
-                                color: AppColors.primaryColor,
-                                width: 18,
-                                height: 18),
+                            child: SvgPicture.asset(
+                              pen,
+                              color: AppColors.primaryColor,
+                              width: 18,
+                              height: 18,
+                            ),
                           ),
                         ],
                       ),
@@ -322,12 +343,9 @@ class _StepCounterState extends State<StepCounter>
                 return Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _infoItem(dis,
-                        '${(steps * 0.0008).toStringAsFixed(2)} km'),
-                    _infoItem(cal,
-                        '${(steps * 0.04).toStringAsFixed(0)} cal'),
-                    _infoItem(time,
-                        '${(steps / 100).toStringAsFixed(0)} min'),
+                    _infoItem(dis, '${(steps * 0.0008).toStringAsFixed(2)} km'),
+                    _infoItem(cal, '${(steps * 0.04).toStringAsFixed(0)} cal'),
+                    _infoItem(time, '${(steps / 100).toStringAsFixed(0)} min'),
                   ],
                 );
               }),
@@ -338,11 +356,11 @@ class _StepCounterState extends State<StepCounter>
               Column(
                 children: [
                   Text(
-                    _isMonthlyView
-                        ? "Monthly Step Stats"
-                        : "Weekly Step Stats",
+                    _isMonthlyView ? "Monthly Step Stats" : "Weekly Step Stats",
                     style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w600),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -362,13 +380,13 @@ class _StepCounterState extends State<StepCounter>
                           IconButton(
                             icon: Icon(
                               Icons.chevron_right,
-                              color: _weekOffset == 0
-                                  ? Colors.grey.shade400
-                                  : null,
+                              color:
+                                  _weekOffset == 0
+                                      ? Colors.grey.shade400
+                                      : null,
                             ),
-                            onPressed: _weekOffset == 0
-                                ? null
-                                : () => _changeWeek(-1),
+                            onPressed:
+                                _weekOffset == 0 ? null : () => _changeWeek(-1),
                           ),
                         ],
                         // Month navigation
@@ -378,8 +396,7 @@ class _StepCounterState extends State<StepCounter>
                             onPressed: () => _changeMonth(-1),
                           ),
                           Text(
-                            DateFormat('MMMM yyyy')
-                                .format(_selectedMonth),
+                            DateFormat('MMMM yyyy').format(_selectedMonth),
                             style: const TextStyle(fontSize: 14),
                           ),
                           IconButton(
@@ -393,8 +410,7 @@ class _StepCounterState extends State<StepCounter>
                             _isMonthlyView
                                 ? "Switch to Weekly"
                                 : "Switch to Monthly",
-                            style:
-                            TextStyle(color: AppColors.primaryColor),
+                            style: TextStyle(color: AppColors.primaryColor),
                           ),
                         ),
                       ],
@@ -415,8 +431,9 @@ class _StepCounterState extends State<StepCounter>
 
                   if (_isMonthlyView) {
                     labels = generateMonthLabels(_selectedMonth);
-                    points = stepController
-                        .getMonthlyStepsSpots(_selectedMonth);
+                    points = stepController.getMonthlyStepsSpots(
+                      _selectedMonth,
+                    );
                     maxXForWeek = 0;
                   } else {
                     labels = _weekLabelsForOffset(_weekOffset);
@@ -424,11 +441,12 @@ class _StepCounterState extends State<StepCounter>
                     maxXForWeek = _daysInWeek(_weekOffset) - 1;
                   }
 
-                  final double rawMax = points.isEmpty
-                      ? 0
-                      : points
-                      .map((e) => e.y)
-                      .reduce((a, b) => a > b ? a : b);
+                  final double rawMax =
+                      points.isEmpty
+                          ? 0
+                          : points
+                              .map((e) => e.y)
+                              .reduce((a, b) => a > b ? a : b);
                   final double maxY = getDynamicMaxY(rawMax);
 
                   return GestureDetector(
@@ -439,8 +457,7 @@ class _StepCounterState extends State<StepCounter>
                         if (dx < -300) _changeMonth(1);
                       } else {
                         if (dx > 300) _changeWeek(1);
-                        if (dx < -300 && _weekOffset > 0)
-                          _changeWeek(-1);
+                        if (dx < -300 && _weekOffset > 0) _changeWeek(-1);
                       }
                     },
                     child: StepStatGraphWidget(
@@ -454,23 +471,17 @@ class _StepCounterState extends State<StepCounter>
                       graphTitle: 'Steps',
                       maxY: maxY,
                       selectedMonthForHeader:
-                      _isMonthlyView ? _selectedMonth : null,
-                      highlightIndex: _isMonthlyView
-                          ? (_selectedMonth.year ==
-                          DateTime
-                              .now()
-                              .year &&
-                          _selectedMonth.month ==
-                              DateTime
-                                  .now()
-                                  .month
-                          ? getCurrentDateIndex()
-                          : -1)
-                          : (_weekOffset == 0
-                          ? (DateTime
-                          .now()
-                          .weekday - 1)
-                          : -1),
+                          _isMonthlyView ? _selectedMonth : null,
+                      highlightIndex:
+                          _isMonthlyView
+                              ? (_selectedMonth.year == DateTime.now().year &&
+                                      _selectedMonth.month ==
+                                          DateTime.now().month
+                                  ? getCurrentDateIndex()
+                                  : -1)
+                              : (_weekOffset == 0
+                                  ? (DateTime.now().weekday - 1)
+                                  : -1),
                     ),
                   );
                 }),
@@ -501,8 +512,10 @@ class _StepCounterState extends State<StepCounter>
                           color: AppColors.primaryColor.withOpacity(0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.analytics_outlined,
-                            color: AppColors.primaryColor),
+                        child: const Icon(
+                          Icons.analytics_outlined,
+                          color: AppColors.primaryColor,
+                        ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -512,14 +525,17 @@ class _StepCounterState extends State<StepCounter>
                             const Text(
                               "View Step Report",
                               style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               "Detailed analysis of your steps",
                               style: TextStyle(
-                                  fontSize: 13, color: Colors.grey[600]),
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                              ),
                             ),
                           ],
                         ),

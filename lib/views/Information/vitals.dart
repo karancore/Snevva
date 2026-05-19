@@ -33,7 +33,6 @@ class _BpmInputWidgetState extends State<BpmInputWidget> {
   // ✅ FocusNode lives HERE — in its own stable state, never recreated
   final FocusNode _bpmFocusNode = FocusNode();
 
-
   @override
   void dispose() {
     _bpmFocusNode.dispose();
@@ -42,9 +41,7 @@ class _BpmInputWidgetState extends State<BpmInputWidget> {
 
   @override
   Widget build(BuildContext context) {
-    bool isDarkMode = Theme
-        .of(context)
-        .brightness == Brightness.dark;
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     Color textColor = isDarkMode ? Colors.white : Colors.black;
     double scale = widget.scale;
 
@@ -131,9 +128,7 @@ class _BpmInputWidgetState extends State<BpmInputWidget> {
                     valueListenable: widget.bpmController,
                     builder: (context, value, child) {
                       final hasData =
-                          widget.bpmController.text
-                              .trim()
-                              .isNotEmpty;
+                          widget.bpmController.text.trim().isNotEmpty;
 
                       final bpmStatus = getBpmStatus(
                         int.tryParse(widget.bpmController.text) ?? 0,
@@ -143,9 +138,9 @@ class _BpmInputWidgetState extends State<BpmInputWidget> {
                         hasData ? bpmStatus.label : "Enter BPM",
                         style: TextStyle(
                           color:
-                          hasData
-                              ? bpmStatus.color
-                              : textColor.withOpacity(0.4),
+                              hasData
+                                  ? bpmStatus.color
+                                  : textColor.withOpacity(0.4),
                           fontSize: 20,
                           fontWeight: FontWeight.w500,
                         ),
@@ -186,10 +181,7 @@ class _VitalScreenState extends State<VitalScreen> {
   final TextEditingController bpmController = TextEditingController();
 
   late CommonTipsController commonTipsController;
-
-  static const bpmMax = 200;
-  static const sysMax = 200;
-  static const diaMax = 120;
+  final ScrollController _scrollController = ScrollController();
 
   final vitalsKey = GlobalKey<FormState>();
   final _controller = Get.put(VitalsController());
@@ -200,10 +192,12 @@ class _VitalScreenState extends State<VitalScreen> {
     toggleVitalsCard();
 
     commonTipsController = Get.find<CommonTipsController>();
+    _scrollController.addListener(_onTipsScroll);
 
     commonTipsController.getCommonTips(
-        context: context, tag: 'Heart Rate & Blood Pressure');
-
+      context: context,
+      tag: 'Heart Rate & Blood Pressure',
+    );
 
     if (_controller.bpm.value > 0) {
       bpmController.text = _controller.bpm.value.toString();
@@ -238,8 +232,19 @@ class _VitalScreenState extends State<VitalScreen> {
     });
   }
 
+  void _onTipsScroll() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    if (position.maxScrollExtent <= 0) return;
+    if (position.pixels >= position.maxScrollExtent - 200) {
+      commonTipsController.loadMoreCommonTips(context);
+    }
+  }
+
   @override
   void dispose() {
+    _scrollController.removeListener(_onTipsScroll);
+    _scrollController.dispose();
     heartRateNotifier.dispose();
     bpmController.dispose();
     systolicController.dispose();
@@ -285,23 +290,17 @@ class _VitalScreenState extends State<VitalScreen> {
       context,
     );
 
-    if (result != null) {
-      result.then((success) {
-        if (success) {
-          bpmController.clear();
-          systolicController.clear();
-          diastolicController.clear();
-          Get.until((route) => route.isFirst);
-        }
-      });
-    }
+    result.then((success) {
+      if (success) {
+        bpmController.clear();
+        systolicController.clear();
+        diastolicController.clear();
+        Get.until((route) => route.isFirst);
+      }
+    });
   }
 
-  bool isValidVitals({
-    required int bpm,
-    required int sys,
-    required int dia,
-  }) {
+  bool isValidVitals({required int bpm, required int sys, required int dia}) {
     return bpm >= 40 &&
         bpm <= 200 &&
         sys >= 90 &&
@@ -344,6 +343,7 @@ class _VitalScreenState extends State<VitalScreen> {
       backgroundColor: isDarkMode ? Colors.black : Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           child: Form(
             key: vitalsKey,
@@ -439,21 +439,17 @@ class _VitalScreenState extends State<VitalScreen> {
                             ]),
                             builder: (context, child) {
                               final hasData =
-                                  systolicController.text
-                                      .trim()
-                                      .isNotEmpty &&
-                                      diastolicController.text
-                                          .trim()
-                                          .isNotEmpty;
+                                  systolicController.text.trim().isNotEmpty &&
+                                  diastolicController.text.trim().isNotEmpty;
                               return Text(
                                 '/',
                                 style: TextStyle(
                                   color:
-                                  hasData
-                                      ? (isDarkMode
-                                      ? Colors.white
-                                      : Colors.black)
-                                      : textColor.withOpacity(0.4),
+                                      hasData
+                                          ? (isDarkMode
+                                              ? Colors.white
+                                              : Colors.black)
+                                          : textColor.withOpacity(0.4),
                                 ),
                               );
                             },
@@ -516,7 +512,7 @@ class _VitalScreenState extends State<VitalScreen> {
                 ),
 
                 const SizedBox(height: 30),
-                CommonTipsList()
+                CommonTipsList(),
               ],
             ),
           ),
