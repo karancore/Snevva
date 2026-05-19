@@ -708,26 +708,17 @@ class EditprofileController extends GetxService {
 
                     print("📥 OTP Verification Result: $otpVerificationStatus");
 
+                    // updateemailDialog -> onCompleted ke andar, yeh karo:
                     if (otpVerificationStatus) {
-                      print("✅ OTP Verified Successfully");
+                      // ✅ Pehle map update karo
+                      await localStorageManager.updateUserField('Email',
+                          initialValue); // saveUserMap bhi call karta hai + userMap.refresh()
 
-                      localStorageManager.userMap['Email'] = initialValue;
+                      email.value = initialValue; // controller ki Rx variable
 
-                      debugPrint(
-                        "💾 Local Storage Updated: Email = ${localStorageManager.userMap['Email']}",
-                      );
-
-                      email.value = initialValue;
-                      print("💾 Local Email Saved: $email");
-
-                      await localStorageManager.saveUserMap();
-
-                      await signupController.updateGmail(email.value, ctx);
-
-                      print("📡 updateGmail API called");
+                      await signupController.updateGmail(initialValue, ctx);
 
                       if (onUpdated != null) {
-                        print("🔄 onUpdated callback triggered");
                         onUpdated();
                         CustomSnackbar.showSuccess(
                           context: context,
@@ -736,8 +727,6 @@ class EditprofileController extends GetxService {
                         );
                         Navigator.pop(ctx);
                       }
-                    } else {
-                      print("❌ OTP Verification Failed");
                     }
                   },
                 ),

@@ -156,6 +156,16 @@ bool isProfileSetupInitialComplete(Map user) {
   return nameValid && genderValid && dobValid && occupationValid;
 }
 
+bool isProfileDisplayComplete(Map user) {
+  if (!isProfileSetupInitialComplete(user)) return false;
+
+  final bool emailValid = _hasNonEmptyString(user['Email']);
+  final bool phoneValid = _hasNonEmptyString(user['PhoneNumber']);
+  final bool addressValid = _hasNonEmptyString(user['AddressByUser']);
+
+  return emailValid && phoneValid && addressValid;
+}
+
 bool _hasNonEmptyString(dynamic value) {
   if (value is String) return value.trim().isNotEmpty;
   return false;

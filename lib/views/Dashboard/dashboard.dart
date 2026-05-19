@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lottie/lottie.dart';
 import 'package:snevva/Controllers/alerts/alerts_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
+import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Alerts/alerts_screen.dart';
 
@@ -100,35 +101,6 @@ class _DashboardState extends State<Dashboard>
   bool get _isPhoneMissing {
     final phone = localStorageManager.userMap['PhoneNumber']?.toString().trim();
     return phone == null || phone.isEmpty;
-  }
-
-  bool hasEmptyValue(Map<String, dynamic> map) {
-    final fieldsToCheck = [
-      'Name',
-      'PhoneNumber',
-      'Email',
-      'Gender',
-      'DayOfBirth',
-      'MonthOfBirth',
-      'YearOfBirth',
-      'AddressByUser',
-    ];
-
-    for (final key in fieldsToCheck) {
-      final value = map[key];
-      if (value == null) return true;
-      if (value is String && value.trim().isEmpty) return true;
-    }
-
-    // Check nested maps
-    final occupation = map['OccupationData'];
-    if (occupation == null ||
-        occupation is! Map ||
-        occupation['Name']?.toString().trim().isEmpty != false) {
-      return true;
-    }
-
-    return false;
   }
 
   @override
@@ -286,7 +258,8 @@ class _DashboardState extends State<Dashboard>
                             children: [
                               if (isVisible)
                                 Obx(() {
-                                  bool anyEmpty = hasEmptyValue(
+                                  final bool anyEmpty =
+                                  !isProfileDisplayComplete(
                                     localStorageManager.userMap,
                                   );
                                   debugPrint(anyEmpty.toString());
@@ -299,7 +272,8 @@ class _DashboardState extends State<Dashboard>
                                 SizedBox.shrink(),
                               if (isVisible)
                                 Obx(() {
-                                  bool anyEmpty = hasEmptyValue(
+                                  final bool anyEmpty =
+                                  !isProfileDisplayComplete(
                                     localStorageManager.userMap,
                                   );
                                   debugPrint(anyEmpty.toString());

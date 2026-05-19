@@ -364,13 +364,11 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
                 vertical: 6,
               ),
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryColor,/ Button size
-                  minimumSize: const Size(75, 18),
+                style: ElevatedButton.styleFrom(ackgroundColor: AppColors.primaryColor,
+                  mminimumSize: const Size(75, 18),
 
-                  // OR fixedSize: const Size(90, 32),
-                  sshape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+                  // OR fixedSize: const Size(90, 32),hape: RoundedRectangleBorder(
+                    bborderRadius: BorderRadius.circular(30),
                   ),
 
                   // Inner spacing

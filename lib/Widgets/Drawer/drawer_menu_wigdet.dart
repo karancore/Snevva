@@ -34,6 +34,7 @@ import 'package:snevva/views/Settings/in_app_downloads.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 
+import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
 import 'drawer_menu_item.dart';
 
@@ -274,7 +275,7 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
           width: double.infinity,
           decoration: BoxDecoration(gradient: AppColors.primaryGradient),
           child: Padding(
@@ -332,12 +333,31 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                   );
                 }),
                 const SizedBox(height: 8),
-                Obx(
-                  () => Text(
-                    localStorageManager.userMap['Name']?.toString() ?? 'User',
-                    style: TextStyle(color: white, fontSize: 24),
-                  ),
-                ),
+                Obx(() {
+                  final name = localStorageManager.userMap['Name']
+                      ?.toString() ?? 'User';
+                  final bool isProfileComplete = isProfileDisplayComplete(
+                    localStorageManager.userMap,
+                  );
+
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        name,
+                        style: TextStyle(color: white, fontSize: 24),
+                      ),
+                      if (isProfileComplete) ...[
+                        const SizedBox(width: 6),
+                        const Icon(
+                          Icons.done_all, // double tick icon
+                          color: Color(0xFFE3CCFF),
+                          size: 22,
+                        ),
+                      ],
+                    ],
+                  );
+                }),
 
               ],
             ),
