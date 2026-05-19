@@ -33,8 +33,6 @@ import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
 import 'package:snevva/views/Settings/in_app_downloads.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
-import 'package:snevva/views/health_report/health_report_screen.dart';
-import 'package:snevva/views/scan_report/scan_report_landing_screen.dart';
 
 import '../../consts/consts.dart';
 import 'drawer_menu_item.dart';
@@ -269,6 +267,9 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
   Widget build(BuildContext context) {
     final localStorageManager = Get.find<LocalStorageManager>();
     final initialProfileController = Get.find<ProfileSetupController>();
+    final bool isDarkMode = Theme
+        .of(context)
+        .brightness == Brightness.dark;
 
     return Column(
       children: [
@@ -334,167 +335,188 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                 Obx(
                   () => Text(
                     localStorageManager.userMap['Name']?.toString() ?? 'User',
-                    style: const TextStyle(color: white, fontSize: 24),
+                    style: TextStyle(color: white, fontSize: 24),
                   ),
                 ),
+
               ],
             ),
           ),
         ),
-        SizedBox(height: 40),
 
+
+        Container(
+          height: 70,
+          clipBehavior: Clip.hardEdge,
+          decoration: BoxDecoration(
+            gradient: isDarkMode
+                ? AppColors.purpleToBlackDrawerGradient
+                : AppColors.whiteDrawerGradient,
+          ),
+        ),
         Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        DrawerMenuItem(
-                          menuIcon: homeIcon,
-                          itemName: 'Home',
-                          onWidgetTap: () {
-                            Get.back();
-                            Get.until((route) => route.isFirst);
-                          },
-                        ),
+          child: Container(
+            color: isDarkMode ? Colors.black : white,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          DrawerMenuItem(
+                            menuIcon: homeIcon,
+                            itemName: 'Home',
+                            onWidgetTap: () {
+                              Get.back();
+                              Get.until((route) => route.isFirst);
+                            },
+                          ),
 
-                        DrawerMenuItem(
-                          menuIcon: profileIcon,
-                          itemName: 'Profile',
-                          onWidgetTap:
-                              () => {
-                                Get.back(),
-                                Get.to(() => EditProfileScreen()),
-                              },
-                        ),
+                          DrawerMenuItem(
+                            menuIcon: profileIcon,
+                            itemName: 'Profile',
+                            onWidgetTap:
+                                () =>
+                            {
+                              Get.back(),
+                              Get.to(() => EditProfileScreen()),
+                            },
+                          ),
 
-                        // DrawerMenuItem(
-                        //   menuIcon: addEmergencyContactIcon,
-                        //   itemName: 'Emergency Contact',
-                        //   onWidgetTap:
-                        //       () => {Get.back(), Get.to(()=>EmergencyContact())},
-                        // ),
-                        DrawerMenuItem(
-                          menuIcon: healthReportIcon,
-                          itemName: 'Health Report ',
-                          isDisabled: false,
-                          onWidgetTap: () {
-                            Get.to(() => HealthReportScreen());
-                          }, // ignored because disabled
-                        ),
-                        DrawerMenuItem(
-                          menuIcon: scannerIcon,
-                          itemName: 'Scan Report ',
-                          isDisabled: false,
-                          onWidgetTap: () {
-                            Get.to(() => const ScanReportLandingScreen());
-                          }, // ignored because disabled
-                        ),
+                          // DrawerMenuItem(
+                          //   menuIcon: addEmergencyContactIcon,
+                          //   itemName: 'Emergency Contact',
+                          //   onWidgetTap:
+                          //       () => {Get.back(), Get.to(()=>EmergencyContact())},
+                          // ),
+                          // DrawerMenuItem(
+                          //   menuIcon: healthReportIcon,
+                          //   itemName: 'Health Report ',
+                          //   isDisabled: false,
+                          //   onWidgetTap: () {
+                          //     Get.to(() => HealthReportScreen());
+                          //   }, // ignored because disabled
+                          // ),
+                          // DrawerMenuItem(
+                          //   menuIcon: scannerIcon,
+                          //   itemName: 'Scan Report ',
+                          //   isDisabled: false,
+                          //   onWidgetTap: () {
+                          //     Get.to(() => const ScanReportLandingScreen());
+                          //   }, // ignored because disabled
+                          // ),
 
 
-                        // DrawerMenuItem(
-                        //   menuIcon: appointmentIcon,
-                        //   itemName: 'Appointment',
-                        //   onWidgetTap:
-                        //       () => {Get.back(), Get.to(()=>DocHaveAppointment())},
-                        // ),
-                        DrawerMenuItem(
-                          menuIcon: gearIcon,
-                          itemName: 'Settings',
-                          onWidgetTap:
-                              () => {
-                                Get.back(),
-                                Get.to(() => SettingsScreen()),
-                              },
-                        ),
-                        DrawerMenuItem(
-                          menuIcon: downloadIcon,
-                          itemName: 'In App Downloads',
-                          onWidgetTap:
-                              () => {
-                                Get.back(),
-                                Get.to(() => InAppDownloads()),
-                              },
-                        ),
+                          // DrawerMenuItem(
+                          //   menuIcon: appointmentIcon,
+                          //   itemName: 'Appointment',
+                          //   onWidgetTap:
+                          //       () => {Get.back(), Get.to(()=>DocHaveAppointment())},
+                          // ),
+                          DrawerMenuItem(
+                            menuIcon: gearIcon,
+                            itemName: 'Settings',
+                            onWidgetTap:
+                                () =>
+                            {
+                              Get.back(),
+                              Get.to(() => SettingsScreen()),
+                            },
+                          ),
+                          DrawerMenuItem(
+                            menuIcon: downloadIcon,
+                            itemName: 'In App Downloads',
+                            onWidgetTap:
+                                () =>
+                            {
+                              Get.back(),
+                              Get.to(() => InAppDownloads()),
+                            },
+                          ),
 
-                        DrawerMenuItem(
-                          menuIcon:
-                              invitefriend, // or another icon if not added yet
-                          itemName: 'Invite a Friend',
-                          onWidgetTap: () async {
-                            Get.back();
-                            const shareMessage =
-                                '🎉 Hey! Check out this awesome app — Snevva! Download it here: https://play.google.com/store/apps/details?id=com.yourapp.id';
-                            await Share.share(
-                              shareMessage,
-                              subject: 'Join me on Snevva!',
-                            );
-                          },
-                        ),
-                      ],
+                          DrawerMenuItem(
+                            menuIcon:
+                            invitefriend, // or another icon if not added yet
+                            itemName: 'Invite a Friend',
+                            onWidgetTap: () async {
+                              Get.back();
+                              const shareMessage =
+                                  '🎉 Hey! Check out this awesome app — Snevva! Download it here: https://play.google.com/store/apps/details?id=com.yourapp.id';
+                              await Share.share(
+                                shareMessage,
+                                subject: 'Join me on Snevva!',
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
-                SafeArea(
-                  child: Container(
-                    margin: EdgeInsets.only(top: 20, bottom: 10),
-                    decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.deepPurple.withOpacity(0.18),
-                          blurRadius: 12,
-                          offset: Offset(0, 0),
-                        ),
-                      ],
-                    ),
-                    child: OutlinedButton(
-                      onPressed: isLoading ? null : performLogout,
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor:
-                            isLoading
-                                ? grey.withOpacity(0.5)
-                                : const Color(0xFFF0E5FF),
-                        side: const BorderSide(color: Colors.transparent),
-                        minimumSize: const Size(double.infinity, 40),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                  SafeArea(
+                    child: Container(
+                      margin: EdgeInsets.only(top: 20, bottom: 10),
+                      decoration: BoxDecoration(
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDarkMode
+                                ? const Color(0xFF1E1028)
+                                : Colors.deepPurple.withOpacity(0.18),
+                            blurRadius: 12,
+                            offset: const Offset(0, 0),
+                          ),
+                        ],
                       ),
-                      child: AppLoadingButtonChild(
-                        isLoading: isLoading,
-                        loaderSize: 20,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SvgPicture.asset(
-                              logoutIcon,
-                              width: 24,
-                              height: 24,
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              "Log Out",
-                              style: TextStyle(
-                                fontSize: 18,
-                                foreground:
-                                Paint()
-                                  ..shader = AppColors.primaryGradient
-                                      .createShader(
-                                    const Rect.fromLTWH(0, 0, 200, 70),
-                                  ),
+                      child: OutlinedButton(
+                        onPressed: isLoading ? null : performLogout,
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: isLoading
+                              ? grey.withOpacity(0.5)
+                              : isDarkMode
+                              ? const Color(
+                              0xFF1E1028) // deep dark purple, visible on black
+                              : const Color(0xFFF0E5FF),
+                          // original light purple
+                          side: const BorderSide(color: Colors.transparent),
+                          minimumSize: const Size(double.infinity, 40),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: AppLoadingButtonChild(
+                          isLoading: isLoading,
+                          loaderSize: 20,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SvgPicture.asset(
+                                logoutIcon,
+                                width: 24,
+                                height: 24,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 10),
+                              Text(
+                                "Log Out",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  foreground:
+                                  Paint()
+                                    ..shader = AppColors.primaryGradient
+                                        .createShader(
+                                      const Rect.fromLTWH(0, 0, 200, 70),
+                                    ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

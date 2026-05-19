@@ -1,5 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:lottie/lottie.dart';
 import 'package:snevva/Controllers/alerts/alerts_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/consts/consts.dart';
@@ -152,9 +155,25 @@ class _DashboardState extends State<Dashboard>
                     () => Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          '🖐🏻 Hello',
-                          style: TextStyle(fontSize: 16),
+                        Row(
+                          children: [
+                            SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: Transform.rotate(
+                                angle: -45 * math.pi / 180,
+                                child: Lottie.asset(
+                                  handWaveLottie,
+                                  fit: BoxFit.contain,
+                                  animate: TickerMode.of(context),
+                                ),
+                              ),
+                            ),
+                            const Text(
+                              'Hello',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ],
                         ),
 
                         Text(

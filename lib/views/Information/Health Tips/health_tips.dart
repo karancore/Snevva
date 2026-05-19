@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:snevva/Controllers/HealthTips/healthtips_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
@@ -275,15 +277,43 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryColor,
+                  minimumSize: const Size(75, 18),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
-                  padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 0.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                 ),
                 onPressed: onButtonTap,
-                child: const Text(
-                  "Know More",
-                  style: TextStyle(color: Colors.white, fontSize: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+
+                  children: [
+                    const Text(
+                      "Know More",
+                      style: TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                    const SizedBox(width: 4,),
+                    SizedBox(
+                      height: 14,
+                      width: 14,
+                      child: Container(
+                        decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isDarkMode
+                                ? darkGray.withOpacity(0.9)
+                                : white
+                        ),
+                        child: Center(
+                          child: Transform.rotate(angle: 135 * math.pi / 180,
+                              child: Icon(Icons.arrow_back, size: 10,)),
+                        ),
+                      ),
+                    )
+                  ],
                 ),
               ),
             ),

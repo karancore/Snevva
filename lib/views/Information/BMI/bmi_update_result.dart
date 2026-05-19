@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
@@ -221,7 +223,7 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
                   "Update BMI",
                   style: TextStyle(
                     fontSize: 16,
-                    color: isDarkMode ? black : white,
+                    color: isDarkMode ? white : black,
                   ),
                 ),
               ),
@@ -363,20 +365,54 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
               ),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryColor,
-                  shape: RoundedRectangleBorder(
+                  backgroundColor: AppColors.primaryColor,/ Button size
+                  minimumSize: const Size(75, 18),
+
+                  // OR fixedSize: const Size(90, 32),
+                  sshape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
-                  padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 0.0),
+
+                  // Inner spacing
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                 ),
                 onPressed: onButtonTap,
-                child: const Text(
-                  "Know More",
-                  style: TextStyle(color: Colors.white, fontSize: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      "Know More",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(width: 4,),
+                    SizedBox(
+                      height: 14,
+                      width: 14,
+                      child: Container(
+                        decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isDarkMode
+                                ? darkGray.withOpacity(0.9)
+                                : white
+                        ),
+                        child: Center(
+                          child: Transform.rotate(angle: 135 * math.pi / 180,
+                              child: Icon(Icons.arrow_back, size: 10,)),
+                        ),
+                      ),
+                    )
+                  ],
                 ),
               ),
             ),
-          ),
+          )
         ],
       ),
     );

@@ -76,6 +76,7 @@ const hydrationEleBottom = "assets/Dashboard/Rectangle 31.webp";
 //Icons
 // Dashboard_containers
 const ecgDashboardLottie = 'assets/Dashboard/lhWa8wKgs5.json';
+const handWaveLottie = 'assets/Dashboard/hand wave.json';
 // Dashboard Ads Images
 const adImg1 = "assets/Dashboard/img.png";
 // const adImg1 = "assets/Dashboard/Slider%205%20-%20Health%20Companion.png";
