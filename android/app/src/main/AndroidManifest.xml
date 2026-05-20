@@ -1,18 +1,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- File-based storage uses internal app dir (getApplicationSupportDirectory).
-         No external-storage permissions are needed on Android 10+ (API 29+).
-         READ/WRITE_EXTERNAL_STORAGE are scoped to API ≤28 only for legacy devices.
-         MANAGE_EXTERNAL_STORAGE has been removed: the app does not manage arbitrary
-         external files and Google Play policy prohibits this permission unless the
-         app is a file manager, antivirus, or backup tool. -->
+    <!-- image_picker uses Android Photo Picker (PickVisualMedia) on API 33+,
+         which requires no storage permission. On API 29–32 the legacy gallery
+         intent is the fallback and needs READ_EXTERNAL_STORAGE. API ≤28 also
+         needs WRITE for cache. READ_MEDIA_IMAGES is NOT declared: the Photo
+         Picker is permission-free and covers all image/profile-photo use cases. -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="28" />
+        android:maxSdkVersion="32" />
 
     <!-- 🌐 Internet & network state -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -24,12 +23,6 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
-    <!-- Images and pdf permissions for Android 13+-->
-    <!-- Images ke liye -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-
-    <!-- PDFs / Files ke liye -->
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission
         android:name="android.permission.USE_FULL_SCREEN_INTENT"
         tools:node="remove" />
