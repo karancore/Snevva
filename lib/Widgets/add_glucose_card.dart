@@ -30,8 +30,6 @@ class AddGlucoseCard extends StatefulWidget {
 }
 
 class _AddGlucoseCardState extends State<AddGlucoseCard> {
-
-
   late VitalsController vitalsController;
   String _selectedType = 'Fasting';
 
@@ -48,53 +46,82 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
     super.dispose();
   }
 
-
-  Future<void> _saveReading() async {
+  Future<bool> _saveReading() async {
     final text = vitalsController.glucoseController.text.trim();
 
-    if (text.isEmpty || double.tryParse(text) == null) {
+    // Empty validation
+    if (text.isEmpty) {
+      Get.snackbar(
+        'Required',
+        'Please enter glucose value',
+        backgroundColor: Colors.orange,
+        colorText: Theme.of(context).colorScheme.onPrimary,
+      );
+      return false;
+    }
+
+    // Number validation
+    final glucoseValue = double.tryParse(text);
+
+    if (glucoseValue == null) {
       Get.snackbar(
         'Invalid Input',
-        'Please enter a valid glucose value.',
+        'Please enter a valid number',
+        backgroundColor: Colors.red,
+        colorText: Theme.of(context).colorScheme.onPrimary,
       );
-      return;
+      return false;
     }
-    if (double.parse(text) < 1.0 || double.parse(text) > 33.3) {
+
+    // Range validation
+    if (glucoseValue < 1.0 || glucoseValue > 33.3) {
       Get.snackbar(
         'Invalid Value',
-        'Glucose must be between 1.0 and 33.3 mmol/L.',
+        'Glucose must be between 1.0 and 33.3 mmol/L',
+        backgroundColor: Colors.red,
+        colorText: Theme.of(context).colorScheme.onPrimary,
       );
-      return;
+      return false;
     }
 
     final success = await vitalsController.submitBloodGlucose(
-      glucoseValue: double.parse(text),
+      glucoseValue: glucoseValue,
       type: _selectedType,
       context: context,
     );
 
-    if (success) {
-      vitalsController.glucoseController.clear();
-      if (mounted) Navigator.pop(context);
+    debugPrint("submit glucose $success");
+    if (!success) {
+      Get.snackbar(
+        'Error',
+        'Something went wrong! Try again later.',
+        backgroundColor: Colors.red,
+        colorText: Theme.of(context).colorScheme.onPrimary,
+      );
+      return false;
     }
 
-
     Get.snackbar(
-      'Error',
-      'Failed to save glucose record',
-      backgroundColor: Colors.red,
+      'Success',
+      'Glucose record saved successfully',
+      backgroundColor: Colors.green,
+      colorText: Theme.of(context).colorScheme.onPrimary,
     );
 
-  }
+    vitalsController.glucoseController.clear();
 
+    if (mounted) {
+      Navigator.pop(context);
+    }
+
+    return true;
+  }
 
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
     double scale = screenWidth / 360;
-    final bool isDarkMode = Theme
-        .of(context)
-        .brightness == Brightness.dark;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Stack(
       children: [
@@ -123,7 +150,6 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
 
               child: Stack(
                 children: [
-
                   /// Purple BG — covers title + image + input zone
                   Positioned(
                     top: 0,
@@ -145,7 +171,6 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-
                       // ── PURPLE ZONE ──────────────────────────────
 
                       /// Close + Title + Subtitle row at very top
@@ -154,7 +179,6 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-
                             /// Title + Subtitle
                             Expanded(
                               child: Column(
@@ -245,11 +269,11 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                                 width: 70 * scale,
                                 child: TextFormField(
                                   controller:
-                                  vitalsController.glucoseController,
+                                      vitalsController.glucoseController,
                                   keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
                                     color: Colors.white,
@@ -300,22 +324,25 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                         child: ValueListenableBuilder(
                           valueListenable: vitalsController.glucoseController,
                           builder: (context, value, child) {
-                            final text = vitalsController
-                                .glucoseController.text
-                                .trim();
+                            final text =
+                                vitalsController.glucoseController.text.trim();
                             final isEmpty = text.isEmpty;
                             final status = getGlucoseStatus(
-                                double.tryParse(text) ?? 0.0);
+                              double.tryParse(text) ?? 0.0,
+                            );
 
                             if (isEmpty) return const SizedBox.shrink();
 
                             return Container(
                               padding: const EdgeInsets.symmetric(
-                                  vertical: 12, horizontal: 14),
+                                vertical: 12,
+                                horizontal: 14,
+                              ),
                               decoration: BoxDecoration(
                                 color: status.containerBg,
-                                border:
-                                Border.all(color: status.containerBorder),
+                                border: Border.all(
+                                  color: status.containerBorder,
+                                ),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Row(
@@ -326,12 +353,16 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                                     width: 40,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: status.statusColor
-                                          .withOpacity(0.2),
+                                      color: status.statusColor.withOpacity(
+                                        0.2,
+                                      ),
                                     ),
                                     child: Center(
-                                      child: Icon(status.statusIcon,
-                                          color: status.statusColor, size: 22),
+                                      child: Icon(
+                                        status.statusIcon,
+                                        color: status.statusColor,
+                                        size: 22,
+                                      ),
                                     ),
                                   ),
                                   SizedBox(width: 10 * scale),
@@ -339,7 +370,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           "Your reading is",
@@ -418,9 +449,10 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                             Icon(
                               FontAwesomeIcons.circleInfo,
                               size: 10,
-                              color: isDarkMode
-                                  ? white.withOpacity(0.4)
-                                  : Colors.grey.shade400,
+                              color:
+                                  isDarkMode
+                                      ? white.withOpacity(0.4)
+                                      : Colors.grey.shade400,
                             ),
                             const SizedBox(width: 6),
                             Text(
@@ -428,9 +460,10 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                               style: TextStyle(
                                 fontWeight: FontWeight.w400,
                                 fontSize: 10,
-                                color: isDarkMode
-                                    ? white.withOpacity(0.4)
-                                    : Colors.grey.shade500,
+                                color:
+                                    isDarkMode
+                                        ? white.withOpacity(0.4)
+                                        : Colors.grey.shade500,
                               ),
                             ),
                           ],
@@ -493,25 +526,25 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
             duration: const Duration(milliseconds: 200),
             height: 40 * scale,
             decoration: BoxDecoration(
-              color: isSelected
-                  ? const Color(0xffB475FF)
-                  : glucoseChipColor,
+              color: isSelected ? const Color(0xffB475FF) : glucoseChipColor,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isSelected
-                    ? const Color(0xffB475FF)
-                    : glucoseChipBorderColor,
+                color:
+                    isSelected
+                        ? const Color(0xffB475FF)
+                        : glucoseChipBorderColor,
                 width: 0.5,
               ),
-              boxShadow: isSelected
-                  ? [
-                BoxShadow(
-                  color: const Color(0xffB475FF).withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                )
-              ]
-                  : [],
+              boxShadow:
+                  isSelected
+                      ? [
+                        BoxShadow(
+                          color: const Color(0xffB475FF).withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ]
+                      : [],
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -552,22 +585,28 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
     return Expanded(
       flex: isSave ? 1 : 1,
       child: GestureDetector(
-        onTap: isSave ? _saveReading : () => Navigator.pop(context),
+        onTap:
+            isSave
+                ? () {
+                  _saveReading();
+                }
+                : null,
         child: Container(
           height: 44 * scale,
           decoration: BoxDecoration(
             color: color,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: borderColor, width: 0.5),
-            boxShadow: isSave
-                ? [
-              BoxShadow(
-                color: AppColors.primaryColor.withOpacity(0.35),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              )
-            ]
-                : [],
+            boxShadow:
+                isSave
+                    ? [
+                      BoxShadow(
+                        color: AppColors.primaryColor.withOpacity(0.35),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                    : [],
           ),
           child: Center(
             child: Text(

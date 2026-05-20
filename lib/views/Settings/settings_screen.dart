@@ -292,70 +292,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: buildTile('About app', 'Tap to know more'),
               ),
 
-              // 🔥 Debug Logs (Visible only in debug mode)
-              if (kDebugMode) const SizedBox(height: 10),
-              const Divider(thickness: border04px, color: mediumGrey),
-              const SizedBox(height: 20),
+              // 🔥 Visible only in Debug Mode
+              if (kDebugMode) ...[
+                const SizedBox(height: 10),
+                const Divider(thickness: border04px, color: mediumGrey),
+                const SizedBox(height: 20),
 
-              Text(
-                "Developer Debug",
-                style: TextStyle(
-                  color: Theme.of(context).hintColor,
-                  fontWeight: FontWeight.w400,
-                  fontSize: 14,
+                Text(
+                  "Developer Debug",
+                  style: TextStyle(
+                    color: Theme
+                        .of(context)
+                        .hintColor,
+                    fontWeight: FontWeight.w400,
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              InkWell(
-                onTap: () {
-                  Get.to(() => const DebugSleepBufferScreen());
-                },
 
-                child: buildTile(
-                  'Sleep Buffer Logs',
-                  'View raw sleep data & JSONs',
+                const SizedBox(height: 20),
+
+                InkWell(
+                  onTap: () {
+                    Get.to(() => const DebugSleepBufferScreen());
+                  },
+                  child: buildTile(
+                    'Sleep Buffer Logs',
+                    'View raw sleep data & JSONs',
+                  ),
                 ),
-              ),
 
-              InkWell(
-                onTap: () {
-                  Get.to(() => const DebugStepsBufferScreen());
-                },
-
-                child: buildTile(
-                  'Steps Buffer & Sync Queue',
-
-                  'View steps data & API push flags',
+                InkWell(
+                  onTap: () {
+                    Get.to(() => const DebugStepsBufferScreen());
+                  },
+                  child: buildTile(
+                    'Steps Buffer & Sync Queue',
+                    'View steps data & API push flags',
+                  ),
                 ),
-              ),
 
-              InkWell(
-                onTap: () {
-                  Get.to(() => const DebugApiSyncScreen());
-                },
-
-                child: buildTile(
-                  'API Sync History',
-
-                  'View when queued data was pushed & API responses',
+                InkWell(
+                  onTap: () {
+                    Get.to(() => const DebugApiSyncScreen());
+                  },
+                  child: buildTile(
+                    'API Sync History',
+                    'View when queued data was pushed & API responses',
+                  ),
                 ),
-              ),
 
-              InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-
-                    MaterialPageRoute(builder: (_) => const DebugLogPage()),
-                  );
-                },
-
-                child: buildTile(
-                  'Debug Logs',
-
-                  'View API responses, errors & logs',
+                InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const DebugLogPage(),
+                      ),
+                    );
+                  },
+                  child: buildTile(
+                    'Debug Logs',
+                    'View API responses, errors & logs',
+                  ),
                 ),
-              ),
+              ],
 
               // Text(
               //   "Developer Debug",
