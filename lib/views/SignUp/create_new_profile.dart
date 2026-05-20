@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
@@ -29,6 +30,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void initState() {
     super.initState();
     otpController.isForgotPasswordScreen.value = false;
+
+    final googleAuth = Get.find<GoogleAuthService>();
+    ever(googleAuth.user, (account) {
+      if (account == null) return;
+      final url = account.photoUrl;
+      if (url != null && url.isNotEmpty && mounted) {
+        precacheImage(CachedNetworkImageProvider(url), context);
+      }
+    });
   }
 
   @override
@@ -194,7 +204,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                         try {
                           final googleAuth = Get.find<GoogleAuthService>();
-                          await googleAuth.init();
                           await googleAuth.signIn();
                           // await googleAuth.signIn();
                         } finally {

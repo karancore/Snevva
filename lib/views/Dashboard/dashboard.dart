@@ -50,14 +50,13 @@ class _DashboardState extends State<Dashboard>
 
     alertsController = Get.find<AlertsController>();
 
-    // Initialize controllers
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
 
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1), // Slide from slightly below
+      begin: const Offset(0, 0.1),
       end: Offset.zero,
     ).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
@@ -68,20 +67,17 @@ class _DashboardState extends State<Dashboard>
     );
 
     _animationController.forward();
+
     scrollController.addListener(() {
       if (scrollController.position.userScrollDirection ==
           ScrollDirection.reverse) {
         if (_showAppBar) {
-          setState(() {
-            _showAppBar = false;
-          });
+          setState(() => _showAppBar = false);
         }
       } else if (scrollController.position.userScrollDirection ==
           ScrollDirection.forward) {
         if (!_showAppBar) {
-          setState(() {
-            _showAppBar = true;
-          });
+          setState(() => _showAppBar = true);
         }
       }
     });
@@ -109,6 +105,7 @@ class _DashboardState extends State<Dashboard>
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       key: _scaffoldKey,
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
@@ -124,7 +121,8 @@ class _DashboardState extends State<Dashboard>
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Obx(
-                    () => Column(
+                        () =>
+                        Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
@@ -147,7 +145,6 @@ class _DashboardState extends State<Dashboard>
                             ),
                           ],
                         ),
-
                         Text(
                           localStorageManager.userMap['Name']?.toString() ??
                               'User',
@@ -163,7 +160,6 @@ class _DashboardState extends State<Dashboard>
                   Obx(() {
                     final unreadCount =
                         alertsController.unreadNotifications.length;
-
                     return Stack(
                       children: [
                         IconButton(
@@ -175,7 +171,7 @@ class _DashboardState extends State<Dashboard>
                           onPressed: () {
                             Get.to(() => AlertsScreen());
                             notificationController.hasNewNotification.value =
-                                false;
+                            false;
                           },
                         ),
                         if (unreadCount > 0)
@@ -219,124 +215,80 @@ class _DashboardState extends State<Dashboard>
           ),
         ),
       ),
-      body: Stack(
-        children: [
-          AbsorbPointer(
-            absorbing: _isPhoneMissing,
-            child: Opacity(
-              opacity: _isPhoneMissing ? 0.35 : 1,
-              child: GestureDetector(
-                onHorizontalDragUpdate: (details) {
-                  if (details.delta.dx > 10) {
-                    _scaffoldKey.currentState?.openDrawer();
-                  } else if (details.delta.dx < -10) {
-                    if (_scaffoldKey.currentState?.isDrawerOpen == true) {
-                      Navigator.of(context).pop();
-                    }
-                  }
-                },
-                child: SafeArea(
-                  child: ScrollConfiguration(
-                    behavior: ScrollBehavior().copyWith(
-                      scrollbars: false,
-                      overscroll: false,
-                    ),
-                    child: SingleChildScrollView(
-                      controller: scrollController,
-                      padding: const EdgeInsets.only(
-                        left: 16,
-                        right: 16,
-                        bottom: 24,
-                        top: 4,
-                      ),
-                      child: FadeTransition(
-                        opacity: _fadeAnimation,
-                        child: SlideTransition(
-                          position: _slideAnimation,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (isVisible)
-                                Obx(() {
-                                  final bool anyEmpty =
-                                  !isProfileDisplayComplete(
-                                    localStorageManager.userMap,
-                                  );
-                                  debugPrint(anyEmpty.toString());
-
-                                  return anyEmpty
-                                      ? SizedBox(height: 16)
-                                      : SizedBox(height: 32);
-                                })
-                              else
-                                SizedBox.shrink(),
-                              if (isVisible)
-                                Obx(() {
-                                  final bool anyEmpty =
-                                  !isProfileDisplayComplete(
-                                    localStorageManager.userMap,
-                                  );
-                                  debugPrint(anyEmpty.toString());
-
-                                  return anyEmpty
-                                      ? Column(
-                                        children: [
-                                          IncompleteProfileCard(
-                                            onTapComplete:
-                                                () => Get.to(
-                                                  () =>
-                                                      const EditProfileScreen(),
-                                                ),
-                                          ),
-                                          SizedBox(height: 16),
-                                        ],
-                                      )
-                                      : SizedBox.shrink();
-                                })
-                              else
-                                SizedBox.shrink(),
-
-                              DashboardHeaderWidget(),
-                              const SizedBox(height: 24),
-                              DashboardServiceOverviewDynamicWidgets(
-                                width: width,
-                                height: height,
-                                isDarkMode: isDarkMode,
-                              ),
-                              const SizedBox(height: 24),
-                              DashboardServicesWidget(),
-                              DashboardAdsCarouselSlider(),
-                              const SizedBox(height: 20),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+      body: GestureDetector(
+        onHorizontalDragUpdate: (details) {
+          if (details.delta.dx > 10) {
+            _scaffoldKey.currentState?.openDrawer();
+          } else if (details.delta.dx < -10) {
+            if (_scaffoldKey.currentState?.isDrawerOpen == true) {
+              Navigator.of(context).pop();
+            }
+          }
+        },
+        child: SafeArea(
+          child: ScrollConfiguration(
+            behavior: ScrollBehavior().copyWith(
+              scrollbars: false,
+              overscroll: false,
             ),
-          ),
-          if (_isPhoneMissing)
-            Positioned.fill(
-              child: Container(
-                color: Colors.black.withOpacity(0.05),
-                padding: const EdgeInsets.all(16),
-                child: SafeArea(
+            child: SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.only(
+                left: 16,
+                right: 16,
+                bottom: 24,
+                top: 4,
+              ),
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 12),
-                      IncompleteProfileCard(
-                        onTapComplete: () {
-                          Get.to(() => const EditProfileScreen());
-                        },
+                      // ── Single card declaration handling both cases ──
+                      if (isVisible)
+                        Obx(() {
+                          final bool showCard =
+                              _isPhoneMissing ||
+                                  !isProfileDisplayComplete(
+                                    localStorageManager.userMap,
+                                  );
+
+                          return showCard
+                              ? Column(
+                            children: [
+                              const SizedBox(height: 16),
+                              IncompleteProfileCard(
+                                onTapComplete: () =>
+                                    Get.to(
+                                          () => const EditProfileScreen(),
+                                    ),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                          )
+                              : const SizedBox(height: 32);
+                        }),
+
+                      DashboardHeaderWidget(),
+                      const SizedBox(height: 24),
+                      DashboardServiceOverviewDynamicWidgets(
+                        width: width,
+                        height: height,
+                        isDarkMode: isDarkMode,
                       ),
+                      const SizedBox(height: 24),
+                      DashboardServicesWidget(),
+                      DashboardAdsCarouselSlider(),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
               ),
             ),
-        ],
+          ),
+        ),
       ),
     );
   }

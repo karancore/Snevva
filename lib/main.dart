@@ -33,6 +33,7 @@ import 'package:snevva/Controllers/signupAndSignIn/update_old_password_controlle
 import 'package:snevva/services/connectivity_service.dart';
 import 'package:snevva/services/firebase_init.dart';
 import 'package:snevva/services/google_auth.dart';
+import 'package:snevva/services/google_backend_auth_service.dart';
 import 'package:snevva/utils/push_notifications_controller.dart';
 import 'package:snevva/utils/theme_controller.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
@@ -217,6 +218,9 @@ void main() {
         _firebaseMessagingBackgroundHandler,
       );
 
+      Get.put(GoogleBackendAuthService());
+      final googleAuth = Get.put(GoogleAuthService());
+      await googleAuth.init(); // no context needed anymore
       runApp(
         MyApp(
           isRemembered: isRemembered,
@@ -669,7 +673,6 @@ class _MyAppState extends State<MyApp> {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         locale: const Locale('en'),
         getPages: [
-          GetPage(name: '/home', page: () => HomeWrapper()),
           GetPage(name: '/reminder', page: () => ReminderScreen()),
           GetPage(name: '/mood', page: () => MoodTrackerScreen()),
           GetPage(name: '/perf-120', page: () => const HighFpsDemoScreen()),

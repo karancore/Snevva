@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:pinput/pinput.dart';
+import 'package:smart_auth/smart_auth.dart';
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
@@ -821,129 +822,15 @@ class EditprofileController extends GetxService {
     required String initialValue,
     VoidCallback? onUpdated,
   }) {
-    final TextEditingController controller = TextEditingController(
-      text: initialValue,
-    );
-    final pinController = TextEditingController();
-    final value = controller.text.trim();
-
-    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
-      builder: (ctx) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 10),
-                Image.asset(veriemail, height: 180, width: 180),
-                const SizedBox(height: 25),
-                Text(
-                  'Enter the 6-digit code sent to\n$value',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 25),
-
-                Pinput(
-                  length: 6,
-                  controller: pinController,
-                  defaultPinTheme: defaultPinTheme,
-                  focusedPinTheme: focusedPinTheme,
-                  submittedPinTheme: submittedPinTheme,
-                  followingPinTheme: followingPinTheme,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  onCompleted: (pin) async {
-                    otpVerificationStatus = otpVerificationController.verifyOtp(
-                      pin,
-                      pinController.text,
-                      ctx,
-                    );
-                    if (otpVerificationStatus) {
-                      localStorageManager.userMap['PhoneNumber'] = initialValue;
-                      phoneNumber = initialValue;
-                      await localStorageManager.saveUserMap();
-                      await signupController.updatePhone(phoneNumber, ctx);
-                      if (onUpdated != null) {
-                        onUpdated();
-                        CustomSnackbar.showSuccess(
-                          context: context,
-                          title: 'Success',
-                          message: 'Mobile number updated successfully.',
-                        );
-                        Navigator.pop(ctx);
-                      }
-                    }
-                  },
-                ),
-
-                const SizedBox(height: 15),
-                Obx(
-                  () => InkWell(
-                    onTap:
-                        isResendEnabled.value
-                            ? () async {
-                              isResendEnabled.value = false;
-                              startResendTimer(
-                                seconds: 30,
-                              ); // Start 30-sec timer
-
-                              final result = await signupController.phoneotp(
-                                value,
-                                ctx,
-                              );
-
-                              if (result != false && result != null) {
-                                otpVerificationController.responseOtp.value =
-                                    result;
-                                CustomSnackbar.showSuccess(
-                                  context: context,
-                                  title: 'Success',
-                                  message: 'OTP resent successfully.',
-                                );
-                              } else {
-                                CustomSnackbar.showError(
-                                  context: context,
-                                  title: 'Error',
-                                  message: 'Failed to resend OTP.',
-                                );
-                              }
-                            }
-                            : null,
-                    child: ShaderMask(
-                      shaderCallback:
-                          (bounds) => AppColors.primaryGradient.createShader(
-                            Rect.fromLTWH(0, 0, bounds.width, bounds.height),
-                          ),
-                      child: Text(
-                        isResendEnabled.value
-                            ? "Resend code"
-                            : "Resend in ${resendTimer.value}s",
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14,
-                          color: Colors.white,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+        builder:
+            (ctx) =>
+            _PhoneOtpDialog(
+              phoneNumber: initialValue.trim(),
+              ctrl: this,
+              onUpdated: onUpdated,
+            ));
   }
 
   void showGenderDialog(BuildContext context, {VoidCallback? onUpdated}) {
@@ -1418,5 +1305,169 @@ class EditprofileController extends GetxService {
       );
       return false;
     }
+  }
+}
+
+class _PhoneOtpDialog extends StatefulWidget {
+  final String phoneNumber;
+  final EditprofileController ctrl;
+  final VoidCallback? onUpdated;
+
+  const _PhoneOtpDialog({
+    required this.phoneNumber,
+    required this.ctrl,
+    this.onUpdated,
+  });
+
+  @override
+  State<_PhoneOtpDialog> createState() => _PhoneOtpDialogState();
+}
+
+class _PhoneOtpDialogState extends State<_PhoneOtpDialog> {
+  final _pinController = TextEditingController();
+  final _smartAuth = SmartAuth.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _listenForSms();
+  }
+
+  Future<void> _listenForSms() async {
+    final res = await _smartAuth.getSmsWithUserConsentApi();
+    if (!mounted || !res.hasData) return;
+    final code = res.requireData.code;
+    if (code == null || code.length != 6) return;
+
+    _pinController.text = code;
+    _pinController.selection = TextSelection.fromPosition(
+      TextPosition(offset: code.length),
+    );
+
+    if (!widget.ctrl.otpVerificationController.isVerifying.value) {
+      await _handleVerify(code);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pinController.dispose();
+    _smartAuth.removeSmsRetrieverApiListener();
+    _smartAuth.removeUserConsentApiListener();
+    super.dispose();
+  }
+
+  Future<void> _handleVerify(String pin) async {
+    final ctrl = widget.ctrl;
+    final status = ctrl.otpVerificationController.verifyOtp(
+      pin,
+      ctrl.otpVerificationController.responseOtp.value,
+      context,
+      isEditPassword: true,
+    );
+    ctrl.otpVerificationStatus = status;
+    if (!status) return;
+
+    ctrl.localStorageManager.userMap['PhoneNumber'] = widget.phoneNumber;
+    ctrl.phoneNumber = widget.phoneNumber;
+    await ctrl.localStorageManager.saveUserMap();
+    await ctrl.signupController.updatePhone(ctrl.phoneNumber, context);
+
+    if (widget.onUpdated != null && mounted) {
+      widget.onUpdated!();
+      CustomSnackbar.showSuccess(
+        context: context,
+        title: 'Success',
+        message: 'Mobile number updated successfully.',
+      );
+      Navigator.pop(context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ctrl = widget.ctrl;
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(height: 10),
+            Image.asset(veriemail, height: 180, width: 180),
+            const SizedBox(height: 25),
+            Text(
+              'Enter the 6-digit code sent to\n${widget.phoneNumber}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 25),
+            Pinput(
+              length: 6,
+              controller: _pinController,
+              defaultPinTheme: ctrl.defaultPinTheme,
+              focusedPinTheme: ctrl.focusedPinTheme,
+              submittedPinTheme: ctrl.submittedPinTheme,
+              followingPinTheme: ctrl.followingPinTheme,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              onCompleted: (pin) => _handleVerify(pin),
+            ),
+            const SizedBox(height: 15),
+            Obx(
+                  () =>
+                  InkWell(
+                    onTap: ctrl.isResendEnabled.value
+                        ? () async {
+                      ctrl.isResendEnabled.value = false;
+                      ctrl.startResendTimer(seconds: 30);
+                      final result = await ctrl.signupController.phoneotp(
+                        widget.phoneNumber,
+                        context,
+                      );
+                      if (result != false && result != null) {
+                        ctrl.otpVerificationController.responseOtp.value =
+                            result;
+                        CustomSnackbar.showSuccess(
+                          context: context,
+                          title: 'Success',
+                          message: 'OTP resent successfully.',
+                        );
+                      } else {
+                        CustomSnackbar.showError(
+                          context: context,
+                          title: 'Error',
+                          message: 'Failed to resend OTP.',
+                        );
+                      }
+                    }
+                        : null,
+                    child: ShaderMask(
+                      shaderCallback: (bounds) =>
+                          AppColors.primaryGradient.createShader(
+                            Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+                          ),
+                      child: Text(
+                        ctrl.isResendEnabled.value
+                            ? 'Resend code'
+                            : 'Resend in ${ctrl.resendTimer.value}s',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                          color: Colors.white,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

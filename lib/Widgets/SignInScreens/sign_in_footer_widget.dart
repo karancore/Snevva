@@ -83,54 +83,54 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Google icon (always shown)
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: IconButton(
-                onPressed: () async {
-                  if (isSigningIn) return;
-
-                  setState(() => isSigningIn = true);
-
-                  try {
-                    final googleAuth = Get.find<GoogleAuthService>();
-
-                    await googleAuth.init();
-                    await googleAuth.signIn(); // ✅ REQUIRED
-                  } catch (e) {
-                    debugPrint("❌ Google sign-in failed: $e");
-
-                    CustomSnackbar.showError(
-                      context: context,
-                      title: 'Sign-in Required',
-                      message: 'Please sign in with Google to continue.',
-                    );
-                  } finally {
-                    if (mounted) {
-                      setState(() => isSigningIn = false);
-                    }
-                  }
-                },
-
-                icon:
-                    isSigningIn
-                        ? CircularProgressIndicator(
-                          backgroundColor: isDarkMode ? white : black,
-                        )
-                        : Image.asset(google, height: 28, width: 28),
-                padding: const EdgeInsets.all(12),
-                splashRadius: 28,
-              ),
-            ),
+            Obx(() {
+              final googleAuth = Get.find<GoogleAuthService>();
+              final isBusy = isSigningIn || googleAuth.isLoading.value;
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  onPressed:
+                      isBusy
+                          ? null
+                          : () async {
+                            setState(() => isSigningIn = true);
+                            try {
+                              await googleAuth.signIn();
+                            } catch (e) {
+                              debugPrint("❌ Google sign-in failed: $e");
+                              CustomSnackbar.showError(
+                                context: context,
+                                title: 'Sign-in Required',
+                                message:
+                                    'Please sign in with Google to continue.',
+                              );
+                            } finally {
+                              // Reset local flag — if auth succeeded, googleAuth.isLoading
+                              // is already true so isBusy stays true until backend finishes.
+                              if (mounted) setState(() => isSigningIn = false);
+                            }
+                          },
+                  icon:
+                      isBusy
+                          ? CircularProgressIndicator(
+                            backgroundColor: isDarkMode ? white : black,
+                          )
+                          : Image.asset(google, height: 28, width: 28),
+                  padding: const EdgeInsets.all(12),
+                  splashRadius: 28,
+                ),
+              );
+            }),
 
             // Facebook icon (conditionally shown)
             if (widget.facebookText != null)

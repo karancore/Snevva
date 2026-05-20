@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/common/custom_snackbar.dart';
@@ -5,6 +6,7 @@ import 'package:snevva/consts/consts.dart';
 import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/views/SignUp/forgot_password.dart';
 
+import '../../services/google_auth.dart';
 import '../../widgets/SignInScreens/sign_in_footer_widget.dart';
 import 'create_new_profile.dart';
 
@@ -41,6 +43,15 @@ class _SignInScreenState extends State<SignInScreen> {
     super.initState();
     userEmailOrPhoneField = TextEditingController();
     userPasswordField = TextEditingController();
+
+    final googleAuth = Get.find<GoogleAuthService>();
+    ever(googleAuth.user, (account) {
+      if (account == null) return;
+      final url = account.photoUrl;
+      if (url != null && url.isNotEmpty && mounted) {
+        precacheImage(CachedNetworkImageProvider(url), context);
+      }
+    });
   }
 
   @override

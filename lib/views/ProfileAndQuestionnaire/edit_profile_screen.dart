@@ -60,8 +60,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
 
     final String? cdnUrl = localStorageManager
-        .userMap['ProfilePicture']?['CdnUrl'];
-    profilePictureUrl = 'https://$cdnUrl';
+        .userMap['ProfilePicture']?['CdnUrl']?.toString().trim();
+    profilePictureUrl = (cdnUrl != null && cdnUrl.isNotEmpty)
+        ? (cdnUrl.startsWith('http') ? cdnUrl : 'https://$cdnUrl')
+        : '';
 
     // ✅ Defer Rx assignments until after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -211,11 +213,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               if (pickedFile != null) {
                                 imageProvider = FileImage(pickedFile);
                               }
-                              // 2️⃣ Second Priority → API image
+                              // 2️⃣ Second Priority → API / Google image
                               else if (cdnUrl != null && cdnUrl.isNotEmpty) {
-                                imageProvider = CachedNetworkImageProvider(
-                                  "https://$cdnUrl",
-                                );
+                                final imageUrl = cdnUrl.startsWith('http')
+                                    ? cdnUrl
+                                    : 'https://$cdnUrl';
+                                imageProvider =
+                                    CachedNetworkImageProvider(imageUrl);
                               }
 
                               // 3️⃣ Fallback → Default asset

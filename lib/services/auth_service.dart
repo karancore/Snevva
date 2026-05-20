@@ -249,7 +249,7 @@ class AuthService {
     await prefs.setString('userdata', jsonEncode(userData));
     localStorageManager.userMap.value = userData ?? {};
 
-    final PatientCode = userData['PatientCode']?.toString() ?? '';
+    final PatientCode = userData?['PatientCode']?.toString() ?? '';
     await prefs.setString('PatientCode', PatientCode);
     loginLog("PatientCode saved: $PatientCode");
 
