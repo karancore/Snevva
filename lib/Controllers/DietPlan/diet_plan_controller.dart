@@ -56,7 +56,6 @@ class DietPlanController extends GetxController {
 
     return results;
   }
-
   int categoryPageIndex = 1;
   int suggestionsPageIndex = 1;
   int celebrityPageIndex = 1;
