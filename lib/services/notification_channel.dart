@@ -8,8 +8,16 @@ class PushNotificationService {
 
   Future<void> initialize() async {
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const iosInit = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
 
-    const initSettings = InitializationSettings(android: androidInit);
+    const initSettings = InitializationSettings(
+      android: androidInit,
+      iOS: iosInit,
+    );
 
     await _localNotifications.initialize(initSettings);
 
@@ -26,11 +34,17 @@ class PushNotificationService {
       priority: Priority.high,
     );
 
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
     _localNotifications.show(
       DateTime.now().millisecondsSinceEpoch ~/ 1000,
       message.notification?.title ?? message.data['title'],
       message.notification?.body ?? message.data['body'],
-      const NotificationDetails(android: androidDetails),
+      const NotificationDetails(android: androidDetails, iOS: iosDetails),
     );
   }
 

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:alarm/alarm.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -58,20 +60,21 @@ Future<void> createServiceNotificationChannel() async {
 Future<void> requestAllPermissions() async {
   final req = <Permission>[
     Permission.activityRecognition,
-    Permission.ignoreBatteryOptimizations,
     Permission.notification,
+    // Battery optimization is Android-only
+    if (!kIsWeb && Platform.isAndroid) Permission.ignoreBatteryOptimizations,
   ];
 
   // ✅ Request permissions without blocking
   final statuses = await req.request();
 
-  // For reliable background step counting, battery optimization must be ignored.
-  if (statuses[Permission.ignoreBatteryOptimizations]?.isDenied ?? true) {
-    debugPrint(
-      "⚠️ Ignoring battery optimizations is NOT granted, background isolate might drop.",
-    );
-    // Note: If you want 100% 24/7 reliability, you must prompt the user
-    // to disable battery optimizations for Snevva in Android Settings.
+  if (!kIsWeb && Platform.isAndroid) {
+    // For reliable background step counting, battery optimization must be ignored.
+    if (statuses[Permission.ignoreBatteryOptimizations]?.isDenied ?? true) {
+      debugPrint(
+        "⚠️ Ignoring battery optimizations is NOT granted, background isolate might drop.",
+      );
+    }
   }
 
   // Only show settings if user permanently denied

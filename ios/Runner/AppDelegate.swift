@@ -1,12 +1,17 @@
 import Flutter
 import UIKit
+import CoreMotion
+import BackgroundTasks
 import flutter_local_notifications
 import QuartzCore
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
-  private let displayConfigChannelName = "com.coretegra.snevva/display_config"
-  private let timezoneChannelName = "com.coretegra.snevva/timezone"
+  private let displayConfigChannelName = "com.coretegra.snevvaa/display_config"
+  private let timezoneChannelName = "com.coretegra.snevvaa/timezone"
+  private let stepServiceChannelName = "com.coretegra.snevvaa/step_service"
+
+  private let pedometer = CMPedometer()
 
   override func application(
     _ application: UIApplication,
@@ -18,20 +23,29 @@ import QuartzCore
     GeneratedPluginRegistrant.register(with: self)
 
     if #available(iOS 10.0, *) {
-      UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
+      UNUserNotificationCenter.current().delegate = self
+    }
+
+    if #available(iOS 13.0, *) {
+      registerBGTasks()
     }
 
     let didFinish = super.application(application, didFinishLaunchingWithOptions: launchOptions)
     configureDisplayConfigChannel()
     configureTimezoneChannel()
+    configureStepServiceChannel()
     _ = requestHighRefreshRateIfAvailable()
+    startPedometerTracking()
     return didFinish
   }
 
   override func applicationDidBecomeActive(_ application: UIApplication) {
     super.applicationDidBecomeActive(application)
     _ = requestHighRefreshRateIfAvailable()
+    startPedometerTracking()
   }
+
+  // MARK: - Display Config
 
   private func configureDisplayConfigChannel() {
     guard let controller = window?.rootViewController as? FlutterViewController else {
@@ -68,6 +82,8 @@ import QuartzCore
     }
   }
 
+  // MARK: - Timezone
+
   private func configureTimezoneChannel() {
     guard let controller = window?.rootViewController as? FlutterViewController else {
       return
@@ -87,6 +103,78 @@ import QuartzCore
       }
     }
   }
+
+  // MARK: - Step Service
+
+  private func configureStepServiceChannel() {
+    guard let controller = window?.rootViewController as? FlutterViewController else {
+      return
+    }
+
+    let channel = FlutterMethodChannel(
+      name: stepServiceChannelName,
+      binaryMessenger: controller.binaryMessenger
+    )
+
+    channel.setMethodCallHandler { [weak self] call, result in
+      switch call.method {
+      case "startStepService":
+        self?.startPedometerTracking()
+        result(true)
+      case "stopStepService":
+        self?.pedometer.stopUpdates()
+        result(true)
+      case "seedTodaySteps":
+        // No-op on iOS — CMPedometer tracks natively from the motion coprocessor
+        result(true)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  // Starts (or restarts) CMPedometer from the beginning of the current day.
+  // Called on launch and on every app-active transition so the step count
+  // stays accurate across midnight crossings.
+  private func startPedometerTracking() {
+    guard CMPedometer.isStepCountingAvailable() else { return }
+
+    pedometer.stopUpdates()
+    let startOfDay = Calendar.current.startOfDay(for: Date())
+
+    pedometer.startUpdates(from: startOfDay) { data, error in
+      guard let data = data, error == nil else { return }
+      let steps = data.numberOfSteps.intValue
+      // flutter. prefix matches how shared_preferences stores keys on iOS
+      UserDefaults.standard.set(steps, forKey: "flutter.today_steps")
+    }
+  }
+
+  // MARK: - BGTask Registration
+
+  @available(iOS 13.0, *)
+  private func registerBGTasks() {
+    let noopHandler: (BGTask) -> Void = { task in
+      task.setTaskCompleted(success: true)
+    }
+    BGTaskScheduler.shared.register(
+      forTaskWithIdentifier: "com.coretegra.snevva.sleep_calc", using: nil, launchHandler: noopHandler
+    )
+    BGTaskScheduler.shared.register(
+      forTaskWithIdentifier: "com.coretegra.snevva.api_sync", using: nil, launchHandler: noopHandler
+    )
+    BGTaskScheduler.shared.register(
+      forTaskWithIdentifier: "com.coretegra.snevva.period_sync", using: nil, launchHandler: noopHandler
+    )
+    BGTaskScheduler.shared.register(
+      forTaskWithIdentifier: "com.coretegra.snevvaa.reminderReconcile", using: nil, launchHandler: noopHandler
+    )
+    BGTaskScheduler.shared.register(
+      forTaskWithIdentifier: "com.coretegra.snevvaa.reminderOneShot", using: nil, launchHandler: noopHandler
+    )
+  }
+
+  // MARK: - Display Helpers
 
   private func currentDisplayRefreshRate() -> Double {
     return Double(UIScreen.main.maximumFramesPerSecond)
