@@ -254,7 +254,10 @@ class _MyHealthScreenState extends State<MyHealthScreen>
             (bmiController.bmi.value == 0.0)
                 ? 'Add BMI'
                 : '${bmiController.bmi.value}',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: bmiController.bmi.value == 0.0 ? 18 : 22,
+            ),
           ),
         ),
         subtitle: Obx(() {
