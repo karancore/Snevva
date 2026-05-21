@@ -30,6 +30,33 @@ class DietPlanController extends GetxController {
 
   // Replaces raw Map usage: typed list for celebrity responses
   var celebrityList = <DietTagData>[].obs;
+
+  final RxString searchQuery = ''.obs;
+
+  List<DietTagData> get searchResults {
+    final query = searchQuery.value.trim().toLowerCase();
+    if (query.isEmpty) return [];
+
+    final seen = <int>{};
+    final results = <DietTagData>[];
+    final all = <DietTagData>[
+      ...(suggestionsResponse.value.data ?? []),
+      ...celebrityList,
+      ...(categoryResponse.value.data ?? []),
+    ];
+
+    for (final item in all) {
+      final id = item.id;
+      if (id != null && !seen.add(id)) continue;
+      if ((item.heading?.toLowerCase().contains(query) ?? false) ||
+          (item.title?.toLowerCase().contains(query) ?? false)) {
+        results.add(item);
+      }
+    }
+
+    return results;
+  }
+
   int categoryPageIndex = 1;
   int suggestionsPageIndex = 1;
   int celebrityPageIndex = 1;

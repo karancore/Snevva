@@ -17,6 +17,7 @@ class DietPlanScreen extends StatefulWidget {
 
 class _DietPlanScreenState extends State<DietPlanScreen> {
   final dietController = Get.find<DietPlanController>();
+  final _searchController = TextEditingController();
   late double height;
   late double width;
   late bool isDarkMode;
@@ -58,19 +59,22 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(() {
+      dietController.searchQuery.value = _searchController.text;
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await dietController.getCelebrity(null);
       if (!mounted) return;
       await dietController.getAllSuggestions(null);
       if (!mounted) return;
       await dietController.getAllDiets(null, "Vegetarian");
-      // logLong("Celebrity Diet Response:" ,  celebrity.toString());
     });
+  }
 
-    // // Load default/general diets when screen opens
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //
-    // });
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> fetchSuggestions() async {
@@ -94,250 +98,307 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
       appBar: CustomAppBar(appbarText: "Diet Plan"),
       body: SingleChildScrollView(
         controller: dietController.categoryScrollController,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: defaultSize - 10),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Material(
-                elevation: 1,
-                color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
-                borderRadius: BorderRadius.circular(4),
-                child: TextFormField(
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: defaultSize - 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Material(
+                  elevation: 1,
+                  color: isDarkMode ? scaffoldColorDark : scaffoldColorLight,
+                  borderRadius: BorderRadius.circular(4),
+                  child: TextFormField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      suffixIcon: Obx(() {
+                        return dietController.searchQuery.value.isNotEmpty
+                            ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                            dietController.searchQuery.value = '';
+                          },
+                        )
+                            : const Icon(Icons.search);
+                      }),
+                      hintText: 'Search Available Diet Plans',
+                      hintStyle: const TextStyle(color: Colors.grey),
                     ),
-                    suffixIcon: const Icon(Icons.search),
-                    hintText: 'Search Available Diet Plans',
-                    hintStyle: const TextStyle(color: Colors.grey),
                   ),
                 ),
               ),
-            ),
-            SizedBox(height: defaultSize),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: AutoSizeText(
-                'Suggestions',
-                minFontSize: 20,
-                maxLines: 1,
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-              ),
-            ),
-            SizedBox(height: defaultSize - 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Obx(() {
-                if (dietController.isSuggestionsLoading.value) {
-                  return const AppLoader();
+              SizedBox(height: defaultSize),
+              Obx(() {
+                final isSearching =
+                    dietController.searchQuery.value.isNotEmpty;
+                if (isSearching) {
+                  return _buildSearchResults(scale, isDarkMode);
                 }
-
-                final data = dietController.suggestionsResponse.value.data;
-
-                if (data == null || data.isEmpty) {
-                  return Center(child: const Text("No data available"));
-                }
-                final showLoader =
-                    dietController.isSuggestionsLoadingMore.value;
-                return SizedBox(
-                  height: 170 * scale,
-                  child: ListView.separated(
-                    controller: dietController.suggestionsScrollController,
-                    scrollDirection: Axis.horizontal,
-                    itemCount: data.length + (showLoader ? 1 : 0),
-                    separatorBuilder: (_, _) => SizedBox(width: defaultSize),
-                    itemBuilder: (context, index) {
-                      if (index >= data.length) {
-                        return const Center(
-                          child: AppLoader(size: 32),
-                        );
-                      }
-                      final item = data[index];
-
-                      debugPrint(
-                        "Runtime Type of meal plan is: ${item.runtimeType}",
-                      );
-                      debugPrint(
-                        "Suggested item images ${item.thumbnailMedia}",
-                      );
-
-
-                      return KeyedSubtree(
-                        key: ValueKey(item.id ?? index), // if id exists, use it
-                        child: suggestedItem(
-                          item: item,
-                          width: width,
-                          heading: item.heading ?? "",
-                          subHeading: item.title ?? "",
-                          scale: scale,
-                          dietImg: item.thumbnailMedia ?? dietPlaceholder,
-                          isDarkMode: isDarkMode,
-                        ),
-                      );
-                    },
-                  ),
-                );
+                return _buildNormalContent(scale, isDarkMode);
               }),
-            ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-            SizedBox(height: defaultSize - 10),
+  Widget _buildSearchResults(double scale, bool isDarkMode) {
+    final results = dietController.searchResults;
+    if (results.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        child: Center(
+          child: Text(
+            'No results found for "${dietController.searchQuery.value}"',
+            style: const TextStyle(color: Colors.grey),
+          ),
+        ),
+      );
+    }
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        mainAxisExtent: 154,
+      ),
+      itemCount: results.length,
+      itemBuilder: (context, index) {
+        final item = results[index];
+        return KeyedSubtree(
+          key: ValueKey(item.id ?? index),
+          child: suggestedItem(
+            item: item,
+            width: width,
+            heading: item.heading ?? '',
+            subHeading: item.title ?? '',
+            dietImg: item.thumbnailMedia ?? dietPlaceholder,
+            isDarkMode: isDarkMode,
+            scale: scale,
+            isGridItem: true,
+          ),
+        );
+      },
+    );
+  }
 
-            // NEW Celebrity Section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: AutoSizeText(
-                'Celebrity',
-                minFontSize: 20,
-                maxLines: 1,
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-              ),
-            ),
-            SizedBox(height: defaultSize - 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Obx(() {
-                if (dietController.isCelebrityLoading.value) {
-                  return const AppLoader();
-                }
+  Widget _buildNormalContent(double scale, bool isDarkMode) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: AutoSizeText(
+            'Suggestions',
+            minFontSize: 20,
+            maxLines: 1,
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+          ),
+        ),
+        SizedBox(height: defaultSize - 20),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Obx(() {
+            if (dietController.isSuggestionsLoading.value) {
+              return const AppLoader();
+            }
 
-                final data = dietController.celebrityList;
-                if (data.isEmpty) {
-                  return const Text("No celebrity plans available");
-                }
-                final showLoader = dietController.isCelebrityLoadingMore.value;
-                return SizedBox(
-                  height: 170 * scale,
-                  child: ListView.separated(
-                    controller: dietController.celebrityScrollController,
-                    scrollDirection: Axis.horizontal,
-                    itemCount: data.length + (showLoader ? 1 : 0),
-                    separatorBuilder: (_, _) => SizedBox(width: defaultSize),
-                    itemBuilder: (context, index) {
-                      if (index >= data.length) {
-                        return const Center(
-                          child: AppLoader(size: 32),
-                        );
-                      }
-                      final item = data[index];
+            final data = dietController.suggestionsResponse.value.data;
 
-                      debugPrint(
-                        "Celebrity item images ${item.thumbnailMedia}",
-                      );
-                      return KeyedSubtree(
-                        key: ValueKey(item.id ?? index),
-                        child: suggestedItem(
-                          item: item,
-                          width: width,
-                          heading: item.heading ?? "",
-                          subHeading: item.title ?? "",
-                          dietImg: item.thumbnailMedia ?? dietPlaceholder,
-                          isGridItem: false,
-                          scale: scale,
-                          isDarkMode: isDarkMode,
-                        ),
-                      );
-                    },
-                  ),
-                );
-              }),
-            ),
-
-            SizedBox(height: defaultSize - 10),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: AutoSizeText(
-                'Category',
-                minFontSize: 20,
-                maxLines: 1,
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-              ),
-            ),
-            SizedBox(height: defaultSize - 20),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: List.generate(categoryDiets.length, (index) {
-                  final category = categoryDiets[index];
-                  final categoryText = category[0];
-                  final icon = category[1];
-
-                  return Padding(
-                    padding: EdgeInsets.only(
-                      left: index == 0 ? 20 : 10,
-                      right: index == categoryDiets.length - 1 ? 20 : 0,
-                    ),
-                    child: dietCategoryIcons(
-                      width,
-                      categoryText,
-                      icon,
-                      scale,
-                      index,
-                    ));
-                }),
-              ),
-            ),
-
-            SizedBox(height: defaultSize - 20),
-            Obx(() {
-              if (dietController.isCategoryLoading.value) {
-                return const AppLoader();
-              }
-
-              final data = dietController.categoryResponse.value.data;
-
-              if (data == null || data.isEmpty) {
-                return Center(child: const Text("No data available"));
-              }
-
-              final showLoader = dietController.isCategoryLoadingMore.value;
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
+            if (data == null || data.isEmpty) {
+              return Center(child: const Text("No data available"));
+            }
+            final showLoader = dietController.isSuggestionsLoadingMore.value;
+            return SizedBox(
+              height: 170 * scale,
+              child: ListView.separated(
+                controller: dietController.suggestionsScrollController,
+                scrollDirection: Axis.horizontal,
                 itemCount: data.length + (showLoader ? 1 : 0),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 8,
-                ),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  mainAxisExtent: 154,
-                ),
+                separatorBuilder: (_, _) => SizedBox(width: defaultSize),
                 itemBuilder: (context, index) {
                   if (index >= data.length) {
-                    return const Center(
-                      child: AppLoader(size: 32),
-                    );
+                    return const Center(child: AppLoader(size: 32));
                   }
                   final item = data[index];
+
                   debugPrint(
-                    "Category item images ${item.thumbnailMedia}",
+                    "Runtime Type of meal plan is: ${item.runtimeType}",
                   );
+                  debugPrint("Suggested item images ${item.thumbnailMedia}");
+
                   return KeyedSubtree(
-                    key: ValueKey(item.id ?? index), // if id exists, use it
+                    key: ValueKey(item.id ?? index),
+                    child: suggestedItem(
+                      item: item,
+                      width: width,
+                      heading: item.heading ?? "",
+                      subHeading: item.title ?? "",
+                      scale: scale,
+                      dietImg: item.thumbnailMedia ?? dietPlaceholder,
+                      isDarkMode: isDarkMode,
+                    ),
+                  );
+                },
+              ),
+            );
+          }),
+        ),
+
+        SizedBox(height: defaultSize - 10),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: AutoSizeText(
+            'Celebrity',
+            minFontSize: 20,
+            maxLines: 1,
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+          ),
+        ),
+        SizedBox(height: defaultSize - 20),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Obx(() {
+            if (dietController.isCelebrityLoading.value) {
+              return const AppLoader();
+            }
+
+            final data = dietController.celebrityList;
+            if (data.isEmpty) {
+              return const Text("No celebrity plans available");
+            }
+            final showLoader = dietController.isCelebrityLoadingMore.value;
+            return SizedBox(
+              height: 170 * scale,
+              child: ListView.separated(
+                controller: dietController.celebrityScrollController,
+                scrollDirection: Axis.horizontal,
+                itemCount: data.length + (showLoader ? 1 : 0),
+                separatorBuilder: (_, _) => SizedBox(width: defaultSize),
+                itemBuilder: (context, index) {
+                  if (index >= data.length) {
+                    return const Center(child: AppLoader(size: 32));
+                  }
+                  final item = data[index];
+
+                  debugPrint("Celebrity item images ${item.thumbnailMedia}");
+                  return KeyedSubtree(
+                    key: ValueKey(item.id ?? index),
                     child: suggestedItem(
                       item: item,
                       width: width,
                       heading: item.heading ?? "",
                       subHeading: item.title ?? "",
                       dietImg: item.thumbnailMedia ?? dietPlaceholder,
-                      isDarkMode: isDarkMode,
+                      isGridItem: false,
                       scale: scale,
-                      isGridItem: true,
+                      isDarkMode: isDarkMode,
                     ),
                   );
                 },
+              ),
+            );
+          }),
+        ),
+
+        SizedBox(height: defaultSize - 10),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: AutoSizeText(
+            'Category',
+            minFontSize: 20,
+            maxLines: 1,
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+          ),
+        ),
+        SizedBox(height: defaultSize - 20),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: List.generate(categoryDiets.length, (index) {
+              final category = categoryDiets[index];
+              final categoryText = category[0];
+              final icon = category[1];
+
+              return Padding(
+                padding: EdgeInsets.only(
+                  left: index == 0 ? 20 : 10,
+                  right: index == categoryDiets.length - 1 ? 20 : 0,
+                ),
+                child: dietCategoryIcons(
+                  width,
+                  categoryText,
+                  icon,
+                  scale,
+                  index,
+                ),
               );
             }),
-          ],
+          ),
         ),
-      ),
+
+        SizedBox(height: defaultSize - 20),
+        Obx(() {
+          if (dietController.isCategoryLoading.value) {
+            return const AppLoader();
+          }
+
+          final data = dietController.categoryResponse.value.data;
+
+          if (data == null || data.isEmpty) {
+            return Center(child: const Text("No data available"));
+          }
+
+          final showLoader = dietController.isCategoryLoadingMore.value;
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: data.length + (showLoader ? 1 : 0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 8,
+            ),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              mainAxisExtent: 154,
+            ),
+            itemBuilder: (context, index) {
+              if (index >= data.length) {
+                return const Center(child: AppLoader(size: 32));
+              }
+              final item = data[index];
+              debugPrint("Category item images ${item.thumbnailMedia}");
+              return KeyedSubtree(
+                key: ValueKey(item.id ?? index),
+                child: suggestedItem(
+                  item: item,
+                  width: width,
+                  heading: item.heading ?? "",
+                  subHeading: item.title ?? "",
+                  dietImg: item.thumbnailMedia ?? dietPlaceholder,
+                  isDarkMode: isDarkMode,
+                  scale: scale,
+                  isGridItem: true,
+                ),
+              );
+            },
+          );
+        }),
+      ],
     );
   }
 
@@ -399,7 +460,6 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     required String subHeading,
     required String dietImg,
     required double scale,
-
     required bool isDarkMode,
     bool isGridItem = false,
   }) {
@@ -435,7 +495,6 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
             ),
           ],
         ),
-
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -468,7 +527,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                   SizedBox(height: 2),
                   Text(
                     subHeading,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: isGridItem ? 9 : 10,
