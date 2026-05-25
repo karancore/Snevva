@@ -164,7 +164,8 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
-                  SizedBox(height: height * 0.02165842),
+                  const SizedBox(height: 90),
+
                   // 2.165842% of screen height
 
                   // Elephant Image
