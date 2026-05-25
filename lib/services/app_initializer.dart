@@ -59,9 +59,9 @@ Future<void> createServiceNotificationChannel() async {
 // ====================================================================
 Future<void> requestAllPermissions() async {
   final req = <Permission>[
-    Permission.activityRecognition,
     Permission.notification,
-    // Battery optimization is Android-only
+    // activityRecognition & battery optimization are Android-only
+    if (!kIsWeb && Platform.isAndroid) Permission.activityRecognition,
     if (!kIsWeb && Platform.isAndroid) Permission.ignoreBatteryOptimizations,
   ];
 
@@ -141,6 +141,14 @@ Future<void> setupHive() async {
 // 3️⃣ BACKGROUND SERVICE INITIALIZATION (PREVENT DOUBLE START)
 // ====================================================================
 Future<void> initBackgroundService() async {
+  // iOS step counting is handled natively by CMPedometer in AppDelegate.swift.
+  // Sleep tracking is Android-only (ScreenStateReceiver / SleepCalcWorker).
+  // The flutter_background_service isolate is therefore Android-only.
+  if (!kIsWeb && !Platform.isAndroid) {
+    debugPrint("ℹ️ initBackgroundService: skipped on non-Android platform");
+    return;
+  }
+
   final service = FlutterBackgroundService();
 
   // ✅ Check if service is already running
@@ -259,7 +267,7 @@ Future<bool> initializeApp() async {
     // scheduling window is continuously refreshed.
     final prefs = await SharedPreferences.getInstance();
     final hasSession = (prefs.getString('auth_token') ?? '').isNotEmpty;
-    if (hasSession) {
+    if (hasSession && !kIsWeb && Platform.isAndroid) {
       await initReminderWorker();
     }
 
