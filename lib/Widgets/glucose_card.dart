@@ -152,7 +152,10 @@ class GlucoseCard extends StatelessWidget {
                       const SizedBox(height: 8.0),
                       // Show mmol/L + converted mg/dL
                       Text(
-                        '$glucoseLevel mmol/L',
+                        '${double.parse(glucoseLevel) % 1 == 0
+                            ? double.parse(glucoseLevel).toStringAsFixed(0)
+                            : double.parse(glucoseLevel).toStringAsFixed(
+                            1)} mg/dL',
                         style: TextStyle(
                           fontSize: 24.0,
                           color: isDarkMode ? white : black,
@@ -160,7 +163,7 @@ class GlucoseCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '≈ ${_toMgDl(glucoseLevel)} mg/dL',
+                        '≈ ${_toMgDl(glucoseLevel)} mmol/L',
                         style: TextStyle(
                           fontSize: 12.0,
                           color: isDarkMode
@@ -241,7 +244,7 @@ class GlucoseCard extends StatelessWidget {
   String _toMgDl(String mmol) {
     final v = double.tryParse(mmol);
     if (v == null) return '—';
-    return (v * 18).toStringAsFixed(0);
+    return (v ~/ 18).toStringAsFixed(0);
   }
 
   Widget _typeChip({

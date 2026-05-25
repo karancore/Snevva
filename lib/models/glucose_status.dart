@@ -21,9 +21,9 @@ class GlucoseStatus {
   });
 }
 
-GlucoseStatus getGlucoseStatus(double mmol) {
-  // LOW  (< 3.9)
-  if (mmol < 3.9) {
+GlucoseStatus getGlucoseStatus(double mgdl) {
+  // LOW (< 70 mg/dL)
+  if (mgdl < 70) {
     return const GlucoseStatus(
       statusLabel: "Low Sugar",
       statusColor: Color(0xffFF6B6B),
@@ -33,8 +33,8 @@ GlucoseStatus getGlucoseStatus(double mmol) {
     );
   }
 
-  // HEALTHY  (3.9 – 5.5)
-  if (mmol < 5.6) {
+  // HEALTHY (70 – 99 mg/dL)
+  if (mgdl <= 99) {
     return const GlucoseStatus(
       statusLabel: "Healthy",
       statusColor: Color(0xff2DBF5F),
@@ -43,8 +43,8 @@ GlucoseStatus getGlucoseStatus(double mmol) {
     );
   }
 
-  // SLIGHTLY ELEVATED  (5.6 – 6.9)
-  if (mmol < 7.0) {
+  // SLIGHTLY ELEVATED / PREDIABETIC (100 – 125 mg/dL)
+  if (mgdl <= 125) {
     return const GlucoseStatus(
       statusLabel: "Watch Out",
       statusColor: Color(0xffF5A623),
@@ -54,8 +54,8 @@ GlucoseStatus getGlucoseStatus(double mmol) {
     );
   }
 
-  // HIGH  (7.0 – 11.0)
-  if (mmol <= 11.0) {
+  // HIGH (126 – 199 mg/dL)
+  if (mgdl <= 199) {
     return const GlucoseStatus(
       statusLabel: "High Sugar",
       statusColor: Color(0xffFF8C42),
@@ -64,7 +64,7 @@ GlucoseStatus getGlucoseStatus(double mmol) {
     );
   }
 
-  // CRITICAL  (> 11.0)
+  // CRITICAL (200+ mg/dL)
   return const GlucoseStatus(
     statusLabel: "Critical",
     statusColor: Color(0xffE53935),

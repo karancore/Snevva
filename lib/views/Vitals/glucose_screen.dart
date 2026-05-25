@@ -276,10 +276,26 @@ class _BloodGlucoseHeaderState extends State<BloodGlucoseHeader> {
                                   Text(
                                     vitalsController.glucoseReadings.isEmpty
                                         ? ''
-                                        : vitalsController
-                                        .glucoseReadings
-                                        .first
-                                        .glucoseLevel,
+                                        : (double.parse(
+                                      vitalsController
+                                          .glucoseReadings
+                                          .first
+                                          .glucoseLevel,
+                                    ) %
+                                        1 ==
+                                        0)
+                                        ? double.parse(
+                                      vitalsController
+                                          .glucoseReadings
+                                          .first
+                                          .glucoseLevel,
+                                    ).toStringAsFixed(0)
+                                        : double.parse(
+                                      vitalsController
+                                          .glucoseReadings
+                                          .first
+                                          .glucoseLevel,
+                                    ).toStringAsFixed(1),
                                     style: TextStyle(
                                       // ✅ Dark: white text | Light: black text
                                       color: isDarkMode ? darkGray : black,
@@ -291,7 +307,7 @@ class _BloodGlucoseHeaderState extends State<BloodGlucoseHeader> {
                                   Text(
                                     vitalsController.glucoseReadings.isEmpty
                                         ? ''
-                                        : 'mmol/L',
+                                        : 'mg/dL',
                                     style: TextStyle(
                                       // ✅ Dark: white text | Light: black text
                                       color: isDarkMode ? darkGray : black,

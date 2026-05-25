@@ -74,10 +74,10 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
     }
 
     // Range validation
-    if (glucoseValue < 1.0 || glucoseValue > 33.3) {
+    if (glucoseValue < 18 || glucoseValue > 600) {
       Get.snackbar(
         'Invalid Value',
-        'Glucose must be between 1.0 and 33.3 mmol/L',
+        'Glucose must be between 18 and 600 mg/dL',
         backgroundColor: Colors.red,
         colorText: Theme.of(context).colorScheme.onPrimary,
       );
@@ -291,7 +291,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                                     focusedErrorBorder: InputBorder.none,
                                     isDense: true,
                                     contentPadding: EdgeInsets.zero,
-                                    hintText: '0.0',
+                                    hintText: '120',
                                     hintStyle: TextStyle(
                                       color: Colors.white.withOpacity(0.4),
                                       fontSize: 22,
@@ -302,7 +302,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                               ),
                               SizedBox(width: 6 * scale),
                               Text(
-                                "mmol/L",
+                                "mg/dL",
                                 style: TextStyle(
                                   color: Colors.white.withOpacity(0.85),
                                   fontSize: 10,
@@ -456,7 +456,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              "To convert to mg/dL, multiply the value by 18",
+                              "To convert to mmol/L, divide the value by 18",
                               style: TextStyle(
                                 fontWeight: FontWeight.w400,
                                 fontSize: 10,
@@ -590,7 +590,9 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                 ? () {
                   _saveReading();
                 }
-                : null,
+                : () {
+                  Get.back();
+                },
         child: Container(
           height: 44 * scale,
           decoration: BoxDecoration(
