@@ -343,14 +343,16 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     private fun buildNotification(stepsToday: Int, sleepMinutes: Int = 0): Notification {
+        val stepsFormatted = String.format(Locale.US, "%,d", stepsToday)
+
         val sleepText = if (sleepMinutes > 0) {
             val h = sleepMinutes / 60
             val m = sleepMinutes % 60
-            if (h > 0) "😴 Sleep: ${h}h ${m}m" else "😴 Sleep: ${m}m"
+            if (h > 0) "${h}h ${m}m sleep" else "${m}m sleep"
         } else {
-            "😴 Sleep: --"
+            "no sleep logged"
         }
-        
+
         val notificationIntent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
             this, 0, notificationIntent,
@@ -358,12 +360,11 @@ class StepCounterService : Service(), SensorEventListener {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Snevva Active")
-            .setContentText("👟 Steps: $stepsToday   $sleepText")
+            .setContentTitle("Tracking your day")
+            .setContentText("$stepsFormatted steps  ·  $sleepText")
             .setSmallIcon(R.drawable.ic_stat_notification_bg)
             .setContentIntent(pendingIntent)
             .setColor(0xFFA95BFF.toInt())
-
             .setOngoing(true)
             .build()
     }
