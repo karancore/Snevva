@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:snevva/Controllers/BMI/bmi_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
@@ -27,6 +28,9 @@ class _BmiResultPageState extends State<BmiResultPage> {
   late final LocalStorageManager localstorage;
 
   String bubbleText = '';
+
+  final scrollController = ScrollController();
+  bool _showAppBar = true;
 
   String getStatus(double bmi) {
     if (bmi < 18.5) return 'Underweight';
@@ -81,6 +85,24 @@ class _BmiResultPageState extends State<BmiResultPage> {
       controller.loadAllHealthTips(context);
     });
 
+    scrollController.addListener(() {
+      if (scrollController.position.userScrollDirection ==
+          ScrollDirection.reverse) {
+        if (_showAppBar) {
+          setState(() {
+            _showAppBar = false;
+          });
+        }
+      } else if (scrollController.position.userScrollDirection ==
+          ScrollDirection.forward) {
+        if (!_showAppBar) {
+          setState(() {
+            _showAppBar = true;
+          });
+        }
+      }
+    });
+
     bubbleText = getBubbleText(status: getStatus(widget.bmi));
   }
 
@@ -100,11 +122,16 @@ class _BmiResultPageState extends State<BmiResultPage> {
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
-      extendBodyBehindAppBar: true,
-
-      appBar: CustomAppBar(appbarText: "BMI Result"),
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(_showAppBar ? kToolbarHeight : 0),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: _showAppBar ? 1.0 : 0.0,
+          child: CustomAppBar(appbarText: "BMI Result"),
+        ),
+      ),
       body: SingleChildScrollView(
-        controller: controller.scrollController,
+        controller: scrollController,
         child: Stack(
           children: [
             Padding(
