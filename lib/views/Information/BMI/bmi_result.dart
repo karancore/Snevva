@@ -141,15 +141,15 @@ class _BmiResultPageState extends State<BmiResultPage> {
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
-                  const SizedBox(height: 60),
+                  const SizedBox(height: 45),
 
                   // Elephant Image
                   Image.asset(
                     imagePath, // Replace with your image path
                     height: 150,
                   ),
+                  const SizedBox(height: 16),
 
-                  const SizedBox(height: 20),
 
                   // BMI Value Card
                   Container(
@@ -353,6 +353,7 @@ class _BmiResultPageState extends State<BmiResultPage> {
                 fontSize: 10,
                 fontWeight: FontWeight.normal,
               ),
+              maxLines: 1,
             ),
           ),
           Align(

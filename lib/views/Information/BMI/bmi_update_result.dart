@@ -165,17 +165,14 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
-                  const SizedBox(height: 60),
-
-                  // 2.165842% of screen height
+                  const SizedBox(height: 45),
 
                   // Elephant Image
                   Image.asset(
                     imagePath, // Replace with your image path
                     height: 150,
                   ),
-
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
 
                   // BMI Value Card
                   Container(
@@ -411,6 +408,7 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
                 fontSize: 10,
                 fontWeight: FontWeight.normal,
               ),
+              maxLines: 1,
             ),
           ),
           Align(
