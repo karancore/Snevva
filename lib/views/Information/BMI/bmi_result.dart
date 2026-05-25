@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
@@ -12,6 +14,13 @@ import '../../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../../models/common_tips_response.dart';
 import '../Health Tips/Nutrition_tips.dart/nutrition_tips.dart';
 import 'bmi_update_result.dart';
+
+String getResultPicture({required double bmi}) {
+  if (bmi < 18.5) return bulk;
+  if (bmi < 25) return track;
+  if (bmi < 30) return balance;
+  return track;
+}
 
 class BmiResultPage extends StatefulWidget {
   final double bmi;
@@ -39,12 +48,6 @@ class _BmiResultPageState extends State<BmiResultPage> {
     return 'Obese';
   }
 
-  String getImg(double bmi) {
-    if (bmi < 18.5) return skinny;
-    if (bmi < 25) return bmiEle;
-    if (bmi < 30) return fatty;
-    return fatty;
-  }
 
   Color getStatusColor(double bmi) {
     if (bmi < 18.5) return Colors.yellow;
@@ -138,7 +141,7 @@ class _BmiResultPageState extends State<BmiResultPage> {
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
-                  const SizedBox(height: 90),
+                  const SizedBox(height: 60),
 
                   // Elephant Image
                   Image.asset(
@@ -252,20 +255,19 @@ class _BmiResultPageState extends State<BmiResultPage> {
                             final tip = CommonTip.fromJson(tipData);
 
                             return SizedBox(
-                          width: (width - 56) / 2,
-                          child: _buildTipCard(
-                            heading: tip.heading ?? '',
-                            title: tip.title ?? '',
-                            image: "https://${tip.thumbnailMedia?.cdnUrl}",
-                            isDarkMode: isDarkMode,
-                            onButtonTap:
-                                () =>
-                                Get.to(
+                              width: (width - 56) / 2,
+                              child: _buildTipCard(
+                                heading: tip.heading ?? '',
+                                title: tip.title ?? '',
+                                image: "https://${tip.thumbnailMedia?.cdnUrl}",
+                                isDarkMode: isDarkMode,
+                                onButtonTap:
+                                    () => Get.to(
                                       () => NutritionTipsPage(commonTip: tip),
-                                ),
-                          ),
-                        );
-                      }).toList(),
+                                    ),
+                              ),
+                            );
+                          }).toList(),
                     );
                   }),
 
@@ -284,30 +286,12 @@ class _BmiResultPageState extends State<BmiResultPage> {
               ),
             ),
             Positioned(
-              top: -18 * scale,
-              left: 40 * scale,
+              top: -18,
+              left: 40,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  Image.asset(bubble, height: 150),
-
-                  Positioned(
-                    top: 40 * scale,
-                    left: 26 * scale,
-
-                    child: Text(
-                      getBubbleText(status: getStatus(widget.bmi)),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        color: isDarkMode ? black : white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: getFontSize(status: bubbleText),
-                        height: 1.0,
-                        letterSpacing: 0,
-                      ),
-                    ),
-                  ),
+                  Image.asset(getResultPicture(bmi: widget.bmi), height: 150),
                 ],
               ),
             ),
@@ -387,9 +371,36 @@ class _BmiResultPageState extends State<BmiResultPage> {
                   padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 0.0),
                 ),
                 onPressed: onButtonTap,
-                child: const Text(
-                  "Know More",
-                  style: TextStyle(color: Colors.white, fontSize: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      "Know More",
+                      style: TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                    const SizedBox(width: 4),
+                    SizedBox(
+                      height: 14,
+                      width: 14,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDarkMode ? darkGray.withOpacity(0.9) : white,
+                        ),
+                        child: Center(
+                          child: Transform.rotate(
+                            angle: 135 * math.pi / 180,
+                            child: Icon(
+                              Icons.arrow_back,
+                              size: 10,
+                              color: isDarkMode ? white : black,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

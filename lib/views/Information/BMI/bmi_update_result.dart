@@ -14,6 +14,7 @@ import 'package:snevva/widgets/app_loader.dart';
 import '../../../Controllers/local_storage_manager.dart';
 import '../../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../Health Tips/Nutrition_tips.dart/nutrition_tips.dart';
+import 'bmi_result.dart';
 
 class BMIUpdateResultScreen extends StatefulWidget {
   final double bmi;
@@ -46,7 +47,7 @@ String getBubbleText({required String status}) {
 double getFontSize({required String status}) {
   if (status == 'Let’s Bulk Up') return 15;
   if (status == 'Time to Balance') return 12;
-  if (status == 'On Track') return 21;
+  if (status == 'On Track') return 18;
   return 12;
 }
 
@@ -164,7 +165,7 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
-                  const SizedBox(height: 90),
+                  const SizedBox(height: 60),
 
                   // 2.165842% of screen height
 
@@ -343,30 +344,12 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
               ),
             ),
             Positioned(
-              top: -18 * scale,
-              left: 40 * scale,
+              top: -18,
+              left: 40,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  Image.asset(bubble, height: 150),
-
-                  Positioned(
-                    top: 40 * scale,
-                    left: 26 * scale,
-
-                    child: Text(
-                      bubbleText,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        color: isDarkMode ? black : white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: getFontSize(status: bubbleText),
-                        height: 1.0,
-                        letterSpacing: 0,
-                      ),
-                    ),
-                  ),
+                  Image.asset(getResultPicture(bmi: widget.bmi), height: 150),
                 ],
               ),
             ),

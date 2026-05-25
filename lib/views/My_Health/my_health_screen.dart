@@ -14,6 +14,7 @@ import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dar
 import 'package:snevva/views/Information/StepCounter/step_counter.dart';
 import 'package:snevva/views/Information/vitals.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
+import 'package:snevva/views/Vitals/glucose_screen.dart';
 import 'package:snevva/views/WomenHealth/women_health_screen.dart';
 import 'package:snevva/views/information/bmi/bmi_update_result.dart';
 
@@ -46,6 +47,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
   final bmiController = Get.find<BmiUpdateController>();
   final womenController = Get.find<WomenHealthController>();
   final localStorageManager = Get.find<LocalStorageManager>();
+
 
   final HydrationStatController c = Get.find();
 
@@ -283,21 +285,28 @@ class _MyHealthScreenState extends State<MyHealthScreen>
         },
       ),
       TrackerHealthCard(
-        icon: Icons.opacity,
-        iconColor: Colors.deepOrangeAccent,
-        cardType: "sys",
+        icon: Icons.bloodtype,
+        iconColor: Colors.deepPurple,
+        cardType: "glucose",
         title: Obx(
-          () => Text(
-            '${vitalController.sys.value} / ${vitalController.dia.value}',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+              () =>
+              Text(
+                '${vitalController.bloodGlucose.value }',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                ),
           ),
         ),
         subtitle: const Text(
-          'mm / Hg',
-          style: TextStyle(fontSize: 14, color: Colors.grey),
+          'mmol/L',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey,
+          ),
         ),
-        buttonText: 'Add Vitals',
-        onPressed: () => Get.to(() => VitalScreen()),
+        buttonText: 'Add Glucose',
+        onPressed: () => Get.to(() => GlucoseScreen()),
       ),
       TrackerHealthCard(
         icon: Icons.female,
@@ -389,7 +398,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
                 (item) => [
                   "Add BPM",
                   "BMI Result",
-                  "Add Vitals",
+                  "Add Glucose",
                   "Add Data",
                 ].contains(item.buttonText),
               )
