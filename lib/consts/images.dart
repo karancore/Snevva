@@ -302,11 +302,14 @@ const eveningDietImg = "assets/Images/DietPlan/image12.webp";
 
 const bedIcon = "assets/Icons/SleepScreen/Bed.webp";
 const clockIcon = "assets/Icons/SleepScreen/Rectangle-2.webp";
-
 const errorIcon = "assets/Images/error.webp";
 const noNotif = "assets/Images/notificon.webp";
 const fatty = "assets/Images/BMI/fatty.webp";
 const skinny = "assets/Images/BMI/skiiny.webp";
+
+const balance = "assets/Images/BMI/balance.png";
+const bulk = "assets/Images/BMI/bulk.png";
+const track = "assets/Images/BMI/track.png";
 
 //Health Report
 const pdfIcon = "assets/Icons/ScanReport/pdf.png";

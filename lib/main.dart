@@ -53,6 +53,7 @@ import 'Controllers/local_storage_manager.dart';
 import 'Controllers/signupAndSignIn/create_password_controller.dart';
 import 'common/ExceptionLogger.dart';
 import 'common/agent_debug_logger.dart';
+import 'common/app_keys.dart';
 import 'common/global_variables.dart';
 import 'common/no_internet_banner.dart';
 import 'consts/consts.dart';
@@ -79,9 +80,13 @@ class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
   Future<bool> _hasValidSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
-    return token != null && token.isNotEmpty;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      return token != null && token.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
   }
 
   @override
@@ -151,11 +156,16 @@ void main() {
       stackTrace: details.stack,
     );
 
+    // In debug builds expose the real error so blank screens can be diagnosed.
+    if (kDebugMode) {
+      return ErrorWidget(details.exception);
+    }
+
     return Builder(
       builder: (context) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           final overlay = Overlay.of(context);
-          overlay?.insert(
+          overlay.insert(
             OverlayEntry(
               builder: (context) {
                 return Material(
@@ -182,7 +192,7 @@ void main() {
           );
         });
 
-        return const SizedBox(); // 👈 REQUIRED return
+        return const SizedBox();
       },
     );
   };
@@ -221,8 +231,16 @@ void main() {
         );
       }
 
-      final prefs = await SharedPreferences.getInstance();
-      final isRemembered = prefs.getBool('remember_me') ?? false;
+      // SharedPreferences can throw PlatformException on iOS during the
+      // legacy-to-new migration. Catch and default so runApp always runs.
+      bool isRemembered = false;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        isRemembered = prefs.getBool('remember_me') ?? false;
+      } catch (e) {
+        debugPrint(
+            '❌ SharedPreferences init failed, continuing with defaults: $e');
+      }
 
       _registerCriticalDependencies();
       FirebaseMessaging.onBackgroundMessage(
@@ -373,7 +391,6 @@ class _MyAppState extends State<MyApp> {
   bool _stage3Started = false;
   late final ThemeController _themeController;
 
-  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   StreamSubscription<bool>? _connectivitySub;
 
   @override
@@ -671,7 +688,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return Obx(
       () => GetMaterialApp(
-        navigatorKey: _navigatorKey,
+        navigatorKey: appNavigatorKey,
         debugShowCheckedModeBanner: false,
         showPerformanceOverlay:
             _kShowPerformanceOverlay && (kDebugMode || kProfileMode),
