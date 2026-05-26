@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/foundation.dart';
 import 'package:timezone/data/latest.dart' as tzd;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -157,7 +160,10 @@ class NotificationService {
         ),
         iOS: DarwinNotificationDetails(),
       ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      // androidScheduleMode is Android-only — on iOS we use the date interpretation
+      androidScheduleMode: !kIsWeb && Platform.isAndroid
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.exact,
       matchDateTimeComponents: DateTimeComponents.time,
     );
 
@@ -220,13 +226,17 @@ class NotificationService {
       iOS: DarwinNotificationDetails(),
     );
 
+    final scheduleMode = !kIsWeb && Platform.isAndroid
+        ? AndroidScheduleMode.exactAllowWhileIdle
+        : AndroidScheduleMode.exact;
+
     await notificationsPlugin.zonedSchedule(
       id,
       'Wakey-wakey ☀️',
       'Have a great day!',
       morningTime,
       morningDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: scheduleMode,
       matchDateTimeComponents: DateTimeComponents.time,
     );
 
@@ -236,7 +246,7 @@ class NotificationService {
       'You did great today!',
       nightTime,
       nightDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: scheduleMode,
       matchDateTimeComponents: DateTimeComponents.time,
     );
 

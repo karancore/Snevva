@@ -35,6 +35,9 @@ Future<void> ensureAlarmInitialized() {
 }
 
 Future<void> createServiceNotificationChannel() async {
+  // Android-only: iOS does not use notification channels.
+  if (kIsWeb || !Platform.isAndroid) return;
+
   // Single unified channel used by BOTH the native StepCounterService and the
   // Dart flutter_background_service isolate. Creating it here ensures it exists
   // before either service tries to post notifications.
