@@ -533,7 +533,7 @@ class WomenHealthController extends GetxService {
 
     try {
       final payload = {
-        'Tags': ["Female", "Women Health", "Pre-Period Nudges"],
+        'Tags': ["Female", "Women Health"],
         'FetchAll': false,
         'Count': _pageSize,
         'Index': targetPage,
