@@ -55,6 +55,19 @@ import FirebaseCore
     return didFinish
   }
 
+  // MARK: - UIScene lifecycle (required for iOS 13+ scene-based apps)
+
+  override func application(
+    _ application: UIApplication,
+    configurationForConnecting connectingSceneSession: UISceneSession,
+    options: UIScene.ConnectionOptions
+  ) -> UISceneConfiguration {
+    return UISceneConfiguration(
+      name: "Default Configuration",
+      sessionRole: connectingSceneSession.role
+    )
+  }
+
   override func applicationDidBecomeActive(_ application: UIApplication) {
     super.applicationDidBecomeActive(application)
     _ = requestHighRefreshRateIfAvailable()
