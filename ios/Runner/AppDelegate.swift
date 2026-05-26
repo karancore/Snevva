@@ -7,7 +7,7 @@ import QuartzCore
 import FirebaseCore
 
 @main
-@objc class AppDelegate: FlutterAppDelegate {
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
 
   private let displayConfigChannelName = "com.coretegra.snevvaa/display_config"
   private let timezoneChannelName = "com.coretegra.snevvaa/timezone"
@@ -32,7 +32,7 @@ import FirebaseCore
       GeneratedPluginRegistrant.register(with: registry)
     }
 
-    // 3. GeneratedPluginRegistrant already called inside super, no need to call again
+    // 3. GeneratedPluginRegistrant will be called inside didInitializeImplicitFlutterEngine
 
     // 4. Firebase configure — now safe, only called once
     FirebaseApp.configure()
@@ -45,14 +45,23 @@ import FirebaseCore
       registerBGTasks()
     }
 
-    configureDisplayConfigChannel()
-    configureTimezoneChannel()
-    configureStepServiceChannel()
-
     _ = requestHighRefreshRateIfAvailable()
     startPedometerTracking()
 
     return didFinish
+  }
+
+  // MARK: - FlutterImplicitEngineDelegate (UIScene plugin & channel registration)
+
+  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+    // Register plugins via the implicit engine's registry
+    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+
+    // Retrieve the messenger to register platform channels
+    let messenger = engineBridge.applicationRegistrar.messenger()
+    configureDisplayConfigChannel(with: messenger)
+    configureTimezoneChannel(with: messenger)
+    configureStepServiceChannel(with: messenger)
   }
 
   // MARK: - UIScene lifecycle (required for iOS 13+ scene-based apps)
@@ -76,14 +85,10 @@ import FirebaseCore
 
   // MARK: - Display Config
 
-  private func configureDisplayConfigChannel() {
-    guard let controller = window?.rootViewController as? FlutterViewController else {
-      return
-    }
-
+  private func configureDisplayConfigChannel(with messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(
         name: displayConfigChannelName,
-        binaryMessenger: controller.binaryMessenger
+        binaryMessenger: messenger
     )
 
     channel.setMethodCallHandler { [weak self] call, result in
@@ -116,14 +121,10 @@ import FirebaseCore
 
   // MARK: - Timezone
 
-  private func configureTimezoneChannel() {
-    guard let controller = window?.rootViewController as? FlutterViewController else {
-      return
-    }
-
+  private func configureTimezoneChannel(with messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(
         name: timezoneChannelName,
-        binaryMessenger: controller.binaryMessenger
+        binaryMessenger: messenger
     )
 
     channel.setMethodCallHandler { call, result in
@@ -140,14 +141,10 @@ import FirebaseCore
 
   // MARK: - Step Service
 
-  private func configureStepServiceChannel() {
-    guard let controller = window?.rootViewController as? FlutterViewController else {
-      return
-    }
-
+  private func configureStepServiceChannel(with messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(
         name: stepServiceChannelName,
-        binaryMessenger: controller.binaryMessenger
+        binaryMessenger: messenger
     )
 
     channel.setMethodCallHandler { [weak self] call, result in
