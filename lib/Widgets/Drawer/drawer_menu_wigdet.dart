@@ -19,6 +19,7 @@ import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/signupAndSignIn/otp_verification_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
+import 'package:snevva/Widgets/home_wrapper.dart';
 import 'package:snevva/common/agent_debug_logger.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
@@ -389,8 +390,7 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                             menuIcon: homeIcon,
                             itemName: 'Home',
                             onWidgetTap: () {
-                              Get.back();
-                              Get.until((route) => route.isFirst);
+                              Get.to(HomeWrapper());
                             },
                           ),
 
