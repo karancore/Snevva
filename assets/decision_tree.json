@@ -1,6 +1,6 @@
 {
   "welcome": {
-    "message": "👋 Hey! I’m Elly, your digital health buddy. How are you feeling today?",
+    "message": "Hey! I’m Elly, your digital health buddy. How are you feeling today?",
     "options": [
       {
         "text": "I want to track my progress",
@@ -17,7 +17,7 @@
     ]
   },
   "track_progress": {
-    "message": "That’s the spirit 🚀 Which area do you want to check today?",
+    "message": "That’s the spirit ! Which area do you want to check today?",
     "options": [
       {
         "text": "My water intake",
@@ -38,7 +38,7 @@
     ]
   },
   "water_tracking": {
-    "message": "Let’s keep you hydrated 💧 How many glasses of water have you had today?",
+    "message": "Let’s keep you hydrated ! How many glasses of water have you had today?",
     "options": [
       {
         "text": "1–3",
@@ -72,7 +72,7 @@
     ]
   },
   "sleep_tracking": {
-    "message": "Sleep is fuel for your body 😴 How many hours did you sleep last night?",
+    "message": "Sleep is fuel for your body ! How many hours did you sleep last night?",
     "options": [
       {
         "text": "Less than 5 hrs",
@@ -106,7 +106,7 @@
     ]
   },
   "habit_tracker": {
-    "message": "Small habits → big changes 💪 Which one are you focusing on today?",
+    "message": "Small habits → big changes ! Which one are you focusing on today?",
     "options": [
       {
         "text": "Drink more water",
@@ -174,7 +174,7 @@
     ]
   },
   "motivation": {
-    "message": "We all need a push sometimes 💡 Here’s a quick tip: ‘Small changes daily build big results. Even 10 minutes of walking after meals helps digestion.’ Want more motivation on?",
+    "message": "We all need a push sometimes ! Here’s a quick tip: ‘Small changes daily build big results. Even 10 minutes of walking after meals helps digestion.’ Want more motivation on?",
     "options": [
       {
         "text": "Nutrition",
@@ -208,7 +208,7 @@
     ]
   },
   "health_tips_nutrition": {
-    "message": "🥗 Tip: Add more fiber to your meals — it keeps you full longer and helps digestion.",
+    "message": "Tip: Add more fiber to your meals — it keeps you full longer and helps digestion.",
     "options": [
       {
         "text": "Show another tip",
@@ -221,7 +221,7 @@
     ]
   },
   "health_tips_fitness": {
-    "message": "💪 Tip: Short bursts of activity, like 10 squats every hour, improve circulation and burn calories.",
+    "message": "Tip: Short bursts of activity, like 10 squats every hour, improve circulation and burn calories.",
     "options": [
       {
         "text": "Show another tip",
@@ -234,7 +234,7 @@
     ]
   },
   "health_tips_stress": {
-    "message": "🧘 Tip: 5 minutes of deep breathing reduces stress hormones instantly.",
+    "message": "Tip: 5 minutes of deep breathing reduces stress hormones instantly.",
     "options": [
       {
         "text": "Show another tip",
@@ -247,7 +247,7 @@
     ]
   },
   "health_tips_sleep": {
-    "message": "😴 Tip: Keep a regular sleep schedule — your body loves routine.",
+    "message": "Tip: Keep a regular sleep schedule — your body loves routine.",
     "options": [
       {
         "text": "Show another tip",
@@ -273,6 +273,6 @@
     ]
   },
   "end": {
-    "message": "💙 Glad I could help today. Remember, your health is a journey — and I’ll always be here to guide you."
+    "message": "Glad I could help today. Remember, your health is a journey — and I’ll always be here to guide you."
   }
 }

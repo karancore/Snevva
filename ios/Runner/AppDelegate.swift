@@ -6,7 +6,7 @@ import QuartzCore
 @main
 @objc class AppDelegate: FlutterAppDelegate {
   private let displayConfigChannelName = "com.coretegra.snevva/display_config"
-  private let timezoneChannelName = "com.coretegra.snevva/timezone"
+  private let timezoneChannelName = "com.coretegra.snevvaa/timezone"
 
   override func application(
       _ application: UIApplication,
