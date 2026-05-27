@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:alarm/alarm.dart';
 import 'package:flutter/foundation.dart';
@@ -134,6 +135,7 @@ class NativeAlarmBridge {
     String body = '',
     int? intervalMs,
   }) async {
+    if (!Platform.isAndroid) return;
     try {
       await _channel.invokeMethod<bool>('armAlarm', {
         'alarmId': alarmId,
@@ -161,6 +163,7 @@ class NativeAlarmBridge {
 
   /// Cancels the native alarm for the given id. Call alongside Alarm.stop().
   static Future<void> cancelAlarm(int alarmId) async {
+    if (!Platform.isAndroid) return;
     try {
       await _channel.invokeMethod<bool>('cancelAlarm', {'alarmId': alarmId});
       debugPrint('[NativeAlarm] 🗑 cancelAlarm id=$alarmId');
@@ -174,6 +177,7 @@ class NativeAlarmBridge {
   // ───────────────────────────────────────────────────────────────
 
   static Future<void> cancelAllPersisted() async {
+    if (!Platform.isAndroid) return;
     try {
       await _channel.invokeMethod<bool>('cancelAllPersisted');
       debugPrint('[NativeAlarm] 🗑 cancelAllPersisted executed');
@@ -217,11 +221,13 @@ class NativeAlarmBridge {
       debugPrint('[NativeAlarm] ⚠️ cancelAlarms prefs update failed: $e');
     }
 
-    // Cancel on native side (best-effort)
-    for (final id in alarmIds) {
-      try {
-        await _channel.invokeMethod<bool>('cancelAlarm', {'alarmId': id});
-      } catch (_) {}
+    // Cancel on native side (best-effort, Android only)
+    if (Platform.isAndroid) {
+      for (final id in alarmIds) {
+        try {
+          await _channel.invokeMethod<bool>('cancelAlarm', {'alarmId': id});
+        } catch (_) {}
+      }
     }
     debugPrint('[NativeAlarm] 🗑 cancelAlarms ids=$alarmIds');
   }
@@ -238,7 +244,7 @@ class NativeAlarmBridge {
     List<AlarmSettings> alarms, {
     int intervalMs = 0,
   }) async {
-    if (alarms.isEmpty) return;
+    if (!Platform.isAndroid || alarms.isEmpty) return;
 
     final entries =
         alarms
@@ -283,6 +289,7 @@ class NativeAlarmBridge {
   /// Saves the full alarm schedule (as a list of JSON maps) to SharedPrefs via
   /// the MethodChannel so BootReceiver can read it on next reboot.
   static Future<void> saveSchedule(List<Map<String, dynamic>> alarms) async {
+    if (!Platform.isAndroid) return;
     try {
       final json = jsonEncode(alarms);
       await _channel.invokeMethod<bool>('saveSchedule', {'json': json});
@@ -297,6 +304,7 @@ class NativeAlarmBridge {
   // ───────────────────────────────────────────────────────────────
 
   static Future<void> armAll(List<Map<String, dynamic>> alarms) async {
+    if (!Platform.isAndroid) return;
     try {
       final json = jsonEncode(alarms);
       await _channel.invokeMethod<bool>('armAll', {'json': json});

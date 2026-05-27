@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -256,6 +257,9 @@ class SleepController extends GetxService {
   );
 
   void _updateNativeSleepAlarms() {
+    // This MethodChannel only exists on Android (handled by StepCounterService /
+    // SleepCalcWorker). Calling it on iOS would throw MissingPluginException.
+    if (!Platform.isAndroid) return;
     try {
       _nativeSleepChannel.invokeMethod('updateSleepAlarms');
       debugPrint('🔔 Native sleep alarms updated');

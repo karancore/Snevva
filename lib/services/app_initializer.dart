@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:alarm/alarm.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -33,6 +35,9 @@ Future<void> ensureAlarmInitialized() {
 }
 
 Future<void> createServiceNotificationChannel() async {
+  // Android-only: iOS does not use notification channels.
+  if (kIsWeb || !Platform.isAndroid) return;
+
   // Single unified channel used by BOTH the native StepCounterService and the
   // Dart flutter_background_service isolate. Creating it here ensures it exists
   // before either service tries to post notifications.
@@ -57,21 +62,22 @@ Future<void> createServiceNotificationChannel() async {
 // ====================================================================
 Future<void> requestAllPermissions() async {
   final req = <Permission>[
-    Permission.activityRecognition,
-    Permission.ignoreBatteryOptimizations,
     Permission.notification,
+    // activityRecognition & battery optimization are Android-only
+    if (!kIsWeb && Platform.isAndroid) Permission.activityRecognition,
+    if (!kIsWeb && Platform.isAndroid) Permission.ignoreBatteryOptimizations,
   ];
 
   // ✅ Request permissions without blocking
   final statuses = await req.request();
 
-  // For reliable background step counting, battery optimization must be ignored.
-  if (statuses[Permission.ignoreBatteryOptimizations]?.isDenied ?? true) {
-    debugPrint(
-      "⚠️ Ignoring battery optimizations is NOT granted, background isolate might drop.",
-    );
-    // Note: If you want 100% 24/7 reliability, you must prompt the user
-    // to disable battery optimizations for Snevva in Android Settings.
+  if (!kIsWeb && Platform.isAndroid) {
+    // For reliable background step counting, battery optimization must be ignored.
+    if (statuses[Permission.ignoreBatteryOptimizations]?.isDenied ?? true) {
+      debugPrint(
+        "⚠️ Ignoring battery optimizations is NOT granted, background isolate might drop.",
+      );
+    }
   }
 
   // Only show settings if user permanently denied
@@ -138,6 +144,14 @@ Future<void> setupHive() async {
 // 3️⃣ BACKGROUND SERVICE INITIALIZATION (PREVENT DOUBLE START)
 // ====================================================================
 Future<void> initBackgroundService() async {
+  // iOS step counting is handled natively by CMPedometer in AppDelegate.swift.
+  // Sleep tracking is Android-only (ScreenStateReceiver / SleepCalcWorker).
+  // The flutter_background_service isolate is therefore Android-only.
+  if (!kIsWeb && !Platform.isAndroid) {
+    debugPrint("ℹ️ initBackgroundService: skipped on non-Android platform");
+    return;
+  }
+
   final service = FlutterBackgroundService();
 
   // ✅ Check if service is already running
@@ -257,7 +271,7 @@ Future<bool> initializeApp() async {
     // scheduling window is continuously refreshed.
     final prefs = await SharedPreferences.getInstance();
     final hasSession = (prefs.getString('auth_token') ?? '').isNotEmpty;
-    if (hasSession) {
+    if (hasSession && !kIsWeb && Platform.isAndroid) {
       await initReminderWorker();
     }
 

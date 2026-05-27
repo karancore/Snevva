@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:alarm/alarm.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -384,8 +385,10 @@ class AuthService {
     await fln.cancelAllPendingNotifications();
 
     try {
-      await Workmanager().cancelByUniqueName(kReminderReconcileTask);
-      await Workmanager().cancelByUniqueName(kReminderOneShotTask);
+      if (!kIsWeb && Platform.isAndroid) {
+        await Workmanager().cancelByUniqueName(kReminderReconcileTask);
+        await Workmanager().cancelByUniqueName(kReminderOneShotTask);
+      }
     } catch (_) {}
 
     Get.delete<ReminderController>(tag: 'reminder', force: true);

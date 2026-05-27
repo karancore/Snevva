@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:fl_chart/fl_chart.dart';
@@ -257,8 +258,9 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     }
   }
 
-  // ── Battery check ────────────────────────────────────────────────
+  // ── Battery check (Android only — iOS has no battery optimization setting) ──
   Future<void> _checkBatteryOptimizations() async {
+    if (!Platform.isAndroid) return;
     final status = await Permission.ignoreBatteryOptimizations.status;
     if (!status.isGranted && mounted) {
       showDialog(

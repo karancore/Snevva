@@ -1,7 +1,10 @@
 import Flutter
 import UIKit
+import CoreMotion
+import BackgroundTasks
 import flutter_local_notifications
 import QuartzCore
+import FirebaseCore
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -12,32 +15,72 @@ import QuartzCore
       _ application: UIApplication,
       didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+
+    // 1. Super first — Flutter engine and plugins initialize here
+    let didFinish = super.application(
+        application,
+        didFinishLaunchingWithOptions: launchOptions
+    )
+
+    // 2. Plugin registrant callback before any plugin tries to use it
     FlutterLocalNotificationsPlugin.setPluginRegistrantCallback { (registry) in
       GeneratedPluginRegistrant.register(with: registry)
     }
-    GeneratedPluginRegistrant.register(with: self)
+
+    // 3. GeneratedPluginRegistrant will be called inside didInitializeImplicitFlutterEngine
+
+    // 4. Firebase configure — now safe, only called once
+    FirebaseApp.configure()
 
     if #available(iOS 10.0, *) {
-      UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
+      UNUserNotificationCenter.current().delegate = self
     }
 
-    let didFinish = super.application(application, didFinishLaunchingWithOptions: launchOptions)
-    configureDisplayConfigChannel()
-    configureTimezoneChannel()
+    if #available(iOS 13.0, *) {
+      registerBGTasks()
+    }
+
     _ = requestHighRefreshRateIfAvailable()
+    startPedometerTracking()
+
     return didFinish
+  }
+
+  // MARK: - FlutterImplicitEngineDelegate (UIScene plugin & channel registration)
+
+  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+    // Register plugins via the implicit engine's registry
+    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+
+    // Retrieve the messenger to register platform channels
+    let messenger = engineBridge.applicationRegistrar.messenger()
+    configureDisplayConfigChannel(with: messenger)
+    configureTimezoneChannel(with: messenger)
+    configureStepServiceChannel(with: messenger)
+  }
+
+  // MARK: - UIScene lifecycle (required for iOS 13+ scene-based apps)
+
+  override func application(
+    _ application: UIApplication,
+    configurationForConnecting connectingSceneSession: UISceneSession,
+    options: UIScene.ConnectionOptions
+  ) -> UISceneConfiguration {
+    return UISceneConfiguration(
+      name: "Default Configuration",
+      sessionRole: connectingSceneSession.role
+    )
   }
 
   override func applicationDidBecomeActive(_ application: UIApplication) {
     super.applicationDidBecomeActive(application)
     _ = requestHighRefreshRateIfAvailable()
+    startPedometerTracking()
   }
 
-  private func configureDisplayConfigChannel() {
-    guard let controller = window?.rootViewController as? FlutterViewController else {
-      return
-    }
+  // MARK: - Display Config
 
+  private func configureDisplayConfigChannel(with messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(
         name: displayConfigChannelName,
         binaryMessenger: controller.binaryMessenger
@@ -58,21 +101,22 @@ import QuartzCore
       switch call.method {
       case "getDisplayRefreshRate":
         result(self.currentDisplayRefreshRate())
+
       case "getHighestSupportedRefreshRate":
         result(self.currentDisplayRefreshRate())
+
       case "requestHighestRefreshRate":
         result(self.requestHighRefreshRateIfAvailable())
+
       default:
         result(FlutterMethodNotImplemented)
       }
     }
   }
 
-  private func configureTimezoneChannel() {
-    guard let controller = window?.rootViewController as? FlutterViewController else {
-      return
-    }
+  // MARK: - Timezone
 
+  private func configureTimezoneChannel(with messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(
         name: timezoneChannelName,
         binaryMessenger: controller.binaryMessenger
@@ -80,13 +124,114 @@ import QuartzCore
 
     channel.setMethodCallHandler { call, result in
       switch call.method {
+
       case "getTimeZoneId":
         result(TimeZone.current.identifier)
+
       default:
         result(FlutterMethodNotImplemented)
       }
     }
   }
+
+  // MARK: - Step Service
+
+  private func configureStepServiceChannel(with messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(
+        name: stepServiceChannelName,
+        binaryMessenger: messenger
+    )
+
+    channel.setMethodCallHandler { [weak self] call, result in
+
+      switch call.method {
+
+      case "startStepService":
+        self?.startPedometerTracking()
+        result(true)
+
+      case "stopStepService":
+        self?.pedometer.stopUpdates()
+        result(true)
+
+      case "seedTodaySteps":
+        // No-op on iOS
+        result(true)
+
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  // MARK: - Pedometer
+
+  private func startPedometerTracking() {
+
+    guard CMPedometer.isStepCountingAvailable() else {
+      return
+    }
+
+    pedometer.stopUpdates()
+
+    let startOfDay = Calendar.current.startOfDay(for: Date())
+
+    pedometer.startUpdates(from: startOfDay) { data, error in
+
+      guard let data = data, error == nil else {
+        return
+      }
+
+      let steps = data.numberOfSteps.intValue
+
+      UserDefaults.standard.set(
+          steps,
+          forKey: "flutter.today_steps"
+      )
+    }
+  }
+
+  // MARK: - BGTask Registration
+
+  @available(iOS 13.0, *)
+  private func registerBGTasks() {
+
+    let noopHandler: (BGTask) -> Void = { task in
+      task.setTaskCompleted(success: true)
+    }
+
+    BGTaskScheduler.shared.register(
+        forTaskWithIdentifier: "com.coretegra.snevva.sleep_calc",
+        using: nil,
+        launchHandler: noopHandler
+    )
+
+    BGTaskScheduler.shared.register(
+        forTaskWithIdentifier: "com.coretegra.snevva.api_sync",
+        using: nil,
+        launchHandler: noopHandler
+    )
+
+    BGTaskScheduler.shared.register(
+        forTaskWithIdentifier: "com.coretegra.snevva.period_sync",
+        using: nil,
+        launchHandler: noopHandler
+    )
+
+    BGTaskScheduler.shared.register(
+        forTaskWithIdentifier: "com.coretegra.snevvaa.reminderReconcile",
+        using: nil,
+        launchHandler: noopHandler
+    )
+
+    BGTaskScheduler.shared.register(
+        forTaskWithIdentifier: "com.coretegra.snevvaa.reminderOneShot",
+        using: nil,
+        launchHandler: noopHandler
+    )
+  }
+
+  // MARK: - Display Helpers
 
   private func currentDisplayRefreshRate() -> Double {
     return Double(UIScreen.main.maximumFramesPerSecond)

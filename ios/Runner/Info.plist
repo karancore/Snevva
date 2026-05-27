@@ -34,25 +34,41 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>This app requires camera access to take photos and record videos.</string>
+	<string>Camera access needed to take photos and scan reports.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app requires microphone access for video recording.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Permission to save photos and videos to your library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Photo library access needed to pick a profile or report image.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>We need your location to track walking activity.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>We need motion data to count your steps.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Snevva reads your health data to track steps and activity.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Snevva writes your activity data to Apple Health.</string>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.coretegra.snevva.sleep_calc</string>
+		<string>com.coretegra.snevva.api_sync</string>
+		<string>com.coretegra.snevva.period_sync</string>
+		<string>com.coretegra.snevvaa.reminderReconcile</string>
+		<string>com.coretegra.snevvaa.reminderOneShot</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>processing</string>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
-    <key>NSCameraUsageDescription</key>
-    <string>Camera access needed to scan your report</string>
-    <key>NSPhotoLibraryUsageDescription</key>
-    <string>Photo library access needed to pick a report image</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
