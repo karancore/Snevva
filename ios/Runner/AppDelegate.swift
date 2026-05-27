@@ -9,8 +9,8 @@ import QuartzCore
   private let timezoneChannelName = "com.coretegra.snevva/timezone"
 
   override func application(
-    _ application: UIApplication,
-    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+      _ application: UIApplication,
+      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     FlutterLocalNotificationsPlugin.setPluginRegistrantCallback { (registry) in
       GeneratedPluginRegistrant.register(with: registry)
@@ -39,18 +39,18 @@ import QuartzCore
     }
 
     let channel = FlutterMethodChannel(
-      name: displayConfigChannelName,
-      binaryMessenger: controller.binaryMessenger
+        name: displayConfigChannelName,
+        binaryMessenger: controller.binaryMessenger
     )
 
     channel.setMethodCallHandler { [weak self] call, result in
       guard let self = self else {
         result(
-          FlutterError(
-            code: "APP_DELEGATE_RELEASED",
-            message: "AppDelegate is unavailable",
-            details: nil
-          )
+            FlutterError(
+                code: "APP_DELEGATE_RELEASED",
+                message: "AppDelegate is unavailable",
+                details: nil
+            )
         )
         return
       }
@@ -74,8 +74,8 @@ import QuartzCore
     }
 
     let channel = FlutterMethodChannel(
-      name: timezoneChannelName,
-      binaryMessenger: controller.binaryMessenger
+        name: timezoneChannelName,
+        binaryMessenger: controller.binaryMessenger
     )
 
     channel.setMethodCallHandler { call, result in
@@ -94,17 +94,7 @@ import QuartzCore
 
   @discardableResult
   private func requestHighRefreshRateIfAvailable() -> Bool {
-    guard #available(iOS 15.0, *) else { return false }
-    guard UIScreen.main.maximumFramesPerSecond >= 120 else { return false }
-
-    for scene in UIApplication.shared.connectedScenes {
-      guard let windowScene = scene as? UIWindowScene else { continue }
-      windowScene.preferredFrameRateRange = CAFrameRateRange(
-        minimum: 80,
-        maximum: 120,
-        preferred: 120
-      )
-    }
-    return true
+    return UIScreen.main.maximumFramesPerSecond >= 120
   }
 }
+
