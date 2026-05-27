@@ -1,30 +1,36 @@
 import 'package:alarm/alarm.dart';
 import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../Controllers/Reminder/reminder_controller.dart';
 import '../../common/global_variables.dart';
 import '../../models/hive_models/reminder_payload_model.dart';
 import '../../models/reminder_schedule_metadata.dart';
-import 'reminder_schedule_resolver.dart';
-import 'reminder_alarm_transaction.dart';
-import 'reminder_alarm_platform.dart';
 import 'device_timezone_service.dart';
 import 'native_alarm_bridge.dart';
-import '../../Controllers/Reminder/reminder_controller.dart';
-import 'package:get/get.dart';
+import 'reminder_alarm_platform.dart';
+import 'reminder_alarm_transaction.dart';
+import 'reminder_schedule_resolver.dart';
+
+typedef ReminderLoadCallback = Future<List<ReminderPayloadModel>> Function();
 
 class ReconciliationEngine {
   final ReminderScheduleResolver _resolver;
   final ReminderSaveCallback _saveReminder;
   final ReminderAlarmTransaction _transaction;
+  final ReminderLoadCallback? _loadReminders;
 
   ReconciliationEngine({
     ReminderScheduleResolver? resolver,
     required ReminderSaveCallback saveReminder,
     ReminderAlarmTransaction? transaction,
+    ReminderLoadCallback? loadReminders,
   }) : _resolver = resolver ?? const ReminderScheduleResolver(),
        _saveReminder = saveReminder,
-       _transaction = transaction ?? ReminderAlarmTransaction(saveReminder: saveReminder);
+        _transaction = transaction ??
+            ReminderAlarmTransaction(saveReminder: saveReminder),
+        _loadReminders = loadReminders;
 
   Future<void> reconcileReminder(ReminderPayloadModel reminder) async {
     await runWithLock("reminder_${reminder.id}", () async {
@@ -123,7 +129,14 @@ class ReconciliationEngine {
             (id) => Alarm.stop(id).catchError((_) => false),
           ),
         );
-        await _transaction.schedule(currentReminder);
+        final result = await _transaction.schedule(currentReminder);
+        // On Android, scheduleReminderAlarm() is a no-op — arm native AlarmManager here.
+        if (usesNativeReminderScheduling) {
+          await NativeAlarmBridge.saveAndArm([
+            ...result.mainAlarms,
+            ...result.preAlarms,
+          ]);
+        }
         return;
       }
 
@@ -191,10 +204,18 @@ class ReconciliationEngine {
   Future<void> reconcileAllReminders() async {
     debugPrint('[ReminderTxn] Starting reconcileAllReminders...');
     try {
-      final controller = Get.find<ReminderController>(tag: 'reminder');
-      // Forcing reload to get latest local state
-      await controller.loadAllReminderLists();
-      final reminders = controller.reminders;
+      List<ReminderPayloadModel> reminders;
+      if (_loadReminders != null) {
+        // Background isolate path: use injected Hive-based loader (no GetX).
+        reminders = await _loadReminders();
+        debugPrint('[ReminderTxn] Loaded ${reminders
+            .length} reminders via injected loader');
+      } else {
+        // Foreground path: use the GetX controller.
+        final controller = Get.find<ReminderController>(tag: 'reminder');
+        await controller.loadAllReminderLists();
+        reminders = List<ReminderPayloadModel>.from(controller.reminders);
+      }
       for (final reminder in reminders) {
         try {
           await reconcileReminder(reminder);

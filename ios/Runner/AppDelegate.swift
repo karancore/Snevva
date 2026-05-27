@@ -7,14 +7,9 @@ import QuartzCore
 import FirebaseCore
 
 @main
-@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
-
-  private let displayConfigChannelName = "com.coretegra.snevvaa/display_config"
+@objc class AppDelegate: FlutterAppDelegate {
+  private let displayConfigChannelName = "com.coretegra.snevva/display_config"
   private let timezoneChannelName = "com.coretegra.snevvaa/timezone"
-  private let stepServiceChannelName = "com.coretegra.snevvaa/step_service"
-
-  private let pedometer = CMPedometer()
-  private var displayLink: CADisplayLink?
 
   override func application(
       _ application: UIApplication,
@@ -88,7 +83,7 @@ import FirebaseCore
   private func configureDisplayConfigChannel(with messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(
         name: displayConfigChannelName,
-        binaryMessenger: messenger
+        binaryMessenger: controller.binaryMessenger
     )
 
     channel.setMethodCallHandler { [weak self] call, result in
@@ -124,7 +119,7 @@ import FirebaseCore
   private func configureTimezoneChannel(with messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(
         name: timezoneChannelName,
-        binaryMessenger: messenger
+        binaryMessenger: controller.binaryMessenger
     )
 
     channel.setMethodCallHandler { call, result in
@@ -244,32 +239,7 @@ import FirebaseCore
 
   @discardableResult
   private func requestHighRefreshRateIfAvailable() -> Bool {
-
-    guard UIScreen.main.maximumFramesPerSecond >= 120 else {
-      return false
-    }
-
-    displayLink?.invalidate()
-
-    let link = CADisplayLink(target: self, selector: #selector(displayLinkTick))
-
-    if #available(iOS 15.0, *) {
-      link.preferredFrameRateRange = CAFrameRateRange(
-          minimum: 80,
-          maximum: 120,
-          preferred: 120
-      )
-    } else {
-      link.preferredFramesPerSecond = 120
-    }
-
-    link.add(to: .main, forMode: .common)
-    displayLink = link
-
-    return true
-  }
-
-  @objc private func displayLinkTick() {
-    // No-op — the display link just signals ProMotion preference to the system
+    return UIScreen.main.maximumFramesPerSecond >= 120
   }
 }
+

@@ -5,6 +5,7 @@ import 'package:snevva/Controllers/HealthTips/healthtips_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
+import 'package:snevva/models/common_tips_response.dart';
 import 'package:snevva/views/Information/Health%20Tips/Nutrition_tips.dart/nutrition_tips.dart';
 
 class HealthTipsScreen extends StatefulWidget {
@@ -163,8 +164,10 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
                                       title: firstTip["Title"] ?? "",
                                       onButtonTap:
                                           () => Get.to(
-                                            () => NutritionTipsPage(),
-                                            arguments: firstTip,
+                                                () =>
+                                                NutritionTipsPage(
+                                                  commonTip: CommonTip.fromJson(
+                                                      firstTip),),
                                           ),
                                       isDarkMode: isDarkMode,
                                     )
@@ -183,8 +186,10 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
                                       title: secondTip["Title"] ?? "",
                                       onButtonTap:
                                           () => Get.to(
-                                            () => NutritionTipsPage(),
-                                            arguments: secondTip,
+                                                () =>
+                                                NutritionTipsPage(
+                                                  commonTip: CommonTip.fromJson(
+                                                      secondTip),),
                                           ),
                                       isDarkMode: isDarkMode,
                                     )

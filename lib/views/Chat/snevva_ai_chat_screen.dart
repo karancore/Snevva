@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:intl/intl.dart';
@@ -38,9 +39,43 @@ class Option {
   }
 }
 
-/// ---------- LOAD DECISION TREE FROM API OR CACHE ----------
 
 Future<Map<String, DecisionNode>> loadDecisionTree() async {
+  try {
+    final jsonString = await rootBundle.loadString(
+      'assets/json/decision_tree.json',
+    );
+
+    final Map<String, dynamic> res = jsonDecode(jsonString);
+
+    final nodes = <String, DecisionNode>{};
+
+    res.forEach((key, value) {
+      try {
+        nodes[key] = DecisionNode.fromJson(
+          Map<String, dynamic>.from(value),
+        );
+      } catch (e) {
+        debugPrint('❌ Error parsing node $key: $e');
+      }
+    });
+
+    debugPrint("✅ Local decision tree loaded");
+    debugPrint("🌳 Tree size: ${nodes.length}");
+
+    return nodes;
+  } catch (e, stack) {
+    debugPrint("❌ Failed loading local decision tree");
+    debugPrint(e.toString());
+    debugPrint(stack.toString());
+
+    return {};
+  }
+}
+
+/// ---------- LOAD DECISION TREE FROM API OR CACHE ----------
+
+Future<Map<String, DecisionNode>> loadDecisionTreeFromApi() async {
   try {
     final response = await ApiService.post(
       ellychat,

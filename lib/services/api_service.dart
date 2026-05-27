@@ -88,7 +88,7 @@ class ApiService {
       debugPrint("══════════════════════════════════════════");
       debugPrint("ENDPOINT   : $uri");
       debugPrint("HASH       : ${encrypted['Hash']}");
-      debugPrint("PAYLOAD    :");
+      debugPrint("PAYLOAD    : ${plainBody.toString()}");
       logLong("BODY", encryptedRequestBody);
       debugPrint("══════════════════════════════════════════");
 

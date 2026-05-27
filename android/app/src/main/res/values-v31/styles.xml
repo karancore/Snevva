@@ -9,7 +9,7 @@
         </item>
 
         <!-- Splash icon (VECTOR) -->
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/launch_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/snevva_elly_foreground</item>
 
     </style>
 

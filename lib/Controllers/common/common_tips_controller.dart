@@ -184,8 +184,9 @@ class CommonTipsController extends GetxController {
 
         CustomSnackbar.showError(
           context: context,
-          title: 'Error',
-          message: 'Failed to load general tips: ${response.statusCode}',
+          title: 'Oops!',
+          message:
+              'We couldn’t load the general tips right now. Please try again in a moment.',
         );
 
         if (!loadMore) {

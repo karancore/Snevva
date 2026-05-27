@@ -177,18 +177,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           children: [
             SizedBox(
               width: double.infinity,
-              height: height * 0.28,
+              height: height * 0.32,
               child: Stack(
                 children: [
                   Container(
                     width: double.infinity,
-                    height: height * 0.20,
+                    height: height * 0.24,
                     decoration: BoxDecoration(
                       gradient: AppColors.primaryGradient,
                     ),
                   ),
                   Positioned(
-                    top: height * 0.1,
+                    top: (height * 0.24) - ((height * 0.2) / 2),
                     left: 0,
                     right: 0,
                     child: Center(
