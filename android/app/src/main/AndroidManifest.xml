@@ -183,20 +183,12 @@
              both here (service removed) and via warningNotificationOnKill: false
              on all AlarmSettings in Dart. -->
 
-        <service
-            android:name=".SleepNoticingService"
-            android:exported="false"
-            android:foregroundServiceType="dataSync|health" />
-
         <!-- 🔔 Native Reminder Ring Service (plays alarm audio as foreground service) -->
         <service
             android:name=".ReminderRingService"
             android:exported="false"
             android:foregroundServiceType="dataSync"
             android:stopWithTask="false" />
-
-        <receiver android:name=".StartSleepReceiver" android:exported="false" />
-        <receiver android:name=".StopSleepReceiver" android:exported="false" />
 
         <!-- 📡 Network connectivity receiver (triggers file-based sync queue on reconnect) -->
         <receiver
