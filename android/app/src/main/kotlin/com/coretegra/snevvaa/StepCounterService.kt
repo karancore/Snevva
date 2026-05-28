@@ -53,6 +53,11 @@ class StepCounterService : Service(), SensorEventListener {
         }
     }
 
+    /** Tracks whether startForeground() has already been called this lifecycle.
+     *  Prevents double-posting when both onCreate() and onStartCommand() are called
+     *  (normal start), and ensures it IS called when only onStartCommand() fires (sticky restart). */
+    private var isForegroundStarted = false
+
     /** Dynamically-registered receiver that tracks sleep intervals natively. */
     private var screenReceiver: ScreenStateReceiver? = null
 
@@ -110,6 +115,29 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // On sticky restarts (after OOM kill), Android re-delivers onStartCommand()
+        // WITHOUT calling onCreate() again. We must call startForeground() here too,
+        // otherwise the service times out and throws ForegroundServiceDidNotStopInTimeException.
+        // Guard with isRunningAsForeground flag to avoid double-posting on normal starts.
+        if (!isForegroundStarted) {
+            val stepsToday = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getInt(KEY_TODAY_STEPS, 0)
+            val notification = buildNotification(stepsToday)
+            try {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    startForeground(
+                        NOTIFICATION_ID,
+                        notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH
+                    )
+                } else {
+                    startForeground(NOTIFICATION_ID, notification)
+                }
+                isForegroundStarted = true
+            } catch (e: Exception) {
+                Log.e("StepService", "startForeground in onStartCommand failed", e)
+                try { startForeground(NOTIFICATION_ID, notification) } catch (_: Exception) {}
+            }
+        }
         return START_STICKY
     }
 
@@ -172,11 +200,13 @@ class StepCounterService : Service(), SensorEventListener {
             } else {
                 startForeground(NOTIFICATION_ID, notification)
             }
+            isForegroundStarted = true
         } catch (e: Exception) {
             Log.e("StepService", "Error starting foreground service", e)
             // Fallback: try to start as regular foreground service without health type
             try {
                 startForeground(NOTIFICATION_ID, notification)
+                isForegroundStarted = true
             } catch (e2: Exception) {
                 Log.e(
                     "StepService",
@@ -316,14 +346,23 @@ class StepCounterService : Service(), SensorEventListener {
     override fun onDestroy() {
         // Stop the 1-min ticker first
         notifHandler.removeCallbacks(notifRunnable)
+        // Unregister sensor BEFORE super.onDestroy() to release hardware resources promptly.
+        // This prevents the OS from marking us as "did not stop in time" while we hold the sensor.
+        sensorManager.unregisterListener(this)
         // Unregister the native screen-state receiver
         screenReceiver?.let { try { unregisterReceiver(it) } catch (_: Exception) {} }
         screenReceiver = null
-        // Flush buffers before being killed so no step data is lost
-        BufferManager.flushStepsToDaily(applicationContext)
-        BufferManager.flushSleepToDaily(applicationContext)
+        isForegroundStarted = false
+        // Call super BEFORE blocking I/O — the OS stop deadline is on the Binder thread;
+        // blocking here AFTER super is safe because the service is already deregistered.
         super.onDestroy()
-        sensorManager.unregisterListener(this)
+        // Flush buffers after super so we don't hold the service-alive contract during I/O
+        try {
+            BufferManager.flushStepsToDaily(applicationContext)
+            BufferManager.flushSleepToDaily(applicationContext)
+        } catch (e: Exception) {
+            Log.e("StepService", "Buffer flush on destroy failed: ${e.message}")
+        }
         Log.d("StepService", "🛑 StepCounterService destroyed + buffers flushed.")
     }
 

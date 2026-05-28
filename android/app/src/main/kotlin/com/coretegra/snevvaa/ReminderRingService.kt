@@ -5,7 +5,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
-import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.os.Build
@@ -57,7 +56,11 @@ class ReminderRingService : Service() {
             startForeground(
                 NOTIFICATION_ID,
                 notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK,
+                // NOTE: FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK is NOT used here because
+                // android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK is removed in the manifest
+                // (tools:node="remove"). Using dataSync matches the manifest declaration and
+                // avoids a SecurityException on Android 14+ (SDK 34+).
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
             )
         } else {
             startForeground(NOTIFICATION_ID, notification)
@@ -87,6 +90,16 @@ class ReminderRingService : Service() {
             release()
         }
         mediaPlayer = null
+
+        // Signal the OS that we are intentionally stopping the foreground state.
+        // Without this, Android 12+ may log a ForegroundServiceDidNotStopInTimeException
+        // if onDestroy() takes too long completing cleanup after stopSelf().
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
 
         // Dismiss the notification so it doesn't linger after ringing stops
         val nm = getSystemService(NotificationManager::class.java)
