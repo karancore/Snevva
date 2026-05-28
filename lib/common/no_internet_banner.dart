@@ -6,7 +6,7 @@ class NoInternetBanner {
   static void show(BuildContext context) {
     if (_overlayEntry != null) return; // already showing
 
-    _overlayEntry = OverlayEntry(
+    final entry = OverlayEntry(
       builder:
           (_) => Positioned(
             bottom: 0,
@@ -38,11 +38,16 @@ class NoInternetBanner {
           ),
     );
 
-    Overlay.of(context).insert(_overlayEntry!);
+    try {
+      Overlay.of(context).insert(entry);
+      _overlayEntry = entry;
+    } catch (_) {}
   }
 
   static void hide() {
-    _overlayEntry?.remove();
+    try {
+      _overlayEntry?.remove();
+    } catch (_) {}
     _overlayEntry = null;
   }
 }
@@ -53,7 +58,7 @@ class YesInternetBanner {
   static void show(BuildContext context) {
     if (_overlayEntry != null) return; // already showing
 
-    _overlayEntry = OverlayEntry(
+    final entry = OverlayEntry(
       builder:
           (_) => Positioned(
             bottom: 0,
@@ -85,11 +90,16 @@ class YesInternetBanner {
           ),
     );
 
-    Overlay.of(context).insert(_overlayEntry!);
+    try {
+      Overlay.of(context).insert(entry);
+      _overlayEntry = entry;
+    } catch (_) {}
   }
 
   static void hide() {
-    _overlayEntry?.remove();
+    try {
+      _overlayEntry?.remove();
+    } catch (_) {}
     _overlayEntry = null;
   }
 }

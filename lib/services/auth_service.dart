@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:alarm/alarm.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/DietPlan/diet_plan_controller.dart';
 import 'package:snevva/Controllers/HealthTips/healthtips_controller.dart';
@@ -503,6 +504,13 @@ class AuthService {
       await prefs.setBool('reminders_disabled', true);
 
       try {
+        if (!Hive.isBoxOpen('step_history')) {
+          final dir = await getApplicationDocumentsDirectory();
+          Hive.init(dir.path);
+          if (!Hive.isAdapterRegistered(StepEntryAdapter().typeId)) {
+            Hive.registerAdapter(StepEntryAdapter());
+          }
+        }
         final stepBox = await Hive.openBox<StepEntry>('step_history');
         await stepBox.clear();
         debugPrint('🗑️ step_history Hive box cleared');

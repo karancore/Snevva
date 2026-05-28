@@ -8,67 +8,38 @@ import FirebaseCore
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
-  private let displayConfigChannelName = "com.coretegra.snevva/display_config"
+
+  private let displayConfigChannelName = "com.coretegra.snevvaa/display_config"
   private let timezoneChannelName = "com.coretegra.snevvaa/timezone"
+  private let stepServiceChannelName = "com.coretegra.snevvaa/step_service"
+
+  private let pedometer = CMPedometer()
+  private var displayLink: CADisplayLink?
 
   override func application(
       _ application: UIApplication,
       didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
 
-    // 1. Super first — Flutter engine and plugins initialize here
-    let didFinish = super.application(
-        application,
-        didFinishLaunchingWithOptions: launchOptions
-    )
+    GeneratedPluginRegistrant.register(with: self)
 
-    // 2. Plugin registrant callback before any plugin tries to use it
-    FlutterLocalNotificationsPlugin.setPluginRegistrantCallback { (registry) in
-      GeneratedPluginRegistrant.register(with: registry)
+    guard let controller = window?.rootViewController as? FlutterViewController else {
+      return false
     }
 
-    // 3. GeneratedPluginRegistrant will be called inside didInitializeImplicitFlutterEngine
+    let messenger = controller.binaryMessenger
 
-    // 4. Firebase configure — now safe, only called once
-    FirebaseApp.configure()
-
-    if #available(iOS 10.0, *) {
-      UNUserNotificationCenter.current().delegate = self
-    }
-
-    if #available(iOS 13.0, *) {
-      registerBGTasks()
-    }
-
-    _ = requestHighRefreshRateIfAvailable()
-    startPedometerTracking()
-
-    return didFinish
-  }
-
-  // MARK: - FlutterImplicitEngineDelegate (UIScene plugin & channel registration)
-
-  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
-    // Register plugins via the implicit engine's registry
-    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
-
-    // Retrieve the messenger to register platform channels
-    let messenger = engineBridge.applicationRegistrar.messenger()
     configureDisplayConfigChannel(with: messenger)
     configureTimezoneChannel(with: messenger)
     configureStepServiceChannel(with: messenger)
-  }
 
-  // MARK: - UIScene lifecycle (required for iOS 13+ scene-based apps)
+    if FirebaseApp.app() == nil {
+      FirebaseApp.configure()
+    }
 
-  override func application(
-    _ application: UIApplication,
-    configurationForConnecting connectingSceneSession: UISceneSession,
-    options: UIScene.ConnectionOptions
-  ) -> UISceneConfiguration {
-    return UISceneConfiguration(
-      name: "Default Configuration",
-      sessionRole: connectingSceneSession.role
+    return super.application(
+        application,
+        didFinishLaunchingWithOptions: launchOptions
     )
   }
 
@@ -83,7 +54,7 @@ import FirebaseCore
   private func configureDisplayConfigChannel(with messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(
         name: displayConfigChannelName,
-        binaryMessenger: controller.binaryMessenger
+        binaryMessenger: messenger
     )
 
     channel.setMethodCallHandler { [weak self] call, result in
@@ -119,7 +90,7 @@ import FirebaseCore
   private func configureTimezoneChannel(with messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(
         name: timezoneChannelName,
-        binaryMessenger: controller.binaryMessenger
+        binaryMessenger: messenger
     )
 
     channel.setMethodCallHandler { call, result in
@@ -242,4 +213,3 @@ import FirebaseCore
     return UIScreen.main.maximumFramesPerSecond >= 120
   }
 }
-
