@@ -16,10 +16,13 @@ import '../Health Tips/Nutrition_tips.dart/nutrition_tips.dart';
 import 'bmi_update_result.dart';
 
 String getResultPicture({required double bmi}) {
-  if (bmi < 18.5) return bulk;
-  if (bmi < 25) return track;
-  if (bmi < 30) return balance;
-  return track;
+  if (bmi < 18.5) {
+    return bulk;
+  } else if (bmi < 25) {
+    return track;
+  } else {
+    return balance;
+  }
 }
 
 class BmiResultPage extends StatefulWidget {

@@ -62,14 +62,6 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
 
   final scrollController = ScrollController();
   bool _showAppBar = true;
-
-  String getImg(double bmi) {
-    if (bmi < 18.5) return skinny;
-    if (bmi < 25) return bmiEle;
-    if (bmi < 30) return fatty;
-    return fatty;
-  }
-
   Color getStatusColor(double bmi) {
     if (bmi < 18.5) return Colors.yellow;
     if (bmi < 25) return Colors.green;
