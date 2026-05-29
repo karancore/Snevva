@@ -64,12 +64,12 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     super.initState();
     commonTipsController = Get.find<CommonTipsController>();
     _scrollController.addListener(_onTipsScroll);
-    commonTipsController.getCommonTips(context: context, tag: 'Sleep');
     toggleSleepCard();
     _checkIfAlreadySleeping();
     _setupSleepListeners();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      commonTipsController.getCommonTips(context: context, tag: 'Sleep');
       await sleepController.loadDeepSleepData();
       sleepController.loadUserSleepTimes();
       _checkBatteryOptimizations();
@@ -718,7 +718,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryColor.withValues(alpha: 0.1),
+                          color: AppColors.primaryColor.withValues(alpha: 0.3),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(

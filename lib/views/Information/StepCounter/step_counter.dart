@@ -130,7 +130,9 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     commonTipsController = Get.find<CommonTipsController>();
     _scrollController.addListener(_onTipsScroll);
-    commonTipsController.getCommonTips(context: context, tag: 'Steps');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      commonTipsController.getCommonTips(context: context, tag: 'Steps');
+    });
     stepController.activateRealtimeTracking();
     stepController.loadTodayStepsFromFile();
   }
@@ -509,7 +511,7 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryColor.withOpacity(0.1),
+                          color: AppColors.primaryColor.withOpacity(0.3),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(

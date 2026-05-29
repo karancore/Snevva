@@ -38,13 +38,12 @@ class _MoodQuestionnaireState extends State<MoodQuestionnaire> {
     commonTipsController = Get.find<CommonTipsController>();
     _scrollController.addListener(_onTipsScroll);
 
-    commonTipsController.getCommonTips(
-      context: context,
-      tags: ["Mood Tracker", moodController.selectedUserMood],
-      tag: '',
-    );
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      commonTipsController.getCommonTips(
+        context: context,
+        tags: ["Mood Tracker", moodController.selectedUserMood],
+        tag: '',
+      );
       moodController.loadTodayMoods();
     });
   }

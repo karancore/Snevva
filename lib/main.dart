@@ -415,30 +415,36 @@ class _MyAppState extends State<MyApp> {
 
     ConnectivityService().init();
 
-    // 👇 Check current state immediately on launch
-    Connectivity().checkConnectivity().then((results) {
-      final isConnected = results.any((r) => r != ConnectivityResult.none);
-      if (!isConnected) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final context = Get.overlayContext;
-          if (context != null) NoInternetBanner.show(context);
-        });
-      }
+    // ✅ FIXED: Defer overlay operations until after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      // Check current connectivity immediately
+      Connectivity().checkConnectivity().then((results) {
+        if (!mounted) return;
+        final isConnected = results.any((r) => r != ConnectivityResult.none);
+        if (!isConnected) {
+          // ✅ Use the local context (which has Overlay) instead of Get.overlayContext
+          NoInternetBanner.show();
+        }
+      });
     });
 
+    // ✅ FIXED: Listen for connectivity changes with proper context handling
     _connectivitySub = ConnectivityService().onConnectivityChanged.listen((
-      isConnected,
-    ) {
-      final context = Get.overlayContext;
-      if (context == null) return;
+        isConnected,) {
+      if (!mounted) return;
+
+      // ✅ Use the local context which is guaranteed to have Overlay
       if (!isConnected) {
-        NoInternetBanner.show(context);
+        NoInternetBanner.show();
       } else {
         debugPrint('Connectivity restored, hiding banner');
         NoInternetBanner.hide();
       }
     });
   }
+
 
   @override
   void dispose() {

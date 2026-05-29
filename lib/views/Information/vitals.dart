@@ -194,10 +194,12 @@ class _VitalScreenState extends State<VitalScreen> {
     commonTipsController = Get.find<CommonTipsController>();
     _scrollController.addListener(_onTipsScroll);
 
-    commonTipsController.getCommonTips(
-      context: context,
-      tag: 'Heart Rate & Blood Pressure',
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      commonTipsController.getCommonTips(
+        context: context,
+        tag: 'Heart Rate & Blood Pressure',
+      );
+    });
 
     if (_controller.bpm.value > 0) {
       bpmController.text = _controller.bpm.value.toString();

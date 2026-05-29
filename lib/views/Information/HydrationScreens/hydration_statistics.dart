@@ -46,9 +46,12 @@ class _HydrationStatisticsState extends State<HydrationStatistics> {
     super.initState();
     commonTipsController = Get.find<CommonTipsController>();
     _scrollController.addListener(_onTipsScroll);
-    commonTipsController.getCommonTips(context: context, tag: 'Water');
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // ✅ FIX: defer Rx writes until after first build to avoid
+      // "setState() called during build" errors from Obx widgets.
+      commonTipsController.getCommonTips(context: context, tag: 'Water');
+
       await controller.loadWaterIntakefromAPI(
         month: _selectedMonth.month,
         year: _selectedMonth.year,

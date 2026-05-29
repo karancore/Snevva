@@ -302,7 +302,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
           ),
         ),
         subtitle: const Text(
-          'mmol/L',
+          'mg/dL',
           style: TextStyle(
             fontSize: 14,
             color: Colors.grey,

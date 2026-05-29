@@ -144,7 +144,9 @@ class _SignInScreenState extends State<SignInScreen> {
       debugPrint("Exception $e");
       _handleSignInError("We couldn’t sign you in. Please try again.");
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 

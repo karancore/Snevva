@@ -24,6 +24,13 @@
             {
               "client_id": "760082000923-v6lm2bqqroimspg8f1am01ntbio5mbn0.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "760082000923-oqaot6mujmcgro2bbrb396mul4edcipa.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.coretegra.snevvaa"
+              }
             }
           ]
         }
@@ -57,6 +64,13 @@
             {
               "client_id": "760082000923-v6lm2bqqroimspg8f1am01ntbio5mbn0.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "760082000923-oqaot6mujmcgro2bbrb396mul4edcipa.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.coretegra.snevvaa"
+              }
             }
           ]
         }

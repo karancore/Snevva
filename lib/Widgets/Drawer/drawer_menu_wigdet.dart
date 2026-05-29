@@ -337,6 +337,9 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                 Obx(() {
                   final name = localStorageManager.userMap['Name']
                       ?.toString() ?? 'User';
+                  final firstName = name
+                      .split(' ')
+                      .first;
                   final bool isProfileComplete = isProfileDisplayComplete(
                     localStorageManager.userMap,
                   );
@@ -345,15 +348,16 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        name,
+                        firstName,
                         style: TextStyle(color: white, fontSize: 24),
                       ),
                       if (isProfileComplete) ...[
                         const SizedBox(width: 6),
-                        const Icon(
-                          Icons.done_all, // double tick icon
-                          color: Color(0xFFE3CCFF),
-                          size: 22,
+                        Image.asset(
+                          'assets/Icons/bluetick.webp',
+                          width: 22,
+                          height: 22,
+                          fit: BoxFit.contain,
                         ),
                       ],
                     ],
@@ -463,7 +467,7 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                             onWidgetTap: () async {
                               Get.back();
                               const shareMessage =
-                                  '🎉 Hey! Check out this awesome app — Snevva! Download it here: https://play.google.com/store/apps/details?id=com.yourapp.id';
+                                  '🎉 Hey! Check out this awesome app — Snevva! Download it here: https://play.google.com/store/apps/details?id=com.coretegra.snevvaa';
                               await Share.share(
                                 shareMessage,
                                 subject: 'Join me on Snevva!',

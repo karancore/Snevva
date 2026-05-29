@@ -55,7 +55,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
         'Required',
         'Please enter glucose value',
         backgroundColor: Colors.orange,
-        colorText: Theme.of(context).colorScheme.onPrimary,
+        colorText: white,
       );
       return false;
     }
@@ -68,7 +68,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
         'Invalid Input',
         'Please enter a valid number',
         backgroundColor: Colors.red,
-        colorText: Theme.of(context).colorScheme.onPrimary,
+        colorText: white,
       );
       return false;
     }
@@ -79,7 +79,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
         'Invalid Value',
         'Glucose must be between 18 and 600 mg/dL',
         backgroundColor: Colors.red,
-        colorText: Theme.of(context).colorScheme.onPrimary,
+        colorText: white,
       );
       return false;
     }
@@ -96,7 +96,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
         'Error',
         'Something went wrong! Try again later.',
         backgroundColor: Colors.red,
-        colorText: Theme.of(context).colorScheme.onPrimary,
+        colorText: white,
       );
       return false;
     }
@@ -105,7 +105,7 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
       'Success',
       'Glucose record saved successfully',
       backgroundColor: Colors.green,
-      colorText: Theme.of(context).colorScheme.onPrimary,
+      colorText: white,
     );
 
     vitalsController.glucoseController.clear();

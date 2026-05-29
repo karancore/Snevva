@@ -70,3 +70,4 @@ pubspec.lock
 /ios/build
 ios/Podfile.lock
 ios/Podfile.lock
+*.lock

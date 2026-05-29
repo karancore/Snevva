@@ -31,8 +31,10 @@ class _WomenHealthHistoryState extends State<WomenHealthHistory> {
     commonTipsController = Get.find<CommonTipsController>();
     _scrollController.addListener(_onTipsScroll);
 
-    commonTipsController.getCommonTips(context: context, tag: 'Women Health');
-    _initializeSymptomsData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      commonTipsController.getCommonTips(context: context, tag: 'Women Health');
+      _initializeSymptomsData();
+    });
   }
 
   void _onTipsScroll() {

@@ -136,13 +136,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           : () async {
                             final input =
                                 emailOrPasswordTextController.text.trim();
-                            setState(() {
-                              isLoading = true;
-                            });
+                            if (mounted) {
+                              setState(() {
+                                isLoading = true;
+                              });
+                            }
                             await onButtonClick(input);
-                            setState(() {
-                              isLoading = false;
-                            });
+                            if (mounted) {
+                              setState(() {
+                                isLoading = false;
+                              });
+                            }
                           },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,

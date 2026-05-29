@@ -85,7 +85,9 @@ class _ForgotPasswordState extends State<ForgotPassword> {
         textFieldController.clear();
       }
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 

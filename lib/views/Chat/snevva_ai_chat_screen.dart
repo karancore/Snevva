@@ -9,7 +9,6 @@ import 'package:snevva/consts/colors.dart';
 import 'package:snevva/consts/images.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
-import 'package:snevva/services/decisiontree_service.dart';
 
 /// ---------- DECISION TREE MODEL ----------
 
@@ -160,7 +159,7 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
 
   Future<void> _initializeTree() async {
     // decisionTree = await loadDecisionTree();
-    decisionTree = await DecisionTreeService().getDecisionTree();
+    decisionTree = await loadDecisionTreeFromApi();
 
     if (decisionTree.isEmpty) {
       debugPrint("❌ decisionTree is EMPTY. Chat cannot load.");
