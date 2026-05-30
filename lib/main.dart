@@ -35,6 +35,7 @@ import 'package:snevva/services/connectivity_service.dart';
 import 'package:snevva/services/firebase_init.dart';
 import 'package:snevva/services/google_auth.dart';
 import 'package:snevva/services/google_backend_auth_service.dart';
+import 'package:snevva/services/in_app_update_service.dart';
 import 'package:snevva/utils/push_notifications_controller.dart';
 import 'package:snevva/utils/theme_controller.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
@@ -477,6 +478,9 @@ class _MyAppState extends State<MyApp> {
         ensureFirebaseInitialized(),
         _warmCriticalPostFrameServices(),
       ]);
+
+
+      await InAppUpdateService.checkForUpdate();
 
       try {
         PushNotificationService().initialize();

@@ -151,10 +151,24 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
   String currentNodeKey = "welcome";
   bool waitingForUser = false;
 
+  bool _isScrolled = false;
+
+
   @override
   void initState() {
     super.initState();
+
     _initializeTree();
+
+    _scrollController.addListener(() {
+      final scrolled = _scrollController.offset > 10;
+
+      if (scrolled != _isScrolled) {
+        setState(() {
+          _isScrolled = scrolled;
+        });
+      }
+    });
   }
 
   Future<void> _initializeTree() async {
@@ -234,26 +248,35 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        backgroundColor: Colors.transparent,
-        leading: IconButton(
-          onPressed: () {
-            Get.back();
-          },
-          icon: const Icon(Icons.arrow_back_ios_new),
-        ),
-        iconTheme: IconThemeData(color: isDarkMode ? white : black),
-        title: Text(
-          "Chat with Elly",
-          style: TextStyle(
-            color: isDarkMode ? white : black,
-            fontWeight: FontWeight.w500,
-            fontSize: 20,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(kToolbarHeight),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          child: AppBar(
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            backgroundColor:
+            _isScrolled
+                ? (isDarkMode ? black : white)
+                : Colors.transparent,
+            leading: IconButton(
+              onPressed: () {
+                Get.back();
+              },
+              icon: const Icon(Icons.arrow_back_ios_new),
+            ),
+            iconTheme: IconThemeData(color: isDarkMode ? white : black),
+            title: Text(
+              "Chat with Elly",
+              style: TextStyle(
+                color: isDarkMode ? white : black,
+                fontWeight: FontWeight.w500,
+                fontSize: 20,
+              ),
+            ),
+            centerTitle: true,
           ),
         ),
-        centerTitle: true,
       ),
 
       body: Stack(

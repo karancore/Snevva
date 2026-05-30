@@ -470,7 +470,7 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
                       yAxisMaxValue: maxY,
                       maxXForWeek: maxXForWeek,
                       isMonthlyView: _isMonthlyView,
-                      graphTitle: 'Steps',
+                      graphTitle: 'Step Statistics',
                       maxY: maxY,
                       selectedMonthForHeader:
                           _isMonthlyView ? _selectedMonth : null,

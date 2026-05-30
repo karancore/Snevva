@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 import 'package:pinput/pinput.dart';
 import 'package:smart_auth/smart_auth.dart';
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
-import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
@@ -44,6 +43,40 @@ class EditprofileController extends GetxService {
   var resendTimer = 0.obs; // For showing countdown
   Timer? _resendCountdownTimer;
 
+  // ─── Shared snackbar style helpers ───────────────────────────────────────
+
+  void _showSuccess(String message) {
+    Get.snackbar(
+      '✓  All done',
+      message,
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: const Color(0xFF1A1A2E),
+      colorText: Colors.white,
+      duration: const Duration(seconds: 3),
+      borderRadius: 12,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      icon: const Icon(Icons.check_circle_rounded, color: Color(0xFF7C4DFF)),
+      shouldIconPulse: false,
+    );
+  }
+
+  void _showError(String message) {
+    Get.snackbar(
+      'Heads up',
+      message,
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: const Color(0xFF1A1A2E),
+      colorText: Colors.white,
+      duration: const Duration(seconds: 3),
+      borderRadius: 12,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      icon: const Icon(Icons.error_rounded, color: Color(0xFFFF4D6D)),
+      shouldIconPulse: false,
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+
   @override
   void onInit() {
     super.onInit();
@@ -68,50 +101,6 @@ class EditprofileController extends GetxService {
       gender.value = storedGender;
     }
   }
-
-  // void updateField(String key, dynamic value) {
-  //   localStorageManager.userMap[key] = value;
-  //
-  //   switch (key) {
-  //     case 'Name':
-  //       name = value;
-  //       break;
-  //     case 'Email':
-  //       email.value = value;
-  //       break;
-  //     case 'PhoneNumber':
-  //       phoneNumber = value;
-  //       break;
-  //     case 'Height':
-  //       heightValue = value;
-  //       localStorageManager.userGoalDataMap['HeightData']['Value'] = value;
-  //       break;
-  //     case 'Weight':
-  //       weightValue = value;
-  //       localStorageManager.userGoalDataMap['WeightData']['Value'] = value;
-  //       break;
-  //     case 'Gender':
-  //       gender = value;
-  //       break;
-  //     case 'Occupation':
-  //       occupation = value;
-  //       break;
-  //     case 'Address':
-  //       address = value;
-  //       break;
-  //     case 'DayOfBirth':
-  //       updateDob(day: value);
-  //       break;
-  //
-  //     case 'MonthOfBirth':
-  //       updateDob(month: value);
-  //       break;
-  //
-  //     case 'YearOfBirth':
-  //       updateDob(year: value);
-  //       break;
-  //   }
-  // }
 
   Future<void> updateField(String key, dynamic value) async {
     switch (key) {
@@ -213,8 +202,7 @@ class EditprofileController extends GetxService {
     isResendEnabled.value = true;
   }
 
-  void showEditFieldDialog(
-    BuildContext context, {
+  void showEditFieldDialog(BuildContext context, {
     required String title,
     required String fieldKey,
     required String initialValue,
@@ -250,19 +238,19 @@ class EditprofileController extends GetxService {
                   controller: controller,
                   maxLines: fieldKey == 'Address' ? 4 : 1,
                   keyboardType:
-                      fieldKey == 'Address'
-                          ? TextInputType.multiline
-                          : (fieldKey == 'Height' || fieldKey == 'Weight')
-                          ? const TextInputType.numberWithOptions(decimal: true)
-                          : TextInputType.text,
+                  fieldKey == 'Address'
+                      ? TextInputType.multiline
+                      : (fieldKey == 'Height' || fieldKey == 'Weight')
+                      ? const TextInputType.numberWithOptions(decimal: true)
+                      : TextInputType.text,
                   inputFormatters:
-                      fieldKey == 'Height' || fieldKey == 'Weight'
-                          ? [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'^\d*\.?\d{0,2}'),
-                            ),
-                          ]
-                          : [],
+                  fieldKey == 'Height' || fieldKey == 'Weight'
+                      ? [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'^\d*\.?\d{0,2}'),
+                    ),
+                  ]
+                      : [],
                   decoration: InputDecoration(
                     hintText: () {
                       switch (fieldKey) {
@@ -290,7 +278,8 @@ class EditprofileController extends GetxService {
                 ),
                 const SizedBox(height: 20),
                 Obx(
-                  () => SizedBox(
+                      () =>
+                      SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -300,257 +289,237 @@ class EditprofileController extends GetxService {
                         ),
                       ),
                       onPressed:
-                          isLoading.value
-                              ? null
-                              : () async {
-                                isLoading.value = true;
-                                final value = controller.text.trim();
-                                double? height = double.tryParse(value);
-                                double? weight = double.tryParse(value);
+                      isLoading.value
+                          ? null
+                          : () async {
+                        isLoading.value = true;
+                        final value = controller.text.trim();
+                        double? height = double.tryParse(value);
+                        double? weight = double.tryParse(value);
 
-                                // 🧠 Common validation
-                                if (fieldKey == 'Name') {
-                                  final nameRegex = RegExp(r"^[a-zA-Z\s]+$");
-                                  if (value.isEmpty) {
-                                    CustomSnackbar.showError(
-                                      context: context,
-                                      title: 'Error',
-                                      message: 'Name cannot be empty',
-                                    );
+                        // ─── Validation ───────────────────────────
 
-                                    isLoading.value = false;
-                                    return;
-                                  }
-                                  if (!nameRegex.hasMatch(value)) {
-                                    CustomSnackbar.showError(
-                                      context: context,
-                                      title: 'Error',
-                                      message:
-                                          'Name should not contain numbers or special characters',
-                                    );
-                                    isLoading.value = false;
-                                    return;
-                                  }
-                                }
+                        if (fieldKey == 'Name') {
+                          final nameRegex = RegExp(r"^[a-zA-Z\s]+$");
+                          final capNameRegex = RegExp(r'^[A-Z][a-zA-Z\s]*$');
+                          if (value.isEmpty) {
+                            _showError(
+                              'Your name can\'t be blank. Please enter your full name.',
+                            );
+                            isLoading.value = false;
+                            return;
+                          }
+                          if (!nameRegex.hasMatch(value)) {
+                            _showError(
+                              'Names can only contain letters and spaces — no numbers or symbols.',
+                            );
+                            isLoading.value = false;
+                            return;
+                          }
+                          if (!capNameRegex.hasMatch(value)) {
+                            _showError(
+                              'Name must start with a capital letter and contain only letters and spaces.',
+                            );
+                            isLoading.value = false;
+                            return;
+                          }
+                        }
 
-                                if (fieldKey == 'Height') {
-                                  if (height == null || height <= 0) {
-                                    CustomSnackbar.showError(
-                                      context: context,
-                                      title: 'Error',
-                                      message: 'Please enter a valid height',
-                                    );
-                                    isLoading.value = false;
-                                    return;
-                                  }
-                                }
+                        if (fieldKey == 'Height') {
+                          if (height == null || height <= 0) {
+                            _showError(
+                              'Please enter a valid height in centimetres (e.g. 170).',
+                            );
+                            isLoading.value = false;
+                            return;
+                          }
+                        }
 
-                                if (fieldKey == 'Weight') {
-                                  if (weight == null || weight <= 0) {
-                                    CustomSnackbar.showError(
-                                      context: context,
-                                      title: 'Error',
-                                      message: 'Please enter a valid weight',
-                                    );
-                                    isLoading.value = false;
-                                    return;
-                                  }
-                                }
+                        if (fieldKey == 'Weight') {
+                          if (weight == null || weight <= 0) {
+                            _showError(
+                              'Please enter a valid weight in kilograms (e.g. 65).',
+                            );
+                            isLoading.value = false;
+                            return;
+                          }
+                        }
 
-                                if (fieldKey == 'PhoneNumber') {
-                                  final phoneRegex = RegExp(r"^[0-9]{10}$");
-                                  if (!phoneRegex.hasMatch(value)) {
-                                    CustomSnackbar.showError(
-                                      context: context,
-                                      title: 'Error',
-                                      message:
-                                          'Please enter a valid phone number',
-                                    );
-                                    isLoading.value = false;
-                                    return;
-                                  }
+                        if (fieldKey == 'PhoneNumber') {
+                          final phoneRegex = RegExp(r"^[0-9]{10}$");
+                          if (!phoneRegex.hasMatch(value)) {
+                            _showError(
+                              'Please enter a valid 10-digit mobile number.',
+                            );
+                            isLoading.value = false;
+                            return;
+                          }
 
-                                  try {
-                                    // ✅ Step 1: Call API to send OTP
-                                    final result = await signupController
-                                        .phoneotp(value, context);
-                                    // await notify.showOtpNotification(result);
+                          try {
+                            final result = await signupController
+                                .phoneotp(value, context);
 
-                                    if (result != false && result != null) {
-                                      otpVerificationController
-                                          .responseOtp
-                                          .value = result;
+                            if (result != false && result != null) {
+                              otpVerificationController
+                                  .responseOtp
+                                  .value = result;
 
-                                      // ✅ Close first dialog
-                                      Navigator.of(dialogCtx).pop();
+                              Navigator.of(dialogCtx).pop();
 
-                                      // ✅ Step 2: Open OTP verification dialog
-                                      Future.delayed(
-                                        const Duration(milliseconds: 150),
-                                        () {
-                                          updatephoneDialog(
-                                            context,
-                                            title: "Verify your Number",
-                                            fieldKey: "PhoneNumber",
-                                            initialValue:
-                                                value, // pass the actual entered email!
-                                            onUpdated: onUpdated,
-                                          );
-                                        },
-                                      );
-                                    } else {
-                                      CustomSnackbar.showError(
-                                        context: context,
-                                        title: 'Error',
-                                        message:
-                                            'Failed to send OTP. Please try again.',
-                                      );
-                                      isLoading.value = false;
-                                    }
-                                  } catch (e) {
-                                    debugPrint(
-                                      'Error during phone OTP process: $e',
-                                    );
-                                    CustomSnackbar.showError(
-                                      context: context,
-                                      title: 'Error',
-                                      message:
-                                          'Something went wrong while sending OTP.',
-                                    );
-                                    isLoading.value = false;
-                                  } finally {
-                                    isLoading.value = false;
-                                  }
-
-                                  return; // stop further code
-                                }
-
-                                // ✅ EMAIL CASE
-                                if (fieldKey == 'Email') {
-                                  final emailRegex = RegExp(
-                                    r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,9}$',
+                              Future.delayed(
+                                const Duration(milliseconds: 150),
+                                    () {
+                                  updatephoneDialog(
+                                    context,
+                                    title: "Verify your Number",
+                                    fieldKey: "PhoneNumber",
+                                    initialValue: value,
+                                    onUpdated: onUpdated,
                                   );
+                                },
+                              );
+                            } else {
+                              _showError(
+                                'We couldn\'t send the OTP to this number. Please check and try again.',
+                              );
+                              isLoading.value = false;
+                            }
+                          } catch (e) {
+                            debugPrint(
+                              'Error during phone OTP process: $e',
+                            );
+                            _showError(
+                              'Something went wrong while sending the OTP. Please try again in a moment.',
+                            );
+                            isLoading.value = false;
+                          } finally {
+                            isLoading.value = false;
+                          }
 
-                                  if (value.isEmpty) {
-                                    CustomSnackbar.showError(
-                                      context: context,
-                                      title: 'Error',
-                                      message: 'Email cannot be empty',
-                                    );
-                                    isLoading.value = false;
-                                    return;
-                                  }
-                                  if (!emailRegex.hasMatch(value)) {
-                                    CustomSnackbar.showError(
-                                      context: context,
-                                      title: 'Error',
-                                      message:
-                                          'Please enter a valid email address',
-                                    );
-                                    isLoading.value = false;
-                                    return;
-                                  }
+                          return;
+                        }
 
-                                  try {
-                                    // ✅ Step 1: Call API to send OTP
-                                    final result = await signupController
-                                        .gmailOtp(value, context);
-                                    // await notify.showOtpNotification(result);
+                        // ─── Email ────────────────────────────────
 
-                                    if (result != false && result != null) {
-                                      otpVerificationController
-                                          .responseOtp
-                                          .value = result;
+                        if (fieldKey == 'Email') {
+                          final emailRegex = RegExp(
+                            r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,9}$',
+                          );
 
-                                      // ✅ Close first dialog
-                                      Navigator.of(dialogCtx).pop();
+                          if (value.isEmpty) {
+                            _showError(
+                              'Email address can\'t be blank. Please enter a valid email.',
+                            );
+                            isLoading.value = false;
+                            return;
+                          }
+                          if (!emailRegex.hasMatch(value)) {
+                            _showError(
+                              'That doesn\'t look like a valid email. Try something like name@example.com.',
+                            );
+                            isLoading.value = false;
+                            return;
+                          }
 
-                                      // ✅ Step 2: Open OTP verification dialog
-                                      Future.delayed(
-                                        const Duration(milliseconds: 150),
-                                        () {
-                                          updateemailDialog(
-                                            context,
-                                            title: "Verify your email",
-                                            fieldKey: "Email",
-                                            initialValue: value,
-                                            // pass the actual entered email!
-                                            onUpdated: onUpdated,
-                                          );
-                                        },
-                                      );
-                                    } else {
-                                      CustomSnackbar.showError(
-                                        context: context,
-                                        title: 'Error',
-                                        message:
-                                            'Failed to send OTP. Please try again.',
-                                      );
-                                      isLoading.value = false;
-                                    }
-                                  } catch (e) {
-                                    debugPrint('Error sending OTP: $e');
-                                    CustomSnackbar.showError(
-                                      context: context,
-                                      title: 'Error',
-                                      message:
-                                          'Something went wrong while sending OTP.',
-                                    );
-                                    isLoading.value = false;
-                                  } finally {
-                                    isLoading.value = false;
-                                  }
+                          try {
+                            final result = await signupController
+                                .gmailOtp(value, context);
 
-                                  return; // stop further code
-                                }
-                                // isLoading.value = false;
+                            if (result != false && result != null) {
+                              otpVerificationController
+                                  .responseOtp
+                                  .value = result;
 
-                                // ✅ For other fields
-                                updateField(fieldKey, value);
-                                switch (fieldKey) {
-                                  case 'Name':
-                                    await saveName(value, context);
-                                    isLoading.value = false;
-                                    break;
-                                  case 'Height':
-                                    await saveHeight(
-                                      context,
-                                      height!,
-                                      day: DateTime.now().day,
-                                      month: DateTime.now().month,
-                                      year: DateTime.now().year,
-                                      time: TimeOfDay.now().format(context),
-                                    );
-                                    // ✅ Sync BmiUpdateController — ever() watcher fires updateBmiValues() automatically
-                                    final bmiController =
-                                        Get.find<BmiUpdateController>();
-                                    bmiController.height.value = height!;
-                                    isLoading.value = false;
-                                    break;
-                                  case 'Weight':
-                                    await saveWeight(
-                                      context,
-                                      weight!,
-                                      day: DateTime.now().day,
-                                      month: DateTime.now().month,
-                                      year: DateTime.now().year,
-                                      time: TimeOfDay.now().format(context),
-                                    );
-                                    // ✅ Sync BmiUpdateController — ever() watcher fires updateBmiValues() automatically
-                                    final bmiController =
-                                        Get.find<BmiUpdateController>();
-                                    bmiController.weight.value = weight!;
-                                    isLoading.value = false;
-                                    break;
-                                  case 'Address':
-                                    await saveAddress(value, context);
-                                    isLoading.value = false;
-                                    break;
-                                }
+                              Navigator.of(dialogCtx).pop();
 
-                                Navigator.of(dialogCtx).pop();
-                                if (onUpdated != null) onUpdated();
-                              },
+                              Future.delayed(
+                                const Duration(milliseconds: 150),
+                                    () {
+                                  updateemailDialog(
+                                    context,
+                                    title: "Verify your email",
+                                    fieldKey: "Email",
+                                    initialValue: value,
+                                    onUpdated: onUpdated,
+                                  );
+                                },
+                              );
+                            } else {
+                              _showError(
+                                'We couldn\'t send the OTP to this email. Please double-check and try again.',
+                              );
+                              isLoading.value = false;
+                            }
+                          } catch (e) {
+                            debugPrint('Error sending OTP: $e');
+                            _showError(
+                              'Something went wrong while sending the OTP. Please try again shortly.',
+                            );
+                            isLoading.value = false;
+                          } finally {
+                            isLoading.value = false;
+                          }
+
+                          return;
+                        }
+
+                        // ─── Other fields ─────────────────────────
+
+                        updateField(fieldKey, value);
+                        switch (fieldKey) {
+                          case 'Name':
+                            await saveName(value, context);
+                            isLoading.value = false;
+                            break;
+                          case 'Height':
+                            await saveHeight(
+                              context,
+                              height!,
+                              day: DateTime
+                                  .now()
+                                  .day,
+                              month: DateTime
+                                  .now()
+                                  .month,
+                              year: DateTime
+                                  .now()
+                                  .year,
+                              time: TimeOfDay.now().format(context),
+                            );
+                            final bmiController =
+                            Get.find<BmiUpdateController>();
+                            bmiController.height.value = height!;
+                            isLoading.value = false;
+                            break;
+                          case 'Weight':
+                            await saveWeight(
+                              context,
+                              weight!,
+                              day: DateTime
+                                  .now()
+                                  .day,
+                              month: DateTime
+                                  .now()
+                                  .month,
+                              year: DateTime
+                                  .now()
+                                  .year,
+                              time: TimeOfDay.now().format(context),
+                            );
+                            final bmiController =
+                            Get.find<BmiUpdateController>();
+                            bmiController.weight.value = weight!;
+                            isLoading.value = false;
+                            break;
+                          case 'Address':
+                            await saveAddress(value, context);
+                            isLoading.value = false;
+                            break;
+                        }
+
+                        Navigator.of(dialogCtx).pop();
+                        if (onUpdated != null) onUpdated();
+                      },
                       child: AppLoadingButtonChild(
                         isLoading: isLoading.value,
                         loaderSize: 20,
@@ -558,9 +527,9 @@ class EditprofileController extends GetxService {
                           "Update",
                           style: TextStyle(
                             color:
-                                isDarkMode
-                                    ? scaffoldColorDark
-                                    : scaffoldColorLight,
+                            isDarkMode
+                                ? scaffoldColorDark
+                                : scaffoldColorLight,
                           ),
                         ),
                       ),
@@ -614,18 +583,12 @@ class EditprofileController extends GetxService {
     ),
   );
 
-  void updateemailDialog(
-    BuildContext context, {
+  void updateemailDialog(BuildContext context, {
     required String title,
     required String fieldKey,
     required String initialValue,
     VoidCallback? onUpdated,
   }) {
-    print("📩 updateemailDialog opened");
-    print("📝 Title: $title");
-    print("🔑 FieldKey: $fieldKey");
-    print("📧 Initial Email: $initialValue");
-
     final TextEditingController controller = TextEditingController(
       text: initialValue,
     );
@@ -634,18 +597,11 @@ class EditprofileController extends GetxService {
 
     final value = controller.text.trim();
 
-    print("✂️ Trimmed Email Value: $value");
-
-    // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    print("🎨 Dark Mode Enabled: $isDarkMode");
 
     showDialog(
       context: context,
       builder: (ctx) {
-        print("🪟 Dialog Builder Triggered");
-
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -663,7 +619,6 @@ class EditprofileController extends GetxService {
                   height: 180,
                   width: 180,
                   errorBuilder: (context, error, stackTrace) {
-                    print("❌ Image Load Error: $error");
                     return const SizedBox();
                   },
                 ),
@@ -690,14 +645,7 @@ class EditprofileController extends GetxService {
                   followingPinTheme: followingPinTheme,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
 
-                  onChanged: (val) {
-                    print("⌨️ OTP Typing: $val");
-                  },
-
                   onCompleted: (pin) async {
-                    print("✅ OTP Entered: $pin");
-                    print("📧 Verifying for Email: $value");
-
                     otpVerificationStatus = otpVerificationController.verifyOtp(
                       pin,
                       pinController.text,
@@ -705,26 +653,20 @@ class EditprofileController extends GetxService {
                       isEditPassword: true,
                     );
 
-                    print("📡 verifyOtp API called");
-
-                    print("📥 OTP Verification Result: $otpVerificationStatus");
-
-                    // updateemailDialog -> onCompleted ke andar, yeh karo:
                     if (otpVerificationStatus) {
-                      // ✅ Pehle map update karo
-                      await localStorageManager.updateUserField('Email',
-                          initialValue); // saveUserMap bhi call karta hai + userMap.refresh()
+                      await localStorageManager.updateUserField(
+                        'Email',
+                        initialValue,
+                      );
 
-                      email.value = initialValue; // controller ki Rx variable
+                      email.value = initialValue;
 
                       await signupController.updateGmail(initialValue, ctx);
 
                       if (onUpdated != null) {
                         onUpdated();
-                        CustomSnackbar.showSuccess(
-                          context: context,
-                          title: 'Success',
-                          message: 'Email updated successfully.',
+                        _showSuccess(
+                          'Your email has been updated to $initialValue. A confirmation has been sent.',
                         );
                         Navigator.pop(ctx);
                       }
@@ -735,60 +677,34 @@ class EditprofileController extends GetxService {
                 const SizedBox(height: 15),
 
                 Obx(
-                  () => InkWell(
+                      () =>
+                      InkWell(
                     onTap:
-                        isResendEnabled.value
-                            ? () async {
-                              print("🔁 Resend OTP Clicked");
+                    isResendEnabled.value
+                        ? () async {
+                      isResendEnabled.value = false;
+                      startResendTimer(seconds: 30);
 
-                              isResendEnabled.value = false;
+                      final result = await signupController.gmailOtp(
+                        value,
+                        ctx,
+                      );
 
-                              print("⏳ Resend Disabled");
-
-                              startResendTimer(seconds: 30);
-
-                              print("⏱️ Resend Timer Started: 30s");
-
-                              print("📡 Calling gmailOtp API...");
-                          print("📧 Email: $value");
-
-                              final result = await signupController.gmailOtp(
-                                value,
-                                ctx,
-                              );
-
-                              print("📥 gmailOtp API Result: $result");
-
-                              if (result != false && result != null) {
-                                otpVerificationController.responseOtp.value =
-                                    result;
-
-                                print("✅ OTP Resent Successfully");
-                            print(
-                              "📨 Response OTP Saved: ${otpVerificationController
-                                  .responseOtp.value}",
-                            );
-
-                                CustomSnackbar.showSuccess(
-                                  context: context,
-                                  title: 'Success',
-                                  message: 'OTP resent successfully.',
-                                );
-                              } else {
-                                print("❌ Failed to resend OTP");
-
-                                CustomSnackbar.showError(
-                              context: context,
-                              title: 'Error',
-                              message: 'Failed to resend OTP.',
-                            );
-                          }
-                        }
-                            : null,
+                      if (result != false && result != null) {
+                        otpVerificationController.responseOtp.value =
+                            result;
+                        _showSuccess(
+                          'A fresh verification code has been sent to $value.',
+                        );
+                      } else {
+                        _showError(
+                          'We couldn\'t resend the code. Please wait a moment and try again.',
+                        );
+                      }
+                    }
+                        : null,
                     child: ShaderMask(
                       shaderCallback: (bounds) {
-                        print("🎨 ShaderMask Applied");
-
                         return AppColors.primaryGradient.createShader(
                           Rect.fromLTWH(0, 0, bounds.width, bounds.height),
                         );
@@ -815,8 +731,7 @@ class EditprofileController extends GetxService {
     );
   }
 
-  void updatephoneDialog(
-    BuildContext context, {
+  void updatephoneDialog(BuildContext context, {
     required String title,
     required String fieldKey,
     required String initialValue,
@@ -824,20 +739,19 @@ class EditprofileController extends GetxService {
   }) {
     showDialog(
       context: context,
-        builder:
-            (ctx) =>
-            _PhoneOtpDialog(
-              phoneNumber: initialValue.trim(),
-              ctrl: this,
-              onUpdated: onUpdated,
-            ));
+      builder:
+          (ctx) =>
+          _PhoneOtpDialog(
+            phoneNumber: initialValue.trim(),
+            ctrl: this,
+            onUpdated: onUpdated,
+          ),
+    );
   }
 
   void showGenderDialog(BuildContext context, {VoidCallback? onUpdated}) {
     final String? selectedGender = localStorageManager.userMap['Gender'];
 
-    final mediaQuery = MediaQuery.of(context);
-    // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     void selectGender(String Usergender) async {
       localStorageManager.userMap['Gender'] = Usergender;
@@ -890,7 +804,7 @@ class EditprofileController extends GetxService {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "You do you! Choose how you identify, or select ‘Prefer not to say’ if you’re not into labels.",
+                  "You do you! Choose how you identify, or select 'Prefer not to say' if you're not into labels.",
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 ),
                 SizedBox(height: 20),
@@ -904,7 +818,6 @@ class EditprofileController extends GetxService {
                       SizedBox(height: 10),
                       genderContainer("Female"),
                       SizedBox(height: 10),
-
                       genderContainer("Prefer not to say"),
                       SizedBox(height: 10),
                       genderContainer("Other"),
@@ -921,10 +834,8 @@ class EditprofileController extends GetxService {
 
   void showOccupationDialog(BuildContext context, {VoidCallback? onUpdated}) {
     final initialOccupation =
-        localStorageManager.userMap['OccupationData']?['Name']?.toString();
+    localStorageManager.userMap['OccupationData']?['Name']?.toString();
     String? selectedOccupation = initialOccupation;
-    final mediaQuery = MediaQuery.of(context);
-    // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
@@ -941,12 +852,11 @@ class EditprofileController extends GetxService {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "What’s your hustle? Tell us your job title, and we'll tailor your experience accordingly.",
+                  "What's your hustle? Tell us your job title, and we'll tailor your experience accordingly.",
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 ),
                 const SizedBox(height: 20),
 
-                // 👇 Your occupation dropdown here
                 DropdownFlutter<String>(
                   hintText: 'Select Job Role',
                   initialItem: initialOccupation,
@@ -957,11 +867,10 @@ class EditprofileController extends GetxService {
                   decoration: CustomDropdownDecoration(
                     hintStyle: TextStyle(color: AppColors.primaryColor),
                     headerStyle: TextStyle(color: AppColors.primaryColor),
-                    //closedBorder: Border.all(color: Colors.transparent),
                     closedFillColor:
-                        isDarkMode ? Colors.transparent : scaffoldColorLight,
+                    isDarkMode ? Colors.transparent : scaffoldColorLight,
                     expandedFillColor:
-                        isDarkMode ? Colors.black87 : scaffoldColorLight,
+                    isDarkMode ? Colors.black87 : scaffoldColorLight,
                   ),
                 ),
 
@@ -999,7 +908,7 @@ class EditprofileController extends GetxService {
                       "Update",
                       style: TextStyle(
                         color:
-                            isDarkMode ? scaffoldColorLight : scaffoldColorDark,
+                        isDarkMode ? scaffoldColorLight : scaffoldColorDark,
                       ),
                     ),
                   ),
@@ -1017,7 +926,6 @@ class EditprofileController extends GetxService {
     final lastDate = DateTime.now();
 
     if (date == null) return lastDate;
-
     if (date.isBefore(firstDate)) return firstDate;
     if (date.isAfter(lastDate)) return lastDate;
 
@@ -1025,8 +933,6 @@ class EditprofileController extends GetxService {
   }
 
   void showDOBDialog(BuildContext context, {VoidCallback? onUpdated}) {
-    final mediaQuery = MediaQuery.of(context);
-    // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     DateTime? selectedDate;
     final day = localStorageManager.userMap['DayOfBirth'];
@@ -1061,11 +967,9 @@ class EditprofileController extends GetxService {
                     ),
                     const SizedBox(height: 20),
 
-                    // 👇 Date picker trigger
                     InkWell(
                       onTap: () async {
                         final picked = await showDatePicker(
-                          // ⚡ use root context (not dialogContext)
                           context: context,
                           initialDate: safeInitialDate(selectedDate),
                           firstDate: DateTime(1900),
@@ -1091,9 +995,9 @@ class EditprofileController extends GetxService {
                           children: [
                             Text(
                               selectedDate != null
-                                  ? DateFormat(
-                                    'dd/MM/yyyy',
-                                  ).format(selectedDate!)
+                                  ? DateFormat('dd/MM/yyyy').format(
+                                selectedDate!,
+                              )
                                   : 'Tap to select date',
                               style: TextStyle(fontSize: 14),
                             ),
@@ -1135,9 +1039,9 @@ class EditprofileController extends GetxService {
                           "Update",
                           style: TextStyle(
                             color:
-                                isDarkMode
-                                    ? scaffoldColorDark
-                                    : scaffoldColorLight,
+                            isDarkMode
+                                ? scaffoldColorDark
+                                : scaffoldColorLight,
                           ),
                         ),
                       ),
@@ -1160,22 +1064,13 @@ class EditprofileController extends GetxService {
     return _saveField(context, 'Address', name, userAddressApi);
   }
 
-  // Future<bool> SaveEmail(String email) async {
-  //   return _saveField('Email', email, endpoint)
-  // }
-
-  // Future<bool> SavePhoneNumber(String phone) async {
-  //   return _saveField('PhoneNumber', phone);
-  // }
-
-  Future<bool> saveHeight(
-    BuildContext context,
-    double height, {
-    required int day,
-    required int month,
-    required int year,
-    required String time,
-  }) async {
+  Future<bool> saveHeight(BuildContext context,
+      double height, {
+        required int day,
+        required int month,
+        required int year,
+        required String time,
+      }) async {
     return _saveField(
       context,
       'Value',
@@ -1185,14 +1080,13 @@ class EditprofileController extends GetxService {
     );
   }
 
-  Future<bool> saveWeight(
-    BuildContext context,
-    double weight, {
-    required int day,
-    required int month,
-    required int year,
-    required String time,
-  }) async {
+  Future<bool> saveWeight(BuildContext context,
+      double weight, {
+        required int day,
+        required int month,
+        required int year,
+        required String time,
+      }) async {
     return _saveField(
       context,
       'Value',
@@ -1206,25 +1100,22 @@ class EditprofileController extends GetxService {
     return _saveField(context, 'Value', gender, userGenderApi);
   }
 
-  Future<bool> saveOccupation(
-    BuildContext context,
-    String occupation, {
-    required int day,
-    required int month,
-    required int year,
-    required String time,
-  }) async {
+  Future<bool> saveOccupation(BuildContext context,
+      String occupation, {
+        required int day,
+        required int month,
+        required int year,
+        required String time,
+      }) async {
     return _saveField(
       context,
       'Name',
-
       occupation,
       userOccupationApi,
       payloadExtras: {'Day': day, 'Month': month, 'Year': year, 'Time': time},
     );
   }
 
-  /// Optional: if DOB requires special payload, you can create a custom function for DOB below.
   Future<bool> saveDOB(DateTime date, BuildContext context) async {
     try {
       Map<String, dynamic> payload = {
@@ -1242,38 +1133,29 @@ class EditprofileController extends GetxService {
       );
 
       if (response is http.Response) {
-        CustomSnackbar.showError(
-          context: context,
-          title: 'Error',
-          message: 'Failed to save DOB: ${response.statusCode}',
+        _showError(
+          'We couldn\'t save your date of birth right now (${response
+              .statusCode}). Please try again.',
         );
         return false;
       }
 
-      CustomSnackbar.showSuccess(
-        context: context,
-        title: 'Success',
-        message: '',
-      );
+      _showSuccess('Your date of birth has been updated successfully.');
       return true;
     } catch (e) {
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'Failed saving DOB',
+      _showError(
+        'Something went wrong while saving your date of birth. Please try again.',
       );
       return false;
     }
   }
 
-  Future<bool> _saveField(
-    BuildContext context,
-    String key,
-
-    dynamic value,
-    dynamic endpoint, {
-    Map<String, Object>? payloadExtras,
-  }) async {
+  Future<bool> _saveField(BuildContext context,
+      String key,
+      dynamic value,
+      dynamic endpoint, {
+        Map<String, Object>? payloadExtras,
+      }) async {
     try {
       Map<String, dynamic> payload = {
         if (payloadExtras != null) ...payloadExtras,
@@ -1281,29 +1163,45 @@ class EditprofileController extends GetxService {
       };
 
       final response = await ApiService.post(
-        endpoint, // ⚡ you can change this per field if needed
+        endpoint,
         payload,
         withAuth: true,
         encryptionRequired: true,
       );
 
       if (response is http.Response) {
-        CustomSnackbar.showError(
-          context: context,
-          title: 'Error',
-          message: 'Failed to save $key: ${response.statusCode}',
+        _showError(
+          'We couldn\'t save your changes right now (${response
+              .statusCode}). Please try again shortly.',
         );
         return false;
       }
 
+      _showSuccess(_successMessageFor(key));
       return true;
     } catch (e) {
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'Failed saving $key',
+      _showError(
+        'Something went wrong while saving your changes. Please check your connection and try again.',
       );
       return false;
+    }
+  }
+
+  /// Returns a human-friendly success message for a given field key.
+  String _successMessageFor(String key) {
+    switch (key) {
+      case 'Value':
+        return 'Your profile has been updated successfully.';
+      case 'Name':
+        return 'Your name has been updated.';
+      case 'Address':
+        return 'Your address has been saved.';
+      case 'Email':
+        return 'Your email address has been updated.';
+      case 'PhoneNumber':
+        return 'Your mobile number has been updated.';
+      default:
+        return 'Your changes have been saved.';
     }
   }
 }
@@ -1375,10 +1273,8 @@ class _PhoneOtpDialogState extends State<_PhoneOtpDialog> {
 
     if (widget.onUpdated != null && mounted) {
       widget.onUpdated!();
-      CustomSnackbar.showSuccess(
-        context: context,
-        title: 'Success',
-        message: 'Mobile number updated successfully.',
+      ctrl._showSuccess(
+        'Your mobile number has been updated to ${widget.phoneNumber}.',
       );
       Navigator.pop(context);
     }
@@ -1401,10 +1297,7 @@ class _PhoneOtpDialogState extends State<_PhoneOtpDialog> {
             Text(
               'Enter the 6-digit code sent to\n${widget.phoneNumber}',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 25),
             Pinput(
@@ -1421,7 +1314,8 @@ class _PhoneOtpDialogState extends State<_PhoneOtpDialog> {
             Obx(
                   () =>
                   InkWell(
-                    onTap: ctrl.isResendEnabled.value
+                    onTap:
+                    ctrl.isResendEnabled.value
                         ? () async {
                       ctrl.isResendEnabled.value = false;
                       ctrl.startResendTimer(seconds: 30);
@@ -1432,22 +1326,20 @@ class _PhoneOtpDialogState extends State<_PhoneOtpDialog> {
                       if (result != false && result != null) {
                         ctrl.otpVerificationController.responseOtp.value =
                             result;
-                        CustomSnackbar.showSuccess(
-                          context: context,
-                          title: 'Success',
-                          message: 'OTP resent successfully.',
+                        ctrl._showSuccess(
+                          'A new verification code has been sent to ${widget
+                              .phoneNumber}.',
                         );
                       } else {
-                        CustomSnackbar.showError(
-                          context: context,
-                          title: 'Error',
-                          message: 'Failed to resend OTP.',
+                        ctrl._showError(
+                          'We couldn\'t resend the code. Please wait a moment and try again.',
                         );
                       }
                     }
                         : null,
                     child: ShaderMask(
-                      shaderCallback: (bounds) =>
+                      shaderCallback:
+                          (bounds) =>
                           AppColors.primaryGradient.createShader(
                             Rect.fromLTWH(0, 0, bounds.width, bounds.height),
                           ),
