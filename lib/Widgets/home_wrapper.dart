@@ -2,8 +2,6 @@ import 'package:alarm/alarm.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:get/instance_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
@@ -106,7 +104,7 @@ class _HomeWrapperState extends State<HomeWrapper> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      if (_redirectToProfileSetupIfNeeded()) return;
+      // if (_redirectToProfileSetupIfNeeded()) return;
       await _ensureStartupSequence();
 
       // ── Birthday popup ────────────────────────────────────────────────

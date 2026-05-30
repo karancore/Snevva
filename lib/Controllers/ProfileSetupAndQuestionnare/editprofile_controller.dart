@@ -32,6 +32,21 @@ void showError(String message) {
   );
 }
 
+void showSuccess(String message) {
+  // Get.snackbar(
+  //   'All set',
+  //   message,
+  //   snackPosition: SnackPosition.TOP,
+  //   backgroundColor: const Color(0xFF1A1A2E),
+  //   colorText: Colors.white,
+  //   duration: const Duration(seconds: 3),
+  //   borderRadius: 12,
+  //   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+  //   icon: const Icon(Icons.check_circle_rounded, color: Color(0xFF7C4DFF)),
+  //   shouldIconPulse: false,
+  // );
+}
+
 class EditprofileController extends GetxService {
   final localStorageManager = Get.find<LocalStorageManager>();
   final signupController = Get.find<SignUpController>();
@@ -52,6 +67,7 @@ class EditprofileController extends GetxService {
   RxString gender = ''.obs;
   var occupation = '';
   var address = '';
+  var postalCode = '';
 
   var isLoading = false.obs; // For showing updateFieldloader on buttons
   var isResendEnabled = true.obs; // For enabling/disabling resend
@@ -60,20 +76,6 @@ class EditprofileController extends GetxService {
 
   // ─── Shared snackbar style helpers ───────────────────────────────────────
 
-  void _showSuccess(String message) {
-    Get.snackbar(
-      '✓  All done',
-      message,
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: const Color(0xFF1A1A2E),
-      colorText: Colors.white,
-      duration: const Duration(seconds: 3),
-      borderRadius: 12,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      icon: const Icon(Icons.check_circle_rounded, color: Color(0xFF7C4DFF)),
-      shouldIconPulse: false,
-    );
-  }
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -166,6 +168,12 @@ class EditprofileController extends GetxService {
       case 'Address':
         localStorageManager.userMap['AddressByUser'] = value;
         address = value;
+        await localStorageManager.saveUserMap();
+        break;
+
+      case 'PostalCode':
+        localStorageManager.userMap['PostalCodeUser'] = value;
+        postalCode = value;
         await localStorageManager.saveUserMap();
         break;
     }
@@ -266,6 +274,8 @@ class EditprofileController extends GetxService {
                           return 'Enter weight (e.g., 65)';
                         case 'Address':
                           return 'Enter your address';
+                        case 'PostalCode':
+                          return 'Enter your postal code';
                         default:
                           return title; // fallback
                       }
@@ -302,8 +312,9 @@ class EditprofileController extends GetxService {
                         if (fieldKey == 'Name') {
                           final nameRegex = RegExp(r"^[a-zA-Z\s]+$");
                           final capNameRegex = RegExp(r'^[A-Z][a-zA-Z\s]*$');
-                          if (value.isEmpty) { {
-                                    showError'Your name can\'t be blank. Please enter your full name.',
+                          if (value.isEmpty) {
+                            showError(
+                              'Your name can\'t be blank. Please enter your full name.',
                             );
                             isLoading.value = false;
                             return;
@@ -518,6 +529,10 @@ class EditprofileController extends GetxService {
                             await saveAddress(value, context);
                             isLoading.value = false;
                             break;
+                          case 'PostalCode':
+                            await savePostalCode(value, context);
+                            isLoading.value = false;
+                            break;
                         }
 
                         Navigator.of(dialogCtx).pop();
@@ -586,6 +601,63 @@ class EditprofileController extends GetxService {
     ),
   );
 
+  void openNextMissingFieldDialog(BuildContext context,
+      {VoidCallback? onUpdated}) {
+    final userInfo = localStorageManager.userMap;
+
+    if (!_isFilled(userInfo['PhoneNumber'])) {
+      showEditFieldDialog(
+        context,
+        title: 'Add Phone Number',
+        fieldKey: 'PhoneNumber',
+        initialValue: userInfo['PhoneNumber']?.toString() ?? '',
+        onUpdated: onUpdated,
+      );
+      return;
+    }
+
+    if (!_isFilled(userInfo['Email'])) {
+      showEditFieldDialog(
+        context,
+        title: 'Add Email',
+        fieldKey: 'Email',
+        initialValue: userInfo['Email']?.toString() ?? '',
+        onUpdated: onUpdated,
+      );
+      return;
+    }
+
+    if (!_isFilled(userInfo['AddressByUser'])) {
+      showEditFieldDialog(
+        context,
+        title: 'Add Address',
+        fieldKey: 'Address',
+        initialValue: userInfo['AddressByUser']?.toString() ?? '',
+        onUpdated: onUpdated,
+      );
+      return;
+    }
+
+    if (!_isFilled(userInfo['PostalCodeUser'])) {
+      showEditFieldDialog(
+        context,
+        title: 'Add Postal Code',
+        fieldKey: 'PostalCode', // handle in updateField/saveField as needed
+        initialValue: userInfo['PostalCodeUser']?.toString() ?? '',
+        onUpdated: onUpdated,
+      );
+      return;
+    }
+  }
+
+// Private helper (mirrors isFilled in the card)
+  bool _isFilled(dynamic value) {
+    if (value == null) return false;
+    if (value is String && value
+        .trim()
+        .isEmpty) return false;
+    return true;
+  }
   void updateemailDialog(BuildContext context, {
     required String title,
     required String fieldKey,
@@ -615,7 +687,13 @@ class EditprofileController extends GetxService {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.topRight,
+                  child: IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ),
 
                 Image.asset(
                   veriemail,
@@ -651,7 +729,7 @@ class EditprofileController extends GetxService {
                   onCompleted: (pin) async {
                     otpVerificationStatus = otpVerificationController.verifyOtp(
                       pin,
-                      pinController.text,
+                      otpVerificationController.responseOtp.value,
                       ctx,
                       isEditPassword: true,
                     );
@@ -666,13 +744,11 @@ class EditprofileController extends GetxService {
 
                       await signupController.updateGmail(initialValue, ctx);
 
-                      if (onUpdated != null) {
-                        onUpdated();
-                        _showSuccess(
-                          'Your email has been updated to $initialValue. A confirmation has been sent.',
-                        );
-                        Navigator.pop(ctx);
-                      }
+                      showSuccess(
+                        'Your email has been updated to $initialValue. A confirmation has been sent.',
+                      );
+                      if (onUpdated != null) onUpdated();
+                      Navigator.pop(ctx);
                     }
                   },
                 ),
@@ -696,7 +772,7 @@ class EditprofileController extends GetxService {
                       if (result != false && result != null) {
                         otpVerificationController.responseOtp.value =
                             result;
-                        _showSuccess(
+                        showSuccess(
                           'A fresh verification code has been sent to $value.',
                         );
                       } else {
@@ -1067,6 +1143,10 @@ class EditprofileController extends GetxService {
     return _saveField(context, 'Address', name, userAddressApi);
   }
 
+  Future<bool> savePostalCode(String value, BuildContext context) async {
+    return _saveField(context, 'PostalCode', value, userAddressApi);
+  }
+
   Future<bool> saveHeight(BuildContext context,
       double height, {
         required int day,
@@ -1143,7 +1223,7 @@ class EditprofileController extends GetxService {
         return false;
       }
 
-      _showSuccess('Your date of birth has been updated successfully.');
+      showSuccess('Your date of birth has been updated successfully.');
       return true;
     } catch (e) {
       showError(
@@ -1180,7 +1260,7 @@ class EditprofileController extends GetxService {
         return false;
       }
 
-      _showSuccess(_successMessageFor(key));
+      showSuccess(_successMessageFor(key));
       return true;
     } catch (e) {
       showError(
@@ -1274,13 +1354,10 @@ class _PhoneOtpDialogState extends State<_PhoneOtpDialog> {
     await ctrl.localStorageManager.saveUserMap();
     await ctrl.signupController.updatePhone(ctrl.phoneNumber, context);
 
-    if (widget.onUpdated != null && mounted) {
-      widget.onUpdated!();
-      ctrl._showSuccess(
-        'Your mobile number has been updated to ${widget.phoneNumber}.',
-      );
-      Navigator.pop(context);
-    }
+    showSuccess(
+        'Your mobile number has been updated to ${widget.phoneNumber}.');
+    if (widget.onUpdated != null) widget.onUpdated!();
+    if (mounted) Navigator.pop(context);
   }
 
   @override
@@ -1294,7 +1371,13 @@ class _PhoneOtpDialogState extends State<_PhoneOtpDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.topRight,
+              child: IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
             Image.asset(veriemail, height: 180, width: 180),
             const SizedBox(height: 25),
             Text(
@@ -1311,7 +1394,10 @@ class _PhoneOtpDialogState extends State<_PhoneOtpDialog> {
               submittedPinTheme: ctrl.submittedPinTheme,
               followingPinTheme: ctrl.followingPinTheme,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              onCompleted: (pin) => _handleVerify(pin),
+              onCompleted: (pin) {
+                debugPrint("Handle Verify button oncomplete");
+                _handleVerify(pin);
+              },
             ),
             const SizedBox(height: 15),
             Obx(
@@ -1329,7 +1415,7 @@ class _PhoneOtpDialogState extends State<_PhoneOtpDialog> {
                       if (result != false && result != null) {
                         ctrl.otpVerificationController.responseOtp.value =
                             result;
-                        ctrl._showSuccess(
+                        showSuccess(
                           'A new verification code has been sent to ${widget
                               .phoneNumber}.',
                         );

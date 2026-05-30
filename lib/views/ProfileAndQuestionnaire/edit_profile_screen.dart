@@ -51,6 +51,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             '';
     controller.address =
         localStorageManager.userMap['AddressByUser']?.toString() ?? '';
+    controller.postalCode =
+        localStorageManager.userMap['PostalCodeUser']?.toString() ?? '';
 
     final day = localStorageManager.userMap['DayOfBirth'];
     final month = localStorageManager.userMap['MonthOfBirth'];
@@ -910,7 +912,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             fieldKey: "Address",
                             initialValue:
                                 localStorageManager.userMap['AddressByUser']
-                                    ?.toString() ??
+                                    ?.toString()
+                                    .trim() ??
                                 '',
                             onUpdated:
                                 () => setState(() {
@@ -946,18 +949,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               Expanded(
                                 child: SingleChildScrollView(
                                   // 👈 allows scrolling if address is too long
-                                  child: Obx(() =>
-                                      Text(
-                                        localStorageManager
+                                  child: Obx(() {
+                                    final addr = localStorageManager
                                             .userMap['AddressByUser']
-                                            ?.toString() ??
-                                            'Enter your address',
-                                        style: TextStyle(fontSize: 14,
-                                            color: isDarkMode
-                                                ? Colors.white60
-                                                : Colors.black54),
-                                    softWrap: true,
-                                      )),
+                                        ?.toString()
+                                        .trim() ??
+                                        '';
+                                    return Text(
+                                      addr.isNotEmpty
+                                          ? addr
+                                          : 'Enter your address',
+                                      style: TextStyle(
+                                          fontSize: 14,
+                                          color: isDarkMode
+                                              ? Colors.white60
+                                              : Colors.black54),
+                                      softWrap: true,
+                                    );
+                                  }),
                                 ),
                               ),
                               Padding(
@@ -967,6 +976,72 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   color: AppColors.primaryColor,
                                   size: 22,
                                 ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: defaultSize - 10),
+                    AutoSizeText(
+                      'Postal Code',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    InkWell(
+                      onTap: () =>
+                          controller.showEditFieldDialog(
+                            context,
+                            title: 'Enter your postal code.',
+                            fieldKey: 'PostalCode',
+                            initialValue:
+                            localStorageManager.userMap['PostalCodeUser']
+                                ?.toString() ??
+                                '',
+                            onUpdated: () => setState(() {}),
+                          ),
+                      child: Material(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                          side: BorderSide(
+                            color: isDarkMode ? Colors.white24 : Colors.black26,
+                            width: 1.2,
+                          ),
+                        ),
+                        color: isDarkMode ? Colors.white10 : white,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Obx(() =>
+                                  Text(
+                                    localStorageManager
+                                        .userMap['PostalCodeUser']
+                                        ?.toString()
+                                        .isNotEmpty ==
+                                        true
+                                        ? localStorageManager
+                                        .userMap['PostalCodeUser']
+                                        .toString()
+                                        : 'Enter your postal code',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: isDarkMode
+                                          ? Colors.white60
+                                          : Colors.black54,
+                                    ),
+                                  )),
+                              Icon(
+                                Icons.edit,
+                                color: AppColors.primaryColor,
+                                size: 20,
                               ),
                             ],
                           ),

@@ -7,6 +7,8 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -39,16 +41,27 @@ class BootReceiver : BroadcastReceiver() {
 
             // Only start StepCounterService if we have required permissions
             if (hasActivityRecognition && hasForegroundServiceHealth) {
-                val stepIntent = Intent(context, StepCounterService::class.java)
-                try {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        context.startForegroundService(stepIntent)
-                    } else {
-                        context.startService(stepIntent)
+                // Android 15+ restricts starting health foreground services directly from
+                // BOOT_COMPLETED receivers. Use WorkManager instead — workers are exempt.
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                    WorkManager.getInstance(context)
+                        .enqueue(OneTimeWorkRequestBuilder<ResurrectionWorker>().build())
+                    Log.d(
+                        "BootReceiver",
+                        "✅ StepCounterService queued via WorkManager (Android 15+)."
+                    )
+                } else {
+                    val stepIntent = Intent(context, StepCounterService::class.java)
+                    try {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            context.startForegroundService(stepIntent)
+                        } else {
+                            context.startService(stepIntent)
+                        }
+                        Log.d("BootReceiver", "✅ StepCounterService started on boot.")
+                    } catch (e: Exception) {
+                        Log.e("BootReceiver", "Failed to start StepCounterService on boot", e)
                     }
-                    Log.d("BootReceiver", "✅ StepCounterService started on boot.")
-                } catch (e: Exception) {
-                    Log.e("BootReceiver", "Failed to start StepCounterService on boot", e)
                 }
             } else {
                 Log.d("BootReceiver", "⚠️ Skipping StepCounterService start - missing permissions")

@@ -15,8 +15,18 @@ class ResurrectionWorker(context: Context, params: WorkerParameters) : Coroutine
         } else {
             true
         }
-        
-        if (hasPermission) {
+
+        val hasForegroundServiceHealth =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                androidx.core.content.ContextCompat.checkSelfPermission(
+                    applicationContext,
+                    "android.permission.FOREGROUND_SERVICE_HEALTH"
+                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            } else {
+                true
+            }
+
+        if (hasPermission && hasForegroundServiceHealth) {
             val intent = Intent(applicationContext, StepCounterService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 applicationContext.startForegroundService(intent)
@@ -24,7 +34,7 @@ class ResurrectionWorker(context: Context, params: WorkerParameters) : Coroutine
                 applicationContext.startService(intent)
             }
         } else {
-            Log.d("ResurrectionWorker", "Skipping resurrection: ACTIVITY_RECOGNITION not granted.")
+            Log.d("ResurrectionWorker", "Skipping resurrection: required permissions not granted.")
         }
         return Result.success()
     }

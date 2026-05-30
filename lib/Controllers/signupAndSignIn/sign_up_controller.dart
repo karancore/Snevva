@@ -288,6 +288,11 @@ class SignUpController extends GetxService {
 
         debugPrint('✅ OTP flow completed successfully');
 
+
+        showSuccess(
+          'Your email has been updated!',
+        );
+
         return otp;
       } else {
         debugPrint('❌ API failed with status code: ${response.statusCode}');
@@ -350,44 +355,69 @@ class SignUpController extends GetxService {
     final plainphone = jsonEncode({'PhoneNumber': phone});
 
     try {
+      debugPrint("📱 Starting phoneotp()");
+      debugPrint("📞 Phone Number: $phone");
+
       isLoading.value = true;
+
       final uri = Uri.parse("$baseUrl$updatePhoneOtpEndpoint");
+      debugPrint("🌐 API URL: $uri");
+
       final encryptedphone = EncryptionService.encryptData(plainphone);
+
+      debugPrint("🔐 Encrypted Phone Data: ${encryptedphone['encryptedData']}");
+      debugPrint("🧾 Request Hash: ${encryptedphone['Hash']}");
+
       final headers = await AuthHeaderHelper.getHeaders(withAuth: true);
 
       headers['x-data-hash'] = encryptedphone['Hash']!;
 
       final deviceInfoHeader =
-          await DeviceTokenService().buildDeviceInfoHeader();
+      await DeviceTokenService().buildDeviceInfoHeader();
 
       headers['X-Device-Info'] = deviceInfoHeader;
+
+      debugPrint("📨 Request Headers: $headers");
 
       final encryptedBody = jsonEncode({
         'data': encryptedphone['encryptedData'],
       });
+
+      debugPrint("📦 Request Body: $encryptedBody");
 
       final response = await http.post(
         uri,
         headers: headers,
         body: encryptedBody,
       );
+
+      debugPrint("📥 Response Status Code: ${response.statusCode}");
+      debugPrint("📥 Raw Response Body: ${response.body}");
+      debugPrint("📥 Response Headers: ${response.headers}");
+
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
-        // debugPrint("response Body: $responseBody");
+
+        debugPrint("✅ Parsed Response Body: $responseBody");
 
         final encryptedBody = responseBody['data'];
-        // debugPrint("👉 Encrypted OTP response: $encryptedBody");
+
+        debugPrint("🔐 Encrypted Response Data: $encryptedBody");
 
         final responseHash = response.headers['x-data-hash'];
-        // debugPrint("👉 Response Hash: $responseHash");
+
+        debugPrint("🧾 Response Hash: $responseHash");
 
         final decrypted = EncryptionService.decryptData(
           encryptedBody,
           responseHash!,
         );
-        // debugPrint("Decrypted OTP response: $decrypted");
+
+        debugPrint("🔓 Decrypted Response: $decrypted");
 
         if (decrypted == null) {
+          debugPrint("❌ Failed to decrypt response");
+
           CustomSnackbar.showError(
             context: context,
             title: 'Error',
@@ -398,8 +428,15 @@ class SignUpController extends GetxService {
 
         final Map<String, dynamic> gettedData = jsonDecode(decrypted);
 
+        debugPrint("📄 Decoded JSON Data: $gettedData");
+
         final data = gettedData['data'];
+
+        debugPrint("📦 Data Object: $data");
+
         if (data == null || data['Otp'] == null) {
+          debugPrint("❌ OTP not found in response");
+
           CustomSnackbar.showError(
             context: context,
             title: 'Error',
@@ -409,7 +446,8 @@ class SignUpController extends GetxService {
         }
 
         final otp = data['Otp'];
-        // await notify.showOtpNotification(otp);
+
+        debugPrint("🔢 OTP Received: $otp");
 
         CustomSnackbar.showSuccess(
           context: context,
@@ -419,32 +457,36 @@ class SignUpController extends GetxService {
 
         return otp;
       } else {
+        debugPrint("❌ Non-200 Response");
+
         final responseBody = jsonDecode(response.body);
-        // debugPrint("response Body: $responseBody");
+
+        debugPrint("📄 Error Response Body: $responseBody");
 
         final encryptedBody = responseBody['data'];
-        // debugPrint("👉 Encrypted OTP response: $encryptedBody");
+
+        debugPrint("🔐 Error Encrypted Body: $encryptedBody");
 
         final responseHash = response.headers['x-data-hash'];
-        // debugPrint("👉 Response Hash: $responseHash");
+
+        debugPrint("🧾 Error Response Hash: $responseHash");
 
         final decrypted = EncryptionService.decryptData(
           encryptedBody,
           responseHash!,
         );
 
-        final Map<String, dynamic> gettedData = jsonDecode(decrypted ?? '');
+        debugPrint("🔓 Error Decrypted Response: $decrypted");
 
-        showError("${gettedData?['message']}");
+        final Map<String, dynamic> gettedData =
+        jsonDecode(decrypted ?? '');
 
-        // CustomSnackbar.showError(
-        //   context: context,
-        //   title: 'Error',
-        //   message: 'Signup failed: ${response.body}',
-        // );
+        debugPrint("📄 Error Parsed Data: $gettedData");
+
+        showError("${gettedData['message']}");
       }
     } catch (e, s) {
-      debugPrint("🚨 Caught Exception in signUpUsingGmail:");
+      debugPrint("🚨 Caught Exception in phoneotp()");
       debugPrint("❗ Error: $e");
       debugPrint("📌 Stack Trace: $s");
 
@@ -454,12 +496,18 @@ class SignUpController extends GetxService {
         message: 'Signup failed',
       );
     } finally {
+      debugPrint("⏹ phoneotp() finished");
       isLoading.value = false;
     }
   }
 
-  Future<dynamic> updatePhone(String phoneNumber, BuildContext context) async {
+  Future<dynamic> updatePhone(String phoneNumber,
+      BuildContext context,) async {
+    debugPrint("📱 Starting updatePhone()");
+
     if (phoneNumber.isEmpty) {
+      debugPrint("❌ Phone number is empty");
+
       CustomSnackbar.showError(
         context: context,
         title: 'Error',
@@ -467,9 +515,20 @@ class SignUpController extends GetxService {
       );
       return;
     }
-    final plainphoneNumber = {'PhoneNumber': phoneNumber};
+
+    debugPrint("📞 Phone Number: $phoneNumber");
+
+    final plainphoneNumber = {
+      'PhoneNumber': phoneNumber,
+    };
+
+    debugPrint("📦 Request Payload: $plainphoneNumber");
 
     try {
+      debugPrint(
+        "🌐 Calling API: $updatePasswordUpdateUsingPhoneEndpoint",
+      );
+
       final response = await ApiService.post(
         updatePasswordUpdateUsingPhoneEndpoint,
         plainphoneNumber,
@@ -477,7 +536,13 @@ class SignUpController extends GetxService {
         encryptionRequired: true,
       );
 
+      debugPrint("📥 API Response: $response");
+
       if (response is http.Response) {
+        debugPrint("❌ Failed to save phone number");
+        debugPrint("📥 Response Body: ${response.body}");
+        debugPrint("📥 Status Code: ${response.statusCode}");
+
         CustomSnackbar.showError(
           context: context,
           title: 'Error',
@@ -485,7 +550,18 @@ class SignUpController extends GetxService {
         );
         return;
       }
+
+      debugPrint("✅ Phone updated successfully");
+
+      showSuccess(
+        'Your mobile number has been updated!',
+      );
+    } catch (e, s) {
+      debugPrint("🚨 Exception in updatePhone()");
+      debugPrint("❗ Error: $e");
+      debugPrint("📌 Stack Trace: $s");
     } finally {
+      debugPrint("⏹ updatePhone() finished");
       isLoading.value = false;
     }
   }

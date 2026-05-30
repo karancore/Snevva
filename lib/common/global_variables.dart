@@ -162,8 +162,9 @@ bool isProfileDisplayComplete(Map user) {
   final bool emailValid = _hasNonEmptyString(user['Email']);
   final bool phoneValid = _hasNonEmptyString(user['PhoneNumber']);
   final bool addressValid = _hasNonEmptyString(user['AddressByUser']);
+  final bool postalCodeValid = _hasNonEmptyString(user['PostalCodeUser']);
 
-  return emailValid && phoneValid && addressValid;
+  return emailValid && phoneValid && addressValid && postalCodeValid;
 }
 
 bool _hasNonEmptyString(dynamic value) {

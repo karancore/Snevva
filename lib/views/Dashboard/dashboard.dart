@@ -9,6 +9,7 @@ import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Alerts/alerts_screen.dart';
 
+import '../../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import '../../services/notification_service.dart';
 import '../../widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../widgets/dashboard/dashboard_ads_carousel_slider.dart';
@@ -16,7 +17,6 @@ import '../../widgets/dashboard/dashboard_header_widget.dart';
 import '../../widgets/dashboard/dashboard_service_overview_dynamic_widgets.dart';
 import '../../widgets/dashboard/dashboard_services_widget.dart';
 import '../../widgets/incomplete_profile_card.dart';
-import '../ProfileAndQuestionnaire/edit_profile_screen.dart';
 
 class Dashboard extends StatefulWidget {
   final Function(int)? onTabSelected;
@@ -260,10 +260,11 @@ class _DashboardState extends State<Dashboard>
                             children: [
                               const SizedBox(height: 16),
                               IncompleteProfileCard(
-                                onTapComplete: () =>
-                                    Get.to(
-                                          () => const EditProfileScreen(),
-                                    ),
+                                onTapComplete: () {
+                                  final ctrl = Get.find<
+                                      EditprofileController>();
+                                  ctrl.openNextMissingFieldDialog(context);
+                                },
                               ),
                               const SizedBox(height: 16),
                             ],
