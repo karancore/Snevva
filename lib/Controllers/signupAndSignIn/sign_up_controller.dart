@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/services/device_token_service.dart';
 
@@ -346,14 +347,6 @@ class SignUpController extends GetxService {
   }
 
   Future<dynamic> phoneotp(String phone, BuildContext context) async {
-    if (phone.isEmpty) {
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'Number cannot be empty',
-      );
-      return;
-    }
     final plainphone = jsonEncode({'PhoneNumber': phone});
 
     try {
@@ -426,11 +419,29 @@ class SignUpController extends GetxService {
 
         return otp;
       } else {
-        CustomSnackbar.showError(
-          context: context,
-          title: 'Error',
-          message: 'Signup failed: ${response.body}',
+        final responseBody = jsonDecode(response.body);
+        // debugPrint("response Body: $responseBody");
+
+        final encryptedBody = responseBody['data'];
+        // debugPrint("👉 Encrypted OTP response: $encryptedBody");
+
+        final responseHash = response.headers['x-data-hash'];
+        // debugPrint("👉 Response Hash: $responseHash");
+
+        final decrypted = EncryptionService.decryptData(
+          encryptedBody,
+          responseHash!,
         );
+
+        final Map<String, dynamic> gettedData = jsonDecode(decrypted ?? '');
+
+        showError("${gettedData?['message']}");
+
+        // CustomSnackbar.showError(
+        //   context: context,
+        //   title: 'Error',
+        //   message: 'Signup failed: ${response.body}',
+        // );
       }
     } catch (e, s) {
       debugPrint("🚨 Caught Exception in signUpUsingGmail:");

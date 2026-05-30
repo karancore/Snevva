@@ -250,7 +250,10 @@ void main() {
 
       Get.put(GoogleBackendAuthService());
       final googleAuth = Get.put(GoogleAuthService());
-      await googleAuth.init(); // no context needed anymore
+      await googleAuth.init().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => debugPrint('⚠️ googleAuth.init timed out'),
+      );
       runApp(
         MyApp(
           isRemembered: isRemembered,
@@ -480,7 +483,10 @@ class _MyAppState extends State<MyApp> {
       ]);
 
 
-      await InAppUpdateService.checkForUpdate();
+      if (Platform.isAndroid) {
+        await InAppUpdateService.checkForUpdate();
+      }
+
 
       try {
         PushNotificationService().initialize();

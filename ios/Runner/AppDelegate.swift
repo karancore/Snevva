@@ -7,7 +7,7 @@ import QuartzCore
 import FirebaseCore
 
 @main
-@objc class AppDelegate: FlutterAppDelegate {
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private let displayConfigChannelName = "com.coretegra.snevva/display_config"
   private let timezoneChannelName = "com.coretegra.snevvaa/timezone"
   private let stepServiceChannelName = "com.coretegra.snevvaa/step_service"
@@ -244,4 +244,3 @@ import FirebaseCore
     return UIScreen.main.maximumFramesPerSecond >= 120
   }
 }
-

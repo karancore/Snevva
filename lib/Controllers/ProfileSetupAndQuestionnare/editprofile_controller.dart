@@ -17,6 +17,21 @@ import '../local_storage_manager.dart';
 import '../signupAndSignIn/otp_verification_controller.dart';
 import '../signupAndSignIn/sign_up_controller.dart';
 
+void showError(String message) {
+  Get.snackbar(
+    'Heads up',
+    message,
+    snackPosition: SnackPosition.TOP,
+    backgroundColor: const Color(0xFF1A1A2E),
+    colorText: Colors.white,
+    duration: const Duration(seconds: 3),
+    borderRadius: 12,
+    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    icon: const Icon(Icons.error_rounded, color: Color(0xFFFF4D6D)),
+    shouldIconPulse: false,
+  );
+}
+
 class EditprofileController extends GetxService {
   final localStorageManager = Get.find<LocalStorageManager>();
   final signupController = Get.find<SignUpController>();
@@ -56,21 +71,6 @@ class EditprofileController extends GetxService {
       borderRadius: 12,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       icon: const Icon(Icons.check_circle_rounded, color: Color(0xFF7C4DFF)),
-      shouldIconPulse: false,
-    );
-  }
-
-  void _showError(String message) {
-    Get.snackbar(
-      'Heads up',
-      message,
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: const Color(0xFF1A1A2E),
-      colorText: Colors.white,
-      duration: const Duration(seconds: 3),
-      borderRadius: 12,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      icon: const Icon(Icons.error_rounded, color: Color(0xFFFF4D6D)),
       shouldIconPulse: false,
     );
   }
@@ -302,22 +302,21 @@ class EditprofileController extends GetxService {
                         if (fieldKey == 'Name') {
                           final nameRegex = RegExp(r"^[a-zA-Z\s]+$");
                           final capNameRegex = RegExp(r'^[A-Z][a-zA-Z\s]*$');
-                          if (value.isEmpty) {
-                            _showError(
-                              'Your name can\'t be blank. Please enter your full name.',
+                          if (value.isEmpty) { {
+                                    showError'Your name can\'t be blank. Please enter your full name.',
                             );
                             isLoading.value = false;
                             return;
                           }
                           if (!nameRegex.hasMatch(value)) {
-                            _showError(
+                            showError(
                               'Names can only contain letters and spaces — no numbers or symbols.',
                             );
                             isLoading.value = false;
                             return;
                           }
                           if (!capNameRegex.hasMatch(value)) {
-                            _showError(
+                            showError(
                               'Name must start with a capital letter and contain only letters and spaces.',
                             );
                             isLoading.value = false;
@@ -327,7 +326,7 @@ class EditprofileController extends GetxService {
 
                         if (fieldKey == 'Height') {
                           if (height == null || height <= 0) {
-                            _showError(
+                            showError(
                               'Please enter a valid height in centimetres (e.g. 170).',
                             );
                             isLoading.value = false;
@@ -337,7 +336,7 @@ class EditprofileController extends GetxService {
 
                         if (fieldKey == 'Weight') {
                           if (weight == null || weight <= 0) {
-                            _showError(
+                            showError(
                               'Please enter a valid weight in kilograms (e.g. 65).',
                             );
                             isLoading.value = false;
@@ -347,8 +346,15 @@ class EditprofileController extends GetxService {
 
                         if (fieldKey == 'PhoneNumber') {
                           final phoneRegex = RegExp(r"^[0-9]{10}$");
+                          if (value.isEmpty) {
+                            showError(
+                              'Field cannot be empty',
+                            );
+                            isLoading.value = false;
+                            return;
+                          }
                           if (!phoneRegex.hasMatch(value)) {
-                            _showError(
+                            showError(
                               'Please enter a valid 10-digit mobile number.',
                             );
                             isLoading.value = false;
@@ -379,16 +385,13 @@ class EditprofileController extends GetxService {
                                 },
                               );
                             } else {
-                              _showError(
-                                'We couldn\'t send the OTP to this number. Please check and try again.',
-                              );
                               isLoading.value = false;
                             }
                           } catch (e) {
                             debugPrint(
                               'Error during phone OTP process: $e',
                             );
-                            _showError(
+                            showError(
                               'Something went wrong while sending the OTP. Please try again in a moment.',
                             );
                             isLoading.value = false;
@@ -407,14 +410,14 @@ class EditprofileController extends GetxService {
                           );
 
                           if (value.isEmpty) {
-                            _showError(
+                            showError(
                               'Email address can\'t be blank. Please enter a valid email.',
                             );
                             isLoading.value = false;
                             return;
                           }
                           if (!emailRegex.hasMatch(value)) {
-                            _showError(
+                            showError(
                               'That doesn\'t look like a valid email. Try something like name@example.com.',
                             );
                             isLoading.value = false;
@@ -445,14 +448,14 @@ class EditprofileController extends GetxService {
                                 },
                               );
                             } else {
-                              _showError(
+                              showError(
                                 'We couldn\'t send the OTP to this email. Please double-check and try again.',
                               );
                               isLoading.value = false;
                             }
                           } catch (e) {
                             debugPrint('Error sending OTP: $e');
-                            _showError(
+                            showError(
                               'Something went wrong while sending the OTP. Please try again shortly.',
                             );
                             isLoading.value = false;
@@ -697,7 +700,7 @@ class EditprofileController extends GetxService {
                           'A fresh verification code has been sent to $value.',
                         );
                       } else {
-                        _showError(
+                        showError(
                           'We couldn\'t resend the code. Please wait a moment and try again.',
                         );
                       }
@@ -1133,7 +1136,7 @@ class EditprofileController extends GetxService {
       );
 
       if (response is http.Response) {
-        _showError(
+        showError(
           'We couldn\'t save your date of birth right now (${response
               .statusCode}). Please try again.',
         );
@@ -1143,7 +1146,7 @@ class EditprofileController extends GetxService {
       _showSuccess('Your date of birth has been updated successfully.');
       return true;
     } catch (e) {
-      _showError(
+      showError(
         'Something went wrong while saving your date of birth. Please try again.',
       );
       return false;
@@ -1170,7 +1173,7 @@ class EditprofileController extends GetxService {
       );
 
       if (response is http.Response) {
-        _showError(
+        showError(
           'We couldn\'t save your changes right now (${response
               .statusCode}). Please try again shortly.',
         );
@@ -1180,7 +1183,7 @@ class EditprofileController extends GetxService {
       _showSuccess(_successMessageFor(key));
       return true;
     } catch (e) {
-      _showError(
+      showError(
         'Something went wrong while saving your changes. Please check your connection and try again.',
       );
       return false;
@@ -1331,7 +1334,7 @@ class _PhoneOtpDialogState extends State<_PhoneOtpDialog> {
                               .phoneNumber}.',
                         );
                       } else {
-                        ctrl._showError(
+                        showError(
                           'We couldn\'t resend the code. Please wait a moment and try again.',
                         );
                       }
