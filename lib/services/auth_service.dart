@@ -241,17 +241,19 @@ class AuthService {
     );
     loginLog("Mood loaded");
 
-    /// USER INFO — already fetched during signInUsing*; reuse cached data.
+    /// USER INFO — already fetched and stored by signInUsing* before this method
+    /// is called. Read directly from localStorageManager to avoid a GetX
+    /// instance-swap race: after forceLogout() deletes the SignInController,
+    /// Get.put(SignInController()) can return a fresh empty instance whose
+    /// userProfData/userGoalData are {}, which would overwrite the correctly
+    /// fetched data with {} and cause isProfileSetupInitialComplete to return false.
     loginLog("Using cached user info...");
-    final userInfo = signInController.userProfData;
-    final userData = userInfo['data'];
+    final Map<String, dynamic> userMap =
+        Map<String, dynamic>.from(localStorageManager.userMap);
     loginLog("User info received");
-    debugPrint('User data: ${jsonEncode(userData)}');
+    debugPrint('User data: ${jsonEncode(userMap)}');
 
-    await prefs.setString('userdata', jsonEncode(userData));
-    localStorageManager.userMap.value = userData ?? {};
-
-    final PatientCode = userData?['PatientCode']?.toString() ?? '';
+    final PatientCode = userMap['PatientCode']?.toString() ?? '';
     await prefs.setString('PatientCode', PatientCode);
     loginLog("PatientCode saved: $PatientCode");
 
@@ -260,7 +262,6 @@ class AuthService {
     FileStorageService().reset();
     loginLog("FileStorageService cache reset for $PatientCode");
 
-    final Map userMap = localStorageManager.userMap;
     final bool profileComplete = isProfileSetupInitialComplete(userMap);
 
     final gender = userMap['Gender']?.toString() ?? 'Unknown';
@@ -277,19 +278,12 @@ class AuthService {
     if (profileComplete) {
       loginLog("Profile setup initial complete");
 
-      final userActiveDataResponse = signInController.userGoalData;
-      final userActiveData = userActiveDataResponse['data'];
+      final Map<String, dynamic> userActiveData =
+          Map<String, dynamic>.from(localStorageManager.userGoalDataMap);
 
       debugPrint('User active data: ${jsonEncode(userActiveData)}');
-      localStorageManager.userGoalDataMap.value = userActiveData ?? {};
 
-      if (userActiveData != null && userActiveData is Map) {
-        await prefs.setString(
-          LocalStorageManager.userGoalDataPrefsKey,
-          jsonEncode(userActiveData),
-        );
-        await prefs.setString('useractivedata', jsonEncode(userActiveData));
-
+      if (userActiveData.isNotEmpty) {
         /// HOME
         if (userActiveData['ActivityLevel'] != null &&
             userActiveData['HealthGoal'] != null) {
