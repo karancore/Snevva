@@ -6,10 +6,10 @@ import 'package:intl/intl.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/consts/images.dart';
+import 'package:snevva/widgets/home_wrapper.dart';
 
 import '../../Controllers/common/common_tips_controller.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
-import '../../common/calendar_screen.dart';
 import '../../consts/colors.dart';
 import '../../widgets/common/common_tip_widget.dart';
 
@@ -121,7 +121,7 @@ class _MoodQuestionnaireState extends State<MoodQuestionnaire> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => CalendarScreen(),
+                              builder: (context) => HomeWrapper(),
                             ),
                           );
                         },

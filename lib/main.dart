@@ -56,7 +56,6 @@ import 'common/ExceptionLogger.dart';
 import 'common/agent_debug_logger.dart';
 import 'common/app_keys.dart';
 import 'common/global_variables.dart';
-import 'common/no_internet_banner.dart';
 import 'consts/consts.dart';
 import 'firebase_options.dart';
 import 'performance/frame_timing_monitor.dart';
@@ -119,10 +118,102 @@ Future<void> ensureFirebaseInitialized() async {
   }
 }
 
+Future<String?> _downloadImageToTempFile(String url) async {
+  try {
+    final uri = Uri.parse(url);
+    final request = await HttpClient().getUrl(uri);
+    final response = await request.close();
+
+    if (response.statusCode != 200) return null;
+
+    final bytes = await consolidateHttpClientResponseBytes(response);
+    final file = File(
+      '${Directory.systemTemp.path}/fcm_${DateTime
+          .now()
+          .microsecondsSinceEpoch}.jpg',
+    );
+
+    await file.writeAsBytes(bytes);
+    return file.path;
+  } catch (e) {
+    debugPrint('Image download failed: $e');
+    return null;
+  }
+}
+
+Future<void> _showFcmNotification(RemoteMessage message) async {
+  final title = message.notification?.title ?? message.data['title'] ?? '';
+  final body = message.notification?.body ?? message.data['body'] ?? '';
+  final imageUrl =
+      message.notification?.android?.imageUrl ?? message.data['imageUrl'];
+
+  final fln = FlutterLocalNotificationsPlugin();
+
+  final imagePath = (imageUrl != null && imageUrl.isNotEmpty)
+      ? await _downloadImageToTempFile(imageUrl)
+      : null;
+
+  print("IMAGE URL: $imageUrl");
+  print("IMAGE PATH: $imagePath");
+
+  final androidDetails = imagePath != null
+      ? AndroidNotificationDetails(
+    'high_importance_channel',
+    'High Importance Notifications',
+    importance: Importance.max,
+    priority: Priority.high,
+    icon: 'ic_stat_notification_bg',
+    largeIcon: imagePath != null
+        ? FilePathAndroidBitmap(imagePath)
+        : null,
+    styleInformation: BigPictureStyleInformation(
+      FilePathAndroidBitmap(imagePath),
+      largeIcon: FilePathAndroidBitmap(imagePath),
+      contentTitle: title,
+      summaryText: body,
+      htmlFormatContentTitle: true,
+      htmlFormatSummaryText: true,
+    ),
+  )
+      : const AndroidNotificationDetails(
+    'high_importance_channel',
+    'High Importance Notifications',
+    importance: Importance.max,
+    priority: Priority.high,
+    icon: 'ic_stat_notification_bg',
+  );
+
+  final iosDetails = imagePath != null
+      ? DarwinNotificationDetails(
+    presentAlert: true,
+    presentBadge: true,
+    presentSound: true,
+    attachments: [DarwinNotificationAttachment(imagePath)],
+  )
+      : const DarwinNotificationDetails(
+    presentAlert: true,
+    presentBadge: true,
+    presentSound: true,
+  );
+
+  await fln.show(
+    DateTime
+        .now()
+        .millisecondsSinceEpoch ~/ 1000,
+    title,
+    body,
+    NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    ),
+  );
+}
+
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // await ensureFirebaseInitialized();
   await FirebaseInit.init();
+  await _showFcmNotification(message);
   final fln = FlutterLocalNotificationsPlugin();
 
   const androidDetails = AndroidNotificationDetails(
@@ -137,13 +228,6 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     presentAlert: true,
     presentBadge: true,
     presentSound: true,
-  );
-
-  await fln.show(
-    DateTime.now().millisecondsSinceEpoch ~/ 1000,
-    message.notification?.title ?? message.data['title'],
-    message.notification?.body ?? message.data['body'],
-    const NotificationDetails(android: androidDetails, iOS: iosDetails),
   );
 }
 
@@ -419,41 +503,21 @@ class _MyAppState extends State<MyApp> {
 
     ConnectivityService().init();
 
-    // ✅ FIXED: Defer overlay operations until after first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-
-      // Check current connectivity immediately
-      Connectivity().checkConnectivity().then((results) {
-        if (!mounted) return;
-        final isConnected = results.any((r) => r != ConnectivityResult.none);
-        if (!isConnected) {
-          // ✅ Use the local context (which has Overlay) instead of Get.overlayContext
-          NoInternetBanner.show();
-        }
-      });
+    // Set initial connectivity state
+    Connectivity().checkConnectivity().then((results) {
+      final isConnected = results.any((r) => r != ConnectivityResult.none);
+      ConnectivityService.isOnline.value = isConnected;
     });
 
-    // ✅ FIXED: Listen for connectivity changes with proper context handling
-    _connectivitySub = ConnectivityService().onConnectivityChanged.listen((
-        isConnected,) {
-      if (!mounted) return;
-
-      // ✅ Use the local context which is guaranteed to have Overlay
-      if (!isConnected) {
-        NoInternetBanner.show();
-      } else {
-        debugPrint('Connectivity restored, hiding banner');
-        NoInternetBanner.hide();
-      }
-    });
+    // Keep stream subscription so ConnectivityService.init() updates isOnline
+    _connectivitySub =
+        ConnectivityService().onConnectivityChanged.listen((_) {});
   }
 
 
   @override
   void dispose() {
     _connectivitySub?.cancel();
-    NoInternetBanner.hide();
     super.dispose();
   }
 
@@ -492,7 +556,15 @@ class _MyAppState extends State<MyApp> {
         PushNotificationService().initialize();
       } catch (_) {}
 
-      FirebaseMessaging.onMessageOpenedApp.listen((_) {});
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+        print("FULL JSON:");
+        print(jsonEncode(message.toMap()));
+        await _showFcmNotification(message);
+      });
+
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        debugPrint("Firebase message ${message.data.toString()}");
+      });
       await _handleInitialMessage();
       await _runDeferredFeatureWarmups();
     } catch (e, s) {

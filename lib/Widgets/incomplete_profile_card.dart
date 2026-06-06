@@ -45,8 +45,8 @@ class IncompleteProfileCard extends StatelessWidget {
   String getNextMissingField(Map<String, dynamic> userInfo) {
     if (!isFilled(userInfo['PhoneNumber'])) return 'Add phone number';
     if (!isFilled(userInfo['Email'])) return 'Add email';
-    if (!isFilled(userInfo['AddressByUser'])) return 'Add address';
     if (!isFilled(userInfo['PostalCodeUser'])) return 'Add postal code';
+    if (!isFilled(userInfo['AddressByUser'])) return 'Add address';
     return 'Complete profile';
   }
 

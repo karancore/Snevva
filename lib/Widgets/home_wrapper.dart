@@ -7,6 +7,7 @@ import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/common/global_variables.dart';
+import 'package:snevva/services/connectivity_service.dart';
 import 'package:snevva/views/Dashboard/dashboard.dart';
 import 'package:snevva/views/Information/menu_screen.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
@@ -210,9 +211,38 @@ class _HomeWrapperState extends State<HomeWrapper> {
           ),
         ),
       ),
-      bottomNavigationBar: Navbar(
-        selectedIndex: _selectedIndex,
-        onTabSelected: onTabSelected,
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Navbar(
+            selectedIndex: _selectedIndex,
+            onTabSelected: onTabSelected,
+          ),
+          Obx(() {
+            if (ConnectivityService.isOnline.value) {
+              return const SizedBox.shrink();
+            }
+            return Container(
+              color: Colors.red.shade700,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              child: SafeArea(
+                top: false,
+                child: Row(
+                  children: const [
+                    Icon(Icons.wifi_off, color: Colors.white, size: 18),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'No internet connection',
+                        style: TextStyle(color: Colors.white, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:get/get.dart';
 
 class ConnectivityService {
   static final ConnectivityService _instance = ConnectivityService._internal();
@@ -9,6 +10,8 @@ class ConnectivityService {
 
   ConnectivityService._internal();
 
+  static final RxBool isOnline = true.obs;
+
   final _connectivity = Connectivity();
   final _controller = StreamController<bool>.broadcast();
 
@@ -16,8 +19,9 @@ class ConnectivityService {
 
   void init() {
     _connectivity.onConnectivityChanged.listen((results) {
-      final isConnected = results.any((r) => r != ConnectivityResult.none);
-      _controller.add(isConnected);
+      final connected = results.any((r) => r != ConnectivityResult.none);
+      isOnline.value = connected;
+      _controller.add(connected);
     });
   }
 

@@ -74,8 +74,12 @@ class _CommonTipsListState extends State<CommonTipsList> {
     required double scale,
     required CommonTip commonTip,
   }) {
-    // final imageUrl = data?.imageUrl;
-    final completeImgUrl = "https://$imageUrl";
+    final trimmedImageUrl = imageUrl.trim();
+    final completeImgUrl =
+        trimmedImageUrl.isEmpty || trimmedImageUrl.startsWith('http')
+            ? trimmedImageUrl
+            : "https://$trimmedImageUrl";
+
     return InkWell(
       onTap: () {
         Get.to(() => NutritionTipsPage(commonTip: commonTip));
@@ -108,33 +112,25 @@ class _CommonTipsListState extends State<CommonTipsList> {
                 height: 150 * scale,
                 child: ClipRRect(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                  child: CachedNetworkImage(
-                    imageUrl:
-                        completeImgUrl.isEmpty
-                            ? placeHolderImage
-                            : completeImgUrl,
-                    height: 32.0,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-
-                    placeholder:
-                        (_, _) => Container(
-                          height: 140,
-                          alignment: Alignment.center,
-                          child: const AppLoader(),
-                        ),
-
-                    errorWidget:
-                        (_, _, _) => Container(
-                          height: 140,
-                          alignment: Alignment.center,
-                          child: const Icon(Icons.broken_image),
-                        ),
-                  ),
+                  child:
+                      completeImgUrl.isEmpty
+                          ? _placeholderImage()
+                          : CachedNetworkImage(
+                            imageUrl: completeImgUrl,
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.cover,
+                            placeholder:
+                                (_, _) => Container(
+                                  alignment: Alignment.center,
+                                  child: const AppLoader(),
+                                ),
+                            errorWidget: (_, _, _) => _placeholderImage(),
+                          ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsetsGeometry.all(8),
+                padding: const EdgeInsets.all(8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -165,6 +161,15 @@ class _CommonTipsListState extends State<CommonTipsList> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _placeholderImage() {
+    return Image.asset(
+      placeholderElly,
+      width: double.infinity,
+      height: double.infinity,
+      fit: BoxFit.cover,
     );
   }
 }

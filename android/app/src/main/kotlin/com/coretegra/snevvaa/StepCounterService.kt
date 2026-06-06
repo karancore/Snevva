@@ -403,7 +403,7 @@ class StepCounterService : Service(), SensorEventListener {
             .setContentText("$stepsFormatted steps  ·  $sleepText")
             .setSmallIcon(R.drawable.ic_stat_notification_bg)
             .setContentIntent(pendingIntent)
-            .setColor(0xFFA95BFF.toInt())
+            .setColor(0xFFFFFFFF.toInt())
             .setOngoing(true)
             .build()
     }

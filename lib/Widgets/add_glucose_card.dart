@@ -322,13 +322,15 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
                         child: ValueListenableBuilder(
+                          key: ValueKey(_selectedType),
                           valueListenable: vitalsController.glucoseController,
                           builder: (context, value, child) {
                             final text =
                                 vitalsController.glucoseController.text.trim();
                             final isEmpty = text.isEmpty;
-                            final status = getGlucoseStatus(
+                            final status = getGlucoseStatusForType(
                               double.tryParse(text) ?? 0.0,
+                              _selectedType,
                             );
 
                             if (isEmpty) return const SizedBox.shrink();

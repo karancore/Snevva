@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -272,6 +273,10 @@ class AuthService {
       await bottomsheetcontroller.loaddatafromAPI();
       await womenhealthController.lastPeriodDatafromAPI();
     }
+
+    // Pre-warm the profile picture disk cache so the image is available offline.
+    // Fire-and-forget: don't block navigation on a network image fetch.
+    unawaited(localStorageManager.loadProfilePicture());
 
     /// PROFILE CHECK
     loginLog("Checking ProfileSetupInitial completeness...");

@@ -200,44 +200,57 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           SizedBox(
                             height: height * 0.18,
                             width: width * 0.35,
-
                             child: Obx(() {
-                              final pickedFile =
-                                  initialProfileController.pickedImage.value;
+                              final pickedFile = initialProfileController
+                                  .pickedImage.value;
+                              final String? cdnUrl = localStorageManager
+                                  .userMap['ProfilePicture']?['CdnUrl'];
 
-                              final String? cdnUrl =
-                                  localStorageManager
-                                      .userMap['ProfilePicture']?['CdnUrl'];
-
-                              ImageProvider? imageProvider;
-
-                              // 1️⃣ Highest Priority → User picked image
+                              // ── Case 1: Local picked file ──
                               if (pickedFile != null) {
-                                imageProvider = FileImage(pickedFile);
+                                return CircleAvatar(
+                                  radius: 60,
+                                  backgroundColor: Colors.grey,
+                                  child: ClipOval(
+                                    child: Image.file(
+                                      pickedFile,
+                                      width: 120,
+                                      height: 120,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                );
                               }
-                              // 2️⃣ Second Priority → API / Google image
-                              else if (cdnUrl != null && cdnUrl.isNotEmpty) {
+
+                              // ── Case 2: CDN URL — no CircleAvatar, direct Container ──
+                              if (cdnUrl != null && cdnUrl.isNotEmpty) {
                                 final imageUrl = cdnUrl.startsWith('http')
                                     ? cdnUrl
                                     : 'https://$cdnUrl';
-                                imageProvider =
-                                    CachedNetworkImageProvider(imageUrl);
+                                return ClipOval(
+                                  child: CachedNetworkImage(
+                                    imageUrl: imageUrl,
+                                    width: 120,
+                                    height: 120,
+                                    fit: BoxFit.cover,
+                                    errorWidget: (context, url, error) =>
+                                        CircleAvatar(
+                                          radius: 60,
+                                          backgroundColor: Colors.grey,
+                                          child: Icon(
+                                              Icons.person, size: 140 * 0.75,
+                                              color: white),
+                                        ),
+                                  ),
+                                );
                               }
 
-                              // 3️⃣ Fallback → Default asset
-
+                              // ── Case 3: No image at all ──
                               return CircleAvatar(
                                 radius: 60,
-                                backgroundColor: grey,
-                                backgroundImage: imageProvider,
-                                child:
-                                    imageProvider == null
-                                        ? Icon(
-                                          Icons.person,
-                                      size: 140 * 0.75,
-                                          color: white,
-                                        )
-                                        : null,
+                                backgroundColor: Colors.grey,
+                                child: Icon(Icons.person, size: 140 * 0.75,
+                                    color: white),
                               );
                             }),
                           ),
@@ -904,22 +917,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     const SizedBox(height: 4),
 
                     InkWell(
-                      onTap:
-                          () => controller.showEditFieldDialog(
-                            context,
-                            title:
-                                "Enter your address — new place, new beginnings!",
-                            fieldKey: "Address",
-                            initialValue:
-                                localStorageManager.userMap['AddressByUser']
-                                    ?.toString()
-                                    .trim() ??
-                                '',
-                            onUpdated:
-                                () => setState(() {
-
-                                }),
-                          ),
+                      onTap: () {
+                        controller.showAddressDialog(
+                          context,
+                          initialValue:
+                          localStorageManager.userMap['AddressByUser']
+                              ?.toString()
+                              .trim() ??
+                              '',
+                          onUpdated: () => setState(() {}),
+                        );
+                      },
                       child: Material(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),

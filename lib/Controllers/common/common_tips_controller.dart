@@ -115,7 +115,6 @@ import 'dart:convert';
 import 'package:get/get_connect/http/src/response/response.dart' as http;
 
 import '../../Services/api_service.dart';
-import '../../common/custom_snackbar.dart';
 import '../../consts/consts.dart';
 import '../../env/env.dart';
 import '../../models/common_tips_response.dart';
@@ -182,12 +181,6 @@ class CommonTipsController extends GetxController {
         debugPrint("❌ HTTP Error Code: ${response.statusCode}");
         debugPrint("❌ HTTP Error Body: ${response.body}");
 
-        CustomSnackbar.showError(
-          context: context,
-          title: 'Oops!',
-          message:
-              'We couldn’t load the general tips right now. Please try again in a moment.',
-        );
 
         if (!loadMore) {
           commonTips.clear();
@@ -247,12 +240,6 @@ class CommonTipsController extends GetxController {
       if (!loadMore) {
         commonTips.clear();
       }
-
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'Failed to load general tips',
-      );
 
       update();
 

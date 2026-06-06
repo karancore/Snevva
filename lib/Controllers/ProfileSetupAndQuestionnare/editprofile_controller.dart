@@ -545,10 +545,7 @@ class EditprofileController extends GetxService {
                           "Update",
                           style: TextStyle(
                             color:
-                            isDarkMode
-                                ? scaffoldColorDark
-                                : scaffoldColorLight,
-                          ),
+                            isDarkMode ? white : black)),
                         ),
                       ),
                     ),
@@ -627,27 +624,306 @@ class EditprofileController extends GetxService {
       return;
     }
 
-    if (!_isFilled(userInfo['AddressByUser'])) {
-      showEditFieldDialog(
-        context,
-        title: 'Add Address',
-        fieldKey: 'Address',
-        initialValue: userInfo['AddressByUser']?.toString() ?? '',
-        onUpdated: onUpdated,
-      );
-      return;
-    }
-
     if (!_isFilled(userInfo['PostalCodeUser'])) {
       showEditFieldDialog(
         context,
         title: 'Add Postal Code',
-        fieldKey: 'PostalCode', // handle in updateField/saveField as needed
+        fieldKey: 'PostalCode',
         initialValue: userInfo['PostalCodeUser']?.toString() ?? '',
         onUpdated: onUpdated,
       );
       return;
     }
+
+    if (!_isFilled(userInfo['AddressByUser'])) {
+      showAddressDialog(
+        context,
+        initialValue: userInfo['AddressByUser']?.toString() ?? '',
+        onUpdated: onUpdated,
+      );
+      return;
+    }
+  }
+
+  // Splits a previously saved combined address string back into its 3 parts.
+  // Expected format: "HouseNo, Street, City/State"
+  List<String> _splitAddress(String combined) {
+    final parts = combined.split(',').map((s) => s.trim()).toList();
+    return [
+      parts.isNotEmpty ? parts[0] : '',
+      parts.length > 1 ? parts[1] : '',
+      parts.length > 2 ? parts.sublist(2).join(', ') : '',
+    ];
+  }
+
+  void showAddressDialog(BuildContext context, {
+    required String initialValue,
+    VoidCallback? onUpdated,
+  }) {
+    final parts = _splitAddress(initialValue);
+    final houseCtrl = TextEditingController(text: parts[0]);
+    final streetCtrl = TextEditingController(text: parts[1]);
+    final cityCtrl = TextEditingController(text: parts[2]);
+    final bool isDarkMode = Theme
+        .of(context)
+        .brightness == Brightness.dark;
+    final Color dialogColor = isDarkMode
+        ? const Color(0xFF19131F)
+        : scaffoldColorLight;
+    final Color cardColor = isDarkMode
+        ? Colors.white.withOpacity(0.10)
+        : AppColors.primaryColor.withOpacity(0.08);
+    final Color borderColor = AppColors.primaryColor.withOpacity(0.20);
+    final Color textColor = isDarkMode ? white : black;
+    final Color helperColor = isDarkMode
+        ? Colors.white.withOpacity(0.58)
+        : mediumGrey;
+
+    InputDecoration inputDecoration(String hintText) {
+      return InputDecoration(
+        hintText: hintText,
+        hintStyle: TextStyle(
+          color: helperColor,
+          fontFamily: 'Inter',
+          fontSize: 13,
+        ),
+        filled: true,
+        fillColor: isDarkMode ? Colors.white.withOpacity(0.08) : white,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 14,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(
+            color: isDarkMode ? Colors.white24 : Colors.black26,
+            width: 1.2,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(
+            color: AppColors.primaryColor,
+            width: 1.4,
+          ),
+        ),
+      );
+    }
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 24,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: SingleChildScrollView(
+            child: Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(maxWidth: 420),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: dialogColor,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: borderColor,
+                        width: 1,
+                      ),
+                      boxShadow: isDarkMode
+                          ? []
+                          : [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 20,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryColor.withOpacity(0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.location_on_outlined,
+                                color: AppColors.primaryColor,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    initialValue
+                                        .trim()
+                                        .isEmpty
+                                        ? 'Add Address'
+                                        : 'Update Address',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: textColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Keep your profile location details complete.',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w400,
+                                      color: helperColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: houseCtrl,
+                          textCapitalization: TextCapitalization.words,
+                          style: TextStyle(color: textColor),
+                          decoration: inputDecoration('House / Flat number'),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: streetCtrl,
+                          textCapitalization: TextCapitalization.words,
+                          style: TextStyle(color: textColor),
+                          decoration: inputDecoration('Street name'),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: cityCtrl,
+                          textCapitalization: TextCapitalization.words,
+                          style: TextStyle(color: textColor),
+                          decoration: inputDecoration('City and state'),
+                        ),
+                        const SizedBox(height: 18),
+                        Obx(
+                              () =>
+                              SizedBox(
+                                width: double.infinity,
+                                height: 44,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: AppColors.primaryGradient,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      disabledBackgroundColor: Colors
+                                          .transparent,
+                                      shadowColor: Colors.transparent,
+                                      foregroundColor: white,
+                                      disabledForegroundColor: white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      padding: EdgeInsets.zero,
+                                      textStyle: const TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    onPressed: isLoading.value
+                                        ? null
+                                        : () async {
+                                      final house = houseCtrl.text.trim();
+                                      final street = streetCtrl.text.trim();
+                                      final city = cityCtrl.text.trim();
+
+                                      if (house.isEmpty ||
+                                          street.isEmpty ||
+                                          city.isEmpty) {
+                                        showError(
+                                          'Please fill in all three address fields.',
+                                        );
+                                        return;
+                                      }
+
+                                      final combined =
+                                          '$house, $street, $city';
+                                      isLoading.value = true;
+                                      await updateField('Address', combined);
+                                      await saveAddress(combined, context);
+                                      isLoading.value = false;
+                                      if (dialogCtx.mounted) {
+                                        Navigator.of(dialogCtx).pop();
+                                      }
+                                      onUpdated?.call();
+                                    },
+                                    child: AppLoadingButtonChild(
+                                      isLoading: isLoading.value,
+                                      loaderSize: 20,
+                                      child: const Text(
+                                        'Update',
+                                        style: TextStyle(color: white),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Center(
+                    child: TextButton(
+                      onPressed: () => Navigator.of(dialogCtx).pop(),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: helperColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
 // Private helper (mirrors isFilled in the card)

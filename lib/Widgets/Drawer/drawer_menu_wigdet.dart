@@ -329,6 +329,13 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                                 width: avatarRadius * 2,
                                 height: avatarRadius * 2,
                                 fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Icon(
+                                    Icons.person,
+                                    size: avatarRadius * 1.5,
+                                    color: Colors.white,
+                                  );
+                                },
                               ),
                             ),
                   );
