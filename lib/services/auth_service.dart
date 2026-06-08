@@ -187,6 +187,28 @@ class AuthService {
 
     //PERMISSIONS
     loginLog("Requesting permissions...");
+
+    // ── Pre-seed flutter.today_steps before starting the native service ───────
+    // StepCounterService.onCreate() resets its counter to 0 when
+    // "flutter.today_steps" is absent from FlutterSharedPreferences (the
+    // post-logout guard for multi-user).  But here we are on a FRESH LOGIN —
+    // the service hasn't started yet and the key was cleared by forceLogout().
+    // Writing 0 now marks the key as present so the reset guard is skipped.
+    // loadStepsfromAPI() (below) will call seedTodaySteps() to overwrite it
+    // with the real API value once the data arrives.
+    try {
+      final flutterPrefs = await SharedPreferences.getInstance();
+      // Only write if the key is currently absent (i.e. post-logout state).
+      if (!flutterPrefs.containsKey('flutter.today_steps')) {
+        await flutterPrefs.setInt('flutter.today_steps', 0);
+        loginLog(
+            "Pre-seeded flutter.today_steps=0 (prevents native reset guard)");
+      }
+    } catch (e) {
+      debugPrint('⚠️ Could not pre-seed flutter.today_steps: $e');
+    }
+    // ── End pre-seed ──────────────────────────────────────────────────────────
+
     final permissionsGranted =
         await _ensurePostLoginPermissionsAndStartTracking();
     loginLog(

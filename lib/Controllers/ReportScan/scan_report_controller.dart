@@ -3,7 +3,6 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:camera/camera.dart';
-import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mime/mime.dart';
 import 'package:share_plus/share_plus.dart';
@@ -11,6 +10,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/scan_report_history.dart';
+
+import '../../Services/api_service.dart';
+import '../../env/env.dart';
 
 class ScanReportController extends GetxController {
   late CameraController cameraController;
@@ -101,38 +103,113 @@ class ScanReportController extends GetxController {
     return base64Encode(bytes);
   }
 
-  Future<String> uploadReport(File file) async {
-    final fileSize = await file.length();
-    if (fileSize > _maxFileSizeBytes) {
-      throw Exception('File size exceeds 5 MB limit');
+
+  int calculateAge({
+    required int day,
+    required int month,
+    required int year,
+  }) {
+    final today = DateTime.now();
+
+    int age = today.year - year;
+
+    if (today.month < month ||
+        (today.month == month &&
+            today.day < day)) {
+      age--;
     }
 
-    final mimeType = lookupMimeType(file.path);
-    if (mimeType == null || !_allowedMimeTypes.contains(mimeType)) {
-      throw Exception('Unsupported file type: $mimeType');
-    }
-
-    final base64file = encodeToBase64(file);
-
-    final payload = {
-      "patientCode": localstoragecontroler.userMap["PatientCode"],
-      "fileBase64": base64file,
-      "fileName": file.path.split('/').last,
-      "mimeType": mimeType,
-    };
-
-    // final response = await ApiService.post(
-    //   scanreportapi,
-    //   payload,
-    //   withAuth: true,
-    //   encryptionRequired: true,
-    // );
-    // final parsedData = jsonDecode(jsonEncode(response));
-    // final content = parsedData['content'];
-
-    const result = "A response of API hit.";
-    return result;
+    return age;
   }
+
+  Future<bool> sendReportToServer(
+      {required String ? pdfPath, required bool isOwnPdf, required String ? selectedGender, required TextEditingController ageController}) async {
+    if (pdfPath == null) return false;
+
+    try {
+      final file = File(pdfPath!);
+
+      // Convert PDF to base64
+      final bytes = await file.readAsBytes();
+      final base64File = base64Encode(bytes);
+
+      final fileName = pdfPath!.split('/').last;
+
+      final mimeType =
+          lookupMimeType(pdfPath!) ?? 'application/pdf';
+
+      String patientCode = await Get
+          .find<LocalStorageManager>()
+          .userGoalDataMap['PatientCode'];
+      String cachedGender = await Get
+          .find<LocalStorageManager>()
+          .userMap['Gender'];
+      final userInfo =
+          Get
+              .find<LocalStorageManager>()
+              .userMap;
+
+      final int day =
+      userInfo['DayOfBirth'];
+
+      final int month =
+      userInfo['MonthOfBirth'];
+
+      final int year =
+      userInfo['YearOfBirth'];
+
+      final int cachedAge = calculateAge(
+        day: day,
+        month: month,
+        year: year,
+      );
+
+      debugPrint("Cached age is $cachedAge");
+
+
+      // Payload
+      final Map<String, dynamic> payload = {
+        "patientCode": patientCode,
+
+        "fileBase64": base64File,
+
+        "fileName": fileName,
+
+        "mimeType": mimeType,
+
+        "isYourReport": isOwnPdf,
+
+        // Required only when report is NOT user's
+        "ageRange":
+        !isOwnPdf
+            ? ageController.text.trim()
+            : cachedAge,
+
+        "gender":
+        !isOwnPdf
+            ? selectedGender
+            : cachedGender,
+      };
+
+      debugPrint("Payload: $payload");
+
+      final response = await ApiService.post(
+        scanreportapi,
+        payload,
+        withAuth: true,
+        encryptionRequired: true,
+      );
+
+      debugPrint("Response: $response");
+      return true;
+    } catch (e, st) {
+      debugPrint("Upload Error: $e");
+      debugPrint("StackTrace: $st");
+
+      return false;
+    }
+  }
+
 
   Future<void> addToHistory({
     required String title,

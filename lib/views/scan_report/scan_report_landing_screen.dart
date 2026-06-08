@@ -26,7 +26,7 @@ class ScanReportLandingScreen extends StatelessWidget {
         backgroundColor: scaffoldBg,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: backIconColor),
+          icon: Icon(Icons.arrow_back_ios_new, color: backIconColor),
           onPressed: () => Get.back(),
         ),
         title: Text(

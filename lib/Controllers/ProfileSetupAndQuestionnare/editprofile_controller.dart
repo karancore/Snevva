@@ -550,7 +550,6 @@ class EditprofileController extends GetxService {
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           ),

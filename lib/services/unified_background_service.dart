@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:ui';
+
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../consts/consts.dart';
+
 import '../common/agent_debug_logger.dart';
-import '../services/sleep/sleep_noticing_service.dart';
+import '../consts/consts.dart';
 import '../services/file_storage_service.dart';
+import '../services/sleep/sleep_noticing_service.dart';
 
 // ───────────────────────────────────────────────────────────────────
 // Constants
@@ -395,19 +397,45 @@ Future<void> _restoreOrAutoStartSleepTracking({
   final isSleeping = prefs.getBool("is_sleeping") ?? false;
 
   if (isSleeping) {
-    // Past window end: do NOT call _stopSleepAndSave() here.
-    // SleepCalcWorker.kt fires at the wake time and owns finalization:
-    //   flush → compute final total → write flutter.sleep_final_minutes
-    //   → clear is_sleeping → queue sleep API.
-    // If the BG isolate somehow wakes us after the window, just stop
-    // monitoring screen events and let SleepCalcWorker finish the job.
-    if (sleepWindow != null && nowTime.isAfter(sleepWindow.end)) {
-      print("⏰ _restoreOrAutoStart: window passed — stopping screen monitor, SleepCalcWorker handles finalization.");
+    // ── Validate against STORED window keys, not the computed window ────────
+    // _resolveSleepWindow() can return a FUTURE window (tonight) when
+    // current_sleep_window_* keys are absent, because _computeActiveSleepWindow
+    // falls through to tonight when yesterday's window has already ended.
+    // Using that future window for isAfter(end) would pass at 1 PM
+    // ("1 PM is not after tomorrow 6 AM") and wrongly show sleep active.
+    //
+    // Rule: if there are no stored window keys, SleepCalcWorker already
+    // cleaned them up — the session is over. Stop and bail.
+    final storedEnd = prefs.getString("current_sleep_window_end");
+    if (storedEnd == null) {
+      print(
+          "[BG] _restoreOrAutoStart: no stored window keys — session already finalized. Clearing stale is_sleeping.");
+      await prefs.setBool("is_sleeping", false);
       _sleepNoticingService.stopMonitoring();
       return;
     }
+    final storedWindowEnd = DateTime.tryParse(storedEnd);
+    if (storedWindowEnd == null || nowTime.isAfter(storedWindowEnd)) {
+      print(
+          "[BG] _restoreOrAutoStart: stored window ended at $storedWindowEnd, now $nowTime — stopping monitor, SleepCalcWorker handles finalization.");
+      _sleepNoticingService.stopMonitoring();
+      return;
+    }
+    // Also guard: if now is before the stored window start, the flag is stale.
+    final storedStart = prefs.getString("current_sleep_window_start");
+    if (storedStart != null) {
+      final storedWindowStart = DateTime.tryParse(storedStart);
+      if (storedWindowStart != null && nowTime.isBefore(storedWindowStart)) {
+        print(
+            "[BG] _restoreOrAutoStart: now $nowTime is before window start $storedWindowStart — clearing stale is_sleeping.");
+        await prefs.setBool("is_sleeping", false);
+        _sleepNoticingService.stopMonitoring();
+        return;
+      }
+    }
+    // ── End window validation ──────────────────────────────────────────────
 
-    // Resume active sleep session (still within window).
+    // We are genuinely within the active stored window — resume the session.
     // Seed the anchor for the edge-case where screen was already off at bedtime.
     await _sleepNoticingService.initializeForSleepWindow();
     // NOTE: startMonitoring() intentionally NOT called — Kotlin owns screen tracking.

@@ -37,6 +37,8 @@ import 'package:snevva/views/SignUp/sign_in_screen.dart';
 
 import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
+import '../../views/health_report/health_report_screen.dart';
+import '../../views/scan_report/scan_report_landing_screen.dart';
 import 'drawer_menu_item.dart';
 
 class DrawerMenuWidget extends StatefulWidget {
@@ -304,7 +306,7 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
 
                   return CircleAvatar(
                     radius: avatarRadius,
-                    backgroundColor: Colors.grey.withOpacity(0.5),
+                    backgroundColor: Colors.grey,
                     child:
                         imageProvider == null
                             ? LayoutBuilder(
@@ -422,22 +424,22 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                           //   onWidgetTap:
                           //       () => {Get.back(), Get.to(()=>EmergencyContact())},
                           // ),
-                          // DrawerMenuItem(
-                          //   menuIcon: healthReportIcon,
-                          //   itemName: 'Health Report ',
-                          //   isDisabled: false,
-                          //   onWidgetTap: () {
-                          //     Get.to(() => HealthReportScreen());
-                          //   }, // ignored because disabled
-                          // ),
-                          // DrawerMenuItem(
-                          //   menuIcon: scannerIcon,
-                          //   itemName: 'Scan Report ',
-                          //   isDisabled: false,
-                          //   onWidgetTap: () {
-                          //     Get.to(() => const ScanReportLandingScreen());
-                          //   }, // ignored because disabled
-                          // ),
+                          DrawerMenuItem(
+                            menuIcon: healthReportIcon,
+                            itemName: 'Health Report ',
+                            isDisabled: false,
+                            onWidgetTap: () {
+                              Get.to(() => HealthReportScreen());
+                            }, // ignored because disabled
+                          ),
+                          DrawerMenuItem(
+                            menuIcon: scannerIcon,
+                            itemName: 'Scan Report ',
+                            isDisabled: false,
+                            onWidgetTap: () {
+                              Get.to(() => const ScanReportLandingScreen());
+                            }, // ignored because disabled
+                          ),
 
 
                           // DrawerMenuItem(

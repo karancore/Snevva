@@ -34,6 +34,26 @@ class SleepCalcWorker(context: Context, params: WorkerParameters) : CoroutineWor
                 "FlutterSharedPreferences", Context.MODE_PRIVATE
             )
 
+            // ── Logged-out guard ───────────────────────────────────────────────
+            // forceLogout() calls SharedPreferences.clear() which removes flutter.auth_token.
+            // When the day changes and this worker fires at the user's wake time, we must
+            // NOT write flutter.sleep_final_date / flutter.sleep_final_minutes — doing so
+            // causes StepCounterService.refreshNotification() to show the sticky notification
+            // even though no user is signed in (the exact bug reported as "Snevva sticky
+            // notification even though I was logged out").
+            // We still reschedule for the next wake time so the chain stays alive for
+            // when the user logs back in.
+            val isLoggedIn = prefs.contains("flutter.auth_token")
+            if (!isLoggedIn) {
+                Log.d(
+                    TAG,
+                    "User logged out — skipping sleep finalisation, rescheduling for next wake time."
+                )
+                scheduleNext(applicationContext)
+                return Result.success()
+            }
+            // ──────────────────────────────────────────────────────────────────
+
             // ── Read bedtime / wake time from prefs ────────────────────────────
             val bedMin  = prefs.getLong("flutter.user_bedtime_ms",  -1L)
             val wakeMin = prefs.getLong("flutter.user_waketime_ms", -1L)

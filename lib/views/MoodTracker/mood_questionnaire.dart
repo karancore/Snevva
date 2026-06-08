@@ -10,6 +10,7 @@ import 'package:snevva/widgets/home_wrapper.dart';
 
 import '../../Controllers/common/common_tips_controller.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
+import '../../common/calendar_screen.dart';
 import '../../consts/colors.dart';
 import '../../widgets/common/common_tip_widget.dart';
 
@@ -78,7 +79,14 @@ class _MoodQuestionnaireState extends State<MoodQuestionnaire> {
     final height = media.size.height;
     final width = media.size.width;
     return Scaffold(
-      appBar: CustomAppBar(appbarText: "Mood Journal"),
+      appBar: CustomAppBar(appbarText: "Mood Journal", onClose: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HomeWrapper(),
+          ),
+        );
+      },),
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       body: SingleChildScrollView(
         controller: _scrollController,
@@ -121,7 +129,7 @@ class _MoodQuestionnaireState extends State<MoodQuestionnaire> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => HomeWrapper(),
+                              builder: (context) => CalendarScreen(),
                             ),
                           );
                         },

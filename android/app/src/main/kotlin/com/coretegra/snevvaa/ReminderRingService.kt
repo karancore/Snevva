@@ -56,11 +56,10 @@ class ReminderRingService : Service() {
             startForeground(
                 NOTIFICATION_ID,
                 notification,
-                // NOTE: FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK is NOT used here because
-                // android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK is removed in the manifest
-                // (tools:node="remove"). Using dataSync matches the manifest declaration and
-                // avoids a SecurityException on Android 14+ (SDK 34+).
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
+                // mediaPlayback: correct type for a service whose sole job is playing
+                // alarm audio. Has no Android 15 time limit (unlike dataSync).
+                // FOREGROUND_SERVICE_MEDIA_PLAYBACK permission is declared in the manifest.
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK,
             )
         } else {
             startForeground(NOTIFICATION_ID, notification)

@@ -71,3 +71,4 @@ pubspec.lock
 ios/Podfile.lock
 ios/Podfile.lock
 *.lock
+/android/build

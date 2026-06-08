@@ -68,7 +68,21 @@ class StepCounterService : Service(), SensorEventListener {
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
-        Log.e("StepService", "Swipe-to-kill detected. Trying to resurrect via AlarmManager & WorkManager.")
+        Log.e("StepService", "Swipe-to-kill detected. Checking login state before resurrection.")
+
+        // ── Logged-out guard ───────────────────────────────────────────────────
+        // If forceLogout() has run, flutter.auth_token is gone.  Do NOT resurrect
+        // the foreground service — the sticky notification must stay dismissed.
+        val flutterPrefs = applicationContext.getSharedPreferences(
+            "FlutterSharedPreferences", android.content.Context.MODE_PRIVATE
+        )
+        if (!flutterPrefs.contains("flutter.auth_token")) {
+            Log.d("StepService", "User logged out — skipping resurrection on task removal.")
+            return
+        }
+        // ──────────────────────────────────────────────────────────────────────
+
+        Log.e("StepService", "Trying to resurrect via AlarmManager & WorkManager.")
 
         // Resurrection mechanism via AlarmManager
         val restartIntent = Intent(applicationContext, StepCounterService::class.java)
@@ -115,6 +129,14 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Handle explicit REFRESH_NOTIFICATION action — sent by seedTodaySteps()
+        // after writing the new step count so the notification updates immediately
+        // without waiting for the next sensor event or 1-min ticker.
+        if (intent?.action == "REFRESH_NOTIFICATION") {
+            refreshNotification()
+            return START_STICKY
+        }
+
         // On sticky restarts (after OOM kill), Android re-delivers onStartCommand()
         // WITHOUT calling onCreate() again. We must call startForeground() here too,
         // otherwise the service times out and throws ForegroundServiceDidNotStopInTimeException.
@@ -341,6 +363,30 @@ class StepCounterService : Service(), SensorEventListener {
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
         // No action needed
+    }
+
+    /**
+     * Android 15 (API 35) safety net.
+     *
+     * onTimeout() is called when the system decides this foreground service has
+     * exceeded the allowed runtime for its declared type.  Now that we use the
+     * `health` type (no time limit), this should never fire in practice — but
+     * we implement it defensively so the service stops gracefully rather than
+     * being killed with ForegroundServiceDidNotStopInTimeException.
+     *
+     * We flush the step buffer before stopping so no data is lost.
+     */
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        Log.w(
+            "StepService",
+            "⚠️ onTimeout(startId=$startId, fgsType=$fgsType) — stopping gracefully"
+        )
+        try {
+            BufferManager.flushStepsToDaily(applicationContext)
+        } catch (e: Exception) {
+            Log.e("StepService", "onTimeout: flush failed: ${e.message}")
+        }
+        stopSelf()
     }
 
     override fun onDestroy() {

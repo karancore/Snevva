@@ -26,7 +26,18 @@ class MainActivity : FlutterActivity() {
         getSharedPreferences("steps_prefs", android.content.Context.MODE_PRIVATE)
             .edit().putBoolean("is_headless", false).apply()
 
-        startStepCounterService()
+        // Only start (or keep alive) the step counter service when a user is actually
+        // signed in.  Starting it unconditionally here was re-showing the sticky
+        // notification every time the app was opened, even on the sign-in screen.
+        val flutterPrefs = applicationContext.getSharedPreferences(
+            "FlutterSharedPreferences", android.content.Context.MODE_PRIVATE
+        )
+        if (flutterPrefs.contains("flutter.auth_token")) {
+            startStepCounterService()
+        } else {
+            Log.d("MainActivity", "⚠️ Skipping StepCounterService start — user not logged in")
+        }
+
         AlarmHelper.cancelSleepAlarms(this)
         requestHighestRefreshRate()
 
@@ -185,6 +196,29 @@ class MainActivity : FlutterActivity() {
                             result.success(true)
                         } catch (e: Exception) {
                             Log.e("MainActivity", "stopStepService failed: ${e.message}")
+                            result.success(false)
+                        }
+                    }
+
+                    "refreshNotification" -> {
+                        // Called by Dart after seeding sleep data so the sticky
+                        // notification updates immediately without waiting for the
+                        // 1-minute ticker in StepCounterService.
+                        try {
+                            val refreshIntent =
+                                Intent(applicationContext, StepCounterService::class.java)
+                            refreshIntent.action = "REFRESH_NOTIFICATION"
+                            applicationContext.startService(refreshIntent)
+                            Log.d(
+                                "MainActivity",
+                                "🔔 REFRESH_NOTIFICATION sent to StepCounterService"
+                            )
+                            result.success(true)
+                        } catch (e: Exception) {
+                            Log.w(
+                                "MainActivity",
+                                "refreshNotification: service may not be running: ${e.message}"
+                            )
                             result.success(false)
                         }
                     }

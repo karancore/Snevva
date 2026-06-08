@@ -8,18 +8,17 @@ import '../../Controllers/signupAndSignIn/forgot_password_controller.dart';
 import '../../Controllers/signupAndSignIn/otp_verification_controller.dart';
 import '../../Controllers/signupAndSignIn/sign_up_controller.dart';
 import '../../common/custom_snackbar.dart';
+import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
 
 class VerifyWithOtpScreen extends StatefulWidget {
   final String emailOrPasswordText;
-  final String appBarText;
   final String responseOtp;
   final bool isForgotPasswordScreen;
 
   const VerifyWithOtpScreen({
     super.key,
     required this.emailOrPasswordText,
-    required this.appBarText,
     required this.responseOtp,
     required this.isForgotPasswordScreen,
   });
@@ -156,6 +155,8 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
       ),
     );
 
+    final bool isEmail = widget.emailOrPasswordText.contains('@');
+
     return WillPopScope(
       onWillPop: () async {
         _handleBack();
@@ -163,19 +164,43 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(widget.appBarText),
+          title: Text("Verify Account"),
           centerTitle: true,
           automaticallyImplyLeading: false,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios, size: 18),
-            onPressed: _handleBack,
+            icon: Icon(Icons.arrow_back_ios,
+                size: 24, color: isDarkMode ? white : black),
+            onPressed: () => Navigator.pop(context),
           ),
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
           child: Column(
             children: [
-              Image.asset(veriemail, height: 200),
+              Container(
+                height: 200,
+                width: 200,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: circleBackground,
+                  boxShadow: [
+                    BoxShadow(
+                      color: shadowColor.withOpacity(0.15),
+                      blurRadius: 30,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    isEmail
+                        ? Icons.email_rounded
+                        : Icons.phone_rounded,
+                    size: 120,
+                    color: iconColor,
+                  ),
+                ),
+              ),
               const SizedBox(height: 30),
               Text(
                 '${AppLocalizations.of(context)!.enter6DigitCodeText}\n${widget.emailOrPasswordText}',

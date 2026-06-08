@@ -10,6 +10,21 @@ import androidx.work.WorkerParameters
 class ResurrectionWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         Log.d("ResurrectionWorker", "Resurrecting StepCounterService")
+
+        // ── Logged-out guard ──────────────────────────────────────────────────
+        // forceLogout() calls SharedPreferences.clear() which removes flutter.auth_token.
+        // Do NOT restart the foreground service (and its sticky notification) when no
+        // user is signed in — the notification must stay gone after logout.
+        val flutterPrefs = applicationContext.getSharedPreferences(
+            "FlutterSharedPreferences", android.content.Context.MODE_PRIVATE
+        )
+        val isLoggedIn = flutterPrefs.contains("flutter.auth_token")
+        if (!isLoggedIn) {
+            Log.d("ResurrectionWorker", "User logged out — skipping resurrection.")
+            return Result.success()
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             androidx.core.content.ContextCompat.checkSelfPermission(applicationContext, android.Manifest.permission.ACTIVITY_RECOGNITION) == android.content.pm.PackageManager.PERMISSION_GRANTED
         } else {

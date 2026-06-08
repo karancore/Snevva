@@ -305,7 +305,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
         backgroundColor: bg,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: titleColor),
+          icon: Icon(Icons.arrow_back_ios_new, color: titleColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(

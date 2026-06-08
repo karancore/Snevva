@@ -39,13 +39,14 @@
          Step tracking uses TYPE_STEP_DETECTOR, covered by ACTIVITY_RECOGNITION alone. -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
 
-    <!-- ⚙️ Foreground service types -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- dataSync intentionally removed: all our long-running services now use
+         health (StepCounterService, flutter_background_service) or mediaPlayback
+         (ReminderRingService). This avoids the Android 15+ 6-hour dataSync limit
+         (ForegroundServiceDidNotStopInTimeException). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
-    <uses-permission
-        android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
-        tools:node="remove" />
+    <!-- Required for ReminderRingService (plays alarm audio) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <!-- 🔋 Battery optimization ignore -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
@@ -153,10 +154,14 @@
             android:value="high_importance_channel" />
 
         <!-- 🦶 Step Tracking Background Service (Native) -->
+        <!-- foregroundServiceType is health only — dataSync was removed because Android 15+
+             applies a 6-hour cumulative limit to dataSync services, causing
+             ForegroundServiceDidNotStopInTimeException on long sessions.
+             The Kotlin code already calls startForeground() with FOREGROUND_SERVICE_TYPE_HEALTH. -->
         <service
             android:name=".StepCounterService"
             android:exported="false"
-            android:foregroundServiceType="dataSync|health"
+            android:foregroundServiceType="health"
             tools:replace="android:exported,android:foregroundServiceType" />
 
         <!-- 🛌 Flutter Background Service (Sleep Tracking + Step Event Relay) -->
@@ -170,11 +175,12 @@
             android:name="id.flutter.flutter_background_service.notification_channel_desc"
             android:value="Step &amp; sleep tracking"/>
 
-        <!-- ⚙️ Override flutter_background_service's BackgroundService to add foregroundServiceType
-             Required on Android 14+ (targetSdk 34+) — MissingForegroundServiceTypeException -->
+        <!-- ⚙️ Override flutter_background_service's BackgroundService foreground type.
+             Changed from dataSync → health: this service does sleep & step tracking,
+             which qualifies as a health workload and has no Android 15 time limit. -->
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"
-            android:foregroundServiceType="dataSync"
+            android:foregroundServiceType="health"
             tools:replace="android:foregroundServiceType" />
 
         <!-- NotificationOnKillService removed: WorkManager-based rescheduling
@@ -184,10 +190,14 @@
              on all AlarmSettings in Dart. -->
 
         <!-- 🔔 Native Reminder Ring Service (plays alarm audio as foreground service) -->
+        <!-- Type changed dataSync → mediaPlayback: this service's sole purpose is playing
+             alarm audio. mediaPlayback has no Android 15 time limit and correctly
+             describes the workload. FOREGROUND_SERVICE_MEDIA_PLAYBACK permission
+             re-added in the permissions section above. -->
         <service
             android:name=".ReminderRingService"
             android:exported="false"
-            android:foregroundServiceType="dataSync"
+            android:foregroundServiceType="mediaPlayback"
             android:stopWithTask="false" />
 
         <!-- 📡 Network connectivity receiver (triggers file-based sync queue on reconnect) -->

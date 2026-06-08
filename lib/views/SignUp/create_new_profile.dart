@@ -64,7 +64,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
           Get.to(
             () => VerifyWithOtpScreen(
               emailOrPasswordText: input,
-              appBarText: AppLocalizations.of(context)!.verifyEmailAddress,
               responseOtp: result,
               isForgotPasswordScreen: false,
             ),
@@ -79,7 +78,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
           Get.to(
             () => VerifyWithOtpScreen(
               emailOrPasswordText: input,
-              appBarText: AppLocalizations.of(context)!.verifyPhoneNumber,
               responseOtp: result,
               isForgotPasswordScreen: false,
             ),

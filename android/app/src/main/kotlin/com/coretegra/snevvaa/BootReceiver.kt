@@ -39,8 +39,15 @@ class BootReceiver : BroadcastReceiver() {
                     true
                 }
 
-            // Only start StepCounterService if we have required permissions
-            if (hasActivityRecognition && hasForegroundServiceHealth) {
+            // Only start StepCounterService if the user is logged in AND we have required permissions.
+            // forceLogout() calls SharedPreferences.clear() which removes flutter.auth_token.
+            // Without this guard the sticky notification reappears after every reboot.
+            val flutterPrefs = context.getSharedPreferences(
+                "FlutterSharedPreferences", android.content.Context.MODE_PRIVATE
+            )
+            val isLoggedIn = flutterPrefs.contains("flutter.auth_token")
+
+            if (isLoggedIn && hasActivityRecognition && hasForegroundServiceHealth) {
                 // Android 15+ restricts starting health foreground services directly from
                 // BOOT_COMPLETED receivers. Use WorkManager instead — workers are exempt.
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
@@ -63,6 +70,8 @@ class BootReceiver : BroadcastReceiver() {
                         Log.e("BootReceiver", "Failed to start StepCounterService on boot", e)
                     }
                 }
+            } else if (!isLoggedIn) {
+                Log.d("BootReceiver", "⚠️ Skipping StepCounterService start - user logged out")
             } else {
                 Log.d("BootReceiver", "⚠️ Skipping StepCounterService start - missing permissions")
             }

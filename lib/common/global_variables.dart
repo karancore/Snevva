@@ -19,7 +19,9 @@ double asDouble(num? value) {
 }
 
 const String reminderBox = 'reminders_box';
-
+const Color circleBackground = Color(0xFFEDE3F8);
+const Color iconColor = Color(0xFFA95BFF);
+const Color shadowColor = Color(0xFFA95BFF);
 //to access medicne do (reminderBox)[medicineKey];
 
 // Changed from a fixed final DateTime to a getter so `now` always returns
