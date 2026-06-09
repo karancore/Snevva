@@ -45,6 +45,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "760082000923-i6be5klc031v0sk5mpfc14pkjb26ekcf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.coretegra.snevvaa",
+            "certificate_hash": "aa7da44acf10b52cc26e31bf60f0d45947d81d58"
+          }
+        },
+        {
           "client_id": "760082000923-s0m8ar03o6aej0h6lnr3utvdqpa7c2td.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

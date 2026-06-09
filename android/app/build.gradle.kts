@@ -48,8 +48,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
             signingConfig = signingConfigs.getByName("release")
 
             proguardFiles(
@@ -89,7 +89,7 @@ val multiDexVersion by extra("2.0.1")
 val firebaseBomVersion = "32.2.0" // adjust if you need a different BOM version
 val firebaseAnalyticsVersion = "com.google.firebase:firebase-analytics-ktx"
 val multidexVersion = "androidx.multidex:multidex:2.0.1"
-val playServicesAuth = "com.google.android.gms:play-services-auth:20.7.0"
+val playServicesAuth = "com.google.android.gms:play-services-auth:21.3.0"
 val desugarJdkLibs = "com.android.tools:desugar_jdk_libs:2.1.4"
 
 dependencies {

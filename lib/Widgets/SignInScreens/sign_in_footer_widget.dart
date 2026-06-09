@@ -106,8 +106,10 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
                             setState(() => isSigningIn = true);
                             try {
                               await googleAuth.signIn();
-                            } catch (e) {
-                              debugPrint("❌ Google sign-in failed: $e");
+                            } catch (e, st) {
+                              print("❌ Google sign-in failed: $e");
+                              print("❌ Google sign-in failed stackTrace: $st");
+
                               CustomSnackbar.showError(
                                 context: context,
                                 title: 'Sign-in Required',

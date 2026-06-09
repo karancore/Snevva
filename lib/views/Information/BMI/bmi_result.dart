@@ -9,7 +9,6 @@ import 'package:snevva/consts/colors.dart';
 import 'package:snevva/consts/images.dart';
 import 'package:snevva/widgets/app_loader.dart';
 
-import '../../../Controllers/local_storage_manager.dart';
 import '../../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../../models/common_tips_response.dart';
 import '../Health Tips/Nutrition_tips.dart/nutrition_tips.dart';
@@ -28,8 +27,10 @@ String getResultPicture({required double bmi}) {
 class BmiResultPage extends StatefulWidget {
   final double bmi;
   final int age;
+  final String gender;
 
-  const BmiResultPage({super.key, required this.bmi, required this.age});
+  const BmiResultPage(
+      {super.key, required this.bmi, required this.age, required this.gender});
 
   @override
   State<BmiResultPage> createState() => _BmiResultPageState();
@@ -37,7 +38,6 @@ class BmiResultPage extends StatefulWidget {
 
 class _BmiResultPageState extends State<BmiResultPage> {
   late final BmiController controller;
-  late final LocalStorageManager localstorage;
 
   String bubbleText = '';
 
@@ -77,10 +77,8 @@ class _BmiResultPageState extends State<BmiResultPage> {
   void initState() {
     super.initState();
     controller = Get.find<BmiController>();
-    localstorage = Get.find<LocalStorageManager>();
-    final userInfo = localstorage.userMap;
 
-    imagePath = getGenderPicture(gender: userInfo['Gender'].toString());
+    imagePath = getGenderPicture(gender: widget.gender);
 
     debugPrint("image path is $imagePath");
 

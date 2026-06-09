@@ -416,6 +416,9 @@ class _BmiCalState extends State<BmiCal> {
                                             () => BmiResultPage(
                                               bmi: bmi,
                                               age: age,
+                                              gender: isMale
+                                                  ? "Male"
+                                                  : "Female",
                                             ),
                                           );
                                         }
@@ -608,7 +611,9 @@ class _BmiCalState extends State<BmiCal> {
               print("Height : ${height}");
               print("Weight: $weight kg");
               if (flag) {
-                Get.to(() => BmiResultPage(bmi: bmi, age: age));
+                Get.to(() =>
+                    BmiResultPage(
+                      bmi: bmi, age: age, gender: isMale ? "Male" : "Female",));
               }
             },
           ),
