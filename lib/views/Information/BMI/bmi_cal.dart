@@ -397,30 +397,9 @@ class _BmiCalState extends State<BmiCal> {
                                           );
                                           return;
                                         }
-
-                                        double bmi =
-                                            weight / pow(height / 100, 2);
-
-                                        final bmicontroller =
-                                            Get.find<BmiUpdateController>();
-                                        bool flag = await bmicontroller
-                                            .setHeightAndWeight(
-                                              context,
-                                              age,
-                                              height,
-                                              weight,
-                                            );
-
-                                        if (flag) {
-                                          Get.to(
-                                            () => BmiResultPage(
-                                              bmi: bmi,
-                                              age: age,
-                                              gender: isMale
-                                                  ? "Male"
-                                                  : "Female",
-                                            ),
-                                          );
+                                        setState(() => age++);
+                                        if (_ageDebounce?.isActive ?? false) {
+                                          _ageDebounce?.cancel();
                                         }
                                       },
                                     ),
