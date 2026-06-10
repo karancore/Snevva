@@ -285,27 +285,21 @@ class VitalsController extends GetxController {
         'Time': now.toIso8601String(),
       };
 
-      final response = await ApiService.post(
-        bloodglucoseapi,
-        payload,
-        withAuth: true,
-        encryptionRequired: true,
-      );
+      debugPrint('API payload: $payload');
 
-      if (response is http.Response) {
-        // CustomSnackbar.showError(
-        //   context: context,
-        //   title: 'Error',
-        //   message: 'Failed to save glucose record: ${response.statusCode}',
-        // );
-        return false;
+      try {
+        final response = await ApiService.post(
+          bloodglucoseapi,
+          payload,
+          withAuth: true,
+          encryptionRequired: true,
+        );
+        if (response is http.Response) {
+          debugPrint('API sync failed, but saved locally');
+        }
+      } catch (e) {
+        debugPrint('API error: $e');
       }
-
-      // CustomSnackbar.showSuccess(
-      //   context: context,
-      //   title: 'Saved!',
-      //   message: 'Blood glucose recorded successfully.',
-      // );
       return true;
 
     } catch (e) {

@@ -10,11 +10,12 @@ import '../../env/env.dart';
 class DietDetailsScreen extends StatefulWidget {
   final DietTagData diet;
   final List<MealPlanItem> daysList;
-
+  final String placeholderAsset;
   const DietDetailsScreen({
     super.key,
     required this.diet,
     required this.daysList,
+    required this.placeholderAsset,
   });
 
   @override
@@ -108,10 +109,15 @@ class _DietDetailsScreenState extends State<DietDetailsScreen> {
                       top: Radius.circular(4),
                     ),
                     child: CachedNetworkImage(
-                      imageUrl: widget.diet.thumbnailMedia ?? dietPlaceholder,
+                      imageUrl: widget.diet.thumbnailMedia ?? '',
                       height: height * 0.25,
                       width: double.infinity,
                       fit: BoxFit.cover,
+                      errorWidget:
+                          (context, url, error) => Image.asset(
+                            widget.placeholderAsset,
+                            fit: BoxFit.fill,
+                          ),
                     ),
                   ),
                   Padding(

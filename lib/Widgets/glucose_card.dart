@@ -21,9 +21,9 @@ String getStatusLabel(GlucoseStatus status) {
 GlucoseStatus getStatus(String level) {
   final value = double.tryParse(level);
   if (value == null) return GlucoseStatus.normal;
-  // mmol/L thresholds: <3.9 low, >10.0 high
-  if (value < 3.9) return GlucoseStatus.low;
-  if (value > 10.0) return GlucoseStatus.high;
+  // mg/dL thresholds
+  if (value < 70) return GlucoseStatus.low;
+  if (value > 180) return GlucoseStatus.high;
   return GlucoseStatus.normal;
 }
 
@@ -163,7 +163,7 @@ class GlucoseCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '≈ ${_toMgDl(glucoseLevel)} mmol/L',
+                        '≈ ${_toMmol(glucoseLevel)} mmol/L',
                         style: TextStyle(
                           fontSize: 12.0,
                           color: isDarkMode
@@ -241,10 +241,10 @@ class GlucoseCard extends StatelessWidget {
   }
 
   /// mmol/L → mg/dL
-  String _toMgDl(String mmol) {
-    final v = double.tryParse(mmol);
+  String _toMmol(String mgdl) {
+    final v = double.tryParse(mgdl);
     if (v == null) return '—';
-    return (v ~/ 18).toStringAsFixed(0);
+    return (v / 18.0).toStringAsFixed(1); // e.g. 120 mg/dL → 6.7 mmol/L
   }
 
   Widget _typeChip({

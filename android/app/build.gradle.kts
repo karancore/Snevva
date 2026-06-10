@@ -28,8 +28,7 @@ android {
 
     defaultConfig {
         applicationId = "com.coretegra.snevvaa"
-        //minSdk = flutter.minSdkVersion
-        minSdk = flutter.minSdkVersion
+        minSdk = 26  // Health Connect requires API 26+
 
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

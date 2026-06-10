@@ -6,7 +6,6 @@ import 'package:snevva/models/diet_tags_response.dart';
 import 'package:snevva/views/DietPlan/diet_details_screen.dart';
 
 import '../../consts/consts.dart';
-import '../../env/env.dart';
 
 class DietPlanScreen extends StatefulWidget {
   const DietPlanScreen({super.key});
@@ -182,7 +181,8 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
             width: width,
             heading: item.heading ?? '',
             subHeading: item.title ?? '',
-            dietImg: item.thumbnailMedia ?? dietPlaceholder,
+            dietImg: item.thumbnailMedia ?? searchPlaceHolder,
+            placeholderAsset: searchPlaceHolder,
             isDarkMode: isDarkMode,
             scale: scale,
             isGridItem: true,
@@ -244,8 +244,9 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                       width: width,
                       heading: item.heading ?? "",
                       subHeading: item.title ?? "",
+                      placeholderAsset: suggestionsPlaceholder,
                       scale: scale,
-                      dietImg: item.thumbnailMedia ?? dietPlaceholder,
+                      dietImg: item.thumbnailMedia ?? '',
                       isDarkMode: isDarkMode,
                     ),
                   );
@@ -300,8 +301,9 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                       width: width,
                       heading: item.heading ?? "",
                       subHeading: item.title ?? "",
-                      dietImg: item.thumbnailMedia ?? dietPlaceholder,
+                      dietImg: item.thumbnailMedia ?? '',
                       isGridItem: false,
+                      placeholderAsset: celebrityPlaceholder,
                       scale: scale,
                       isDarkMode: isDarkMode,
                     ),
@@ -389,7 +391,8 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                   width: width,
                   heading: item.heading ?? "",
                   subHeading: item.title ?? "",
-                  dietImg: item.thumbnailMedia ?? dietPlaceholder,
+                  dietImg: item.thumbnailMedia ?? '',
+                  placeholderAsset: categoryPlaceholder,
                   isDarkMode: isDarkMode,
                   scale: scale,
                   isGridItem: true,
@@ -417,6 +420,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     return Obx(() {
       final isSelected = dietController.selectedCategoryIndex.value == index;
       final iconSize = width * 0.09;
+
 
       return InkWell(
         onTap: () {
@@ -461,6 +465,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     required String dietImg,
     required double scale,
     required bool isDarkMode,
+    required String placeholderAsset,
     bool isGridItem = false,
   }) {
     final cardWidth = isGridItem ? double.infinity : width * 0.43;
@@ -478,7 +483,10 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
         dietController.dietTagsDataResponse.value = item;
         final daysList = item.mealPlan;
 
-        Get.to(() => DietDetailsScreen(diet: item, daysList: daysList));
+        Get.to(() =>
+            DietDetailsScreen(diet: item,
+              daysList: daysList,
+              placeholderAsset: placeholderAsset,));
       },
       child: Container(
         width: cardWidth,
@@ -508,6 +516,28 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
                 height: imageHeight,
                 width: cardWidth,
                 fit: BoxFit.cover,
+                placeholder: (context, url) =>
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Color(0xFFF3E8FF),
+                            Color(0xFFE9D5FF),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.auto_awesome,
+                          color: Color(0xFF8B5CF6),
+                          size: 32,
+                        ),
+                      ),
+                    ),
+
+                errorWidget: (context, url, error) =>
+                    Image.asset(placeholderAsset, fit: BoxFit.fill,),
               ),
             ),
             Padding(
@@ -550,6 +580,7 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     String subHeading,
     String dietImg,
     bool isDarkMode,
+      String placeHolder,
     int index,
   ) {
     return Material(
@@ -566,7 +597,9 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
             tags: [],
           );
 
-          Get.to(() => DietDetailsScreen(diet: diet, daysList: []));
+          Get.to(() =>
+              DietDetailsScreen(
+                diet: diet, daysList: [], placeholderAsset: placeHolder,));
         },
         child: Container(
           width: width * 0.43,

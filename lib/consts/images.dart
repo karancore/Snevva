@@ -299,6 +299,12 @@ const morningDietImg = "assets/Images/DietPlan/image10.webp";
 const afternoonDietImg = "assets/Images/DietPlan/image11.webp";
 const eveningDietImg = "assets/Images/DietPlan/image12.webp";
 
+const suggestionsPlaceholder =
+    "assets/Images/DietPlan/suggestions-placeholder.png";
+const categoryPlaceholder = "assets/Images/DietPlan/category-placeholder.png";
+const celebrityPlaceholder = "assets/Images/DietPlan/celeb-placeholder.png";
+const searchPlaceHolder = "assets/Images/DietPlan/search-placeholder.png";
+
 // Sleep Screen
 
 const bedIcon = "assets/Icons/SleepScreen/Bed.webp";

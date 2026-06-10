@@ -122,12 +122,9 @@ class _NutritionTipsPageState extends State<NutritionTipsPage> {
                           width: 220,
                           fit: BoxFit.cover,
                           errorWidget:
-                              (context, error, stackTrace) => Container(
-                                height: 120,
-                                color: Colors.grey[300],
-                                child: const Center(
-                                  child: Icon(Icons.broken_image),
-                                ),
+                              (context, error, stackTrace) => Image.asset(
+                                placeholderElly,
+                                fit: BoxFit.cover,
                               ),
                           placeholder: (context, url) {
                             return Container(
