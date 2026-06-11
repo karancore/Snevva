@@ -17,7 +17,7 @@ class ScanReportScreen extends StatefulWidget {
 class _ScanReportScreenState extends State<ScanReportScreen> {
   String? _pdfPath;
 
-  Future<void> _pickPdf() async {
+  Future<void> _pickPdf({required bool isDarkMode}) async {
     final FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
@@ -43,6 +43,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
         'PDF size should be less than 5 MB',
         snackPosition: SnackPosition.TOP,
         backgroundColor: AppColors.primaryColor,
+        colorText: isDarkMode ? Colors.white : Colors.black,
 
         duration: const Duration(seconds: 3),
       );
@@ -487,7 +488,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 24),
 
                   child: GestureDetector(
-                    onTap: _pickPdf,
+                    onTap: () => _pickPdf(isDarkMode: isDark),
 
                     child: Container(
                       width: double.infinity,
@@ -648,7 +649,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                         ),
 
                         TextButton(
-                          onPressed: _pickPdf,
+                          onPressed: () => _pickPdf(isDarkMode: isDark),
 
                           child: const Text('Change'),
                         ),

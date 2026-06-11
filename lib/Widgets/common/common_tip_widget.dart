@@ -82,7 +82,9 @@ class _CommonTipsListState extends State<CommonTipsList> {
 
     return InkWell(
       onTap: () {
-        Get.to(() => NutritionTipsPage(commonTip: commonTip));
+        Get.to(() =>
+            NutritionTipsPage(
+              commonTip: commonTip, placeHolder: placeholderElly,));
       },
       child: Material(
         color: Colors.transparent,

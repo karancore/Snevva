@@ -470,16 +470,19 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                           ),
 
                           DrawerMenuItem(
-                            menuIcon:
-                            invitefriend, // or another icon if not added yet
-                            itemName: 'Invite a Friend',
+                            menuIcon: invitefriend,
+                            itemName: 'Share the Wellness',
+                            // More "vibe" focused than "Invite a Friend"
                             onWidgetTap: () async {
                               Get.back();
                               const shareMessage =
-                                  '🎉 Hey! Check out this awesome app — Snevva! Download it here: https://play.google.com/store/apps/details?id=com.coretegra.snevvaa';
+                                  'Transforming my health journey with Snevva—my personal AI health ally. '
+                                  'From intelligent diet plans to clear health insights, it’s a more mindful way to live. '
+                                  'Join me on the path to better wellness: https://play.google.com/store/apps/details?id=com.coretegra.snevvaa';
+
                               await Share.share(
                                 shareMessage,
-                                subject: 'Join me on Snevva!',
+                                subject: 'Your invitation to better health with Snevva',
                               );
                             },
                           ),

@@ -264,7 +264,9 @@ class _BmiResultPageState extends State<BmiResultPage> {
                                 isDarkMode: isDarkMode,
                                 onButtonTap:
                                     () => Get.to(
-                                      () => NutritionTipsPage(commonTip: tip),
+                                          () =>
+                                          NutritionTipsPage(commonTip: tip,
+                                            placeHolder: placeholderElly,),
                                     ),
                               ),
                             );

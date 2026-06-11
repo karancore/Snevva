@@ -381,35 +381,46 @@ class StepCounterService : Service(), SensorEventListener {
             "StepService",
             "⚠️ onTimeout(startId=$startId, fgsType=$fgsType) — stopping gracefully"
         )
-        try {
-            BufferManager.flushStepsToDaily(applicationContext)
-        } catch (e: Exception) {
-            Log.e("StepService", "onTimeout: flush failed: ${e.message}")
-        }
-        stopSelf()
+        // onTimeout() is the OS signalling an exceeded deadline — don't add more blocking
+        // work on the main thread here. Flush off-thread, then stop immediately.
+        Thread {
+            try {
+                BufferManager.flushStepsToDaily(applicationContext)
+            } catch (e: Exception) {
+                Log.e("StepService", "onTimeout: flush failed: ${e.message}")
+            }
+        }.start()
+        stopSelf(startId)
     }
 
     override fun onDestroy() {
         // Stop the 1-min ticker first
         notifHandler.removeCallbacks(notifRunnable)
-        // Unregister sensor BEFORE super.onDestroy() to release hardware resources promptly.
-        // This prevents the OS from marking us as "did not stop in time" while we hold the sensor.
+        // Unregister sensor to release hardware resources promptly
         sensorManager.unregisterListener(this)
         // Unregister the native screen-state receiver
         screenReceiver?.let { try { unregisterReceiver(it) } catch (_: Exception) {} }
         screenReceiver = null
         isForegroundStarted = false
-        // Call super BEFORE blocking I/O — the OS stop deadline is on the Binder thread;
-        // blocking here AFTER super is safe because the service is already deregistered.
+        // Must call stopForeground() before super.onDestroy() so Android 14+ receives
+        // the signal that the foreground state is being released. Without this call,
+        // Android waits indefinitely for the foreground slot to clear and throws
+        // ForegroundServiceDidNotStopInTimeException, which kills the process and
+        // takes down ScreenStateReceiver — causing sleep intervals to be lost.
+        stopForeground(STOP_FOREGROUND_REMOVE)
         super.onDestroy()
-        // Flush buffers after super so we don't hold the service-alive contract during I/O
-        try {
-            BufferManager.flushStepsToDaily(applicationContext)
-            BufferManager.flushSleepToDaily(applicationContext)
-        } catch (e: Exception) {
-            Log.e("StepService", "Buffer flush on destroy failed: ${e.message}")
-        }
-        Log.d("StepService", "🛑 StepCounterService destroyed + buffers flushed.")
+        // Flush buffers on a background thread — doing this synchronously on the main
+        // thread extends the stop window and risks hitting the ANR deadline on devices
+        // with large buffers or slow disk.
+        Thread {
+            try {
+                BufferManager.flushStepsToDaily(applicationContext)
+                BufferManager.flushSleepToDaily(applicationContext)
+            } catch (e: Exception) {
+                Log.e("StepService", "Buffer flush on destroy failed: ${e.message}")
+            }
+        }.start()
+        Log.d("StepService", "🛑 StepCounterService destroyed + buffers flushing in background.")
     }
 
     /**

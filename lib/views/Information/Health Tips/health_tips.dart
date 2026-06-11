@@ -88,13 +88,12 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
                       height: 200,
                       width: double.infinity,
                       fit: BoxFit.cover,
+
                       errorWidget:
-                          (context, error, stackTrace) => Container(
-                            color: Colors.grey[200],
-                            height: 200,
-                            child: const Center(
-                              child: Icon(Icons.broken_image, size: 40),
-                            ),
+                          (context, url, error) =>
+                          Image.asset(
+                            healthTipPlaceholder,
+                            fit: BoxFit.fill,
                           ),
                     ),
                   ),
@@ -167,7 +166,10 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
                                                 () =>
                                                 NutritionTipsPage(
                                                   commonTip: CommonTip.fromJson(
-                                                      firstTip),),
+                                                    firstTip,
+                                                  ),
+                                                  placeHolder: healthTipPlaceholder,
+                                                ),
                                           ),
                                       isDarkMode: isDarkMode,
                                     )
@@ -189,7 +191,10 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
                                                 () =>
                                                 NutritionTipsPage(
                                                   commonTip: CommonTip.fromJson(
-                                                      secondTip),),
+                                                    secondTip,
+                                                  ),
+                                                  placeHolder: healthTipPlaceholder,
+                                                ),
                                           ),
                                       isDarkMode: isDarkMode,
                                     )
@@ -232,25 +237,14 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
         children: [
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: Image.network(
-              image,
+            child: CachedNetworkImage(
+              imageUrl: image,
               height: 120,
               width: double.infinity,
               fit: BoxFit.cover,
-              errorBuilder:
-                  (context, error, stackTrace) => Container(
-                    height: 120,
-                    color: Colors.grey[300],
-                    child: const Center(child: Icon(Icons.broken_image)),
-                  ),
-              loadingBuilder: (context, child, progress) {
-                if (progress == null) return child;
-                return Container(
-                  height: 120,
-                  color: Colors.grey[200],
-                  child: const AppLoader(size: 40),
-                );
-              },
+
+              errorWidget: (context, url, error) =>
+                  Image.asset(healthTipPlaceholder, fit: BoxFit.fill,),
             ),
           ),
           Padding(
@@ -301,23 +295,23 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
                       "Know More",
                       style: TextStyle(color: Colors.white, fontSize: 12),
                     ),
-                    const SizedBox(width: 4,),
+                    const SizedBox(width: 4),
                     SizedBox(
                       height: 14,
                       width: 14,
                       child: Container(
                         decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isDarkMode
-                                ? darkGray.withOpacity(0.9)
-                                : white
+                          shape: BoxShape.circle,
+                          color: isDarkMode ? darkGray.withOpacity(0.9) : white,
                         ),
                         child: Center(
-                          child: Transform.rotate(angle: 135 * math.pi / 180,
-                              child: Icon(Icons.arrow_back, size: 10,)),
+                          child: Transform.rotate(
+                            angle: 135 * math.pi / 180,
+                            child: Icon(Icons.arrow_back, size: 10),
+                          ),
                         ),
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),

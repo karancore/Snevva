@@ -9,9 +9,12 @@ import 'package:snevva/models/common_tips_response.dart';
 import 'package:snevva/widgets/app_loader.dart';
 
 class NutritionTipsPage extends StatefulWidget {
-  const NutritionTipsPage({super.key, this.commonTip});
+
+  const NutritionTipsPage(
+      {super.key, this.commonTip, required this.placeHolder});
 
   final CommonTip? commonTip;
+  final String placeHolder;
 
   @override
   State<NutritionTipsPage> createState() => _NutritionTipsPageState();
@@ -122,10 +125,9 @@ class _NutritionTipsPageState extends State<NutritionTipsPage> {
                           width: 220,
                           fit: BoxFit.cover,
                           errorWidget:
-                              (context, error, stackTrace) => Image.asset(
-                                placeholderElly,
-                                fit: BoxFit.cover,
-                              ),
+                              (context, error, stackTrace) =>
+                              Image.asset(
+                                  widget.placeHolder, fit: BoxFit.cover),
                           placeholder: (context, url) {
                             return Container(
                               height: 120,

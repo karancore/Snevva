@@ -148,7 +148,7 @@ const downloadIcon = "assets/Icons/music/download-music.svg";
 
 //Health Tips
 const fitnessImg = "assets/Images/fitness.webp";
-
+const healthTipPlaceholder = "assets/Images/health-tip.png";
 //Profile
 const profileImg = 'assets/Images/ProfileSetup/profile.webp';
 const profileMainImg = 'assets/Images/ProfileSetup/dp.webp';

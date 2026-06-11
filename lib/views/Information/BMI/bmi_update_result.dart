@@ -310,8 +310,11 @@ class _BMIUpdateResultScreenState extends State<BMIUpdateResultScreen> {
                             onButtonTap:
                                 () =>
                                 Get.to(
-                                      () => NutritionTipsPage(commonTip: tip),
-                                ),
+                                      () => NutritionTipsPage(
+                                        commonTip: tip,
+                                        placeHolder: placeholderElly,
+                                      ),
+                                    ),
                           ),
                         );
                       }).toList(),

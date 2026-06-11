@@ -80,7 +80,6 @@ class ReminderRingService : Service() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
         Log.d(TAG, "onDestroy — stopping audio and dismissing notification")
         autoStopRunnable?.let { handler.removeCallbacks(it) }
 
@@ -90,15 +89,17 @@ class ReminderRingService : Service() {
         }
         mediaPlayer = null
 
-        // Signal the OS that we are intentionally stopping the foreground state.
-        // Without this, Android 12+ may log a ForegroundServiceDidNotStopInTimeException
-        // if onDestroy() takes too long completing cleanup after stopSelf().
+        // Must call stopForeground() before super.onDestroy() so Android 14+ receives
+        // the signal that the foreground state is being released. Calling it after
+        // super.onDestroy() may be a no-op on some API levels.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         } else {
             @Suppress("DEPRECATION")
             stopForeground(true)
         }
+
+        super.onDestroy()
 
         // Dismiss the notification so it doesn't linger after ringing stops
         val nm = getSystemService(NotificationManager::class.java)
