@@ -53,8 +53,9 @@
 	<string>Snevva writes your activity data to Apple Health.</string>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
-		<string>com.coretegra.snevva.sleep_calc</string>
+		<string>com.coretegra.snevva.step_refresh</string>
 		<string>com.coretegra.snevva.api_sync</string>
+		<string>com.coretegra.snevva.sleep_calc</string>
 		<string>com.coretegra.snevva.period_sync</string>
 		<string>com.coretegra.snevvaa.reminderReconcile</string>
 		<string>com.coretegra.snevvaa.reminderOneShot</string>
@@ -118,10 +119,6 @@
         </dict>
     </array>
 
-    <key>NSHealthShareUsageDescription</key>
-    <string>We need access to your health data to track your daily steps.</string>
-    <key>NSHealthUpdateUsageDescription</key>
-    <string>We need access to your health data to track your daily steps.</string>
 
 </dict>
 </plist>
