@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
-import 'package:camera/camera.dart';
+// import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mime/mime.dart';
 import 'package:share_plus/share_plus.dart';
@@ -15,14 +15,15 @@ import '../../Services/api_service.dart';
 import '../../env/env.dart';
 
 class ScanReportController extends GetxController {
-  late CameraController cameraController;
-  var isCameraInitialized = false.obs;
-  var isFlashOn = false.obs;
+  // late CameraController cameraController;
+  // var isCameraInitialized = false.obs;
+  // var isFlashOn = false.obs;
   var pickedImage = Rx<File?>(null);
   var reportHistory = <ScanReportHistory>[].obs;
 
   final ImagePicker _imgPicker = ImagePicker();
-  List<CameraDescription> cameras = [];
+
+  // List<CameraDescription> cameras = [];
   final localstoragecontroler = Get.find<LocalStorageManager>();
 
   static const _allowedMimeTypes = [
@@ -36,52 +37,52 @@ class ScanReportController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    initCamera();
+    // initCamera();
     loadHistory();
   }
 
-  Future<void> initCamera() async {
-    try {
-      cameras = await availableCameras();
-      cameraController = CameraController(
-        cameras[0],
-        ResolutionPreset.ultraHigh,
-      );
-      await cameraController.initialize();
-      isCameraInitialized.value = true;
-    } catch (e) {
-      log("Camera init error: $e");
-    }
-  }
-
-  Future<void> toggleFlash() async {
-    if (!isCameraInitialized.value) return;
-    try {
-      if (isFlashOn.value) {
-        await cameraController.setFlashMode(FlashMode.off);
-        isFlashOn.value = false;
-      } else {
-        await cameraController.setFlashMode(FlashMode.torch);
-        isFlashOn.value = true;
-      }
-    } catch (e) {
-      log("Flash toggle error: $e");
-    }
-  }
-
-  Future<void> takePicture() async {
-    if (!isCameraInitialized.value) {
-      log("Camera not initialized");
-      return;
-    }
-    try {
-      final XFile picture = await cameraController.takePicture();
-      pickedImage.value = File(picture.path);
-      log("Picture saved to ${picture.path}");
-    } catch (e) {
-      log("Error taking picture: $e");
-    }
-  }
+  // Future<void> initCamera() async {
+  //   try {
+  //     cameras = await availableCameras();
+  //     cameraController = CameraController(
+  //       cameras[0],
+  //       ResolutionPreset.ultraHigh,
+  //     );
+  //     await cameraController.initialize();
+  //     isCameraInitialized.value = true;
+  //   } catch (e) {
+  //     log("Camera init error: $e");
+  //   }
+  // }
+  //
+  // Future<void> toggleFlash() async {
+  //   if (!isCameraInitialized.value) return;
+  //   try {
+  //     if (isFlashOn.value) {
+  //       await cameraController.setFlashMode(FlashMode.off);
+  //       isFlashOn.value = false;
+  //     } else {
+  //       await cameraController.setFlashMode(FlashMode.torch);
+  //       isFlashOn.value = true;
+  //     }
+  //   } catch (e) {
+  //     log("Flash toggle error: $e");
+  //   }
+  // }
+  //
+  // Future<void> takePicture() async {
+  //   if (!isCameraInitialized.value) {
+  //     log("Camera not initialized");
+  //     return;
+  //   }
+  //   try {
+  //     final XFile picture = await cameraController.takePicture();
+  //     pickedImage.value = File(picture.path);
+  //     log("Picture saved to ${picture.path}");
+  //   } catch (e) {
+  //     log("Error taking picture: $e");
+  //   }
+  // }
 
   Future<void> pickImageFromGallery() async {
     final XFile? image = await _imgPicker.pickImage(
@@ -94,7 +95,7 @@ class ScanReportController extends GetxController {
 
   @override
   void onClose() {
-    cameraController.dispose();
+    // cameraController.dispose();
     super.onClose();
   }
 

@@ -43,7 +43,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
         'PDF size should be less than 5 MB',
         snackPosition: SnackPosition.TOP,
         backgroundColor: AppColors.primaryColor,
-        colorText: isDarkMode ? Colors.white : Colors.black,
+        colorText: isDarkMode ? white : black,
 
         duration: const Duration(seconds: 3),
       );
@@ -84,7 +84,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
         'Could not upload report',
         snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.red,
-        colorText: Colors.white,
+        colorText: white,
       );
 
       return;
@@ -207,8 +207,8 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
 
                                 style: TextStyle(
                                   color: _isOwnPdf
-                                      ? null
-                                      : (isDark ? darkGray : Colors.grey.shade100),
+                                      ? white
+                                      : (isDark ? darkGray : black),
 
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -246,8 +246,8 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
 
                                 style: TextStyle(
                                   color: !_isOwnPdf
-                                      ? null
-                                      : (isDark ? darkGray : Colors.grey.shade100),
+                                      ? white
+                                      : (isDark ? darkGray : black),
 
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -308,7 +308,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                       controller: _ageController,
                       keyboardType: TextInputType.number,
                       style: TextStyle(
-                        color: isDark ? Colors.white : Colors.black,
+                        color: isDark ? white : black,
                       ),
                       decoration: InputDecoration(
                         hintText: 'Enter age',
@@ -363,7 +363,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                       child: const Text(
                         'Continue',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: white,
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
                         ),
@@ -411,8 +411,8 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
 
               style: TextStyle(
                 color: isSelected
-                    ? Colors.white
-                    : (isDark ? Colors.black : Colors.white),
+                    ? white
+                    : (isDark ? white : black),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -431,13 +431,14 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color bg = isDark ? scaffoldColorDark : scaffoldColorLight;
 
     return Scaffold(
-      backgroundColor: isDark ? black : const Color(0xFFF5F2FF),
+      backgroundColor: bg,
 
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: isDark ? black : const Color(0xFFF5F2FF),
+        backgroundColor: bg,
         centerTitle: true,
 
         leading: IconButton(
@@ -460,7 +461,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
               ? SafeArea(
                 child: Container(
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-                  color: isDark ? black : const Color(0xFFF5F2FF),
+                  color: bg,
 
                   child: SizedBox(
                     height: 58,
@@ -557,7 +558,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.w700,
-                              color: isDark ? Colors.white : Colors.black,
+                              color: isDark ? white : black,
                             ),
                           ),
 
@@ -596,7 +597,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                               children: [
                                 Icon(
                                   Icons.upload_file_rounded,
-                                  color: Colors.white,
+                                  color: white,
                                 ),
 
                                 SizedBox(width: 10),
@@ -604,7 +605,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                                 Text(
                                   'Choose PDF',
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: white,
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -629,7 +630,8 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
             ),
 
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+                      color: isDark ? const Color(0xFF1A1A1A) : AppColors
+                          .primaryColor.withOpacity(0.1),
 
                       borderRadius: BorderRadius.circular(18),
                     ),
@@ -653,7 +655,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
 
-                              color: isDark ? Colors.white : Colors.black,
+                              color: isDark ? white : black,
                             ),
                           ),
                         ),
