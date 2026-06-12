@@ -142,7 +142,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
               ),
 
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? darkGray : white,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(28),
                 ),
@@ -172,7 +172,6 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
-                      color: black,
                     ),
                   ),
 
@@ -207,8 +206,9 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                                 'Yes',
 
                                 style: TextStyle(
-                                  color:
-                                      _isOwnPdf ? Colors.white : Colors.black,
+                                  color: _isOwnPdf
+                                      ? null
+                                      : (isDark ? darkGray : Colors.grey.shade100),
 
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -245,8 +245,9 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                                 'No',
 
                                 style: TextStyle(
-                                  color:
-                                      !_isOwnPdf ? Colors.white : Colors.black,
+                                  color: !_isOwnPdf
+                                      ? null
+                                      : (isDark ? darkGray : Colors.grey.shade100),
 
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -273,6 +274,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                         _genderChip(
                           label: 'Male',
                           setModalState: setModalState,
+                          isDark: isDark
                         ),
 
                         const SizedBox(width: 10),
@@ -280,6 +282,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                         _genderChip(
                           label: 'Female',
                           setModalState: setModalState,
+                            isDark: isDark
                         ),
 
                         const SizedBox(width: 10),
@@ -287,15 +290,16 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                         _genderChip(
                           label: 'Other',
                           setModalState: setModalState,
+                            isDark: isDark
                         ),
                       ],
                     ),
 
                     const SizedBox(height: 24),
 
-                    const Text(
+                    Text(
                       'Age',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+                      style: TextStyle(fontWeight: FontWeight.w600 ),
                     ),
 
                     const SizedBox(height: 12),
@@ -303,12 +307,16 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                     TextField(
                       controller: _ageController,
                       keyboardType: TextInputType.number,
-
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Enter age',
-
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white70 : Colors.grey,
+                        ),
                         filled: true,
-                        fillColor: Colors.grey.shade100,
+                        fillColor: isDark ? const Color(0xFF1A1A1A) : Colors.grey.shade100,
 
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(18),
@@ -374,6 +382,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
   Widget _genderChip({
     required String label,
     required StateSetter setModalState,
+    required bool isDark,
   }) {
     final bool isSelected = _selectedGender == label;
 
@@ -401,8 +410,9 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
               label,
 
               style: TextStyle(
-                color: isSelected ? Colors.white : Colors.black,
-
+                color: isSelected
+                    ? Colors.white
+                    : (isDark ? Colors.black : Colors.white),
                 fontWeight: FontWeight.w600,
               ),
             ),

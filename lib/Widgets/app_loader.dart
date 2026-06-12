@@ -158,7 +158,6 @@ class AppLoadingButtonChild extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 180),
       switchInCurve: Curves.easeOutCubic,
@@ -168,7 +167,7 @@ class AppLoadingButtonChild extends StatelessWidget {
               key: const ValueKey('app-button-loader'),
               dimension: loaderSize,
                 child: CircularProgressIndicator(
-                  color: isDarkMode ? white : black,
+                  color: white,
                   strokeWidth: 1.5,
                 ),
               )

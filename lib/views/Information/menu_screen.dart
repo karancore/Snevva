@@ -145,7 +145,7 @@ class _MenuScreenState extends State<MenuScreen>
         navigateTo: MoodTrackerScreen(),
       ),
       MenuItem(
-        title: "Add A Reminder",
+        title: "Add Reminder",
         subtitle: "Medication, meal, hydration alert",
         imagePath: reminderIcon,
         navigateTo: ReminderScreenWrapper(isClose: true),
@@ -172,6 +172,7 @@ class _MenuScreenState extends State<MenuScreen>
         title: "Blood Glucose",
         subtitle: "Monitor blood sugar levels",
         imagePath: bloodGlucoseIcon,
+        darkImagePath: bloodGlucoseDark,
         navigateTo: GlucoseScreen(),
       ),
 
@@ -283,7 +284,7 @@ class _MenuScreenState extends State<MenuScreen>
                   "Sleep Tracker",
                   "Hydration",
                   "Mood Tracker",
-                  "Add A Reminder",
+                  "Add Reminder",
                   "Steps Tracker",
                 ].contains(item.title),
               )
@@ -400,6 +401,7 @@ Widget _buildMenuGrid(
             subtitle: item.subtitle,
             imagePath: item.imagePath,
             isDarkMode: isDarkMode,
+            darkImagePath: item.darkImagePath,
             onTap: () async {
               debugPrint("Tapped on: ${item.title}");
 
