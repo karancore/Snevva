@@ -196,7 +196,8 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                               gradient:
                                   _isOwnPdf ? AppColors.primaryGradient : null,
 
-                              color: _isOwnPdf ? null : Colors.grey.shade100,
+                              color: _isOwnPdf ? null : (isDark ? Colors.grey
+                                  .shade800 : Colors.grey.shade100),
 
                               borderRadius: BorderRadius.circular(18),
                             ),
@@ -208,7 +209,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                                 style: TextStyle(
                                   color: _isOwnPdf
                                       ? white
-                                      : (isDark ? darkGray : black),
+                                      : (isDark ? white : black),
 
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -235,7 +236,8 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                               gradient:
                                   !_isOwnPdf ? AppColors.primaryGradient : null,
 
-                              color: !_isOwnPdf ? null : Colors.grey.shade100,
+                              color: !_isOwnPdf ? null : (isDark ? Colors.grey
+                                  .shade800 : Colors.grey.shade100),
 
                               borderRadius: BorderRadius.circular(18),
                             ),
@@ -247,7 +249,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                                 style: TextStyle(
                                   color: !_isOwnPdf
                                       ? white
-                                      : (isDark ? darkGray : black),
+                                      : (isDark ? white : black),
 
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -316,7 +318,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                           color: isDark ? Colors.white70 : Colors.grey,
                         ),
                         filled: true,
-                        fillColor: isDark ? const Color(0xFF1A1A1A) : Colors.grey.shade100,
+                        fillColor: isDark ? darkGray : Colors.grey.shade100,
 
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(18),
@@ -400,7 +402,8 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
           decoration: BoxDecoration(
             gradient: isSelected ? AppColors.primaryGradient : null,
 
-            color: isSelected ? null : Colors.grey.shade100,
+            color: isSelected ? null : (isDark ? Colors.grey.shade800 : Colors
+                .grey.shade100),
 
             borderRadius: BorderRadius.circular(16),
           ),
