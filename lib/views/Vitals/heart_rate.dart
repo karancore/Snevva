@@ -1,7 +1,11 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/images.dart';
-import 'package:flutter/material.dart';
+
+import '../../Controllers/Vitals/vitalsController.dart';
+import '../../features/health_sdk/controllers/health_sdk_controller.dart';
 
 class HeartRate extends StatefulWidget {
   const HeartRate({super.key});
@@ -38,36 +42,84 @@ class _HeartRateState extends State<HeartRate> {
             SizedBox(height: 20),
 
             // BPM Value
-            Text(
-              "73",
-              style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
-            ),
-            Text("BPM", style: TextStyle(fontSize: 16)),
-            SizedBox(height: 16),
+            Obx(() {
+              final sdkController = Get.find<HealthSdkController>();
+              final latestHeartRate = sdkController.latestHeartRate.value;
+              final val = latestHeartRate != null ? latestHeartRate
+                  .beatsPerMinute.toInt() : Get
+                  .find<VitalsController>()
+                  .bpm
+                  .value;
+              return Text(
+                val > 0 ? "$val" : "--",
+                style: const TextStyle(
+                    fontSize: 48, fontWeight: FontWeight.bold),
+              );
+            }),
+            Obx(() {
+              final sdkController = Get.find<HealthSdkController>();
+              final latestHeartRate = sdkController.latestHeartRate.value;
+              if (latestHeartRate != null &&
+                  latestHeartRate.sourceName != null) {
+                return Text(
+                  "BPM (${latestHeartRate.sourceName})",
+                  style: const TextStyle(fontSize: 16),
+                );
+              }
+              return const Text("BPM", style: TextStyle(fontSize: 16));
+            }),
+            const SizedBox(height: 16),
 
             // Info Text
-            Text(
+            const Text(
               "This result is not used as a\nmedical basis",
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14),
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-            // % Result pill
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.red.shade100,
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: Text(
-                "72%",
-                style: TextStyle(
-                  color: Colors.redAccent,
-                  fontWeight: FontWeight.w600,
+            // % Result pill / Status label
+            Obx(() {
+              final sdkController = Get.find<HealthSdkController>();
+              final latestHeartRate = sdkController.latestHeartRate.value;
+              final val = latestHeartRate != null ? latestHeartRate
+                  .beatsPerMinute.toInt() : Get
+                  .find<VitalsController>()
+                  .bpm
+                  .value;
+
+              String status = "Unknown";
+              Color pillBg = Colors.grey.shade100;
+              Color pillText = Colors.grey;
+
+              if (val > 0) {
+                if (latestHeartRate != null) {
+                  status = latestHeartRate.status;
+                  pillText = latestHeartRate.statusColor;
+                  pillBg = latestHeartRate.statusColor.withOpacity(0.15);
+                } else {
+                  status = Get.find<VitalsController>().getBpmStatus(val);
+                  pillText = Colors.redAccent;
+                  pillBg = Colors.red.shade100;
+                }
+              }
+
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20, vertical: 6),
+                decoration: BoxDecoration(
+                  color: pillBg,
+                  borderRadius: BorderRadius.circular(30),
                 ),
-              ),
-            ),
+                child: Text(
+                  status,
+                  style: TextStyle(
+                    color: pillText,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              );
+            }),
           ],
         ),
       ),
