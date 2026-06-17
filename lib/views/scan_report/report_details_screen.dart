@@ -10,128 +10,132 @@ import '../../consts/colors.dart';
 // ─────────────────────────────────────────────
 // DUMMY DATA — replace with real API call later
 // ─────────────────────────────────────────────
-const String _dummyApiContent = '''
-{
-  "overall_health_score": 70,
-  "overall_status": "Needs Attention",
-  "doctor_consultation_recommended": true,
-  "emergency_attention_needed": false,
-  "key_findings": [
-    "Uric Acid borderline high",
-    "Triglycerides high",
-    "Low HDL Cholesterol",
-    "Globulin borderline high",
-    "GFR mildly reduced"
-  ],
-  "parameters": [
-    {
-      "test_name": "Urea",
-      "value": "19",
-      "unit": "mg/dl",
-      "reference_range": "13 - 43",
-      "status": "NORMAL",
-      "severity_score": 15,
-      "status_color": "green",
-      "hex_code": "#22C55E",
-      "clinical_meaning": "Normal urea levels indicate good kidney function.",
-      "possible_causes": [],
-      "recommended_actions": [],
-      "diet_recommendations": [],
-      "exercise_recommendations": []
-    },
-    {
-      "test_name": "Creatinine",
-      "value": "1.12",
-      "unit": "mg/dl",
-      "reference_range": "0.7 - 1.3",
-      "status": "NORMAL",
-      "severity_score": 15,
-      "status_color": "green",
-      "hex_code": "#22C55E",
-      "clinical_meaning": "Normal creatinine levels indicate healthy kidney function.",
-      "possible_causes": [],
-      "recommended_actions": [],
-      "diet_recommendations": [],
-      "exercise_recommendations": []
-    },
-    {
-      "test_name": "Uric Acid",
-      "value": "7",
-      "unit": "mg/dl",
-      "reference_range": "3.6 - 7.0",
-      "status": "HIGH",
-      "severity_score": 61,
-      "status_color": "orange",
-      "hex_code": "#F97316",
-      "clinical_meaning": "Slightly elevated uric acid may indicate risk of gout.",
-      "possible_causes": ["Diet high in purines", "Dehydration", "Kidney dysfunction"],
-      "recommended_actions": ["Reduce purine-rich foods like red meat and seafood.", "Stay well-hydrated."],
-      "diet_recommendations": ["Increase water intake", "Limit red meat and shellfish"],
-      "exercise_recommendations": ["Walking", "Moderate aerobic exercise"]
-    },
-    {
-      "test_name": "Estimated GFR",
-      "value": "80",
-      "unit": "mL/min/1.73 m2",
-      "reference_range": "> 90",
-      "status": "LOW",
-      "severity_score": 41,
-      "status_color": "orange",
-      "hex_code": "#F97316",
-      "clinical_meaning": "Mildly reduced kidney function.",
-      "possible_causes": ["Chronic kidney disease", "Dehydration", "Age-related changes"],
-      "recommended_actions": ["Follow up with more tests", "Monitor kidney function regularly"],
-      "diet_recommendations": ["Eat a balanced diet", "Limit sodium intake"],
-      "exercise_recommendations": ["Gentle activities like yoga", "Avoid excessive high-impact exercises"]
-    },
-    {
-      "test_name": "Total Cholesterol",
-      "value": "172",
-      "unit": "mg/dl",
-      "reference_range": "140 - 200",
-      "status": "NORMAL",
-      "severity_score": 15,
-      "status_color": "green",
-      "hex_code": "#22C55E",
-      "clinical_meaning": "Normal cholesterol levels are good for heart health.",
-      "possible_causes": [],
-      "recommended_actions": [],
-      "diet_recommendations": [],
-      "exercise_recommendations": []
-    },
-    {
-      "test_name": "Triglycerides",
-      "value": "222",
-      "unit": "mg/dl",
-      "reference_range": "< 150",
-      "status": "HIGH",
-      "severity_score": 67,
-      "status_color": "orange",
-      "hex_code": "#F97316",
-      "clinical_meaning": "High triglycerides can increase heart disease risk.",
-      "possible_causes": ["Obesity", "Lack of physical activity", "High-carb diet"],
-      "recommended_actions": ["Improve diet", "Increase physical activity"],
-      "diet_recommendations": ["Reduce sugar intake", "Increase omega-3 fatty acids"],
-      "exercise_recommendations": ["At least 150 minutes of moderate exercise per week"]
-    },
-    {
-      "test_name": "HDL Cholesterol",
-      "value": "32.7",
-      "unit": "mg/dl",
-      "reference_range": "35.2 - 79.5",
-      "status": "LOW",
-      "severity_score": 61,
-      "status_color": "orange",
-      "hex_code": "#F97316",
-      "clinical_meaning": "Low HDL is associated with increased heart disease risk.",
-      "possible_causes": ["Unhealthy diet", "Sedentary lifestyle", "Smoking"],
-      "recommended_actions": ["Increase healthy fats", "Regular aerobic activity"],
-      "diet_recommendations": ["Include avocados, nuts, and olive oil"],
-      "exercise_recommendations": ["30 min brisk walk daily", "Cycling or swimming"]
-    }
-  ]
-}
-''';
+// const String _dummyApiContent = '''
+// {
+//   "overall_health_score": 70,
+//   "overall_status": "Needs Attention",
+//   "doctor_consultation_recommended": true,
+//   "emergency_attention_needed": false,
+//   "key_findings": [
+//     "Uric Acid borderline high",
+//     "Triglycerides high",
+//     "Low HDL Cholesterol",
+//     "Globulin borderline high",
+//     "GFR mildly reduced"
+//   ],
+//   "parameters": [
+//     {
+//       "test_name": "Urea",
+//       "value": "19",
+//       "unit": "mg/dl",
+//       "reference_range": "13 - 43",
+//       "status": "NORMAL",
+//       "severity_score": 15,
+//       "status_color": "green",
+//       "hex_code": "#22C55E",
+//       "clinical_meaning": "Normal urea levels indicate good kidney function.",
+//       "possible_causes": [],
+//       "recommended_actions": [],
+//       "diet_recommendations": [],
+//       "exercise_recommendations": []
+//     },
+//     {
+//       "test_name": "Creatinine",
+//       "value": "1.12",
+//       "unit": "mg/dl",
+//       "reference_range": "0.7 - 1.3",
+//       "status": "NORMAL",
+//       "severity_score": 15,
+//       "status_color": "green",
+//       "hex_code": "#22C55E",
+//       "clinical_meaning": "Normal creatinine levels indicate healthy kidney function.",
+//       "possible_causes": [],
+//       "recommended_actions": [],
+//       "diet_recommendations": [],
+//       "exercise_recommendations": []
+//     },
+//     {
+//       "test_name": "Uric Acid",
+//       "value": "7",
+//       "unit": "mg/dl",
+//       "reference_range": "3.6 - 7.0",
+//       "status": "HIGH",
+//       "severity_score": 61,
+//       "status_color": "orange",
+//       "hex_code": "#F97316",
+//       "clinical_meaning": "Slightly elevated uric acid may indicate risk of gout.",
+//       "possible_causes": ["Diet high in purines", "Dehydration", "Kidney dysfunction"],
+//       "recommended_actions": ["Reduce purine-rich foods like red meat and seafood.", "Stay well-hydrated."],
+//       "diet_recommendations": ["Increase water intake", "Limit red meat and shellfish"],
+//       "exercise_recommendations": ["Walking", "Moderate aerobic exercise"]
+//     },
+//     {
+//       "test_name": "Estimated GFR",
+//       "value": "80",
+//       "unit": "mL/min/1.73 m2",
+//       "reference_range": "> 90",
+//       "status": "LOW",
+//       "severity_score": 41,
+//       "status_color": "orange",
+//       "hex_code": "#F97316",
+//       "clinical_meaning": "Mildly reduced kidney function.",
+//       "possible_causes": ["Chronic kidney disease", "Dehydration", "Age-related changes"],
+//       "recommended_actions": ["Follow up with more tests", "Monitor kidney function regularly"],
+//       "diet_recommendations": ["Eat a balanced diet", "Limit sodium intake"],
+//       "exercise_recommendations": ["Gentle activities like yoga", "Avoid excessive high-impact exercises"]
+//     },
+//     {
+//       "test_name": "Total Cholesterol",
+//       "value": "172",
+//       "unit": "mg/dl",
+//       "reference_range": "140 - 200",
+//       "status": "NORMAL",
+//       "severity_score": 15,
+//       "status_color": "green",
+//       "hex_code": "#22C55E",
+//       "clinical_meaning": "Normal cholesterol levels are good for heart health.",
+//       "possible_causes": [],
+//       "recommended_actions": [],
+//       "diet_recommendations": [],
+//       "exercise_recommendations": []
+//     },
+//     {
+//       "test_name": "Triglycerides",
+//       "value": "222",
+//       "unit": "mg/dl",
+//       "reference_range": "< 150",
+//       "status": "HIGH",
+//       "severity_score": 67,
+//       "status_color": "orange",
+//       "hex_code": "#F97316",
+//       "clinical_meaning": "High triglycerides can increase heart disease risk.",
+//       "possible_causes": ["Obesity", "Lack of physical activity", "High-carb diet"],
+//       "recommended_actions": ["Improve diet", "Increase physical activity"],
+//       "diet_recommendations": ["Reduce sugar intake", "Increase omega-3 fatty acids"],
+//       "exercise_recommendations": ["At least 150 minutes of moderate exercise per week"]
+//     },
+//     {
+//       "test_name": "HDL Cholesterol",
+//       "value": "32.7",
+//       "unit": "mg/dl",
+//       "reference_range": "35.2 - 79.5",
+//       "status": "LOW",
+//       "severity_score": 61,
+//       "status_color": "orange",
+//       "hex_code": "#F97316",
+//       "clinical_meaning": "Low HDL is associated with increased heart disease risk.",
+//       "possible_causes": ["Unhealthy diet", "Sedentary lifestyle", "Smoking"],
+//       "recommended_actions": ["Increase healthy fats", "Regular aerobic activity"],
+//       "diet_recommendations": ["Include avocados, nuts, and olive oil"],
+//       "exercise_recommendations": ["30 min brisk walk daily", "Cycling or swimming"]
+//     }
+//   ]
+// }
+// ''';
+
+const String _dummyApiContent = "{\"overall_health_score\":86,\"overall_status\":\"Good\",\"doctor_consultation_recommended\":true,\"urgent_medical_review_needed\":false,\"emergency_message\":\"\",\"key_findings\":[\"Your Iron is lower than normal (31.00 \\u00B5g/dL). Low iron levels may indicate iron deficiency.\",\"Your Transferrin Saturation is lower than normal (9.14 %). Low transferrin saturation may indicate iron deficiency.\",\"Your Lymphocytes is lower than normal (6.40 %). Low lymphocyte percentage may indicate immune suppression.\",\"Your Alkaline Phosphatase (ALP) is higher than normal (129.00 U/L). Elevated levels may indicate liver or bone issues.\",\"Your Bilirubin Direct is higher than normal (0.33 mg/dL). Elevated direct bilirubin may indicate liver issues.\",\"Your Amylase is higher than normal (125.00 U/L). Elevated amylase may indicate pancreatitis.\"],\"parser_learning\":{\"parameter_aliases\":[{\"standard_name\":\"Bilirubin Total\",\"aliases\":[\"Bilirubin Total\"]},{\"standard_name\":\"Alkaline Phosphatase\",\"aliases\":[\"Alkaline Phosphatase (ALP)\"]},{\"standard_name\":\"HbA1c\",\"aliases\":[\"HbA1c\"]},{\"standard_name\":\"Amylase\",\"aliases\":[\"Amylase\"]}],\"unit_conversions\":[],\"noise_patterns\":[\"Report Status\",\"Collected\",\"Reported\",\"Lab No.\",\"Ref By\",\"A/c Status Final\",\"Collected at\",\"Processed at\",\"Plot No.\",\"Test Report\",\"Note\",\"Interpretation\",\"Advise\",\"Comment\"],\"unknown_params\":[]},\"parameters\":[{\"test_name\":\"Creatinine\",\"value\":\"1.10\",\"unit\":\"mg/dL\",\"reference_range\":\"0.70 - 1.30\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal kidney function.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"GFR Estimated\",\"value\":\"86\",\"unit\":\"mL/min/1.73m2\",\"reference_range\":\"\\u003E59\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal kidney filtration rate.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Urea\",\"value\":\"29.00\",\"unit\":\"mg/dL\",\"reference_range\":\"13.00 - 43.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal urea levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Urea Nitrogen Blood\",\"value\":\"13.54\",\"unit\":\"mg/dL\",\"reference_range\":\"6.00 - 20.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal blood urea nitrogen levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Uric Acid\",\"value\":\"6.20\",\"unit\":\"mg/dL\",\"reference_range\":\"3.50 - 7.20\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal uric acid levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"AST (SGOT)\",\"value\":\"22.0\",\"unit\":\"U/L\",\"reference_range\":\"15.00 - 40.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal liver enzyme levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"ALT (SGPT)\",\"value\":\"25.0\",\"unit\":\"U/L\",\"reference_range\":\"10.00 - 49.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal liver enzyme levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"AST:ALT Ratio\",\"value\":\"0.88\",\"unit\":\"\",\"reference_range\":\"\\u003C1.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal liver function.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"GGTP\",\"value\":\"24.0\",\"unit\":\"U/L\",\"reference_range\":\"0 - 73\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal liver function.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Alkaline Phosphatase (ALP)\",\"value\":\"129.00\",\"unit\":\"U/L\",\"reference_range\":\"30.00 - 120.00\",\"status\":\"Above Average\",\"severity_score\":2,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Elevated levels may indicate liver or bone issues.\",\"recommended_actions\":[\"Consider further evaluation of liver function.\",\"Monitor for symptoms of liver disease.\",\"Consult a healthcare provider for further testing.\"],\"diet_recommendations\":[\"Eat balanced meals with adequate protein and vegetables\",\"Avoid processed foods and excess salt/sugar\",\"Stay hydrated \\u2014 8-10 glasses water daily\",\"Consult doctor for specific dietary guidance\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Bilirubin Total\",\"value\":\"0.99\",\"unit\":\"mg/dL\",\"reference_range\":\"0.30 - 1.20\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal bilirubin levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Bilirubin Direct\",\"value\":\"0.33\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C0.3\",\"status\":\"Above Average\",\"severity_score\":2,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Elevated direct bilirubin may indicate liver issues.\",\"recommended_actions\":[\"Consider further evaluation of liver function.\",\"Monitor for symptoms of liver disease.\",\"Consult a healthcare provider for further testing.\"],\"diet_recommendations\":[\"Eat balanced meals with adequate protein and vegetables\",\"Avoid processed foods and excess salt/sugar\",\"Stay hydrated \\u2014 8-10 glasses water daily\",\"Consult doctor for specific dietary guidance\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Bilirubin Indirect\",\"value\":\"0.66\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C1.10\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal indirect bilirubin levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Total Protein\",\"value\":\"7.00\",\"unit\":\"g/dL\",\"reference_range\":\"5.70 - 8.20\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal protein levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Albumin\",\"value\":\"4.57\",\"unit\":\"g/dL\",\"reference_range\":\"3.20 - 4.80\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal albumin levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Globulin(Calculated)\",\"value\":\"2.43\",\"unit\":\"gm/dL\",\"reference_range\":\"2.0 - 3.5\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal globulin levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"A : G Ratio\",\"value\":\"1.88\",\"unit\":\"\",\"reference_range\":\"0.90 - 2.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal albumin to globulin ratio.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Calcium, Total\",\"value\":\"9.30\",\"unit\":\"mg/dL\",\"reference_range\":\"8.70 - 10.40\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal calcium levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Phosphorus\",\"value\":\"2.80\",\"unit\":\"mg/dL\",\"reference_range\":\"2.40 - 5.10\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal phosphorus levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Sodium\",\"value\":\"140.00\",\"unit\":\"mEq/L\",\"reference_range\":\"136.00 - 145.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal sodium levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Potassium\",\"value\":\"4.53\",\"unit\":\"mEq/L\",\"reference_range\":\"3.50 - 5.10\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal potassium levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Chloride\",\"value\":\"104.00\",\"unit\":\"mEq/L\",\"reference_range\":\"98.00 - 107.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal chloride levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Cholesterol, Total\",\"value\":\"158.00\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C200.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal total cholesterol levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Triglycerides\",\"value\":\"102.00\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C150.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal triglyceride levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"HDL Cholesterol\",\"value\":\"45.30\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003E40.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal HDL cholesterol levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"LDL Cholesterol, Calculated\",\"value\":\"92.30\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C100.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal LDL cholesterol levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"VLDL Cholesterol,Calculated\",\"value\":\"20.40\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C30.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal VLDL cholesterol levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Non-HDL Cholesterol\",\"value\":\"113\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C130\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal non-HDL cholesterol levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Glucose Fasting\",\"value\":\"83.00\",\"unit\":\"mg/dL\",\"reference_range\":\"70 - 100\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal fasting glucose levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Vitamin B12; Cyanocobalamin\",\"value\":\"303.00\",\"unit\":\"pg/mL\",\"reference_range\":\"211.00 - 911.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal vitamin B12 levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Vitamin D, 25 Hydroxy\",\"value\":\"94.88\",\"unit\":\"nmol/L\",\"reference_range\":\"75.00 - 250.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal vitamin D levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"T3, Total\",\"value\":\"1.56\",\"unit\":\"ng/mL\",\"reference_range\":\"0.60 - 1.81\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal T3 levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"T4, Total\",\"value\":\"8.30\",\"unit\":\"\\u00B5g/dL\",\"reference_range\":\"4.50 - 11.60\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal T4 levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"TSH\",\"value\":\"0.87\",\"unit\":\"\\u00B5IU/mL\",\"reference_range\":\"0.550 - 4.780\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal TSH levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Amylase\",\"value\":\"125.00\",\"unit\":\"U/L\",\"reference_range\":\"30.00 - 118.00\",\"status\":\"Above Average\",\"severity_score\":2,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Elevated amylase may indicate pancreatitis.\",\"recommended_actions\":[\"Consider further evaluation of pancreatic function.\",\"Monitor for symptoms of pancreatitis.\",\"Consult a healthcare provider for further testing.\"],\"diet_recommendations\":[\"Eat balanced meals with adequate protein and vegetables\",\"Avoid processed foods and excess salt/sugar\",\"Stay hydrated \\u2014 8-10 glasses water daily\",\"Consult doctor for specific dietary guidance\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"HbA1c\",\"value\":\"5.7\",\"unit\":\"%\",\"reference_range\":\"4.00 - 5.60\",\"status\":\"Above Average\",\"severity_score\":2,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Borderline high HbA1c suggests risk for diabetes.\",\"recommended_actions\":[\"Consider lifestyle changes to improve blood sugar control.\",\"Monitor blood glucose levels regularly.\",\"Consult a healthcare provider for further evaluation.\"],\"diet_recommendations\":[\"Eat iron-rich foods: spinach, lentils, beans, red meat\",\"Include Vitamin C foods to improve iron absorption\",\"Avoid tea/coffee with meals \\u2014 reduces iron absorption\",\"Include folate: green vegetables, eggs, dairy\"],\"exercise_recommendations\":[\"Light walking only \\u2014 avoid strenuous exercise until values improve\",\"Rest adequately \\u2014 fatigue is common\",\"Gentle Pranayama (breathing exercises)\",\"Avoid high-intensity workouts\"]},{\"test_name\":\"Iron\",\"value\":\"31.00\",\"unit\":\"\\u00B5g/dL\",\"reference_range\":\"65.00 - 175.00\",\"status\":\"Below Average\",\"severity_score\":4,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Low iron levels may indicate iron deficiency.\",\"recommended_actions\":[\"Increase dietary iron intake through foods like red meat, beans, and spinach.\",\"Consider iron supplements after consulting a healthcare provider.\",\"Monitor for symptoms of anemia.\"],\"diet_recommendations\":[\"Include iron-rich foods in your diet.\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Transferrin Saturation\",\"value\":\"9.14\",\"unit\":\"%\",\"reference_range\":\"20.00 - 50.00\",\"status\":\"Below Average\",\"severity_score\":4,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Low transferrin saturation may indicate iron deficiency.\",\"recommended_actions\":[\"Increase dietary iron intake through foods like red meat, beans, and spinach.\",\"Consider iron supplements after consulting a healthcare provider.\",\"Monitor for symptoms of anemia.\"],\"diet_recommendations\":[\"Include iron-rich foods in your diet.\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Total Iron Binding Capacity (TIBC)\",\"value\":\"339.17\",\"unit\":\"\\u00B5g/dL\",\"reference_range\":\"250 - 425\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal TIBC levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Hemoglobin\",\"value\":\"13.10\",\"unit\":\"g/dL\",\"reference_range\":\"13.00 - 17.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal hemoglobin levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"RBC Count\",\"value\":\"4.83\",\"unit\":\"mill/mm3\",\"reference_range\":\"4.50 - 5.50\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal red blood cell count.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"MCV\",\"value\":\"83.60\",\"unit\":\"fL\",\"reference_range\":\"83.00 - 101.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal mean corpuscular volume.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"MCH\",\"value\":\"27.10\",\"unit\":\"pg\",\"reference_range\":\"27.00 - 32.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal mean corpuscular hemoglobin.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"MCHC\",\"value\":\"32.50\",\"unit\":\"g/dL\",\"reference_range\":\"31.50 - 34.50\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal mean corpuscular hemoglobin concentration.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Total Leukocyte Count (TLC)\",\"value\":\"8.40\",\"unit\":\"thou/mm3\",\"reference_range\":\"4.00 - 10.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal white blood cell count.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Segmented Neutrophils\",\"value\":\"86.40\",\"unit\":\"%\",\"reference_range\":\"40.00 - 80.00\",\"status\":\"Above Average\",\"severity_score\":2,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"High neutrophil percentage may indicate infection or inflammation.\",\"recommended_actions\":[\"Monitor for signs of infection.\",\"Consult a healthcare provider for further evaluation.\",\"Consider additional tests to identify the cause.\"],\"diet_recommendations\":[\"Eat immunity-boosting foods: citrus fruits, garlic, ginger\",\"Include zinc-rich foods: nuts, seeds, legumes\",\"Stay well hydrated\",\"Avoid processed and junk food\"],\"exercise_recommendations\":[\"Light exercise only \\u2014 avoid overexertion\",\"Walking 20-30 min daily is sufficient\",\"Avoid crowded places if immunity is low\",\"Rest and sleep 7-8 hours\"]},{\"test_name\":\"Lymphocytes\",\"value\":\"6.40\",\"unit\":\"%\",\"reference_range\":\"20.00 - 40.00\",\"status\":\"Below Average\",\"severity_score\":4,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Low lymphocyte percentage may indicate immune suppression.\",\"recommended_actions\":[\"Consult a healthcare provider for further evaluation.\",\"Monitor for signs of infection.\",\"Consider additional tests to identify the cause.\"],\"diet_recommendations\":[\"Eat immunity-boosting foods: citrus fruits, garlic, ginger\",\"Include zinc-rich foods: nuts, seeds, legumes\",\"Stay well hydrated\",\"Avoid processed and junk food\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Monocytes\",\"value\":\"6.60\",\"unit\":\"%\",\"reference_range\":\"2.00 - 10.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal monocyte percentage.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Eosinophils\",\"value\":\"0.30\",\"unit\":\"%\",\"reference_range\":\"1.00 - 6.00\",\"status\":\"Below Average\",\"severity_score\":2,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Low eosinophil percentage may indicate immune suppression.\",\"recommended_actions\":[\"Consult a healthcare provider for further evaluation.\",\"Monitor for signs of infection.\",\"Consider additional tests to identify the cause.\"],\"diet_recommendations\":[\"Eat balanced meals with adequate protein and vegetables\",\"Avoid processed foods and excess salt/sugar\",\"Stay hydrated \\u2014 8-10 glasses water daily\",\"Consult doctor for specific dietary guidance\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Neutrophils\",\"value\":\"7.26\",\"unit\":\"thou/mm3\",\"reference_range\":\"2.00 - 7.00\",\"status\":\"Above Average\",\"severity_score\":2,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"High neutrophil count may indicate infection or inflammation.\",\"recommended_actions\":[\"Monitor for signs of infection.\",\"Consult a healthcare provider for further evaluation.\",\"Consider additional tests to identify the cause.\"],\"diet_recommendations\":[\"Eat immunity-boosting foods: citrus fruits, garlic, ginger\",\"Include zinc-rich foods: nuts, seeds, legumes\",\"Stay well hydrated\",\"Avoid processed and junk food\"],\"exercise_recommendations\":[\"Light exercise only \\u2014 avoid overexertion\",\"Walking 20-30 min daily is sufficient\",\"Avoid crowded places if immunity is low\",\"Rest and sleep 7-8 hours\"]},{\"test_name\":\"Platelet Count\",\"value\":\"197\",\"unit\":\"thou/mm3\",\"reference_range\":\"150.00 - 410.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal platelet count.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Mean Platelet Volume\",\"value\":\"12.4\",\"unit\":\"fL\",\"reference_range\":\"6.5 - 12.0\",\"status\":\"Above Average\",\"severity_score\":2,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Elevated mean platelet volume may indicate platelet activation.\",\"recommended_actions\":[\"Monitor for signs of clotting disorders.\",\"Consult a healthcare provider for further evaluation.\",\"Consider additional tests to identify the cause.\"],\"diet_recommendations\":[\"Include pomegranate, beetroot, spinach in diet\",\"Papaya and papaya leaf known to support platelets\",\"Avoid alcohol completely\",\"Stay hydrated\"],\"exercise_recommendations\":[\"Avoid contact sports or activities with injury risk\",\"Light walking is fine\",\"No heavy lifting or strenuous activity\"]},{\"test_name\":\"E.S.R.\",\"value\":\"11\",\"unit\":\"mm/hr\",\"reference_range\":\"0 - 15\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal erythrocyte sedimentation rate.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"PSA, TOTAL\",\"value\":\"0.200\",\"unit\":\"ng/mL\",\"reference_range\":\"\\u003C4.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal prostate-specific antigen levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]}],\"top_concerns\":[{\"rank\":1,\"parameter\":\"Alkaline Phosphatase (ALP)\",\"message\":\"Elevated levels may indicate liver or bone issues.\",\"hex_code\":\"#F97316\"},{\"rank\":2,\"parameter\":\"HbA1c\",\"message\":\"Borderline high HbA1c suggests risk for diabetes.\",\"hex_code\":\"#F97316\"},{\"rank\":3,\"parameter\":\"Amylase\",\"message\":\"Elevated amylase may indicate pancreatitis.\",\"hex_code\":\"#F97316\"},{\"rank\":4,\"parameter\":\"Iron\",\"message\":\"Low iron levels may indicate iron deficiency.\",\"hex_code\":\"#EF4444\"},{\"rank\":5,\"parameter\":\"Transferrin Saturation\",\"message\":\"Low transferrin saturation may indicate iron deficiency.\",\"hex_code\":\"#EF4444\"}],\"overall_diet_plan\":[\"Include iron-rich foods in your diet.\"],\"overall_exercise_plan\":[],\"ai_disclaimer\":\"This is AI-generated wellness guidance only. It is not a medical diagnosis. Always consult a qualified doctor before making health decisions.\"}"
+;
+
 
 // ─────────────────────────────────────────────
 // DATA MODELS
