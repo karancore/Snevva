@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
@@ -29,6 +30,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void initState() {
     super.initState();
     otpController.isForgotPasswordScreen.value = false;
+
+    final googleAuth = Get.find<GoogleAuthService>();
+    ever(googleAuth.user, (account) {
+      if (account == null) return;
+      final url = account.photoUrl;
+      if (url != null && url.isNotEmpty && mounted) {
+        precacheImage(CachedNetworkImageProvider(url), context);
+      }
+    });
   }
 
   @override
@@ -54,7 +64,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
           Get.to(
             () => VerifyWithOtpScreen(
               emailOrPasswordText: input,
-              appBarText: AppLocalizations.of(context)!.verifyEmailAddress,
               responseOtp: result,
               isForgotPasswordScreen: false,
             ),
@@ -69,7 +78,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
           Get.to(
             () => VerifyWithOtpScreen(
               emailOrPasswordText: input,
-              appBarText: AppLocalizations.of(context)!.verifyPhoneNumber,
               responseOtp: result,
               isForgotPasswordScreen: false,
             ),
@@ -78,8 +86,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
       } else {
         CustomSnackbar.showError(
-          title: 'Error',
-          message: 'Please Provide Correct Email or Phone Number',
+          title: 'Oops!',
+          message: 'That doesn’t look right. Please check your email or phone number and try again.',
           context: context,
         );
       }
@@ -126,13 +134,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           : () async {
                             final input =
                                 emailOrPasswordTextController.text.trim();
-                            setState(() {
-                              isLoading = true;
-                            });
+                            if (mounted) {
+                              setState(() {
+                                isLoading = true;
+                              });
+                            }
                             await onButtonClick(input);
-                            setState(() {
-                              isLoading = false;
-                            });
+                            if (mounted) {
+                              setState(() {
+                                isLoading = false;
+                              });
+                            }
                           },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
@@ -143,19 +155,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child:
-                      isLoading
-                          ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            ),
-                          )
-                          : Text(AppLocalizations.of(context)!.nextText),
+                  child: AppLoadingButtonChild(
+                    isLoading: isLoading,
+                    loaderSize: 24,
+                    child: Text(AppLocalizations.of(context)!.nextText),
+                  ),
                 ),
               ),
 
@@ -202,7 +206,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                         try {
                           final googleAuth = Get.find<GoogleAuthService>();
-                          await googleAuth.init(context);
+                          await googleAuth.signIn();
                           // await googleAuth.signIn();
                         } finally {
                           if (mounted) {

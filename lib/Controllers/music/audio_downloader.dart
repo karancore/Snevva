@@ -1,18 +1,31 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../consts/consts.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AudioDownloader
+//
+// Storage strategy (Play policy compliant):
+//   • Files are stored in app-private internal storage:
+//       getApplicationSupportDirectory()/music/<snevva_*.mp3>
+//   • This directory is sandboxed to the app — NO external-storage permissions
+//     (READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, MANAGE_EXTERNAL_STORAGE)
+//     are requested or required on any Android API level.
+//   • The previous implementation wrote to /storage/emulated/0/Download, which
+//     required MANAGE_EXTERNAL_STORAGE on API 30+ — rejected by Google Play policy.
+// ─────────────────────────────────────────────────────────────────────────────
 
 class AudioDownloader {
   static const String _downloadRegistryKey = 'snevva_downloaded_music_paths';
   static const String _downloadPathByTrackKey =
       'snevva_downloaded_music_path_by_track';
   static const String _snevvaFilePrefix = 'snevva_';
+
+  // ── Public API ──────────────────────────────────────────────────────────────
 
   static Future<String?> downloadAudio({
     required String url,
@@ -24,10 +37,10 @@ class AudioDownloader {
       debugPrint("🔗 URL: $url");
       debugPrint("📄 File name: $fileName");
 
-      final Directory downloadsDir = await _resolveDownloadDirectory();
+      final Directory musicDir = await _resolveMusicDirectory();
       final String safeFileName = _buildSnevvaFileName(fileName);
       final String filePath = await _buildUniqueFilePath(
-        downloadsDir: downloadsDir,
+        musicDir: musicDir,
         fileName: safeFileName,
       );
       debugPrint("📁 Saving to: $filePath");
@@ -56,70 +69,6 @@ class AudioDownloader {
       debugPrint("📍 Stacktrace: $s");
       return null;
     }
-  }
-
-  static Future<Directory> _resolveDownloadDirectory() async {
-    if (!Platform.isAndroid) {
-      return getApplicationDocumentsDirectory();
-    }
-
-    await _requestAndroidStorageAccess();
-
-    final Directory downloadDir = Directory('/storage/emulated/0/Download');
-    if (!await downloadDir.exists()) {
-      await downloadDir.create(recursive: true);
-    }
-    return downloadDir;
-  }
-
-  static Future<void> _requestAndroidStorageAccess() async {
-    final androidInfo = await DeviceInfoPlugin().androidInfo;
-    final int sdkInt = androidInfo.version.sdkInt;
-
-    debugPrint("📱 Android SDK: $sdkInt");
-
-    if (sdkInt >= 30) {
-      final PermissionStatus manageStatus =
-          await Permission.manageExternalStorage.request();
-      debugPrint("🔐 Manage storage permission: $manageStatus");
-
-      if (!manageStatus.isGranted) {
-        throw const FileSystemException('All files access permission denied');
-      }
-      return;
-    }
-
-    final PermissionStatus storageStatus = await Permission.storage.request();
-    debugPrint("🔐 Storage permission: $storageStatus");
-
-    if (!storageStatus.isGranted) {
-      throw const FileSystemException('Storage permission denied');
-    }
-  }
-
-  static String _sanitizeFileName(String name) {
-    final String cleaned =
-        name
-            .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
-            .replaceAll(RegExp(r'\s+'), ' ')
-            .trim();
-
-    return cleaned.isEmpty ? 'snevva_track' : cleaned;
-  }
-
-  static Future<String> _buildUniqueFilePath({
-    required Directory downloadsDir,
-    required String fileName,
-  }) async {
-    String candidate = '${downloadsDir.path}/$fileName.mp3';
-    int index = 1;
-
-    while (await File(candidate).exists()) {
-      candidate = '${downloadsDir.path}/$fileName ($index).mp3';
-      index++;
-    }
-
-    return candidate;
   }
 
   static Future<String?> getDownloadedPathForTrack({
@@ -173,9 +122,10 @@ class AudioDownloader {
     final Set<String> candidatePaths =
         prefs.getStringList(_downloadRegistryKey)?.toSet() ?? <String>{};
 
-    final Directory downloadsDir = await _resolveDownloadDirectory();
-    if (await downloadsDir.exists()) {
-      await for (final entity in downloadsDir.list(followLinks: false)) {
+    // Also scan the music directory to catch any files not yet in prefs
+    final Directory musicDir = await _resolveMusicDirectory();
+    if (await musicDir.exists()) {
+      await for (final entity in musicDir.list(followLinks: false)) {
         if (entity is! File) continue;
 
         final String name = entity.path.split('/').last.toLowerCase();
@@ -227,6 +177,45 @@ class AudioDownloader {
       title = title.substring(0, title.length - 4);
     }
     return title.replaceAll('_', ' ');
+  }
+
+  // ── Private helpers ─────────────────────────────────────────────────────────
+
+  /// Returns the app-private music directory.
+  /// On Android: <filesDir>/music/  (no storage permission required)
+  /// On iOS/desktop: <ApplicationSupportDirectory>/music/
+  static Future<Directory> _resolveMusicDirectory() async {
+    final appSupport = await getApplicationSupportDirectory();
+    final musicDir = Directory('${appSupport.path}/music');
+    if (!await musicDir.exists()) {
+      await musicDir.create(recursive: true);
+    }
+    return musicDir;
+  }
+
+  static String _sanitizeFileName(String name) {
+    final String cleaned =
+        name
+            .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
+            .replaceAll(RegExp(r'\s+'), ' ')
+            .trim();
+
+    return cleaned.isEmpty ? 'snevva_track' : cleaned;
+  }
+
+  static Future<String> _buildUniqueFilePath({
+    required Directory musicDir,
+    required String fileName,
+  }) async {
+    String candidate = '${musicDir.path}/$fileName.mp3';
+    int index = 1;
+
+    while (await File(candidate).exists()) {
+      candidate = '${musicDir.path}/$fileName ($index).mp3';
+      index++;
+    }
+
+    return candidate;
   }
 
   static String _buildSnevvaFileName(String rawName) {

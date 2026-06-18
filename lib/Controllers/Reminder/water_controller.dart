@@ -1,9 +1,7 @@
 import 'dart:async';
-
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
-import 'package:snevva/services/reminder/native_alarm_bridge.dart';
 import 'package:intl/intl.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/common/global_variables.dart';
@@ -11,6 +9,7 @@ import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
 import 'package:snevva/models/reminder_schedule_metadata.dart';
 import 'package:snevva/services/hive_service.dart';
+import 'package:snevva/services/reminder/native_alarm_bridge.dart';
 import 'package:snevva/services/reminder/reminder_alarm_transaction.dart';
 import 'package:snevva/services/reminder/reminder_schedule_resolver.dart';
 
@@ -288,11 +287,11 @@ class WaterController extends GetxController {
       await reminderController.saveReminderList(waterList, "water_list");
       await reminderController.loadAllReminderLists();
       unawaited(
-        reminderController.addRemindertoAPI(transaction.reminder, context).catchError(
-          (e) {
-            debugPrint('⚠️ Background water add API failed: $e');
-          },
-        ),
+        reminderController
+            .addRemindertoAPI(transaction.reminder, context)
+            .catchError((e) {
+              debugPrint('⚠️ Background water add API failed: $e');
+            }),
       );
 
       CustomSnackbar().showReminderBar(context);
@@ -502,11 +501,11 @@ class WaterController extends GetxController {
       await reminderController.loadAllReminderLists();
       if (context != null) {
         unawaited(
-          reminderController.addRemindertoAPI(transaction.reminder, context).catchError(
-            (e) {
-              debugPrint('⚠️ Background water interval add API failed: $e');
-            },
-          ),
+          reminderController
+              .addRemindertoAPI(transaction.reminder, context)
+              .catchError((e) {
+                debugPrint('⚠️ Background water interval add API failed: $e');
+              }),
         );
         CustomSnackbar().showReminderBar(context);
       }
@@ -548,14 +547,17 @@ class WaterController extends GetxController {
 
       ReminderAlarmTransactionResult? transaction;
       try {
-        transaction = await reminderController.scheduleReminderLocally(waterData);
+        transaction = await reminderController.scheduleReminderLocally(
+          waterData,
+        );
         final updatedModel = _buildWaterModel(
           transaction.reminder,
           transaction,
         );
 
         waterList[index] = updatedModel;
-        savedTimes.value = int.tryParse(updatedModel.timesPerDay) ?? savedTimes.value;
+        savedTimes.value =
+            int.tryParse(updatedModel.timesPerDay) ?? savedTimes.value;
 
         await reminderController.saveReminderList(waterList, "water_list");
 
@@ -566,23 +568,23 @@ class WaterController extends GetxController {
           ...transaction.reminder.scheduleMetadata.alarmIds,
           ...transaction.reminder.scheduleMetadata.preAlarmIds,
         });
-        for (final alarmId in obsoleteIds) {
-          await Alarm.stop(alarmId);
-        }
+        await reminderController.stopReminderAlarmIds(obsoleteIds);
 
         await reminderController.loadAllReminderLists();
         CustomSnackbar().showReminderBar(context);
         Get.back(result: true);
         unawaited(
-          reminderController.updateReminder(transaction.reminder, context).catchError(
-            (e) {
-              debugPrint('⚠️ Background water update API failed: $e');
-            },
-          ),
+          reminderController
+              .updateReminder(transaction.reminder, context)
+              .catchError((e) {
+                debugPrint('⚠️ Background water update API failed: $e');
+              }),
         );
       } catch (e) {
         if (transaction != null) {
-          await reminderController.rollbackReminderSchedule(transaction.reminder);
+          await reminderController.rollbackReminderSchedule(
+            transaction.reminder,
+          );
         }
         rethrow;
       }
@@ -623,13 +625,19 @@ class WaterController extends GetxController {
                             int.tryParse(timesPerDayController.text.trim()) ??
                             0)
                         .toString(),
-                list: generateTimesBetween(
-                  startTime: startWaterTimeController.text.trim(),
-                  endTime: endWaterTimeController.text.trim(),
-                  times:
-                      timesOverride ??
-                      (int.tryParse(timesPerDayController.text.trim()) ?? 0),
-                ).map((dateTime) => DateFormat('HH:mm').format(dateTime)).toList(),
+                list:
+                    generateTimesBetween(
+                          startTime: startWaterTimeController.text.trim(),
+                          endTime: endWaterTimeController.text.trim(),
+                          times:
+                              timesOverride ??
+                              (int.tryParse(
+                                    timesPerDayController.text.trim(),
+                                  ) ??
+                                  0),
+                        )
+                        .map((dateTime) => DateFormat('HH:mm').format(dateTime))
+                        .toList(),
               ),
             );
 
@@ -657,7 +665,8 @@ class WaterController extends GetxController {
     final type = reminder.customReminder.type ?? Option.times;
     return WaterReminderModel(
       id: reminder.id,
-      title: reminder.title.trim().isNotEmpty ? reminder.title : 'WATER REMINDER',
+      title:
+          reminder.title.trim().isNotEmpty ? reminder.title : 'WATER REMINDER',
       category: ReminderCategory.water.toString(),
       type: type,
       alarms: transaction.mainAlarms,
@@ -776,6 +785,10 @@ class WaterController extends GetxController {
     debugPrint("🗑️ deleteWaterReminder called → id=$reminderId");
     waterList.value = await loadWaterReminderList("water_list");
 
+    // Collect every native alarm ID that belongs to this reminder so we can
+    // cancel them from AlarmManager AND remove them from SharedPrefs.
+    final nativeIdsToCancel = <int>{};
+
     final alarms = await Alarm.getAlarms();
 
     for (final alarm in alarms) {
@@ -787,6 +800,7 @@ class WaterController extends GetxController {
         if (_isWaterCategory(category) && groupId == reminderId.toString()) {
           debugPrint("⏹️ Stopping alarm ${alarm.id}");
           await Alarm.stop(alarm.id);
+          nativeIdsToCancel.add(alarm.id);
         }
       } catch (e) {
         debugPrint("❌ Payload parse error: $e");
@@ -795,8 +809,30 @@ class WaterController extends GetxController {
 
     final index = waterList.indexWhere((e) => e.id == reminderId);
     if (index != -1) {
+      final model = waterList[index];
+
+      // Also collect IDs stored inside the model (covers the native-only path
+      // where Alarm.getAlarms() may return nothing because flutter_alarm is
+      // bypassed but the AlarmManager entry is still live).
+      for (final a in model.alarms) {
+        nativeIdsToCancel.add(a.id);
+      }
+      nativeIdsToCancel.addAll(model.scheduleMetadata.alarmIds);
+      nativeIdsToCancel.addAll(model.scheduleMetadata.preAlarmIds);
+
       waterList.removeAt(index);
       debugPrint("✅ Water reminder removed from list");
+    }
+
+    // ✅ KEY FIX: cancel native AlarmManager entries AND remove from SharedPrefs
+    // so BootReceiver cannot re-arm them after a reboot.
+    if (nativeIdsToCancel.isNotEmpty) {
+      debugPrint(
+        "🗑️ Cancelling ${nativeIdsToCancel.length} native alarms: $nativeIdsToCancel",
+      );
+      await NativeAlarmBridge.cancelAlarms(
+        nativeIdsToCancel.toList(growable: false),
+      );
     }
 
     await reminderController.saveReminderList(waterList, "water_list");
@@ -809,7 +845,6 @@ class WaterController extends GetxController {
   }
 
   void resetControllers() {
-    everyHourController.clear();
     timesPerDayController.clear();
 
     startWaterTimeController.clear();

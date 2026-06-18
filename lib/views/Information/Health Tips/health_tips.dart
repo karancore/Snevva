@@ -1,11 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:snevva/Controllers/HealthTips/healthtips_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
+import 'package:snevva/models/common_tips_response.dart';
 import 'package:snevva/views/Information/Health%20Tips/Nutrition_tips.dart/nutrition_tips.dart';
-
-import '../../../common/loader.dart';
 
 class HealthTipsScreen extends StatefulWidget {
   @override
@@ -35,7 +36,7 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
         final count = controller.randomTips.length;
         final numRows = (count / 2).ceil();
         if (controller.isLoading.value) {
-          return const Loader();
+          return const AppLoader();
         }
 
         if (controller.hasError.value) {
@@ -87,23 +88,13 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
                       height: 200,
                       width: double.infinity,
                       fit: BoxFit.cover,
+
                       errorWidget:
-                          (context, error, stackTrace) => Container(
-                            color: Colors.grey[200],
-                            height: 200,
-                            child: const Center(
-                              child: Icon(Icons.broken_image, size: 40),
-                            ),
+                          (context, url, error) =>
+                          Image.asset(
+                            healthTipPlaceholder,
+                            fit: BoxFit.fill,
                           ),
-                      // loadingBuilder: (context, child, progress) {
-                      //   if (progress == null) return child;
-                      //   return Container(
-                      //     height: 200,
-                      //     color: Colors.grey[100],
-                      //     child: const Center(
-                      //         child: CircularProgressIndicator()),
-                      //   );
-                      //},
                     ),
                   ),
                 ),
@@ -172,8 +163,13 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
                                       title: firstTip["Title"] ?? "",
                                       onButtonTap:
                                           () => Get.to(
-                                            () => NutritionTipsPage(),
-                                            arguments: firstTip,
+                                                () =>
+                                                NutritionTipsPage(
+                                                  commonTip: CommonTip.fromJson(
+                                                    firstTip,
+                                                  ),
+                                                  placeHolder: healthTipPlaceholder,
+                                                ),
                                           ),
                                       isDarkMode: isDarkMode,
                                     )
@@ -192,8 +188,13 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
                                       title: secondTip["Title"] ?? "",
                                       onButtonTap:
                                           () => Get.to(
-                                            () => NutritionTipsPage(),
-                                            arguments: secondTip,
+                                                () =>
+                                                NutritionTipsPage(
+                                                  commonTip: CommonTip.fromJson(
+                                                    secondTip,
+                                                  ),
+                                                  placeHolder: healthTipPlaceholder,
+                                                ),
                                           ),
                                       isDarkMode: isDarkMode,
                                     )
@@ -209,7 +210,7 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
               if (controller.isLoadingMore.value)
                 const Padding(
                   padding: EdgeInsets.only(bottom: 16),
-                  child: Center(child: CircularProgressIndicator()),
+                  child: AppLoader(size: 36),
                 ),
               const SizedBox(height: 20),
             ],
@@ -236,25 +237,14 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
         children: [
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: Image.network(
-              image,
+            child: CachedNetworkImage(
+              imageUrl: image,
               height: 120,
               width: double.infinity,
               fit: BoxFit.cover,
-              errorBuilder:
-                  (context, error, stackTrace) => Container(
-                    height: 120,
-                    color: Colors.grey[300],
-                    child: const Center(child: Icon(Icons.broken_image)),
-                  ),
-              loadingBuilder: (context, child, progress) {
-                if (progress == null) return child;
-                return Container(
-                  height: 120,
-                  color: Colors.grey[200],
-                  child: const Center(child: CircularProgressIndicator()),
-                );
-              },
+
+              errorWidget: (context, url, error) =>
+                  Image.asset(healthTipPlaceholder, fit: BoxFit.fill,),
             ),
           ),
           Padding(
@@ -286,15 +276,43 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryColor,
+                  minimumSize: const Size(75, 18),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
-                  padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 0.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                 ),
                 onPressed: onButtonTap,
-                child: const Text(
-                  "Know More",
-                  style: TextStyle(color: Colors.white, fontSize: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+
+                  children: [
+                    const Text(
+                      "Know More",
+                      style: TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                    const SizedBox(width: 4),
+                    SizedBox(
+                      height: 14,
+                      width: 14,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDarkMode ? darkGray.withOpacity(0.9) : white,
+                        ),
+                        child: Center(
+                          child: Transform.rotate(
+                            angle: 135 * math.pi / 180,
+                            child: Icon(Icons.arrow_back, size: 10),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

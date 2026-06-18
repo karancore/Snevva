@@ -5,7 +5,7 @@ class CustomOutlinedButton extends StatelessWidget {
     super.key,
     required this.width,
     this.backgroundColor = white,
-
+    this.borderRadius = 8,
     required this.isDarkMode,
     required this.buttonName,
     required this.onTap,
@@ -17,6 +17,7 @@ class CustomOutlinedButton extends StatelessWidget {
   final String buttonName;
   final VoidCallback? onTap; // <- allow null to disable button
   final bool isDarkMode;
+  final double? borderRadius;
   final Color? backgroundColor;
   final FontWeight? fontWeight;
   final bool? isWhiteReq;
@@ -28,20 +29,27 @@ class CustomOutlinedButton extends StatelessWidget {
     return Container(
       height: 50,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(borderRadius ?? 8),
         color: backgroundColor,
       ),
+
       child: OutlinedButton(
         onPressed: onTap,
+
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: Colors.transparent),
+          side: const BorderSide(color: Colors.transparent),
+
           fixedSize: Size(width, 40),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(borderRadius ?? 8),
+          ),
+
           padding: EdgeInsets.zero,
         ),
+
         child: Text(
           buttonName,
-
           style: TextStyle(
             fontSize: 16,
             color: isWhiteReq! ? AppColors.primaryColor : white,

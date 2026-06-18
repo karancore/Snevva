@@ -2,7 +2,7 @@ import 'package:modern_form_line_awesome_icons/modern_form_line_awesome_icons.da
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
-import 'package:snevva/views/Reminder/reminder_wrapper.dart';
+import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
 import 'package:snevva/views/WomenHealth/women_health_history.dart';
 import 'package:snevva/widgets/Hydration/floating_button_bar.dart';
 
@@ -217,7 +217,8 @@ class _WomenHealthScreenState extends State<WomenHealthScreen> {
                           return WomenHealthQuotesWidget(
                             title: tip.title,
                             shortDescription: tip.shortDescription,
-                            imageUrl: tip.thumbnailMedia?.cdnUrl ?? '',
+                            imageUrl:
+                                tip.thumbnailMedia?.cdnUrl ?? placeHolderImage,
                           );
                         },
                       ),
@@ -230,11 +231,7 @@ class _WomenHealthScreenState extends State<WomenHealthScreen> {
                       womenController.isTipsLoadingMore.value
                           ? const Padding(
                             padding: EdgeInsets.only(top: 12),
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                color: AppColors.primaryColor,
-                              ),
-                            ),
+                            child: AppLoader(size: 36),
                           )
                           : const SizedBox.shrink(),
                 ),
@@ -253,7 +250,7 @@ class _WomenHealthScreenState extends State<WomenHealthScreen> {
                 child: FloatingButtonBar(
                   onStatBtnTap: () => Get.to(() => WomenHealthHistory()),
                   onReminderBtnTap: () {
-                    Get.to(() => ReminderScreenWrapper());
+                    Get.to(() => MoodTrackerScreen());
                   },
                   onAddBtnTap: () async {
                     DateTime now = DateTime.now();
@@ -297,6 +294,7 @@ class _WomenHealthScreenState extends State<WomenHealthScreen> {
                     }
                   },
                   onAddBtnLongTap: () {},
+                  isMood: true,
                 ),
               ),
             ),

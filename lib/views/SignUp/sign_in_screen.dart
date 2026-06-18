@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/common/custom_snackbar.dart';
@@ -5,6 +6,7 @@ import 'package:snevva/consts/consts.dart';
 import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/views/SignUp/forgot_password.dart';
 
+import '../../services/google_auth.dart';
 import '../../widgets/SignInScreens/sign_in_footer_widget.dart';
 import 'create_new_profile.dart';
 
@@ -41,6 +43,15 @@ class _SignInScreenState extends State<SignInScreen> {
     super.initState();
     userEmailOrPhoneField = TextEditingController();
     userPasswordField = TextEditingController();
+
+    final googleAuth = Get.find<GoogleAuthService>();
+    ever(googleAuth.user, (account) {
+      if (account == null) return;
+      final url = account.photoUrl;
+      if (url != null && url.isNotEmpty && mounted) {
+        precacheImage(CachedNetworkImageProvider(url), context);
+      }
+    });
   }
 
   @override
@@ -55,8 +66,19 @@ class _SignInScreenState extends State<SignInScreen> {
     CustomSnackbar.showError(context: context, title: "", message: message);
   }
 
+
   Future<void> onSignInButtonClick(BuildContext context) async {
     if (isLoading) return;
+
+    // ✅ FIX 5 (IME loop): Dismiss the keyboard BEFORE the async sign-in work
+    // begins. Without this, the focused TextFormField keeps an active IME
+    // session. When handleSuccessfulSignIn() calls Get.offAll(), the route
+    // transition animation starts while the IME is still animating open,
+    // causing 6+ repeated onRequestShow → onCancelled cycles (each ~9ms)
+    // that blow the 16.67ms frame budget and produce visible jank.
+    FocusScope.of(context).unfocus();
+
+    if (!mounted) return;
 
     setState(() => isLoading = true);
 
@@ -122,7 +144,9 @@ class _SignInScreenState extends State<SignInScreen> {
       debugPrint("Exception $e");
       _handleSignInError("We couldn’t sign you in. Please try again.");
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 

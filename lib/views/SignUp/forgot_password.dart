@@ -3,6 +3,7 @@ import 'package:snevva/views/SignUp/verify_with_otp.dart';
 
 import '../../Controllers/signupAndSignIn/forgot_password_controller.dart';
 import '../../Controllers/signupAndSignIn/otp_verification_controller.dart';
+import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
 import '../../services/notification_service.dart';
 
@@ -30,7 +31,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
   @override
   void dispose() {
     textFieldController.dispose();
-
+    otpController.isForgotPasswordScreen.value = false;
     super.dispose();
   }
 
@@ -77,7 +78,6 @@ class _ForgotPasswordState extends State<ForgotPassword> {
         Get.to(
           () => VerifyWithOtpScreen(
             emailOrPasswordText: input,
-            appBarText: AppLocalizations.of(context)!.verifyEmailAddress,
             responseOtp: result,
             isForgotPasswordScreen: true,
           ),
@@ -85,7 +85,9 @@ class _ForgotPasswordState extends State<ForgotPassword> {
         textFieldController.clear();
       }
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
@@ -99,7 +101,8 @@ class _ForgotPasswordState extends State<ForgotPassword> {
         elevation: 0,
         automaticallyImplyLeading: false,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 18),
+          icon: Icon(Icons.arrow_back_ios,
+              size: 24, color: isDarkMode ? white : black),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -109,7 +112,28 @@ class _ForgotPasswordState extends State<ForgotPassword> {
           child: Column(
             children: [
               const SizedBox(height: 10),
-              Image.asset(forgotpass, height: 200, width: 200),
+              Container(
+                height: 200,
+                width: 200,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: circleBackground,
+                  boxShadow: [
+                    BoxShadow(
+                      color: shadowColor.withOpacity(0.15),
+                      blurRadius: 30,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ), child: Center(
+                child: Icon(
+                  Icons.lock_reset_rounded,
+                  size: 150,
+                  color: iconColor,
+                ),
+              ),
+              ),
+
               const SizedBox(height: 30),
               Text(
                 AppLocalizations.of(context)!.forgetPasswordScreenText,
@@ -137,7 +161,6 @@ class _ForgotPasswordState extends State<ForgotPassword> {
 
               const SizedBox(height: 30),
 
-              /// Button with loader
               Container(
                 decoration: BoxDecoration(
                   gradient: AppColors.primaryGradient,
@@ -158,17 +181,11 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child:
-                      isLoading
-                          ? const SizedBox(
-                            height: 22,
-                            width: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                          : Text(AppLocalizations.of(context)!.sendCode),
+                  child: AppLoadingButtonChild(
+                    isLoading: isLoading,
+                    loaderSize: 22,
+                    child: Text(AppLocalizations.of(context)!.sendCode),
+                  ),
                 ),
               ),
             ],

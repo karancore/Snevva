@@ -67,3 +67,8 @@ pubspec.lock
 android/build/reports/problems/problems-report.html
 pubspec.lock
 pubspec.lock
+/ios/build
+ios/Podfile.lock
+ios/Podfile.lock
+*.lock
+/android/build

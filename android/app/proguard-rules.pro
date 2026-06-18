@@ -17,3 +17,20 @@
 # ---- Prevent warnings ----
 -dontwarn io.flutter.**
 -dontwarn androidx.lifecycle.DefaultLifecycleObserver
+
+
+# Google Sign-In
+-keep class com.google.android.gms.auth.** { *; }
+-keep class com.google.android.gms.common.** { *; }
+-keep class com.google.android.gms.signin.** { *; }
+-keep class com.google.android.gms.tasks.** { *; }
+
+# Firebase Auth
+-keep class com.google.firebase.auth.** { *; }
+
+# Play Services Auth
+-keep class com.google.android.gms.auth.api.signin.** { *; }
+-keep class com.google.android.gms.auth.api.credentials.** { *; }
+
+# Flutter Google Sign In plugin
+-keep class io.flutter.plugins.googlesignin.** { *; }

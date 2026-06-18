@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:alarm/alarm.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:http/http.dart' as http;
@@ -12,6 +11,7 @@ import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
 import 'package:snevva/Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_questions_controller.dart';
+import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
 import 'package:snevva/Controllers/SleepScreen/sleep_controller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
@@ -19,13 +19,15 @@ import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/Controllers/signupAndSignIn/otp_verification_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
+import 'package:snevva/Widgets/home_wrapper.dart';
 import 'package:snevva/common/agent_debug_logger.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/services/app_initializer.dart';
+import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/services/background_pedometer_service.dart';
-import 'package:snevva/services/file_storage_service.dart';
 import 'package:snevva/services/decisiontree_service.dart';
+import 'package:snevva/services/file_storage_service.dart';
 import 'package:snevva/services/hive_service.dart';
 import 'package:snevva/services/tracking_service_manager.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/edit_profile_screen.dart';
@@ -33,7 +35,10 @@ import 'package:snevva/views/Settings/in_app_downloads.dart';
 import 'package:snevva/views/Settings/settings_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 
+import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
+import '../../views/health_report/health_report_screen.dart';
+import '../../views/scan_report/scan_report_landing_screen.dart';
 import 'drawer_menu_item.dart';
 
 class DrawerMenuWidget extends StatefulWidget {
@@ -123,7 +128,12 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
 
     // Then wipe rest
     await prefs.clear();
-    debugPrint('✅ SharedPreferences cleared');
+
+    // ✅ FIX: Restore the reminders_disabled tombstone flag because prefs.clear() wiped it!
+    // This is critical so native BootReceiver/armFromSharedPrefs doesn't resurrect alarms
+    await prefs.setBool('reminders_disabled', true);
+
+    debugPrint('✅ SharedPreferences cleared (and reminders disabled natively)');
   }
 
   /// Flushes local buffers to daily JSON files and pushes today's steps to the
@@ -148,7 +158,7 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
         final ctrl = Get.find<StepCounterController>();
         if (ctrl.todaySteps.value > 0) {
           debugPrint(
-            '📤 Logout: syncing ${ctrl.todaySteps.value} steps before token clear...'
+            '📤 Logout: syncing ${ctrl.todaySteps.value} steps before token clear...',
           );
           await ctrl.saveStepRecordToServer();
           debugPrint('✅ Logout: step sync done');
@@ -193,12 +203,6 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
       debugPrint('⚠️ DecisionTree cleanup failed: $e');
     }
 
-    try {
-      await Alarm.stopAll();
-    } catch (e) {
-      debugPrint('⚠️ Alarm stopAll failed: $e');
-    }
-
     debugPrint('🗑️ Deleting GetX controllers...');
     _deleteControllerIfRegistered<DietPlanController>(force: true);
     _deleteControllerIfRegistered<HealthTipsController>(force: true);
@@ -208,6 +212,8 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
     _deleteControllerIfRegistered<MoodController>(force: true);
     _deleteControllerIfRegistered<SignInController>(force: true);
     _deleteControllerIfRegistered<MoodQuestionController>(force: true);
+    _deleteControllerIfRegistered<ProfileSetupController>(force: true);
+    _deleteControllerIfRegistered<EditprofileController>(force: true);
     _deleteControllerIfRegistered<SleepController>(force: true);
     _deleteControllerIfRegistered<StepCounterController>(force: true);
     _deleteControllerIfRegistered<VitalsController>(force: true);
@@ -228,10 +234,14 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
       await _syncHealthDataBeforeLogout();
 
       // ── 2. Start heavy background cleanup (does not need the token) ──────────
+      // Must clear reminder runtime BEFORE prefs.clear() so we know which alarms to cancel!
+      await AuthService.clearReminderRuntimeOnLogout();
+
       final stopAndHiveFuture = _stopServicesAndClearHive();
       final apiSuccess = await _callLogoutApiBestEffort();
 
       // ── 3. Clear auth credentials (token wiped here) ─────────────────────────
+      await AuthService.clearProfileImageStateOnLogout();
       await _clearAuthPrefs();
       _resetLocalStorageManager();
 
@@ -261,11 +271,14 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
   Widget build(BuildContext context) {
     final localStorageManager = Get.find<LocalStorageManager>();
     final initialProfileController = Get.find<ProfileSetupController>();
+    final bool isDarkMode = Theme
+        .of(context)
+        .brightness == Brightness.dark;
 
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
           width: double.infinity,
           decoration: BoxDecoration(gradient: AppColors.primaryGradient),
           child: Padding(
@@ -293,7 +306,7 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
 
                   return CircleAvatar(
                     radius: avatarRadius,
-                    backgroundColor: Colors.grey.withOpacity(0.5),
+                    backgroundColor: Colors.grey,
                     child:
                         imageProvider == null
                             ? LayoutBuilder(
@@ -318,179 +331,228 @@ class _DrawerMenuWidgetState extends State<DrawerMenuWidget> {
                                 width: avatarRadius * 2,
                                 height: avatarRadius * 2,
                                 fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Icon(
+                                    Icons.person,
+                                    size: avatarRadius * 1.5,
+                                    color: Colors.white,
+                                  );
+                                },
                               ),
                             ),
                   );
                 }),
                 const SizedBox(height: 8),
-                Obx(
-                  () => Text(
-                    localStorageManager.userMap['Name']?.toString() ?? 'User',
-                    style: const TextStyle(color: white, fontSize: 24),
-                  ),
-                ),
+                Obx(() {
+                  final name = localStorageManager.userMap['Name']
+                      ?.toString() ?? 'User';
+                  final firstName = name
+                      .split(' ')
+                      .first;
+                  final bool isProfileComplete = isProfileDisplayComplete(
+                    localStorageManager.userMap,
+                  );
+
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        firstName,
+                        style: TextStyle(color: white, fontSize: 24),
+                      ),
+                      if (isProfileComplete) ...[
+                        const SizedBox(width: 6),
+                        Image.asset(
+                          'assets/Icons/bluetick.webp',
+                          width: 22,
+                          height: 22,
+                          fit: BoxFit.contain,
+                        ),
+                      ],
+                    ],
+                  );
+                }),
+
               ],
             ),
           ),
         ),
-        SizedBox(height: 40),
 
+
+        Container(
+          height: 70,
+          clipBehavior: Clip.hardEdge,
+          decoration: BoxDecoration(
+            gradient: isDarkMode
+                ? AppColors.purpleToBlackDrawerGradient
+                : AppColors.whiteDrawerGradient,
+          ),
+        ),
         Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        DrawerMenuItem(
-                          menuIcon: homeIcon,
-                          itemName: 'Home',
-                          onWidgetTap: () {
-                            Get.back();
-                            Get.until((route) => route.isFirst);
-                          },
-                        ),
+          child: Container(
+            color: isDarkMode ? Colors.black : white,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          DrawerMenuItem(
+                            menuIcon: homeIcon,
+                            itemName: 'Home',
+                            onWidgetTap: () {
+                              Get.to(HomeWrapper());
+                            },
+                          ),
 
-                        DrawerMenuItem(
-                          menuIcon: profileIcon,
-                          itemName: 'Profile',
-                          onWidgetTap:
-                              () => {
-                                Get.back(),
-                                Get.to(() => EditProfileScreen()),
-                              },
-                        ),
+                          DrawerMenuItem(
+                            menuIcon: profileIcon,
+                            itemName: 'Profile',
+                            onWidgetTap:
+                                () =>
+                            {
+                              Get.back(),
+                              Get.to(() => EditProfileScreen()),
+                            },
+                          ),
 
-                        // DrawerMenuItem(
-                        //   menuIcon: addEmergencyContactIcon,
-                        //   itemName: 'Emergency Contact',
-                        //   onWidgetTap:
-                        //       () => {Get.back(), Get.to(()=>EmergencyContact())},
-                        // ),
-                        DrawerMenuItem(
-                          menuIcon: scannerIcon,
-                          itemName: 'Scan Report ',
-                          isDisabled: true,
-                          onWidgetTap: () {}, // ignored because disabled
-                        ),
+                          // DrawerMenuItem(
+                          //   menuIcon: addEmergencyContactIcon,
+                          //   itemName: 'Emergency Contact',
+                          //   onWidgetTap:
+                          //       () => {Get.back(), Get.to(()=>EmergencyContact())},
+                          // ),
+                          DrawerMenuItem(
+                            menuIcon: healthReportIcon,
+                            itemName: 'Health Report ',
+                            isDisabled: false,
+                            onWidgetTap: () {
+                              Get.to(() => HealthReportScreen());
+                            }, // ignored because disabled
+                          ),
+                          DrawerMenuItem(
+                            menuIcon: scannerIcon,
+                            itemName: 'Scan Report ',
+                            isDisabled: false,
+                            onWidgetTap: () {
+                              Get.to(() => const ScanReportLandingScreen());
+                            }, // ignored because disabled
+                          ),
 
-                        // DrawerMenuItem(
-                        //   menuIcon: appointmentIcon,
-                        //   itemName: 'Appointment',
-                        //   onWidgetTap:
-                        //       () => {Get.back(), Get.to(()=>DocHaveAppointment())},
-                        // ),
-                        DrawerMenuItem(
-                          menuIcon: gearIcon,
-                          itemName: 'Settings',
-                          onWidgetTap:
-                              () => {
-                                Get.back(),
-                                Get.to(() => SettingsScreen()),
-                              },
-                        ),
-                        DrawerMenuItem(
-                          menuIcon: downloadIcon,
-                          itemName: 'In App Downloads',
-                          onWidgetTap:
-                              () => {
-                                Get.back(),
-                                Get.to(() => InAppDownloads()),
-                              },
-                        ),
 
-                        DrawerMenuItem(
-                          menuIcon:
-                              invitefriend, // or another icon if not added yet
-                          itemName: 'Invite a Friend',
-                          onWidgetTap: () async {
-                            Get.back();
-                            const shareMessage =
-                                '🎉 Hey! Check out this awesome app — Snevva! Download it here: https://play.google.com/store/apps/details?id=com.yourapp.id';
-                            await Share.share(
-                              shareMessage,
-                              subject: 'Join me on Snevva!',
-                            );
-                          },
-                        ),
-                      ],
+                          // DrawerMenuItem(
+                          //   menuIcon: appointmentIcon,
+                          //   itemName: 'Appointment',
+                          //   onWidgetTap:
+                          //       () => {Get.back(), Get.to(()=>DocHaveAppointment())},
+                          // ),
+                          DrawerMenuItem(
+                            menuIcon: gearIcon,
+                            itemName: 'Settings',
+                            onWidgetTap:
+                                () =>
+                            {
+                              Get.back(),
+                              Get.to(() => SettingsScreen()),
+                            },
+                          ),
+                          DrawerMenuItem(
+                            menuIcon: downloadIcon,
+                            itemName: 'In App Downloads',
+                            onWidgetTap:
+                                () =>
+                            {
+                              Get.back(),
+                              Get.to(() => InAppDownloads()),
+                            },
+                          ),
+
+                          DrawerMenuItem(
+                            menuIcon: invitefriend,
+                            itemName: 'Share the Wellness',
+                            // More "vibe" focused than "Invite a Friend"
+                            onWidgetTap: () async {
+                              Get.back();
+                              const shareMessage =
+                                  'Transforming my health journey with Snevva—my personal AI health ally. '
+                                  'From intelligent diet plans to clear health insights, it’s a more mindful way to live. '
+                                  'Join me on the path to better wellness: https://play.google.com/store/apps/details?id=com.coretegra.snevvaa';
+
+                              await Share.share(
+                                shareMessage,
+                                subject: 'Your invitation to better health with Snevva',
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
-                SafeArea(
-                  child: Container(
-                    margin: EdgeInsets.only(top: 20, bottom: 10),
-                    decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.deepPurple.withOpacity(0.18),
-                          blurRadius: 12,
-                          offset: Offset(0, 0),
-                        ),
-                      ],
-                    ),
-                    child: OutlinedButton(
-                      onPressed: isLoading ? null : performLogout,
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor:
-                            isLoading
-                                ? grey.withOpacity(0.5)
-                                : const Color(0xFFF0E5FF),
-                        side: const BorderSide(color: Colors.transparent),
-                        minimumSize: const Size(double.infinity, 40),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                  SafeArea(
+                    child: Container(
+                      margin: EdgeInsets.only(top: 20, bottom: 10),
+                      decoration: BoxDecoration(
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDarkMode
+                                ? const Color(0xFF1E1028)
+                                : Colors.deepPurple.withOpacity(0.18),
+                            blurRadius: 12,
+                            offset: const Offset(0, 0),
+                          ),
+                        ],
                       ),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child:
-                            isLoading
-                                ? SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    color: white,
-                                  ),
-                                )
-                                : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SvgPicture.asset(
-                                      logoutIcon,
-                                      width: 24,
-                                      height: 24,
+                      child: OutlinedButton(
+                        onPressed: isLoading ? null : performLogout,
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: isLoading
+                              ? white.withOpacity(0.5)
+                              : isDarkMode
+                              ? const Color(
+                              0xFF1E1028) // deep dark purple, visible on black
+                              : const Color(0xFFF0E5FF),
+                          // original light purple
+                          side: const BorderSide(color: Colors.transparent),
+                          minimumSize: const Size(double.infinity, 40),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: AppLoadingButtonChild(
+                          isLoading: isLoading,
+                          loaderSize: 20,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SvgPicture.asset(
+                                logoutIcon,
+                                width: 24,
+                                height: 24,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                "Log Out",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  foreground:
+                                  Paint()
+                                    ..shader = AppColors.primaryGradient
+                                        .createShader(
+                                      const Rect.fromLTWH(0, 0, 200, 70),
                                     ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      "Log Out",
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        foreground:
-                                            Paint()
-                                              ..shader = AppColors
-                                                  .primaryGradient
-                                                  .createShader(
-                                                    const Rect.fromLTWH(
-                                                      0,
-                                                      0,
-                                                      200,
-                                                      70,
-                                                    ),
-                                                  ),
-                                      ),
-                                    ),
-                                  ],
                                 ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

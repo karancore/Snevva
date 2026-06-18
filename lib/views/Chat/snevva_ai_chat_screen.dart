@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:intl/intl.dart';
@@ -8,7 +9,6 @@ import 'package:snevva/consts/colors.dart';
 import 'package:snevva/consts/images.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/services/api_service.dart';
-import 'package:snevva/services/decisiontree_service.dart';
 
 /// ---------- DECISION TREE MODEL ----------
 
@@ -38,9 +38,43 @@ class Option {
   }
 }
 
-/// ---------- LOAD DECISION TREE FROM API OR CACHE ----------
 
 Future<Map<String, DecisionNode>> loadDecisionTree() async {
+  try {
+    final jsonString = await rootBundle.loadString(
+      'assets/json/decision_tree.json',
+    );
+
+    final Map<String, dynamic> res = jsonDecode(jsonString);
+
+    final nodes = <String, DecisionNode>{};
+
+    res.forEach((key, value) {
+      try {
+        nodes[key] = DecisionNode.fromJson(
+          Map<String, dynamic>.from(value),
+        );
+      } catch (e) {
+        debugPrint('❌ Error parsing node $key: $e');
+      }
+    });
+
+    debugPrint("✅ Local decision tree loaded");
+    debugPrint("🌳 Tree size: ${nodes.length}");
+
+    return nodes;
+  } catch (e, stack) {
+    debugPrint("❌ Failed loading local decision tree");
+    debugPrint(e.toString());
+    debugPrint(stack.toString());
+
+    return {};
+  }
+}
+
+/// ---------- LOAD DECISION TREE FROM API OR CACHE ----------
+
+Future<Map<String, DecisionNode>> loadDecisionTreeFromApi() async {
   try {
     final response = await ApiService.post(
       ellychat,
@@ -117,15 +151,29 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
   String currentNodeKey = "welcome";
   bool waitingForUser = false;
 
+  bool _isScrolled = false;
+
+
   @override
   void initState() {
     super.initState();
+
     _initializeTree();
+
+    _scrollController.addListener(() {
+      final scrolled = _scrollController.offset > 10;
+
+      if (scrolled != _isScrolled) {
+        setState(() {
+          _isScrolled = scrolled;
+        });
+      }
+    });
   }
 
   Future<void> _initializeTree() async {
     // decisionTree = await loadDecisionTree();
-    decisionTree = await DecisionTreeService().getDecisionTree();
+    decisionTree = await loadDecisionTreeFromApi();
 
     if (decisionTree.isEmpty) {
       debugPrint("❌ decisionTree is EMPTY. Chat cannot load.");
@@ -200,32 +248,49 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        backgroundColor: isDarkMode ? black : white,
-        leading: IconButton(
-          onPressed: () {
-            Get.back();
-          },
-          icon: const Icon(Icons.arrow_back_ios_new),
-        ),
-        iconTheme: IconThemeData(color: isDarkMode ? white : black),
-        title: Text(
-          "Chat with Elly",
-          style: TextStyle(
-            color: isDarkMode ? white : black,
-            fontWeight: FontWeight.w500,
-            fontSize: 20,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(kToolbarHeight),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          child: AppBar(
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            backgroundColor:
+            _isScrolled
+                ? (isDarkMode ? black : white)
+                : Colors.transparent,
+            leading: IconButton(
+              onPressed: () {
+                Get.back();
+              },
+              icon: const Icon(Icons.arrow_back_ios_new),
+            ),
+            iconTheme: IconThemeData(color: isDarkMode ? white : black),
+            title: Text(
+              "Chat with Elly",
+              style: TextStyle(
+                color: isDarkMode ? white : black,
+                fontWeight: FontWeight.w500,
+                fontSize: 20,
+              ),
+            ),
+            centerTitle: true,
           ),
         ),
-        centerTitle: true,
       ),
 
       body: Stack(
         children: [
           // Background Image
-          Positioned.fill(child: Image.asset(chatWallpaper, fit: BoxFit.cover)),
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.5,
+              child: Image.asset(
+                isDarkMode ? chatwallpaperdark : chatWallpaper,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
 
           SafeArea(
             child: Column(
@@ -309,7 +374,7 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
                             msg.isUser
                                 ? SizedBox.shrink()
                                 : Text(
-                                  "SNEVVAI  ${DateFormat('hh:mm a').format(msg.time)}",
+                                  "Elly  ${DateFormat('hh:mm a').format(msg.time)}",
                                   style: TextStyle(fontSize: 10),
                                 ),
 

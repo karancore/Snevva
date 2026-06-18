@@ -1,24 +1,21 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:http/http.dart';
 import 'package:snevva/Controllers/DietPlan/diet_plan_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/models/diet_tags_response.dart';
 
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
-import '../../common/global_variables.dart';
-import '../../common/loader.dart';
 import '../../consts/consts.dart';
 import '../../env/env.dart';
 
 class DietDetailsScreen extends StatefulWidget {
   final DietTagData diet;
   final List<MealPlanItem> daysList;
-
+  final String placeholderAsset;
   const DietDetailsScreen({
     super.key,
     required this.diet,
     required this.daysList,
+    required this.placeholderAsset,
   });
 
   @override
@@ -112,10 +109,15 @@ class _DietDetailsScreenState extends State<DietDetailsScreen> {
                       top: Radius.circular(4),
                     ),
                     child: CachedNetworkImage(
-                      imageUrl: widget.diet.thumbnailMedia ?? dietPlaceholder,
+                      imageUrl: widget.diet.thumbnailMedia ?? '',
                       height: height * 0.25,
                       width: double.infinity,
                       fit: BoxFit.cover,
+                      errorWidget:
+                          (context, url, error) => Image.asset(
+                            widget.placeholderAsset,
+                            fit: BoxFit.fill,
+                          ),
                     ),
                   ),
                   Padding(
@@ -490,7 +492,7 @@ class _DietDetailsScreenState extends State<DietDetailsScreen> {
 //                           placeholder: (context, url) => Container(
 //                             height: height * 0.25,
 //                             color: Colors.grey[300],
-//                             child: Center(child: CircularProgressIndicator()),
+//                             child: AppLoader(size: 40),
 //                           ),
 //                           errorWidget: (context, url, error) => Container(
 //                             height: height * 0.25,
@@ -660,7 +662,7 @@ class _DietDetailsScreenState extends State<DietDetailsScreen> {
 //                     imageUrl: dishImg,
 //                     fit: BoxFit.cover,
 //                     placeholder: (context, url) => Center(
-//                       child: CircularProgressIndicator(strokeWidth: 2),
+//                       child: AppLoader(size: 32),
 //                     ),
 //                     errorWidget: (context, url, error) => Center(
 //                       child: Icon(Icons.restaurant, color: Colors.grey),

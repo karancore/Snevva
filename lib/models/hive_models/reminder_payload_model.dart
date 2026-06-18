@@ -1,6 +1,7 @@
 import 'package:hive/hive.dart';
 
 import '../../common/global_variables.dart';
+import '../../consts/consts.dart';
 import '../mappers/reminder_payload_mapper.dart';
 import '../reminder_schedule_metadata.dart';
 
@@ -604,5 +605,42 @@ extension ReminderPayloadSafeAccess on ReminderPayloadModel {
         "Tried to access $expectedCategory field on $category reminder (id: $id)",
       );
     }
+  }
+}
+extension TimesParser on TimesPerDay {
+  List<DateTime> toLocalDateTimes() {
+    return list
+        .map((time) {
+      try {
+        // ISO format case
+        if (time.contains('T')) {
+          final parsed = DateTime.parse(time);
+          return parsed.isUtc ? parsed.toLocal() : parsed;
+        }
+
+        // HH:mm case
+        final parts = time.split(':');
+        final now = DateTime.now();
+
+        return DateTime(
+          now.year,
+          now.month,
+          now.day,
+          int.parse(parts[0]),
+          int.parse(parts[1]),
+        );
+      } catch (e) {
+        print("❌ Time parse failed: $time");
+        return null;
+      }
+    })
+        .whereType<DateTime>()
+        .toList();
+  }
+
+  List<TimeOfDay> toTimeOfDayList() {
+    return toLocalDateTimes()
+        .map((dt) => TimeOfDay.fromDateTime(dt))
+        .toList();
   }
 }

@@ -43,7 +43,7 @@ class RefreshRateBootstrap {
   RefreshRateBootstrap._();
 
   static const MethodChannel _displayChannel = MethodChannel(
-    'com.coretegra.snevva/display_config',
+    'com.coretegra.snevvaa/display_config',
   );
 
   static const double _fallbackRefreshRateHz = 60.0;

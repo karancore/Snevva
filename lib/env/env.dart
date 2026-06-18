@@ -14,6 +14,9 @@ const String WEB_CLIENT_ID =
 
 const String WEB =
     "760082000923-v6lm2bqqroimspg8f1am01ntbio5mbn0.apps.googleusercontent.com";
+const String WEBDEBUG =
+    "760082000923-s0m8ar03o6aej0h6lnr3utvdqpa7c2td.apps.googleusercontent.com";
+
 // send otp api
 const String senOtpEmailEndpoint =
     '/api/registration/enduser/sendotp/gmail/signup';
@@ -78,6 +81,7 @@ const String sleepGoalAPI = "/api/upsert/sleepgoal";
 const String sleepRecord = "/api/upsert/addsleeprecord";
 
 const String bloodpressure = '/api/upsert/addbloodpressurerecord';
+const String bloodglucoseapi = '/api/upsert/addbloodglucoserecord';
 const String logmood = '/api/upsert/logmood';
 const String womenhealth = '/api/upsert/womenhealthquestionnaire';
 const String editperioddata = '/api/upsert/editperioddata';
@@ -171,3 +175,11 @@ const String logout = '/api/registration/logout';
 const String deleteDeviceApi = '/api/registration/logoutviaId';
 
 const String alertsnotification = '/api/fetchinfo/pushNotifications';
+
+const String dnd = '/api/upsert/notificationsubsciption';
+
+const String readNotification = "/api/upsert/readNotification";
+
+const String healthreport = "/api/fetchinfo/healthreport";
+
+const String scanreportapi = "/api/aichat/report/analyze";

@@ -63,10 +63,7 @@ class WomenHealthQuotesWidget extends StatelessWidget {
             ),
           ),
           CachedNetworkImage(
-            imageUrl:
-                imageUrl.isEmpty
-                    ? "https://$imageUrl"
-                    : "https://d3byuuhm0bg21i.cloudfront.net/derivatives/c3d47d00-8a25-46ef-bba3-ec5609c49b08/thumb.webp",
+            imageUrl: imageUrl.isNotEmpty ? imageUrl : placeHolderImage,
             height: 120,
           ),
         ],

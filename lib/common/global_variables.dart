@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -16,7 +19,9 @@ double asDouble(num? value) {
 }
 
 const String reminderBox = 'reminders_box';
-
+const Color circleBackground = Color(0xFFEDE3F8);
+const Color iconColor = Color(0xFFA95BFF);
+const Color shadowColor = Color(0xFFA95BFF);
 //to access medicne do (reminderBox)[medicineKey];
 
 // Changed from a fixed final DateTime to a getter so `now` always returns
@@ -153,6 +158,17 @@ bool isProfileSetupInitialComplete(Map user) {
   return nameValid && genderValid && dobValid && occupationValid;
 }
 
+bool isProfileDisplayComplete(Map user) {
+  if (!isProfileSetupInitialComplete(user)) return false;
+
+  final bool emailValid = _hasNonEmptyString(user['Email']);
+  final bool phoneValid = _hasNonEmptyString(user['PhoneNumber']);
+  final bool addressValid = _hasNonEmptyString(user['AddressByUser']);
+  final bool postalCodeValid = _hasNonEmptyString(user['PostalCodeUser']);
+
+  return emailValid && phoneValid && addressValid && postalCodeValid;
+}
+
 bool _hasNonEmptyString(dynamic value) {
   if (value is String) return value.trim().isNotEmpty;
   return false;
@@ -246,14 +262,15 @@ int computeAlarmId({
   required DateTime fireTime,
   required bool isPreAlarm,
 }) {
-  final normalized = DateTime(
-    fireTime.year,
-    fireTime.month,
-    fireTime.day,
-    fireTime.hour,
-    fireTime.minute,
-    fireTime.second,
-  ).toIso8601String();
+  final normalized =
+      DateTime(
+        fireTime.year,
+        fireTime.month,
+        fireTime.day,
+        fireTime.hour,
+        fireTime.minute,
+        fireTime.second,
+      ).toIso8601String();
 
   final seed = '$reminderId|$scheduleVersion|$normalized|$isPreAlarm';
 
@@ -330,30 +347,32 @@ TimeOfDay stringToTimeOfDay(String time) {
   return TimeOfDay.fromDateTime(dateTime);
 }
 
-String formatReminderTime(List remindTimes) {
+String formatReminderTime(List<String> remindTimes) {
   if (remindTimes.isEmpty) return 'N/A';
 
   List<String> formattedTimes = [];
+
   for (var time in remindTimes) {
     try {
+      DateTime? dateTime;
+
       if (time is String) {
         try {
-          DateTime dateTime = DateTime.parse(time);
-          // ✅ Always display in device local time — avoids 5h offset on UTC emulators
-          final local = dateTime.isUtc ? dateTime.toLocal() : dateTime;
-          formattedTimes.add(DateFormat('hh:mm a').format(local));
-          // ✅ Always display in device local time.
-          // DateTime.parse has no timezone info → treated as local on device
-          // but as UTC on emulators whose system clock is UTC (+0). Force
-          // toLocal() so the displayed time is always in the user's timezone.
-          formattedTimes.add(DateFormat('hh:mm a').format(local));
-        } catch (e) {
-          // Not a parseable datetime string — show as-is (e.g. "09:30 AM")
+          dateTime = DateTime.parse(time);
+
+          // 🔥 Always normalize to local time
+          dateTime = dateTime.toLocal();
+        } catch (_) {
+          // Not ISO → assume already formatted (e.g. "09:30 AM")
           formattedTimes.add(time);
+          continue;
         }
       } else if (time is DateTime) {
-        final local = time.isUtc ? time.toLocal() : time;
-        formattedTimes.add(DateFormat('hh:mm a').format(local));
+        dateTime = DateTime.parse(time).toLocal();
+      }
+
+      if (dateTime != null) {
+        formattedTimes.add(DateFormat('hh:mm a').format(dateTime));
       }
     } catch (e) {
       debugPrint('Error formatting time: $e');
@@ -411,6 +430,12 @@ double widthFactor = 1.047;
 TimeOfDay parseTime(String timeString) {
   final format = DateFormat("hh:mm a");
   return TimeOfDay.fromDateTime(format.parse(timeString));
+}
+
+String encryptPasswordRuntime(String password) {
+  final bytes = utf8.encode(password);
+  final digest = md5.convert(bytes);
+  return digest.toString();
 }
 
 TimeOfDay parseTimeNew(String input) {
@@ -584,3 +609,9 @@ DateTime buildDateTimeFromTimeString({required String time, String? date}) {
   }
   return scheduled;
 }
+
+const excelDummy =
+    "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";
+
+const pdfDummy =
+    "JVBERi0xLjQKMSAwIG9iago8PC9UeXBlIC9DYXRhbG9nCi9QYWdlcyAyIDAgUgo+PgplbmRvYmoKMiAwIG9iago8PC9UeXBlIC9QYWdlcwovS2lkcyBbMyAwIFJdCi9Db3VudCAxCj4+CmVuZG9iagozIDAgb2JqCjw8L1R5cGUgL1BhZ2UKL1BhcmVudCAyIDAgUgovTWVkaWFCb3ggWzAgMCA1OTUgODQyXQovQ29udGVudHMgNSAwIFIKL1Jlc291cmNlcyA8PC9Qcm9jU2V0IFsvUERGIC9UZXh0XQovRm9udCA8PC9GMSA0IDAgUj4+Cj4+Cj4+CmVuZG9iago0IDAgb2JqCjw8L1R5cGUgL0ZvbnQKL1N1YnR5cGUgL1R5cGUxCi9OYW1lIC9GMQovQmFzZUZvbnQgL0hlbHZldGljYQovRW5jb2RpbmcgL01hY1JvbWFuRW5jb2RpbmcKPj4KZW5kb2JqCjUgMCBvYmoKPDwvTGVuZ3RoIDUzCj4+CnN0cmVhbQpCVAovRjEgMjAgVGYKMjIwIDQwMCBUZAooRHVtbXkgUERGKSBUagpFVAplbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZgowMDAwMDAwMDA5IDAwMDAwIG4KMDAwMDAwMDA2MyAwMDAwMCBuCjAwMDAwMDAxMjQgMDAwMDAgbgowMDAwMDAwMjc3IDAwMDAwIG4KMDAwMDAwMDM5MiAwMDAwMCBuCnRyYWlsZXIKPDwvU2l6ZSA2Ci9Sb290IDEgMCBSCj4+CnN0YXJ0eHJlZgo0OTUKJSVFT0YK";

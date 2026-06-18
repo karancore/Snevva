@@ -24,5 +24,5 @@ plugins {
     // END: FlutterFire Configuration
     id("org.jetbrains.kotlin.android") version "2.2.10" apply false
 }
-rootProject.name = "com.coretegra.snevva"
+rootProject.name = "com.coretegra.snevvaa"
 include(":app")

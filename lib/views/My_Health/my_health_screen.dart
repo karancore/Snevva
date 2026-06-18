@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
@@ -13,10 +14,12 @@ import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dar
 import 'package:snevva/views/Information/StepCounter/step_counter.dart';
 import 'package:snevva/views/Information/vitals.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
+import 'package:snevva/views/Vitals/glucose_screen.dart';
 import 'package:snevva/views/WomenHealth/women_health_screen.dart';
 import 'package:snevva/views/information/bmi/bmi_update_result.dart';
 
 import '../../Controllers/Hydration/hydration_stat_controller.dart';
+import '../../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import '../../Controllers/StepCounter/step_counter_controller.dart';
 import '../../Controllers/signupAndSignIn/sign_in_controller.dart';
 import '../../common/global_variables.dart';
@@ -34,15 +37,17 @@ class _MyHealthScreenState extends State<MyHealthScreen>
   final stepController = Get.find<StepCounterController>();
   final waterController = Get.find<HydrationStatController>();
   final moodController = Get.find<MoodController>();
+  late EditprofileController editprofileController;
 
   String? localGender;
-  String? gender;
+
   bool isLoading = true;
   final vitalController = Get.find<VitalsController>();
   final sleepController = Get.find<SleepController>();
   final bmiController = Get.find<BmiUpdateController>();
   final womenController = Get.find<WomenHealthController>();
   final localStorageManager = Get.find<LocalStorageManager>();
+
 
   final HydrationStatController c = Get.find();
 
@@ -52,12 +57,52 @@ class _MyHealthScreenState extends State<MyHealthScreen>
   List<TrackerHealthCard> filteredVitalItems = [];
   late List<Animation<Offset>> _slideAnimations;
 
+
+  final scrollController = ScrollController();
+  bool _showAppBar = true;
+
   @override
   void initState() {
     super.initState();
+
+    editprofileController = Get.find<EditprofileController>();
+
+    // ✅ Initial sync
+    final savedGender = localStorageManager.userMap['Gender']?.toString();
+    if (savedGender != null && editprofileController.gender.value.isEmpty) {
+      editprofileController.gender.value = savedGender;
+    }
+
+    // ✅ Reactive — gender change hote hi cards rebuild
+    ever(editprofileController.gender, (_) {
+      if (mounted) {
+        setState(() {
+          _initializeVitalItems();
+          _initAnimations();
+        });
+      }
+    });
+
     _loadMoodFromPrefs();
     bmiController.loadUserBMI();
     _loadGenderAndInit();
+    scrollController.addListener(() {
+      if (scrollController.position.userScrollDirection ==
+          ScrollDirection.reverse) {
+        if (_showAppBar) {
+          setState(() {
+            _showAppBar = false;
+          });
+        }
+      } else if (scrollController.position.userScrollDirection ==
+          ScrollDirection.forward) {
+        if (!_showAppBar) {
+          setState(() {
+            _showAppBar = true;
+          });
+        }
+      }
+    });
   }
 
   Future<void> _loadGenderAndInit() async {
@@ -81,11 +126,9 @@ class _MyHealthScreenState extends State<MyHealthScreen>
     if (!mounted) return;
 
     setState(() {
-      gender = resolvedGender;
       isLoading = false;
     });
 
-    debugPrint('✅ MyHealthScreen gender = $gender');
 
     _initializeVitalItems();
     _initAnimations();
@@ -104,6 +147,9 @@ class _MyHealthScreenState extends State<MyHealthScreen>
   }
 
   void _initializeVitalItems() {
+    final currentGender =
+        editprofileController.gender.value; // ✅ controller se lo
+
     vitalItems = [
       // Tracker Cards
       TrackerHealthCard(
@@ -112,7 +158,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
         cardType: "water",
         title: Obx(
           () => Text(
-            '${waterController.waterIntake.value}',
+            waterController.waterIntake.value.toStringAsFixed(0),
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
           ),
         ),
@@ -205,39 +251,65 @@ class _MyHealthScreenState extends State<MyHealthScreen>
         cardType: "bmi",
         title: Obx(
           () => Text(
-            '${bmiController.bmi.value}',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+            (bmiController.bmi.value == 0.0)
+                ? 'Add BMI'
+                : '${bmiController.bmi.value}',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: bmiController.bmi.value == 0.0 ? 18 : 22,
+            ),
           ),
         ),
-        subtitle: Text(
-          bmiController.bmi_text.value,
-          style: const TextStyle(fontSize: 14, color: Colors.grey),
-        ),
+        subtitle: Obx(() {
+          return Text(
+            getStatus(bmiController.bmi.value),
+            style: const TextStyle(fontSize: 14, color: Colors.grey),
+          );
+        }),
         buttonText: 'BMI Result',
-        onPressed:
-            () => Get.to(
+        onPressed: () {
+          if (bmiController.bmi.value == 0.0) {
+            Get.snackbar(
+              "No BMI Data",
+              "Please add your height and weight in profile screen to calculate BMI.",
+              backgroundColor: Colors.redAccent,
+              snackPosition: SnackPosition.TOP,
+
+              colorText: Colors.white,
+            );
+          } else {
+            Get.to(
               () => BMIUpdateResultScreen(
                 bmi: bmiController.bmi.value,
                 age: bmiController.age.value,
               ),
-            ),
+            );
+          }
+        },
       ),
       TrackerHealthCard(
-        icon: Icons.opacity,
-        iconColor: Colors.deepOrangeAccent,
-        cardType: "sys",
+        icon: Icons.bloodtype,
+        iconColor: Colors.deepPurple,
+        cardType: "glucose",
         title: Obx(
-          () => Text(
-            '${vitalController.sys.value}/${vitalController.dia.value}',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+              () =>
+              Text(
+                '${vitalController.bloodGlucose.value }',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                ),
           ),
         ),
         subtitle: const Text(
-          'mmHg',
-          style: TextStyle(fontSize: 14, color: Colors.grey),
+          'mg/dL',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey,
+          ),
         ),
-        buttonText: 'Add Vitals',
-        onPressed: () => Get.to(() => VitalScreen()),
+        buttonText: 'Add Glucose',
+        onPressed: () => Get.to(() => GlucoseScreen()),
       ),
       TrackerHealthCard(
         icon: Icons.female,
@@ -261,9 +333,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
     // Filter items based on gender
     filteredVitalItems =
         vitalItems.where((item) {
-          if (item.buttonText == "Add Data" &&
-              item.cardType == "women" &&
-              gender != 'Female')
+          if (item.cardType == "women" && currentGender != 'Female')
             return false;
           return true;
         }).toList();
@@ -299,6 +369,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
 
   @override
   void dispose() {
+    scrollController.dispose();
     _listAnimationController.dispose();
     super.dispose();
   }
@@ -330,7 +401,7 @@ class _MyHealthScreenState extends State<MyHealthScreen>
                 (item) => [
                   "Add BPM",
                   "BMI Result",
-                  "Add Vitals",
+                  "Add Glucose",
                   "Add Data",
                 ].contains(item.buttonText),
               )
@@ -340,12 +411,20 @@ class _MyHealthScreenState extends State<MyHealthScreen>
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       extendBodyBehindAppBar: true,
-      appBar: const CustomAppBar(
-        appbarText: 'My Health',
-        showCloseButton: false,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(_showAppBar ? kToolbarHeight : 0),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: _showAppBar ? 1.0 : 0.0,
+          child: CustomAppBar(
+            appbarText: 'My Health',
+            showCloseButton: false,
+          ),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: scrollController,
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

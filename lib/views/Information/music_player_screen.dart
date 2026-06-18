@@ -9,6 +9,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:snevva/Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'package:snevva/env/env.dart';
+
 import '../../Controllers/music/audio_downloader.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../consts/consts.dart';
@@ -900,9 +901,6 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
 
                                       if (path != null) {
                                         final fileName = path.split('/').last;
-                                        final inDownloads = path.startsWith(
-                                          '/storage/emulated/0/Download/',
-                                        );
                                         setState(() {
                                           _isCurrentTrackDownloaded = true;
                                           _currentTrackDownloadedPath = path;
@@ -912,9 +910,7 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
                                         ).showSnackBar(
                                           SnackBar(
                                             content: Text(
-                                              inDownloads
-                                                  ? 'Saved to Downloads/$fileName'
-                                                  : 'Downloaded to $path',
+                                              'Downloaded: $fileName',
                                             ),
                                           ),
                                         );

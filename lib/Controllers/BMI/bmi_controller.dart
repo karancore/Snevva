@@ -91,80 +91,32 @@ class BmiController extends GetxService {
     debugPrint('Calculated BMI: ${bmi.value}');
   }
 
-  void _loadMockData() {
-    isLoading.value = true;
-    hasError.value = false;
-
-    try {
-      customTips.assignAll([
-        {
-          "Id": 10,
-          "Heading": "Healthy Eating",
-          "Title": "Fuel your body with balanced meals and leafy greens.",
-          "ShortDescription":
-              "Nourish your body with whole foods and nutrient-rich meals.",
-          "ThumbnailMedia": {
-            "CdnUrl":
-                "https://d3byuuhm0bg21i.cloudfront.net/derivatives/c3d47d00-8a25-46ef-bba3-ec5609c49b08/thumb.webp",
-          },
-          "Steps": [
-            "Add vegetables to every meal.",
-            "Limit processed and sugary foods.",
-            "Choose whole grains over refined carbs.",
-          ],
-        },
-        {
-          "Id": 11,
-          "Heading": "Sleep Well",
-          "Title": "Aim for 7–9 hours of sleep for better mood and focus.",
-          "ShortDescription":
-              "Quality sleep helps regulate hormones, memory, and recovery.",
-          "ThumbnailMedia": {
-            "CdnUrl":
-                "https://d3byuuhm0bg21i.cloudfront.net/derivatives/c3d47d00-8a25-46ef-bba3-ec5609c49b08/thumb.webp",
-          },
-          "Steps": [
-            "Stick to a consistent sleep schedule.",
-            "Avoid screens at least 30 minutes before bed.",
-            "Create a relaxing bedtime routine.",
-          ],
-        },
-        {
-          "Id": 12,
-          "Heading": "Mental Health",
-          "Title": "Take regular breaks and manage stress mindfully.",
-          "ShortDescription":
-              "Taking care of your mental well-being is just as important as physical health.",
-          "ThumbnailMedia": {
-            "CdnUrl":
-                "https://d3byuuhm0bg21i.cloudfront.net/derivatives/c3d47d00-8a25-46ef-bba3-ec5609c49b08/thumb.webp",
-          },
-          "Steps": [
-            "Practice deep breathing or meditation for 5 minutes.",
-            "Go for a short walk during work breaks.",
-            "Talk to a friend or journal your thoughts.",
-          ],
-        },
-      ]);
-
-      final List<dynamic> allTips = List.from(customTips);
-      allTips.shuffle();
-      randomTips.assignAll(allTips.take(2).toList());
-    } catch (e) {
-      hasError.value = true;
-      randomTips.clear();
-    } finally {
-      isLoading.value = false;
-    }
-  }
 
   Future<void> loadAllHealthTips(BuildContext context) async {
+    debugPrint("===== loadAllHealthTips Called =====");
+
     isLoading.value = true;
     hasError.value = false;
+
+    debugPrint("isLoading: ${isLoading.value}");
+    debugPrint("hasError: ${hasError.value}");
+
     try {
+      debugPrint("Calling GetCustomHealthTips()...");
+
       await GetCustomHealthTips();
-    } catch (e) {
+
+      debugPrint("GetCustomHealthTips completed successfully");
+
+      debugPrint("customTips Count: ${customTips.length}");
+      debugPrint("randomTips Count: ${randomTips.length}");
+    } catch (e, stackTrace) {
       hasError.value = true;
+
+      debugPrint("===== ERROR IN loadAllHealthTips =====");
+      debugPrint("Error: $e");
+      debugPrint("StackTrace: $stackTrace");
+
       CustomSnackbar.showError(
         context: context,
         title: 'Error',
@@ -172,24 +124,50 @@ class BmiController extends GetxService {
       );
     } finally {
       isLoading.value = false;
+
+      debugPrint("Loading finished");
+      debugPrint("isLoading: ${isLoading.value}");
+      debugPrint("hasError: ${hasError.value}");
+
+      debugPrint("===== loadAllHealthTips Finished =====");
     }
   }
-
   Future<void> GetCustomHealthTips({bool loadMore = false}) async {
-    if (loadMore && (isLoadingMore.value || !hasMoreData.value)) return;
+    debugPrint("===== GetCustomHealthTips Called =====");
+    debugPrint("loadMore: $loadMore");
+
+    if (loadMore && (isLoadingMore.value || !hasMoreData.value)) {
+      debugPrint(
+        "Skipping API call -> isLoadingMore: ${isLoadingMore.value}, hasMoreData: ${hasMoreData.value}",
+      );
+      return;
+    }
 
     final targetPage = loadMore ? pageIndex + 1 : 1;
+
+    debugPrint("Current pageIndex: $pageIndex");
+    debugPrint("Target page: $targetPage");
+
     if (loadMore) {
       isLoadingMore.value = true;
+      debugPrint("Pagination loading started");
     } else {
       hasMoreData.value = true;
       pageIndex = 1;
+
+      debugPrint("Refreshing data");
+      debugPrint("Clearing previous tips");
+
       customTips.clear();
       randomTips.clear();
     }
 
     try {
       List<String> tags = ['BMI', bmi_text.value];
+
+      debugPrint("BMI Text: ${bmi_text.value}");
+      debugPrint("Age: ${age.value}");
+
       if (age.value >= 13 && age.value <= 18) {
         tags.add("Age 13 to 18");
       } else if (age.value >= 19 && age.value <= 25) {
@@ -197,13 +175,17 @@ class BmiController extends GetxService {
       } else if (age.value > 25 && age.value <= 60) {
         tags.add("Age 25 to 60");
       }
-      // debugPrint(localStorageManager.userGoalDataMap['HeightData']['Value']);
+
+      debugPrint("Generated Tags: $tags");
+
       final payload = {
         'Tags': tags,
         'FetchAll': false,
         'Count': _pageSize,
         'Index': targetPage,
       };
+
+      debugPrint("API Payload: $payload");
 
       final response = await ApiService.post(
         genhealthtipsAPI,
@@ -212,44 +194,73 @@ class BmiController extends GetxService {
         encryptionRequired: true,
       );
 
+      debugPrint("Raw API Response: $response");
+
       if (response is http.Response) {
+        debugPrint("HTTP Error Status: ${response.statusCode}");
         throw Exception('API Error: ${response.statusCode}');
       }
 
       final parsedData = jsonDecode(jsonEncode(response));
+
+      debugPrint("Parsed Response: $parsedData");
+
       final fetchedTips = List<dynamic>.from(parsedData['data'] ?? []);
 
+      debugPrint("Fetched Tips Count: ${fetchedTips.length}");
+
       if (fetchedTips.isEmpty) {
+        debugPrint("No more tips available");
         hasMoreData.value = false;
         return;
       }
 
       pageIndex = targetPage;
+
+      debugPrint("Updated pageIndex: $pageIndex");
+
       if (loadMore) {
         customTips.addAll(fetchedTips);
         randomTips.addAll(fetchedTips);
+
+        debugPrint(
+          "Added more tips -> customTips: ${customTips.length}, randomTips: ${randomTips.length}",
+        );
       } else {
         customTips.assignAll(fetchedTips);
         randomTips.assignAll(fetchedTips);
+
+        debugPrint(
+          "Assigned fresh tips -> customTips: ${customTips.length}, randomTips: ${randomTips.length}",
+        );
       }
 
       if (fetchedTips.length < _pageSize) {
         hasMoreData.value = false;
+        debugPrint("Reached last page");
+      } else {
+        debugPrint("More data available");
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!loadMore) {
         customTips.clear();
         randomTips.clear();
       }
+
       hasError.value = true;
-      debugPrint('Error fetching custom health tips: $e');
+
+      debugPrint("===== ERROR IN GetCustomHealthTips =====");
+      debugPrint("Error: $e");
+      debugPrint("StackTrace: $stackTrace");
     } finally {
       if (loadMore) {
         isLoadingMore.value = false;
+        debugPrint("Pagination loading ended");
       }
+
+      debugPrint("===== GetCustomHealthTips Finished =====");
     }
   }
-
   @override
   void onClose() {
     scrollController.removeListener(_onScroll);

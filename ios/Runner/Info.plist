@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>snevva</string>
+    <string>Snevva</string>
 	<key>FLTEnableImpeller</key>
 	<true/>
 	<key>CFBundleExecutable</key>
@@ -22,7 +22,7 @@
 		<string>hi</string>
 	</array>
 	<key>CFBundleName</key>
-	<string>snevva</string>
+    <string>Snevva</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -34,21 +34,62 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>This app requires camera access to take photos and record videos.</string>
+	<string>Camera access needed to take photos and scan reports.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app requires microphone access for video recording.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Permission to save photos and videos to your library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Photo library access needed to pick a profile or report image.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>We need your location to track walking activity.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>We need motion data to count your steps.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Snevva reads your health data to track steps and activity.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Snevva writes your activity data to Apple Health.</string>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.coretegra.snevva.sleep_calc</string>
+		<string>com.coretegra.snevva.api_sync</string>
+		<string>com.coretegra.snevva.period_sync</string>
+		<string>com.coretegra.snevvaa.reminderReconcile</string>
+		<string>com.coretegra.snevvaa.reminderOneShot</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>processing</string>
+		<string>remote-notification</string>
+	</array>
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key>
+        <false />
+        <key>UISceneConfigurations</key>
+        <dict>
+            <key>UIWindowSceneSessionRoleApplication</key>
+            <array>
+                <dict>
+                    <key>UISceneClassName</key>
+                    <string>UIWindowScene</string>
+                    <key>UISceneConfigurationName</key>
+                    <string>Default Configuration</string>
+                    <key>UISceneDelegateClassName</key>
+                    <string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+                    <key>UISceneStoryboardFile</key>
+                    <string>Main</string>
+                </dict>
+            </array>
+        </dict>
+    </dict>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
-	<key>UIMainStoryboardFile</key>
-	<string>Main</string>
+    <key>UIMainStoryboardFile</key>
+    <string>Main</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -62,5 +103,25 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>com.googleusercontent.apps.760082000923-oqaot6mujmcgro2bbrb396mul4edcipa
+                </string>
+            </array>
+        </dict>
+    </array>
+
+    <key>NSHealthShareUsageDescription</key>
+    <string>We need access to your health data to track your daily steps.</string>
+    <key>NSHealthUpdateUsageDescription</key>
+    <string>We need access to your health data to track your daily steps.</string>
+
 </dict>
 </plist>

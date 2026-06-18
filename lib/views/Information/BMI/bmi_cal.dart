@@ -1,11 +1,13 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_svg/svg.dart';
-import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/consts.dart';
 
+import '../../../Controllers/BMI/bmi_updatecontroller.dart';
+import '../../../Controllers/local_storage_manager.dart';
 import 'bmi_result.dart';
 
 class BmiCal extends StatefulWidget {
@@ -21,6 +23,8 @@ class _BmiCalState extends State<BmiCal> {
   double weight = 52;
   double height = 158;
 
+  Timer? _ageDebounce;
+
   bool isSelected = false;
 
   late FixedExtentScrollController weightController;
@@ -34,16 +38,70 @@ class _BmiCalState extends State<BmiCal> {
 
   late int _middleIndex;
 
+  final localStorageManager = Get.find<LocalStorageManager>();
+
   final double itemWidth = 38; // 30 width + 8 separator spacing
   final double viewportWidth = 220; // your SizedBox width
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
-
     _scrollController.addListener(_onScroll);
-
     _middleIndex = _virtualItemCount ~/ 2;
+
+    // Height
+    final heightValue =
+        localStorageManager.userGoalDataMap['HeightData']?['Value'];
+    height =
+        heightValue is num && heightValue > 0 ? heightValue.toDouble() : 185.0;
+
+    // Weight
+    final weightValue =
+        localStorageManager.userGoalDataMap['WeightData']?['Value'];
+    weight =
+        weightValue is num && weightValue > 0 ? weightValue.toDouble() : 52.0;
+    selectedWeight =
+        weightValue is num && weightValue > 0 ? weightValue.toInt() : 52;
+
+    // Age  ← was hardcoded to 19
+
+    final day = localStorageManager.userMap['DayOfBirth'];
+    final month = localStorageManager.userMap['MonthOfBirth'];
+    final year = localStorageManager.userMap['YearOfBirth'];
+
+    if (day != null && month != null && year != null) {
+      final dob = DateTime(
+        int.tryParse(year.toString()) ?? 0,
+        int.tryParse(month.toString()) ?? 0,
+        int.tryParse(day.toString()) ?? 0,
+      );
+      debugPrint("User DOB: $dob");
+
+      final today = DateTime.now();
+      int calculatedAge = today.year - dob.year;
+
+      // Subtract 1 if birthday hasn't occurred yet this year
+      if (today.month < dob.month ||
+          (today.month == dob.month && today.day < dob.day)) {
+        calculatedAge--;
+      }
+
+      age = calculatedAge.clamp(5, 120); // keeps age within valid BMI range
+    } else {
+      age = 19; // fallback
+    }
+
+    // Gender  ← was hardcoded to true
+    final genderValue =
+        localStorageManager.userMap['Gender']?.toString().toLowerCase();
+    isMale = genderValue == 'male' || genderValue == 'm' || genderValue == '1';
+
+    debugPrint(
+      "Height: $height | Weight: $weight | Age: $age | isMale: $isMale",
+    );
+    debugPrint(
+      "HeightValue: $heightValue | WeightValue: $weightValue | isMale: $isMale",
+    );
 
     weightController = FixedExtentScrollController(
       initialItem: selectedWeight - 1,
@@ -103,6 +161,7 @@ class _BmiCalState extends State<BmiCal> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _ageDebounce?.cancel();
     super.dispose();
   }
 
@@ -262,10 +321,39 @@ class _BmiCalState extends State<BmiCal> {
                                       icon: const Icon(
                                         Icons.remove_circle_outline,
                                       ),
-                                      onPressed:
-                                          () => setState(
-                                            () => age = age > 0 ? age - 1 : 0,
-                                          ),
+                                      onPressed: () {
+                                        if (age > 5) {
+                                          setState(() => age--);
+                                        } else {
+                                          // debounce logic
+                                          if (_ageDebounce?.isActive ?? false) {
+                                            return;
+                                          }
+
+                                          _ageDebounce = Timer(
+                                            const Duration(seconds: 2),
+                                            () {},
+                                          );
+
+                                          Get.snackbar(
+                                            "Minimum Age Reached",
+                                            "Age can't be less than 5 years.",
+                                            snackPosition: SnackPosition.TOP,
+                                            margin: const EdgeInsets.all(12),
+                                            borderRadius: 12,
+                                            backgroundColor: Colors.orange
+                                                .withOpacity(0.9),
+                                            colorText: Colors.white,
+                                            icon: const Icon(
+                                              Icons.info_outline,
+                                              color: Colors.white,
+                                            ),
+                                            duration: const Duration(
+                                              seconds: 2,
+                                            ),
+                                          );
+                                        }
+                                      },
                                     ),
                                     AutoSizeText(
                                       "$age",
@@ -282,7 +370,38 @@ class _BmiCalState extends State<BmiCal> {
                                       icon: const Icon(
                                         Icons.add_circle_outline,
                                       ),
-                                      onPressed: () => setState(() => age++),
+                                      onPressed: () async {
+                                        if (age < 5 || age > 120) {
+                                          // debounce logic
+                                          if (_ageDebounce?.isActive ?? false) {
+                                            return;
+                                          }
+
+                                          _ageDebounce = Timer(
+                                            const Duration(seconds: 2),
+                                            () {},
+                                          );
+                                          Get.snackbar(
+                                            "Invalid Age",
+                                            "Please select an age between 5 and 120 years.",
+                                            snackPosition: SnackPosition.TOP,
+                                            margin: const EdgeInsets.all(12),
+                                            borderRadius: 10,
+                                            backgroundColor: AppColors
+                                                .primaryColor
+                                                .withOpacity(0.8),
+                                            colorText: Colors.white,
+                                            duration: const Duration(
+                                              seconds: 2,
+                                            ),
+                                          );
+                                          return;
+                                        }
+                                        setState(() => age++);
+                                        if (_ageDebounce?.isActive ?? false) {
+                                          _ageDebounce?.cancel();
+                                        }
+                                      },
                                     ),
                                   ],
                                 ),
@@ -339,8 +458,10 @@ class _BmiCalState extends State<BmiCal> {
                                       physics: const FixedExtentScrollPhysics(),
                                       perspective: 0.003,
                                       onSelectedItemChanged: (index) {
+                                        final newWeight = weights[index];
                                         setState(() {
-                                          selectedWeight = weights[index];
+                                          selectedWeight = newWeight;
+                                          weight = newWeight.toDouble();
                                         });
                                       },
                                       childDelegate:
@@ -455,9 +576,24 @@ class _BmiCalState extends State<BmiCal> {
             isDarkMode: isDarkMode,
             buttonName: "Calculate BMI",
             backgroundColor: AppColors.primaryColor,
-            onTap: () {
+            onTap: () async {
               double bmi = weight / pow(height / 100, 2);
-              Get.to(() => BmiResultPage(bmi: bmi, age: age));
+
+              final bmicontroller = Get.find<BmiUpdateController>();
+              bool flag = await bmicontroller.setHeightAndWeight(
+                context,
+                age,
+                height,
+                weight,
+              );
+              print("Calculated BMI: $bmi");
+              print("Height : ${height}");
+              print("Weight: $weight kg");
+              if (flag) {
+                Get.to(() =>
+                    BmiResultPage(
+                      bmi: bmi, age: age, gender: isMale ? "Male" : "Female",));
+              }
             },
           ),
         ),

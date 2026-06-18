@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,6 +11,7 @@ import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 
+import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
 import '../../env/env.dart';
 import '../../services/auth_header_helper.dart';
@@ -36,7 +38,9 @@ class SignInController extends GetxService {
       return false;
     }
 
-    final plainEmail = jsonEncode({'Gmail': email, 'Password': password});
+    final hashedPassword = encryptPasswordRuntime(password);
+
+    final plainEmail = jsonEncode({'Gmail': email, 'Password': hashedPassword});
 
     try {
       final uri = Uri.parse("$baseUrl$signInEmailEndpoint");
@@ -181,7 +185,10 @@ class SignInController extends GetxService {
 
         if (data is Map) {
           final userGoalJson = jsonEncode(data);
-          await prefs.setString('userGoaldata', userGoalJson);
+          await prefs.setString(
+            LocalStorageManager.userGoalDataPrefsKey,
+            userGoalJson,
+          );
           debugPrint('💾 userGoaldata saved to SharedPreferences');
         } else {
           debugPrint('⚠️ userGoaldata is NOT a Map — nothing saved');
@@ -198,7 +205,7 @@ class SignInController extends GetxService {
       else if (response.statusCode == 400) {
         CustomSnackbar.showError(
           context: context,
-          title: 'Error',
+          title: 'Sign In Failed',
           message: 'Wrong Credentials',
         );
 
@@ -276,7 +283,22 @@ class SignInController extends GetxService {
       }
     } catch (e, st) {
       debugPrint("sign in screen email $e  $st");
-      // CustomSnackbar.showDeviceBlocked(context: context);
+      if (e is SocketException ||
+          (e is http.ClientException &&
+              e.message.contains('SocketException'))) {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Server Unreachable',
+          message:
+              'Our servers are currently unavailable or responding too slowly.\n Please try again in a moment.',
+        );
+      } else {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Exception',
+          message: 'Sign In failed.',
+        );
+      }
       return false;
     }
   }
@@ -332,8 +354,12 @@ class SignInController extends GetxService {
       return false;
     }
 
-    final plainPhone = jsonEncode({'PhoneNumber': phone, 'Password': password});
+    final hashedPassword = encryptPasswordRuntime(password);
 
+    final plainPhone = jsonEncode({
+      'PhoneNumber': phone,
+      'Password': hashedPassword,
+    });
     try {
       final uri = Uri.parse("$baseUrl$signInPhoneEndpoint");
       final encryptedPhone = EncryptionService.encryptData(plainPhone);
@@ -472,7 +498,10 @@ class SignInController extends GetxService {
 
         if (data is Map) {
           final userGoalJson = jsonEncode(data);
-          await prefs.setString('userGoaldata', userGoalJson);
+          await prefs.setString(
+            LocalStorageManager.userGoalDataPrefsKey,
+            userGoalJson,
+          );
           debugPrint('💾 userGoaldata saved to SharedPreferences');
         } else {
           debugPrint('⚠️ userGoaldata is NOT a Map — nothing saved');
@@ -487,7 +516,7 @@ class SignInController extends GetxService {
       } else if (response.statusCode == 400) {
         CustomSnackbar.showError(
           context: context,
-          title: 'Error',
+          title: 'Sign In Failed',
           message: 'Wrong Credentials',
         );
         return false;
@@ -572,11 +601,23 @@ class SignInController extends GetxService {
       }
     } catch (e, st) {
       debugPrint("sign in phone $e $st");
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Exception',
-        message: 'Sign In failed $e',
-      );
+
+      if (e is SocketException ||
+          (e is http.ClientException &&
+              e.message.contains('SocketException'))) {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Server Unreachable',
+          message:
+              'Our servers are currently unavailable or responding too slowly.\n Please try again in a moment.',
+        );
+      } else {
+        CustomSnackbar.showError(
+          context: context,
+          title: 'Exception',
+          message: 'Sign In failed.',
+        );
+      }
       return false;
     }
   }

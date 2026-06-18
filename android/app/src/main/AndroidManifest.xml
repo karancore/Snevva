@@ -1,50 +1,61 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- File-based storage (internal app dir — no external-storage permissions needed) -->
-    <!-- External storage permissions below are kept only for legacy compatibility -->
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <!-- image_picker uses Android Photo Picker (PickVisualMedia) on API 33+,
+         which requires no storage permission. On API 29–32 the legacy gallery
+         intent is the fallback and needs READ_EXTERNAL_STORAGE. API ≤28 also
+         needs WRITE for cache. READ_MEDIA_IMAGES is NOT declared: the Photo
+         Picker is permission-free and covers all image/profile-photo use cases. -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
 
     <!-- 🌐 Internet & network state -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
+    <uses-permission
+        android:name="android.permission.USE_FULL_SCREEN_INTENT"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ACCESS_NOTIFICATION_POLICY"
+        tools:node="remove" />
 
     <!-- 📲 Notifications (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- 🏃 Step counting & sensors -->
+    <!-- 🏃 Step counting (TYPE_STEP_DETECTOR via ACTIVITY_RECOGNITION only) -->
+    <!-- BODY_SENSORS / BODY_SENSORS_BACKGROUND intentionally removed:
+         Sleep is tracked via screen-state (SCREEN_ON/OFF), not body sensors.
+         Step tracking uses TYPE_STEP_DETECTOR, covered by ACTIVITY_RECOGNITION alone. -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
-    <uses-permission android:name="android.permission.BODY_SENSORS" />
-    <uses-permission android:name="android.permission.BODY_SENSORS_BACKGROUND" />
 
-    <!-- 📍 Location -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-
-    <!-- ⚙️ Foreground service types -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- dataSync intentionally removed: all our long-running services now use
+         health (StepCounterService, flutter_background_service) or mediaPlayback
+         (ReminderRingService). This avoids the Android 15+ 6-hour dataSync limit
+         (ForegroundServiceDidNotStopInTimeException). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
+    <!-- Required for ReminderRingService (plays alarm audio) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <!-- 🔋 Battery optimization ignore -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
-    <!-- 📷 Camera & microphone -->
+    <!-- 📷 Camera -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission
+        android:name="android.permission.RECORD_AUDIO"
+        tools:node="remove" />
 
     <uses-feature
         android:name="android.hardware.camera"
@@ -97,7 +108,7 @@
             <!-- 🔥 Small icon for foreground service notification (CRITICAL for Android 12+) -->
             <meta-data
                 android:name="flutterBackgroundServiceNotificationIcon"
-                android:resource="@mipmap/ic_launcher" />
+                android:resource="@drawable/ic_stat_notification_bg" />
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -134,15 +145,6 @@
         <!-- Sparse wakeup receiver for step counter -->
         <receiver android:name=".SparseWakeupReceiver" android:exported="false" />
 
-
-
-        <!--        <receiver android:name=".ScreenReceiver" android:exported="false">-->
-<!--            <intent-filter>-->
-<!--                <action android:name="android.intent.action.SCREEN_OFF"/>-->
-<!--                <action android:name="android.intent.action.SCREEN_ON"/>-->
-<!--            </intent-filter>-->
-<!--        </receiver>-->
-
         <receiver
             android:exported="false"
             android:name="com.dexterous.flutterlocalnotifications.FlutterLocalNotificationsReceiver" />
@@ -152,10 +154,14 @@
             android:value="high_importance_channel" />
 
         <!-- 🦶 Step Tracking Background Service (Native) -->
+        <!-- foregroundServiceType is health only — dataSync was removed because Android 15+
+             applies a 6-hour cumulative limit to dataSync services, causing
+             ForegroundServiceDidNotStopInTimeException on long sessions.
+             The Kotlin code already calls startForeground() with FOREGROUND_SERVICE_TYPE_HEALTH. -->
         <service
             android:name=".StepCounterService"
             android:exported="false"
-            android:foregroundServiceType="dataSync|health"
+            android:foregroundServiceType="health"
             tools:replace="android:exported,android:foregroundServiceType" />
 
         <!-- 🛌 Flutter Background Service (Sleep Tracking + Step Event Relay) -->
@@ -169,11 +175,12 @@
             android:name="id.flutter.flutter_background_service.notification_channel_desc"
             android:value="Step &amp; sleep tracking"/>
 
-        <!-- ⚙️ Override flutter_background_service's BackgroundService to add foregroundServiceType
-             Required on Android 14+ (targetSdk 34+) — MissingForegroundServiceTypeException -->
+        <!-- ⚙️ Override flutter_background_service's BackgroundService foreground type.
+             Changed from dataSync → health: this service does sleep & step tracking,
+             which qualifies as a health workload and has no Android 15 time limit. -->
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"
-            android:foregroundServiceType="dataSync"
+            android:foregroundServiceType="health"
             tools:replace="android:foregroundServiceType" />
 
         <!-- NotificationOnKillService removed: WorkManager-based rescheduling
@@ -182,13 +189,16 @@
              both here (service removed) and via warningNotificationOnKill: false
              on all AlarmSettings in Dart. -->
 
+        <!-- 🔔 Native Reminder Ring Service (plays alarm audio as foreground service) -->
+        <!-- Type changed dataSync → mediaPlayback: this service's sole purpose is playing
+             alarm audio. mediaPlayback has no Android 15 time limit and correctly
+             describes the workload. FOREGROUND_SERVICE_MEDIA_PLAYBACK permission
+             re-added in the permissions section above. -->
         <service
-            android:name=".SleepNoticingService"
+            android:name=".ReminderRingService"
             android:exported="false"
-            android:foregroundServiceType="dataSync|health" />
-
-        <receiver android:name=".StartSleepReceiver" android:exported="false" />
-        <receiver android:name=".StopSleepReceiver" android:exported="false" />
+            android:foregroundServiceType="mediaPlayback"
+            android:stopWithTask="false" />
 
         <!-- 📡 Network connectivity receiver (triggers file-based sync queue on reconnect) -->
         <receiver
@@ -204,7 +214,7 @@
             android:name=".ReminderAlarmReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.coretegra.snevva.REMINDER_FIRE" />
+                <action android:name="com.coretegra.snevvaa.REMINDER_FIRE" />
             </intent-filter>
         </receiver>
 
@@ -213,7 +223,7 @@
             android:name=".ReminderStopReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.coretegra.snevva.REMINDER_STOP" />
+                <action android:name="com.coretegra.snevvaa.REMINDER_STOP" />
             </intent-filter>
         </receiver>
 

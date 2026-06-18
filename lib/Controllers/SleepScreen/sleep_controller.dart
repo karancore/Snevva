@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -14,8 +15,10 @@ import 'package:snevva/env/env.dart';
 import 'package:snevva/models/awake_interval.dart';
 import 'package:snevva/services/api_service.dart';
 import 'package:snevva/services/file_storage_service.dart';
+import 'package:snevva/services/tracking_service_manager.dart';
 
 import '../../common/global_variables.dart';
+import '../../services/notification_service.dart';
 
 enum SleepState { sleeping, awake }
 
@@ -187,13 +190,10 @@ class SleepController extends GetxService {
         );
 
         // Show celebration message
-        Get.snackbar(
-          '🎉 Goal Reached!',
-          'You\'ve completed your ${_formatDuration(Duration(minutes: goalMinutes))} sleep goal!',
-          snackPosition: SnackPosition.TOP,
-          duration: const Duration(seconds: 5),
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
+        NotificationService().showInstantNotification(
+          id: WAKE_NOTIFICATION_ID + 2,
+          title: '🎉 Goal Reached!',
+          body: 'You\'ve completed your ${_formatDuration(Duration(minutes: goalMinutes))} sleep goal!',
         );
       }
     });
@@ -254,10 +254,13 @@ class SleepController extends GetxService {
   // SLEEP SCHEDULE METHODS
   // ═══════════════════════════════════════════════════════════════
   static const MethodChannel _nativeSleepChannel = MethodChannel(
-    'com.coretegra.snevva/sleep_service',
+    'com.coretegra.snevvaa/sleep_service',
   );
 
   void _updateNativeSleepAlarms() {
+    // This MethodChannel only exists on Android (handled by StepCounterService /
+    // SleepCalcWorker). Calling it on iOS would throw MissingPluginException.
+    if (!Platform.isAndroid) return;
     try {
       _nativeSleepChannel.invokeMethod('updateSleepAlarms');
       debugPrint('🔔 Native sleep alarms updated');
@@ -273,6 +276,7 @@ class SleepController extends GetxService {
 
     SharedPreferences.getInstance().then((prefs) {
       prefs.setInt(BEDTIME_KEY, minutes);
+      prefs.setBool('user_set_sleep_times', true);
       _updateNativeSleepAlarms();
     });
 
@@ -286,6 +290,7 @@ class SleepController extends GetxService {
 
     SharedPreferences.getInstance().then((prefs) {
       prefs.setInt(WAKETIME_KEY, minutes);
+      prefs.setBool('user_set_sleep_times', true);
       _updateNativeSleepAlarms();
     });
 
@@ -297,15 +302,15 @@ class SleepController extends GetxService {
   // ═══════════════════════════════════════════════════════════════
 
   void _loadUserSleepTimes() {
+    // Only restore if user explicitly set these themselves
+    final userSet = _storage.read('user_set_sleep_times') ?? false;
+    if (!userSet) return; // ✅ skip auto-fill from API-sourced prefs
+
     final bedMin = _storage.read(BEDTIME_KEY);
     final wakeMin = _storage.read(WAKETIME_KEY);
 
-    if (bedMin != null) {
-      bedtime.value = _minutesToTimeOfDay(bedMin);
-    }
-    if (wakeMin != null) {
-      waketime.value = _minutesToTimeOfDay(wakeMin);
-    }
+    if (bedMin != null) bedtime.value = _minutesToTimeOfDay(bedMin);
+    if (wakeMin != null) waketime.value = _minutesToTimeOfDay(wakeMin);
   }
 
   Future<void> _loadWeeklySleepData() async {
@@ -330,25 +335,72 @@ class SleepController extends GetxService {
       final prefs = await SharedPreferences.getInstance();
       final sleeping = prefs.getBool("is_sleeping") ?? false;
 
-      if (sleeping) {
-        final startString = prefs.getString("sleep_start_time");
-        final goalMinutes = prefs.getInt("sleep_goal_minutes") ?? 480;
+      if (!sleeping) return;
 
-        if (startString != null) {
-          final start = DateTime.parse(startString);
+      // ── Window validity guard ───────────────────────────────────────────────
+      // is_sleeping can be left as true in SharedPrefs if:
+      //   • SleepCalcWorker hasn't fired yet (race at wake time)
+      //   • The background isolate died mid-session
+      //   • The user opened the app at e.g. 1 PM when window was 10 PM–6 AM
+      // In all cases we must NOT show "sleep active" outside the window.
+      //
+      // Strategy: read the stored window end.  If it exists and has passed,
+      // clear the stale flag and bail.  If no window keys at all, also bail
+      // (SleepCalcWorker already cleaned up — or it will shortly).
+      final windowEndStr = prefs.getString("current_sleep_window_end");
+      final now = DateTime.now();
 
-          isSleeping.value = true;
-          sleepStartTime.value = start;
-          // Real elapsed sleep comes from background `sleep_update` events
-          // and is already clamped to the sleep window.
-          currentSleepDuration.value = Duration.zero;
-          sleepGoal.value = Duration(minutes: goalMinutes);
-          sleepProgress.value = 0.0;
-
+      if (windowEndStr != null) {
+        final windowEnd = DateTime.tryParse(windowEndStr);
+        if (windowEnd == null || now.isAfter(windowEnd)) {
+          // Window has ended — clear stale flag and do NOT restore UI state.
           debugPrint(
-            "🔄 Restored active sleep session (waiting for background sleep_update)",
+            "⏰ _checkIfAlreadySleeping: window ended at $windowEnd, now is $now — clearing stale is_sleeping flag.",
           );
+          await prefs.setBool("is_sleeping", false);
+          return;
         }
+
+        // Also check window start: if we haven't reached bedtime yet, don't restore.
+        final windowStartStr = prefs.getString("current_sleep_window_start");
+        if (windowStartStr != null) {
+          final windowStart = DateTime.tryParse(windowStartStr);
+          if (windowStart != null && now.isBefore(windowStart)) {
+            debugPrint(
+              "⏰ _checkIfAlreadySleeping: window hasn't started yet ($windowStart), now is $now — clearing stale is_sleeping flag.",
+            );
+            await prefs.setBool("is_sleeping", false);
+            return;
+          }
+        }
+      } else {
+        // No window keys — SleepCalcWorker already cleared them (session is over)
+        // or they were never written. Either way, is_sleeping is stale.
+        debugPrint(
+          "⏰ _checkIfAlreadySleeping: no stored window keys found — clearing stale is_sleeping flag.",
+        );
+        await prefs.setBool("is_sleeping", false);
+        return;
+      }
+      // ── End window validity guard ───────────────────────────────────────────
+
+      final startString = prefs.getString("sleep_start_time");
+      final goalMinutes = prefs.getInt("sleep_goal_minutes") ?? 480;
+
+      if (startString != null) {
+        final start = DateTime.parse(startString);
+
+        isSleeping.value = true;
+        sleepStartTime.value = start;
+        // Real elapsed sleep comes from background `sleep_update` events
+        // and is already clamped to the sleep window.
+        currentSleepDuration.value = Duration.zero;
+        sleepGoal.value = Duration(minutes: goalMinutes);
+        sleepProgress.value = 0.0;
+
+        debugPrint(
+          "🔄 Restored active sleep session (waiting for background sleep_update)",
+        );
       }
     } catch (e) {
       debugPrint("❌ Error checking sleep state: $e");
@@ -527,11 +579,16 @@ class SleepController extends GetxService {
   }
 
   void loadUserSleepTimes() {
-    final bedMin = _storage.read(BEDTIME_KEY);
-    final wakeMin = _storage.read(WAKETIME_KEY);
+    SharedPreferences.getInstance().then((prefs) {
+      final userSet = prefs.getBool('user_set_sleep_times') ?? false;
+      if (!userSet) return; // ✅ skip auto-fill from API-sourced prefs
 
-    if (bedMin is int) bedtime.value = minutesToTimeOfDay(bedMin);
-    if (wakeMin is int) waketime.value = minutesToTimeOfDay(wakeMin);
+      final bedMin = prefs.getInt(BEDTIME_KEY);
+      final wakeMin = prefs.getInt(WAKETIME_KEY);
+
+      if (bedMin is int) bedtime.value = minutesToTimeOfDay(bedMin);
+      if (wakeMin is int) waketime.value = minutesToTimeOfDay(wakeMin);
+    });
   }
 
   Map<String, Duration> calculateSplitDeepSleep({
@@ -625,14 +682,6 @@ class SleepController extends GetxService {
 
   Future<void> savesleepToLocalStorage() async {
     final prefs = await SharedPreferences.getInstance();
-
-    if (bedtime.value != null) {
-      prefs.setInt('bedtime', timeOfDayToMinutes(bedtime.value!));
-    }
-    if (waketime.value != null) {
-      prefs.setInt('waketime', timeOfDayToMinutes(waketime.value!));
-    }
-
     await prefs.setBool('sleepGoalbool', true);
   }
 
@@ -788,22 +837,41 @@ class SleepController extends GetxService {
       deepSleepDuration.value = Duration.zero;
     }
 
-    AgentDebugLogger.log(
-      runId: 'sleep-ui',
-      hypothesisId: 'UI',
-      location: 'sleep_controller.dart:loadDeepSleepData:today_value',
-      message: 'Loaded sleep durations from file storage',
-      data: {
-        'todayKey': todayKey,
-        'todayMinutes': deepSleepDuration.value.inMinutes,
-        'entries': weeklyDeepSleepHistory.length,
-      },
-    );
-
-    debugPrint('loadDeepSleepData deepSleepDuration.value ${deepSleepDuration.value}');
+    // ── Seed native sticky notification with yesterday's sleep ────────────────
+    // computeSleepDisplayMinutes() in StepCounterService reads
+    // flutter.sleep_final_minutes + flutter.sleep_final_date.  These are
+    // normally written by SleepCalcWorker (overnight), but that worker doesn't
+    // run on a fresh app open.  We seed them here — on every startup — so the
+    // notification always shows the correct duration as soon as the app opens,
+    // regardless of whether the user just logged in or resumed an existing session.
+    try {
+      final yesterdaySleep = weeklyDeepSleepHistory[yesterdayKey];
+      if (yesterdaySleep != null && yesterdaySleep.inMinutes > 0) {
+        // Only overwrite if not already seeded for today (or value is 0)
+        final existingDate = prefs.getString('flutter.sleep_final_date');
+        if (existingDate != todayKey ||
+            (prefs.getInt('flutter.sleep_final_minutes') ?? 0) == 0) {
+          await prefs.setInt(
+              'flutter.sleep_final_minutes', yesterdaySleep.inMinutes);
+          await prefs.setString('flutter.sleep_final_date', todayKey);
+          debugPrint(
+            '💤 [loadDeepSleepData] Seeded notification: '
+                '${yesterdaySleep.inMinutes}m (date=$todayKey)',
+          );
+          // Ask the running foreground service to redraw immediately.
+          TrackingServiceManager.instance.refreshStickyNotification();
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ [loadDeepSleepData] seed failed: $e');
+    }
+    // ── End seed ─────────────────────────────────────────────────────────────
 
     weeklyDeepSleepHistory.refresh();
     updateDeepSleepSpots();
+
+    debugPrint(
+        'loadDeepSleepData deepSleepDuration.value ${deepSleepDuration.value}');
   }
 
   Duration? get idealWakeupDuration {
@@ -1009,6 +1077,45 @@ class SleepController extends GetxService {
       savesleepToLocalStorage();
 
       debugPrint("✅ Sleep history loaded: $weeklyDeepSleepHistory");
+
+      // ── Seed the native sticky notification with yesterday's sleep ────────────
+      // The Kotlin computeSleepDisplayMinutes() reads flutter.sleep_final_minutes
+      // and flutter.sleep_final_date from FlutterSharedPreferences.  These keys
+      // are normally written by SleepCalcWorker (overnight), so on a fresh login
+      // the notification always showed "no sleep logged".  We seed them here so
+      // the correct duration is shown immediately after the API response arrives.
+      try {
+        final yesterdayKey = dateKey(
+          DateTime.now().subtract(const Duration(days: 1)),
+        );
+        final yesterdaySleep = weeklyDeepSleepHistory[yesterdayKey];
+        if (yesterdaySleep != null && yesterdaySleep.inMinutes > 0) {
+          final flutterPrefs = await SharedPreferences.getInstance();
+          final todayStr = dateKey(DateTime.now()); // "yyyy-MM-dd"
+          // Only write if no value already set by SleepCalcWorker for today
+          final existingDate = flutterPrefs.getString(
+              'flutter.sleep_final_date');
+          if (existingDate != todayStr ||
+              (flutterPrefs.getInt('flutter.sleep_final_minutes') ?? 0) == 0) {
+            await flutterPrefs.setInt(
+              'flutter.sleep_final_minutes',
+              yesterdaySleep.inMinutes,
+            );
+            await flutterPrefs.setString('flutter.sleep_final_date', todayStr);
+            debugPrint(
+              '💤 Seeded notification sleep: ${yesterdaySleep
+                  .inMinutes}m (key=$yesterdayKey → today=$todayStr)',
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('⚠️ Failed to seed sleep notification: $e');
+      }
+      // ── End seed ──────────────────────────────────────────────────────────────
+
+      // Immediately refresh the sticky notification so the seeded sleep value
+      // appears at once — no need to wait for the 1-minute Kotlin ticker.
+      TrackingServiceManager.instance.refreshStickyNotification();
 
 
 

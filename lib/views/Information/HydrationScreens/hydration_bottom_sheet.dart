@@ -202,7 +202,7 @@ class _HydrationBottomSheetState extends State<HydrationBottomSheet> {
                               100 + index * 50,
                             );
                             controller.addWaterValue.value = value;
-                            debugPrint(value as String?);
+                            debugPrint(value.toString());
                           },
                           builder: (context, index) {
                             int value = 100 + index * 50;

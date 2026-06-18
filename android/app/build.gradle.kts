@@ -5,22 +5,30 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services") version "4.4.4" apply false
+    id("com.google.gms.google-services") version "4.4.4"
 }
 val keystorePropertiesFile = rootProject.file("key.properties")
 val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {
     FileInputStream(keystorePropertiesFile).use { keystoreProperties.load(it) }
 }
+val configuredStoreFile = keystoreProperties.getProperty("storeFile")
+val resolvedStoreFile = configuredStoreFile?.let { configuredPath ->
+    val rootLevelFile = rootProject.file(configuredPath)
+    when {
+        rootLevelFile.exists() -> rootLevelFile
+        rootProject.file("app/$configuredPath").exists() -> rootProject.file("app/$configuredPath")
+        else -> rootLevelFile
+    }
+}
 android {
-    namespace = "com.coretegra.snevva"
+    namespace = "com.coretegra.snevvaa"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     defaultConfig {
-        applicationId = "com.coretegra.snevva"
-        //minSdk = flutter.minSdkVersion
-        minSdk = flutter.minSdkVersion
+        applicationId = "com.coretegra.snevvaa"
+        minSdk = 26  // Health Connect requires API 26+
 
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -32,17 +40,15 @@ android {
         create("release") {
             keyAlias = keystoreProperties.getProperty("keyAlias")
             keyPassword = keystoreProperties.getProperty("keyPassword")
-            keystoreProperties.getProperty("storeFile")?.let {
-                storeFile = file(it)
-            }
+            resolvedStoreFile?.let { storeFile = it }
             storePassword = keystoreProperties.getProperty("storePassword")
         }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
             signingConfig = signingConfigs.getByName("release")
 
             proguardFiles(
@@ -82,7 +88,7 @@ val multiDexVersion by extra("2.0.1")
 val firebaseBomVersion = "32.2.0" // adjust if you need a different BOM version
 val firebaseAnalyticsVersion = "com.google.firebase:firebase-analytics-ktx"
 val multidexVersion = "androidx.multidex:multidex:2.0.1"
-val playServicesAuth = "com.google.android.gms:play-services-auth:20.7.0"
+val playServicesAuth = "com.google.android.gms:play-services-auth:21.3.0"
 val desugarJdkLibs = "com.android.tools:desugar_jdk_libs:2.1.4"
 
 dependencies {

@@ -1,15 +1,22 @@
+import 'dart:math' as math;
+
 import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:lottie/lottie.dart';
+import 'package:snevva/Controllers/alerts/alerts_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
+import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Alerts/alerts_screen.dart';
 
+import '../../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import '../../services/notification_service.dart';
 import '../../widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../widgets/dashboard/dashboard_ads_carousel_slider.dart';
 import '../../widgets/dashboard/dashboard_header_widget.dart';
 import '../../widgets/dashboard/dashboard_service_overview_dynamic_widgets.dart';
 import '../../widgets/dashboard/dashboard_services_widget.dart';
+import '../../widgets/incomplete_profile_card.dart';
 
 class Dashboard extends StatefulWidget {
   final Function(int)? onTabSelected;
@@ -32,6 +39,7 @@ class _DashboardState extends State<Dashboard>
   late Animation<double> _fadeAnimation;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final notificationController = NotificationService();
+  late final AlertsController alertsController;
 
   final scrollController = ScrollController();
   bool _showAppBar = true;
@@ -40,14 +48,15 @@ class _DashboardState extends State<Dashboard>
   void initState() {
     super.initState();
 
-    // Initialize controllers
+    alertsController = Get.find<AlertsController>();
+
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
 
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1), // Slide from slightly below
+      begin: const Offset(0, 0.1),
       end: Offset.zero,
     ).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
@@ -58,22 +67,23 @@ class _DashboardState extends State<Dashboard>
     );
 
     _animationController.forward();
+
     scrollController.addListener(() {
       if (scrollController.position.userScrollDirection ==
           ScrollDirection.reverse) {
         if (_showAppBar) {
-          setState(() {
-            _showAppBar = false;
-          });
+          setState(() => _showAppBar = false);
         }
       } else if (scrollController.position.userScrollDirection ==
           ScrollDirection.forward) {
         if (!_showAppBar) {
-          setState(() {
-            _showAppBar = true;
-          });
+          setState(() => _showAppBar = true);
         }
       }
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await alertsController.hitAlertsNotifications();
     });
   }
 
@@ -84,12 +94,18 @@ class _DashboardState extends State<Dashboard>
     super.dispose();
   }
 
+  bool get _isPhoneMissing {
+    final phone = localStorageManager.userMap['PhoneNumber']?.toString().trim();
+    return phone == null || phone.isEmpty;
+  }
+
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       key: _scaffoldKey,
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
@@ -105,14 +121,30 @@ class _DashboardState extends State<Dashboard>
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Obx(
-                    () => Column(
+                        () =>
+                        Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          '🖐🏻 Hello',
-                          style: TextStyle(fontSize: 16),
+                        Row(
+                          children: [
+                            SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: Transform.rotate(
+                                angle: -45 * math.pi / 180,
+                                child: Lottie.asset(
+                                  handWaveLottie,
+                                  fit: BoxFit.contain,
+                                  animate: TickerMode.of(context),
+                                ),
+                              ),
+                            ),
+                            const Text(
+                              'Hello',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ],
                         ),
-
                         Text(
                           localStorageManager.userMap['Name']?.toString() ??
                               'User',
@@ -126,8 +158,8 @@ class _DashboardState extends State<Dashboard>
                   ),
                   const Spacer(),
                   Obx(() {
-                    bool hasNewNotif =
-                        notificationController.hasNewNotification.value;
+                    final unreadCount =
+                        alertsController.unreadNotifications.length;
                     return Stack(
                       children: [
                         IconButton(
@@ -139,19 +171,31 @@ class _DashboardState extends State<Dashboard>
                           onPressed: () {
                             Get.to(() => AlertsScreen());
                             notificationController.hasNewNotification.value =
-                                false;
+                            false;
                           },
                         ),
-                        if (hasNewNotif)
+                        if (unreadCount > 0)
                           Positioned(
-                            right: 8,
-                            top: 8,
+                            right: 6,
+                            top: 6,
                             child: Container(
-                              height: 10,
-                              width: 10,
+                              padding: const EdgeInsets.all(3),
                               decoration: const BoxDecoration(
                                 color: Colors.red,
                                 shape: BoxShape.circle,
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                unreadCount > 99 ? '99+' : '$unreadCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
                             ),
                           ),
@@ -202,88 +246,32 @@ class _DashboardState extends State<Dashboard>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(height: 32),
+                      // ── Single card declaration handling both cases ──
+                      if (isVisible)
+                        Obx(() {
+                          final bool showCard =
+                              _isPhoneMissing ||
+                                  !isProfileDisplayComplete(
+                                    localStorageManager.userMap,
+                                  );
 
-                      // if (isVisible)
-                      //   Obx(() {
-                      //     bool anyEmpty =
-                      //         hasEmptyValue(localStorageManager.userMap) ||
-                      //         hasEmptyValue(
-                      //           localStorageManager.userGoalDataMap,
-                      //         );
-                      //     debugPrint(anyEmpty);
-                      //
-                      //     return anyEmpty
-                      //         ? SizedBox.shrink()
-                      //         : Container(
-                      //           height: 48,
-                      //           margin: EdgeInsets.zero,
-                      //           padding: EdgeInsets.symmetric(
-                      //             horizontal: 10,
-                      //             vertical: 4,
-                      //           ),
-                      //           decoration: BoxDecoration(
-                      //             color: grey.withOpacity(0.1),
-                      //             borderRadius: BorderRadius.circular(4),
-                      //           ),
-                      //           child: Row(
-                      //             mainAxisSize: MainAxisSize.min,
-                      //             children: [
-                      //               Padding(
-                      //                 padding: const EdgeInsets.symmetric(
-                      //                   horizontal: 4.0,
-                      //                 ),
-                      //                 child: InkWell(
-                      //                   onTap: () {
-                      //                     setState(() {
-                      //                       isVisible = !isVisible;
-                      //                     });
-                      //                   },
-                      //                   child: Icon(
-                      //                     Icons.close,
-                      //                     color: grey,
-                      //                     size: 20,
-                      //                   ),
-                      //                 ),
-                      //               ),
-                      //
-                      //               // WRAP TEXT INSIDE EXPANDED
-                      //               Expanded(
-                      //                 child: Text(
-                      //                   "Complete your profile to get full insights",
-                      //                   style: TextStyle(
-                      //                     color: grey,
-                      //                     fontSize: 12,
-                      //                   ),
-                      //                   maxLines: 2,
-                      //                   overflow: TextOverflow.ellipsis,
-                      //                 ),
-                      //               ),
-                      //
-                      //               Padding(
-                      //                 padding: const EdgeInsets.symmetric(
-                      //                   horizontal: 4.0,
-                      //                 ),
-                      //
-                      //                 child: InkWell(
-                      //                   onTap: () {},
-                      //                   child: Icon(
-                      //                     Icons.info,
-                      //                     color: grey,
-                      //                     size: 20,
-                      //                   ),
-                      //                 ),
-                      //               ),
-                      //             ],
-                      //           ),
-                      //         );
-                      //   })
-                      // else
-                      //   SizedBox.shrink(),
-                      // if (isVisible)
-                      //
-                      // else
-                      //   SizedBox.shrink(),
+                          return showCard
+                              ? Column(
+                            children: [
+                              const SizedBox(height: 16),
+                              IncompleteProfileCard(
+                                onTapComplete: () {
+                                  final ctrl = Get.find<
+                                      EditprofileController>();
+                                  ctrl.openNextMissingFieldDialog(context);
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                          )
+                              : const SizedBox(height: 32);
+                        }),
+
                       DashboardHeaderWidget(),
                       const SizedBox(height: 24),
                       DashboardServiceOverviewDynamicWidgets(

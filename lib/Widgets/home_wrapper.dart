@@ -1,20 +1,23 @@
 import 'package:alarm/alarm.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:get/instance_manager.dart';
+import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/common/global_variables.dart';
+import 'package:snevva/services/connectivity_service.dart';
 import 'package:snevva/views/Dashboard/dashboard.dart';
 import 'package:snevva/views/Information/menu_screen.dart';
-import 'package:snevva/views/Reminder/reminder_wrapper.dart';
 import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
+import 'package:snevva/views/Reminder/reminder_wrapper.dart';
 import 'package:snevva/widgets/navbar.dart';
+
 import '../services/notification_channel.dart';
 import '../views/My_Health/my_health_screen.dart';
 import 'Drawer/drawer_menu_wigdet.dart';
+import 'birthday_popup_dialog.dart';
 
 // 👈 make sure you have this
 
@@ -33,6 +36,13 @@ class _HomeWrapperState extends State<HomeWrapper> {
   static Future<void>? _sharedStartupTask;
   late final List<Widget?> _pages;
   bool _hasRedirectedToProfileSetup = false;
+  bool _birthdayShown = false;
+
+  // ✅ One-shot gate: set to true once userMap is confirmed non-empty.
+  // Using a plain bool + single setState() avoids rebuilding the Scaffold
+  // on every subsequent userMap change (login refresh, FCM, ever watchers).
+  bool _userMapReady = false;
+  Worker? _userMapWorker;
 
   Widget _buildPage(int index) {
     switch (index) {
@@ -68,13 +78,43 @@ class _HomeWrapperState extends State<HomeWrapper> {
   void initState() {
     super.initState();
     _pages = List<Widget?>.filled(4, null, growable: false);
-    _ensurePageInitialized(_selectedIndex);
+
+    // ✅ If userMap already has data (cold-start with cached session), go
+    // straight to ready state without waiting for an ever() notification.
+    if (localStorageManager.userMap.isNotEmpty) {
+      _userMapReady = true;
+      _ensurePageInitialized(_selectedIndex);
+    } else {
+      // ✅ Fresh login: wait for the first non-empty userMap, flip the flag
+      // exactly once, then cancel the worker so future userMap changes
+      // (FCM, profile updates, etc.) never trigger a rebuild here.
+      _userMapWorker = ever<Map<String, dynamic>>(
+        localStorageManager.userMap,
+        (map) {
+          if (map.isNotEmpty && !_userMapReady && mounted) {
+            _userMapWorker?.dispose();
+            _userMapWorker = null;
+            _ensurePageInitialized(_selectedIndex);
+            setState(() => _userMapReady = true);
+            // Trigger birthday check now that userMap is populated
+            _showBirthdayIfNeeded(map);
+          }
+        },
+      );
+    }
+
     bmiController.loadUserBMI();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      if (_redirectToProfileSetupIfNeeded()) return;
+      // if (_redirectToProfileSetupIfNeeded()) return;
       await _ensureStartupSequence();
+
+      // ── Birthday popup (cached session only; fresh login handled in worker) ─
+      if (_userMapReady && mounted) {
+        _showBirthdayIfNeeded(localStorageManager.userMap);
+      }
+      // ─────────────────────────────────────────────────────────────────
     });
   }
 
@@ -87,6 +127,20 @@ class _HomeWrapperState extends State<HomeWrapper> {
   Future<void> _ensureStartupSequence() async {
     _sharedStartupTask ??= _startupSequence();
     await _sharedStartupTask;
+  }
+
+  Future<void> _showBirthdayIfNeeded(Map<String, dynamic> map) async {
+    if (_birthdayShown || !mounted) return;
+    _birthdayShown = true;
+    final today = DateTime.now();
+    final lastShownKey =
+        'birthday_shown_${today.year}_${today.month}_${today.day}';
+    final prefs = await SharedPreferences.getInstance();
+    final alreadyShownToday = prefs.getBool(lastShownKey) ?? false;
+    if (!alreadyShownToday && mounted) {
+      await BirthdayPopupHelper.showIfBirthday(context, map);
+      await prefs.setBool(lastShownKey, true);
+    }
   }
 
   bool _redirectToProfileSetupIfNeeded() {
@@ -111,12 +165,23 @@ class _HomeWrapperState extends State<HomeWrapper> {
 
   @override
   void dispose() {
+    _userMapWorker?.dispose();
     _setStepRealtimeTracking(false);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // ✅ Show a plain loading screen until userMap is ready.
+    // This is a normal StatefulWidget build — no Obx here — so subsequent
+    // userMap changes (FCM, ever watchers, profile refresh) never cause
+    // the IndexedStack/Dashboard to be re-mounted, eliminating the ghost UI.
+    if (!_userMapReady) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
@@ -147,9 +212,38 @@ class _HomeWrapperState extends State<HomeWrapper> {
           ),
         ),
       ),
-      bottomNavigationBar: Navbar(
-        selectedIndex: _selectedIndex,
-        onTabSelected: onTabSelected,
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Navbar(
+            selectedIndex: _selectedIndex,
+            onTabSelected: onTabSelected,
+          ),
+          Obx(() {
+            if (ConnectivityService.isOnline.value) {
+              return const SizedBox.shrink();
+            }
+            return Container(
+              color: Colors.red.shade700,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              child: SafeArea(
+                top: false,
+                child: Row(
+                  children: const [
+                    Icon(Icons.wifi_off, color: Colors.white, size: 18),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'No internet connection',
+                        style: TextStyle(color: Colors.white, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
       ),
     );
   }

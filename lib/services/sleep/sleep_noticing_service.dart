@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:screen_state/screen_state.dart';
@@ -29,6 +30,12 @@ class SleepNoticingService {
   // ─────────────────────────────────────────────
 
   void startMonitoring() {
+    // screen_state is Android-only — iOS does not expose screen on/off events
+    if (!Platform.isAndroid) {
+      debugPrint('ℹ️ SleepNoticingService.startMonitoring: no-op on iOS');
+      return;
+    }
+
     if (_subscription != null) {
       debugPrint('ℹ️ SleepNoticingService already monitoring');
       return;

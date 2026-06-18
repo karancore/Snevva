@@ -1,8 +1,14 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:alarm/alarm.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/DietPlan/diet_plan_controller.dart';
 import 'package:snevva/Controllers/HealthTips/healthtips_controller.dart';
@@ -10,6 +16,8 @@ import 'package:snevva/Controllers/Hydration/hydration_stat_controller.dart';
 import 'package:snevva/Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_controller.dart';
 import 'package:snevva/Controllers/MoodTracker/mood_questions_controller.dart';
+import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
+import 'package:snevva/Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
 import 'package:snevva/Controllers/Reminder/event_controller.dart';
 import 'package:snevva/Controllers/Reminder/meal_controller.dart';
 import 'package:snevva/Controllers/Reminder/medicine_controller.dart';
@@ -27,8 +35,11 @@ import 'package:snevva/consts/consts.dart';
 import 'package:snevva/env/env.dart';
 import 'package:snevva/models/hive_models/steps_model.dart';
 import 'package:snevva/services/api_service.dart';
+import 'package:snevva/services/reminder/native_alarm_bridge.dart';
+import 'package:snevva/services/reminder/reminder_worker.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 import 'package:snevva/views/permissions/permission_gate_screen.dart';
+import 'package:workmanager/workmanager.dart';
 
 import '../Controllers/signupAndSignIn/otp_verification_controller.dart';
 import '../Controllers/signupAndSignIn/sign_in_controller.dart';
@@ -54,7 +65,8 @@ class AuthService {
   SleepController get sleepController => Get.find<SleepController>();
   HydrationStatController get waterController =>
       Get.find<HydrationStatController>();
-  VitalsController get vitalsController => Get.find<VitalsController>();
+
+  VitalsController get vitalsController => Get.put(VitalsController());
   LocalStorageManager get localStorageManager =>
       Get.find<LocalStorageManager>();
   ReminderController get reminderController =>
@@ -170,8 +182,33 @@ class AuthService {
       prefs.setString('user_credential', emailOrPhone);
     }
 
+    // ✅ Re-enable reminders upon successful login
+    await prefs.remove('reminders_disabled');
+
     //PERMISSIONS
     loginLog("Requesting permissions...");
+
+    // ── Pre-seed flutter.today_steps before starting the native service ───────
+    // StepCounterService.onCreate() resets its counter to 0 when
+    // "flutter.today_steps" is absent from FlutterSharedPreferences (the
+    // post-logout guard for multi-user).  But here we are on a FRESH LOGIN —
+    // the service hasn't started yet and the key was cleared by forceLogout().
+    // Writing 0 now marks the key as present so the reset guard is skipped.
+    // loadStepsfromAPI() (below) will call seedTodaySteps() to overwrite it
+    // with the real API value once the data arrives.
+    try {
+      final flutterPrefs = await SharedPreferences.getInstance();
+      // Only write if the key is currently absent (i.e. post-logout state).
+      if (!flutterPrefs.containsKey('flutter.today_steps')) {
+        await flutterPrefs.setInt('flutter.today_steps', 0);
+        loginLog(
+            "Pre-seeded flutter.today_steps=0 (prevents native reset guard)");
+      }
+    } catch (e) {
+      debugPrint('⚠️ Could not pre-seed flutter.today_steps: $e');
+    }
+    // ── End pre-seed ──────────────────────────────────────────────────────────
+
     final permissionsGranted =
         await _ensurePostLoginPermissionsAndStartTracking();
     loginLog(
@@ -227,17 +264,19 @@ class AuthService {
     );
     loginLog("Mood loaded");
 
-    /// USER INFO
-    loginLog("Fetching user info...");
-    final userInfo = await signInController.userInfo();
-    final userData = userInfo['data'];
+    /// USER INFO — already fetched and stored by signInUsing* before this method
+    /// is called. Read directly from localStorageManager to avoid a GetX
+    /// instance-swap race: after forceLogout() deletes the SignInController,
+    /// Get.put(SignInController()) can return a fresh empty instance whose
+    /// userProfData/userGoalData are {}, which would overwrite the correctly
+    /// fetched data with {} and cause isProfileSetupInitialComplete to return false.
+    loginLog("Using cached user info...");
+    final Map<String, dynamic> userMap =
+        Map<String, dynamic>.from(localStorageManager.userMap);
     loginLog("User info received");
-    debugPrint('User data: ${jsonEncode(userData)}');
+    debugPrint('User data: ${jsonEncode(userMap)}');
 
-    await prefs.setString('userdata', jsonEncode(userData));
-    localStorageManager.userMap.value = userData ?? {};
-
-    final PatientCode = userData['PatientCode']?.toString() ?? '';
+    final PatientCode = userMap['PatientCode']?.toString() ?? '';
     await prefs.setString('PatientCode', PatientCode);
     loginLog("PatientCode saved: $PatientCode");
 
@@ -246,7 +285,6 @@ class AuthService {
     FileStorageService().reset();
     loginLog("FileStorageService cache reset for $PatientCode");
 
-    final Map userMap = localStorageManager.userMap;
     final bool profileComplete = isProfileSetupInitialComplete(userMap);
 
     final gender = userMap['Gender']?.toString() ?? 'Unknown';
@@ -258,21 +296,21 @@ class AuthService {
       await womenhealthController.lastPeriodDatafromAPI();
     }
 
+    // Pre-warm the profile picture disk cache so the image is available offline.
+    // Fire-and-forget: don't block navigation on a network image fetch.
+    unawaited(localStorageManager.loadProfilePicture());
+
     /// PROFILE CHECK
     loginLog("Checking ProfileSetupInitial completeness...");
     if (profileComplete) {
       loginLog("Profile setup initial complete");
 
-      final userActiveDataResponse = signInController.userGoalData;
-      final userActiveData = userActiveDataResponse['data'];
+      final Map<String, dynamic> userActiveData =
+          Map<String, dynamic>.from(localStorageManager.userGoalDataMap);
 
       debugPrint('User active data: ${jsonEncode(userActiveData)}');
-      localStorageManager.userGoalDataMap.value = userActiveData ?? {};
-      prefs.setString('userGoalDataMap', jsonEncode(userActiveData));
 
-      if (userActiveData != null && userActiveData is Map) {
-        await prefs.setString('useractivedata', jsonEncode(userActiveData));
-
+      if (userActiveData.isNotEmpty) {
         /// HOME
         if (userActiveData['ActivityLevel'] != null &&
             userActiveData['HealthGoal'] != null) {
@@ -356,6 +394,75 @@ class AuthService {
     }
   }
 
+  static Future<void> clearReminderRuntimeOnLogout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('reminders_disabled', true);
+
+    await NativeAlarmBridge.cancelAllPersisted();
+
+    await Alarm.stopAll();
+
+    final fln = FlutterLocalNotificationsPlugin();
+    await fln.cancelAll();
+    await fln.cancelAllPendingNotifications();
+
+    try {
+      if (!kIsWeb && Platform.isAndroid) {
+        await Workmanager().cancelByUniqueName(kReminderReconcileTask);
+        await Workmanager().cancelByUniqueName(kReminderOneShotTask);
+      }
+    } catch (_) {}
+
+    Get.delete<ReminderController>(tag: 'reminder', force: true);
+    Get.delete<WaterController>(force: true);
+    Get.delete<MedicineController>(force: true);
+    Get.delete<MealController>(force: true);
+    Get.delete<EventController>(force: true);
+  }
+
+  static Future<void> clearProfileImageStateOnLogout() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedPath = prefs.getString('profileImagePath');
+
+    if (Get.isRegistered<ProfileSetupController>()) {
+      try {
+        await Get.find<ProfileSetupController>().clearImage();
+      } catch (e) {
+        debugPrint('⚠️ Failed to clear ProfileSetupController image: $e');
+      }
+    } else {
+      await prefs.remove('profileImagePath');
+    }
+
+    if (savedPath != null && savedPath.isNotEmpty) {
+      try {
+        await FileImage(File(savedPath)).evict();
+      } catch (e) {
+        debugPrint('⚠️ Failed to evict saved profile image: $e');
+      }
+    }
+
+    if (Get.isRegistered<LocalStorageManager>()) {
+      final localStorageManager = Get.find<LocalStorageManager>();
+      final cdnUrl =
+          localStorageManager.userMap['ProfilePicture']?['CdnUrl']?.toString();
+      if (cdnUrl != null && cdnUrl.isNotEmpty) {
+        final imageUrl = cdnUrl.startsWith('http') ? cdnUrl : 'https://$cdnUrl';
+        try {
+          await CachedNetworkImage.evictFromCache(imageUrl);
+          await CachedNetworkImageProvider(imageUrl).evict();
+        } catch (e) {
+          debugPrint('⚠️ Failed to evict profile network image: $e');
+        }
+      }
+      localStorageManager.userMap.remove('ProfilePicture');
+      localStorageManager.userMap.refresh();
+    }
+
+    imageCache.clear();
+    imageCache.clearLiveImages();
+  }
+
   static Future<void> forceLogout() async {
     if (_isLoggingOut) return;
     _isLoggingOut = true;
@@ -370,7 +477,9 @@ class AuthService {
         if (Get.isRegistered<StepCounterController>()) {
           final ctrl = Get.find<StepCounterController>();
           if (ctrl.todaySteps.value > 0) {
-            debugPrint('📤 Logout: syncing today\'s steps (${ctrl.todaySteps.value}) before token clear...');
+            debugPrint(
+              '📤 Logout: syncing today\'s steps (${ctrl.todaySteps.value}) before token clear...',
+            );
             await ctrl.saveStepRecordToServer();
             debugPrint('✅ Logout step sync done');
           }
@@ -405,9 +514,24 @@ class AuthService {
       FileStorageService().reset();
       debugPrint('🗑️ FileStorageService cache invalidated');
 
+      // Clear alarms while prefs still contain native_reminder_alarms
+      await clearReminderRuntimeOnLogout();
+      await clearProfileImageStateOnLogout();
+
       await prefs.clear();
 
+      // ✅ FIX: Restore the reminders_disabled tombstone flag because prefs.clear() wiped it!
+      // This is critical so native BootReceiver/armFromSharedPrefs doesn't resurrect alarms
+      await prefs.setBool('reminders_disabled', true);
+
       try {
+        if (!Hive.isBoxOpen('step_history')) {
+          final dir = await getApplicationDocumentsDirectory();
+          Hive.init(dir.path);
+          if (!Hive.isAdapterRegistered(StepEntryAdapter().typeId)) {
+            Hive.registerAdapter(StepEntryAdapter());
+          }
+        }
         final stepBox = await Hive.openBox<StepEntry>('step_history');
         await stepBox.clear();
         debugPrint('🗑️ step_history Hive box cleared');
@@ -427,7 +551,7 @@ class AuthService {
 
       // ❌ REMOVE THIS
       // Get.deleteAll(force: true);
-      await Alarm.stopAll();
+
       // ✅ Delete only app controllers
       Get.delete<DietPlanController>();
       Get.delete<HealthTipsController>();
@@ -435,10 +559,8 @@ class AuthService {
       Get.delete<MentalWellnessController>();
       Get.delete<MoodController>();
       Get.delete<MoodQuestionController>();
-      Get.delete<WaterController>();
-      Get.delete<MedicineController>();
-      Get.delete<EventController>();
-      Get.delete<MealController>();
+      Get.delete<ProfileSetupController>(force: true);
+      Get.delete<EditprofileController>(force: true);
       Get.delete<SignInController>(force: true);
       Get.delete<OTPVerificationController>(force: true);
       Get.delete<SleepController>();

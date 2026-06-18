@@ -1,14 +1,15 @@
 import 'package:flutter/gestures.dart';
 import 'package:snevva/Controllers/signupAndSignIn/update_old_password_controller.dart';
 import 'package:snevva/common/custom_snackbar.dart';
+
 import '../../consts/consts.dart';
 
-class UpdateOldPasword extends StatefulWidget {
+class UpdateOldPassword extends StatefulWidget {
   final bool otpVerificationStatus;
   final String otp;
   final String emailOrPhoneText;
 
-  const UpdateOldPasword({
+  const UpdateOldPassword({
     super.key,
     required this.otpVerificationStatus,
     required this.otp,
@@ -16,16 +17,18 @@ class UpdateOldPasword extends StatefulWidget {
   });
 
   @override
-  State<UpdateOldPasword> createState() => _UpdateOldPaswordState();
+  State<UpdateOldPassword> createState() => _UpdateOldPaswordState();
 }
 
-final updatePasswordController = Get.put(UpdateOldPasswordController());
-final _formKey = GlobalKey<FormState>();
+class _UpdateOldPaswordState extends State<UpdateOldPassword> {
+  late final UpdateOldPasswordController updatePasswordController;
 
-class _UpdateOldPaswordState extends State<UpdateOldPasword> {
+  final _formKey = GlobalKey<FormState>();
   @override
   void initState() {
     super.initState();
+
+    updatePasswordController = Get.find<UpdateOldPasswordController>();
 
     updatePasswordController.passwordController.addListener(() {
       updatePasswordController.password.value =
@@ -241,6 +244,89 @@ class _UpdateOldPaswordState extends State<UpdateOldPasword> {
                           ),
                         ],
                       ),
+                    ),
+                    const SizedBox(height: 20),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          AppLocalizations.of(context)!.passwordMustContain,
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        SizedBox(height: 10),
+
+                        Obx(() {
+                          final password =
+                              updatePasswordController.password.value;
+
+                          final hasMinLength = password.length >= 10;
+                          final hasUppercase = RegExp(
+                            r'[A-Z]',
+                          ).hasMatch(password);
+                          final hasSpecialChar = RegExp(
+                            r'[!@#$%^&*(),.?":{}|<>]',
+                          ).hasMatch(password);
+
+                          return Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.check_circle,
+                                    color:
+                                        hasUppercase
+                                            ? AppColors.primaryColor
+                                            : Colors.grey,
+                                  ),
+                                  SizedBox(width: 5),
+                                  Text(
+                                    "1 uppercase letter",
+                                    style: TextStyle(fontSize: 12),
+                                  ),
+                                ],
+                              ),
+
+                              SizedBox(height: 10),
+
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.check_circle,
+                                    color:
+                                        hasSpecialChar
+                                            ? AppColors.primaryColor
+                                            : Colors.grey,
+                                  ),
+                                  SizedBox(width: 5),
+                                  Text(
+                                    "1 special character",
+                                    style: TextStyle(fontSize: 12),
+                                  ),
+                                ],
+                              ),
+
+                              SizedBox(height: 10),
+
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.check_circle,
+                                    color:
+                                        hasMinLength
+                                            ? AppColors.primaryColor
+                                            : Colors.grey,
+                                  ),
+                                  SizedBox(width: 5),
+                                  Text(
+                                    "At least 10 characters",
+                                    style: TextStyle(fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          );
+                        }),
+                      ],
                     ),
                     const SizedBox(height: 20),
                     Row(

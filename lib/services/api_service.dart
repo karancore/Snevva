@@ -1,11 +1,14 @@
+import 'dart:async';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:snevva/common/debug_logger.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/services/auth_service.dart';
 import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/services/encryption_service.dart';
+
 import '../env/env.dart';
 import 'auth_header_helper.dart';
 
@@ -49,6 +52,10 @@ class ApiService {
     return copy;
   }
 
+  /// Default request timeout — prevents a slow/hung server from blocking the
+  /// main isolate for more than [_kRequestTimeout].
+  static const Duration _kRequestTimeout = Duration(seconds: 15);
+
   static Future<Object> post(
     String endpoint,
     Map<String, dynamic>? plainBody, {
@@ -77,18 +84,25 @@ class ApiService {
       final encryptedRequestBody = jsonEncode({
         'data': encrypted['encryptedData'],
       });
-      if (kDebugMode) {
-        debugPrint("encryptedRequestBody, $encryptedRequestBody");
-      }
 
-      final response = await http.post(
-        uri,
-        headers: headers,
-        body: encryptedRequestBody,
-      );
+      debugPrint("══════════════════════════════════════════");
+      debugPrint("ENDPOINT   : $uri");
+      debugPrint("HASH       : ${encrypted['Hash']}");
+      debugPrint("PAYLOAD    : ${plainBody.toString()}");
+      logLong("BODY", encryptedRequestBody);
+      debugPrint("══════════════════════════════════════════");
+
+      final response = await http
+          .post(uri, headers: headers, body: encryptedRequestBody)
+          .timeout(_kRequestTimeout);
 
       if (response.statusCode == 401 || response.statusCode == 403) {
-        await AuthService.forceLogout();
+        // ✅ FIX: Fire-and-forget — never await forceLogout() inside an API
+        // response handler. Awaiting it here blocks the main isolate because
+        // forceLogout() stops background services, clears SharedPreferences,
+        // and calls Get.offAll — all on the UI thread, far exceeding the
+        // 16.67 ms frame budget and causing the observed freeze.
+        unawaited(AuthService.forceLogout());
         throw ApiException(
           statusCode: response.statusCode,
           endpoint: endpoint,
@@ -152,13 +166,12 @@ class ApiService {
         debugPrint("headers ${headers.toString()}");
       }
 
-      final response = await http.post(
-        uri,
-        headers: headers,
-        body: bodyPayload,
-      );
+      final response = await http
+          .post(uri, headers: headers, body: bodyPayload)
+          .timeout(_kRequestTimeout);
       if (response.statusCode == 401 || response.statusCode == 403) {
-        await AuthService.forceLogout();
+        // ✅ FIX: Fire-and-forget — same reasoning as the encrypted path above.
+        unawaited(AuthService.forceLogout());
         throw ApiException(
           statusCode: response.statusCode,
           endpoint: endpoint,

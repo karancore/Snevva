@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:alarm/alarm.dart';
 import 'package:flutter/foundation.dart';
@@ -105,8 +106,7 @@ class NativeAlarmEntry {
 class NativeAlarmBridge {
   NativeAlarmBridge._();
 
-  static const _channel =
-      MethodChannel('com.coretegra.snevva/reminder_alarms');
+  static const _channel = MethodChannel('com.coretegra.snevvaa/reminder_alarms');
 
   /// SharedPrefs key — must match PREFS_KEY in ReminderArmingHelper.kt.
   /// Kotlin reads this as "flutter.native_reminder_alarms" because the Dart
@@ -135,6 +135,7 @@ class NativeAlarmBridge {
     String body = '',
     int? intervalMs,
   }) async {
+    if (!Platform.isAndroid) return;
     try {
       await _channel.invokeMethod<bool>('armAlarm', {
         'alarmId': alarmId,
@@ -150,7 +151,9 @@ class NativeAlarmBridge {
         '${intervalMs != null ? ' interval=${intervalMs}ms' : ''}',
       );
     } catch (e) {
-      debugPrint('[NativeAlarm] ⚠️ armAlarm channel failed (ok in background): $e');
+      debugPrint(
+        '[NativeAlarm] ⚠️ armAlarm channel failed (ok in background): $e',
+      );
     }
   }
 
@@ -160,11 +163,26 @@ class NativeAlarmBridge {
 
   /// Cancels the native alarm for the given id. Call alongside Alarm.stop().
   static Future<void> cancelAlarm(int alarmId) async {
+    if (!Platform.isAndroid) return;
     try {
       await _channel.invokeMethod<bool>('cancelAlarm', {'alarmId': alarmId});
       debugPrint('[NativeAlarm] 🗑 cancelAlarm id=$alarmId');
     } catch (e) {
       debugPrint('[NativeAlarm] ⚠️ cancelAlarm channel failed: $e');
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────
+  // cancelAllPersisted — clear all alarms (e.g. on logout)
+  // ───────────────────────────────────────────────────────────────
+
+  static Future<void> cancelAllPersisted() async {
+    if (!Platform.isAndroid) return;
+    try {
+      await _channel.invokeMethod<bool>('cancelAllPersisted');
+      debugPrint('[NativeAlarm] 🗑 cancelAllPersisted executed');
+    } catch (e) {
+      debugPrint('[NativeAlarm] ⚠️ cancelAllPersisted failed: $e');
     }
   }
 
@@ -203,11 +221,13 @@ class NativeAlarmBridge {
       debugPrint('[NativeAlarm] ⚠️ cancelAlarms prefs update failed: $e');
     }
 
-    // Cancel on native side (best-effort)
-    for (final id in alarmIds) {
-      try {
-        await _channel.invokeMethod<bool>('cancelAlarm', {'alarmId': id});
-      } catch (_) {}
+    // Cancel on native side (best-effort, Android only)
+    if (Platform.isAndroid) {
+      for (final id in alarmIds) {
+        try {
+          await _channel.invokeMethod<bool>('cancelAlarm', {'alarmId': id});
+        } catch (_) {}
+      }
     }
     debugPrint('[NativeAlarm] 🗑 cancelAlarms ids=$alarmIds');
   }
@@ -224,14 +244,22 @@ class NativeAlarmBridge {
     List<AlarmSettings> alarms, {
     int intervalMs = 0,
   }) async {
-    if (alarms.isEmpty) return;
+    if (!Platform.isAndroid || alarms.isEmpty) return;
 
-    final entries = alarms
-        .map((a) => NativeAlarmEntry.fromAlarmSettings(a, intervalMs: intervalMs))
-        .whereType<NativeAlarmEntry>()
-        .toList();
+    final entries =
+        alarms
+            .map(
+              (a) =>
+                  NativeAlarmEntry.fromAlarmSettings(a, intervalMs: intervalMs),
+            )
+            .whereType<NativeAlarmEntry>()
+            .toList();
 
     if (entries.isEmpty) return;
+
+    final scheduleJson = entries
+        .map((entry) => entry.toJson())
+        .toList(growable: false);
 
     // Step 1 — persist to SharedPrefs (always works, even in background isolates)
     try {
@@ -242,8 +270,12 @@ class NativeAlarmBridge {
 
     // Step 2 — signal Kotlin to arm immediately (best-effort, UI context only)
     try {
-      await _channel.invokeMethod<bool>('armAll');
-      debugPrint('[NativeAlarm] ✅ saveAndArm armAll triggered (${entries.length} alarms)');
+      await _channel.invokeMethod<bool>('armAll', {
+        'json': jsonEncode(scheduleJson),
+      });
+      debugPrint(
+        '[NativeAlarm] ✅ saveAndArm armAll triggered (${entries.length} alarms)',
+      );
     } catch (_) {
       // Normal in WorkManager isolates — Kotlin will arm on next boot/app-open.
       debugPrint('[NativeAlarm] ⚠️ armAll skipped (background isolate)');
@@ -257,6 +289,7 @@ class NativeAlarmBridge {
   /// Saves the full alarm schedule (as a list of JSON maps) to SharedPrefs via
   /// the MethodChannel so BootReceiver can read it on next reboot.
   static Future<void> saveSchedule(List<Map<String, dynamic>> alarms) async {
+    if (!Platform.isAndroid) return;
     try {
       final json = jsonEncode(alarms);
       await _channel.invokeMethod<bool>('saveSchedule', {'json': json});
@@ -271,6 +304,7 @@ class NativeAlarmBridge {
   // ───────────────────────────────────────────────────────────────
 
   static Future<void> armAll(List<Map<String, dynamic>> alarms) async {
+    if (!Platform.isAndroid) return;
     try {
       final json = jsonEncode(alarms);
       await _channel.invokeMethod<bool>('armAll', {'json': json});
@@ -333,9 +367,10 @@ class NativeAlarmBridge {
     }
 
     // Prune stale entries (more than 5 min in the past)
-    final cutoff = DateTime.now()
-        .subtract(const Duration(minutes: 5))
-        .millisecondsSinceEpoch;
+    final cutoff =
+        DateTime.now()
+            .subtract(const Duration(minutes: 5))
+            .millisecondsSinceEpoch;
     existing.removeWhere((_, v) => v.epochMs < cutoff);
 
     await prefs.setString(

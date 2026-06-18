@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/foundation.dart';
 import 'package:timezone/data/latest.dart' as tzd;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -14,12 +17,42 @@ class NotificationService {
 
   var hasNewNotification = true.obs;
 
+  late tz.Location _location;
+
   // -------------------------------------------------
-  // Initialize notifications and timezone
+  // Normalize timezone (VERY IMPORTANT)
+  // -------------------------------------------------
+  // Maps legacy / deprecated IANA IDs and common abbreviations that Android
+  // may return to their modern canonical equivalents.
+  static const _tzAliases = <String, String>{
+    // Abbreviations
+    'IST': 'Asia/Kolkata',
+    'PST': 'America/Los_Angeles',
+    'MST': 'America/Denver',
+    'CST': 'America/Chicago',
+    'EST': 'America/New_York',
+    // Deprecated IANA names
+    'Asia/Calcutta': 'Asia/Kolkata',
+    'Asia/Dacca': 'Asia/Dhaka',
+    'Asia/Katmandu': 'Asia/Kathmandu',
+    'Asia/Macao': 'Asia/Macau',
+    'Asia/Rangoon': 'Asia/Yangon',
+    'Asia/Saigon': 'Asia/Ho_Chi_Minh',
+    'Asia/Ulan_Bator': 'Asia/Ulaanbaatar',
+    'Pacific/Truk': 'Pacific/Chuuk',
+    'Pacific/Ponape': 'Pacific/Pohnpei',
+    'America/Godthab': 'America/Nuuk',
+  };
+
+  String _normalizeTimeZone(String tzName) => _tzAliases[tzName] ?? tzName;
+
+  // -------------------------------------------------
+  // Initialize notifications + timezone
   // -------------------------------------------------
   Future<void> init() async {
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings();
+
     const initSettings = InitializationSettings(
       android: androidInit,
       iOS: iosInit,
@@ -27,14 +60,52 @@ class NotificationService {
 
     await notificationsPlugin.initialize(initSettings);
 
-    // Initialize timezone (very important for scheduling)
+    // 🔥 Initialize timezone DB
     tzd.initializeTimeZones();
-    final timezoneId = await DeviceTimezoneService.instance.getTimeZoneId();
+
+    final tzIdRaw = await DeviceTimezoneService.instance.getTimeZoneId();
+
+    final tzId = _normalizeTimeZone(tzIdRaw);
+
     try {
-      tz.setLocalLocation(tz.getLocation(timezoneId));
-    } catch (_) {}
+      _location = tz.getLocation(tzId);
+      tz.setLocalLocation(_location);
+      debugPrint("🌍 Timezone set: ${_location.name}");
+    } catch (e) {
+      debugPrint("❌ Invalid timezone: $tzId → fallback Asia/Kolkata");
+
+      _location = tz.getLocation("Asia/Kolkata");
+      tz.setLocalLocation(_location);
+    }
+
+    debugPrint("⏰ Current time: ${tz.TZDateTime.now(_location)}");
   }
 
+  // -------------------------------------------------
+  // Common time generator (FIXED)
+  // -------------------------------------------------
+  tz.TZDateTime nextInstanceOfTime(int hour, int minute) {
+    final now = tz.TZDateTime.now(_location);
+
+    var scheduledDate = tz.TZDateTime(
+      _location,
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    );
+
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    }
+
+    return scheduledDate;
+  }
+
+  // -------------------------------------------------
+  // Instant notification
+  // -------------------------------------------------
   Future<void> showInstantNotification({
     required int id,
     required String title,
@@ -57,29 +128,13 @@ class NotificationService {
         iOS: DarwinNotificationDetails(),
       ),
     );
+
     hasNewNotification.value = true;
   }
 
-  tz.TZDateTime nextInstanceOfTime(int hour, int minute) {
-    final now = tz.TZDateTime.now(tz.local);
-
-    var scheduledDate = tz.TZDateTime(
-      tz.local,
-      now.year,
-      now.month,
-      now.day,
-      hour,
-      minute,
-    );
-
-    // 🔑 If time already passed today → schedule for tomorrow
-    if (scheduledDate.isBefore(now)) {
-      scheduledDate = scheduledDate.add(const Duration(days: 1));
-    }
-
-    return scheduledDate;
-  }
-
+  // -------------------------------------------------
+  // Schedule alert (FIXED)
+  // -------------------------------------------------
   Future<void> scheduleAlertNotification({
     required int id,
     required String title,
@@ -98,38 +153,40 @@ class NotificationService {
         android: AndroidNotificationDetails(
           'alerts_channel',
           'Alerts',
-          channelDescription: 'Scheduled health reminders',
+          channelDescription: 'Scheduled alerts',
           importance: Importance.max,
           priority: Priority.high,
           icon: '@drawable/ic_stat_notification',
         ),
         iOS: DarwinNotificationDetails(),
       ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.time, // 🔥 repeats daily
+      // androidScheduleMode is Android-only — on iOS we use the date interpretation
+      androidScheduleMode: !kIsWeb && Platform.isAndroid
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.exact,
+      matchDateTimeComponents: DateTimeComponents.time,
     );
 
-    hasNewNotification.value = true;
-
-    debugPrint("✅ Scheduled -> $title at $hour:$minute");
+    debugPrint("✅ Scheduled -> $title at $scheduledDate");
   }
 
   // -------------------------------------------------
-  // Daily reminders at 10 AM and 10 PM
+  // Daily Reminder (FIXED)
   // -------------------------------------------------
   Future<void> scheduleReminder({required int id}) async {
-    final now = tz.TZDateTime.now(tz.local);
+    final now = tz.TZDateTime.now(_location);
 
-    tz.TZDateTime morningTime = tz.TZDateTime(
-      tz.local,
+    var morningTime = tz.TZDateTime(
+      _location,
       now.year,
       now.month,
       now.day,
       10,
       0,
     );
-    tz.TZDateTime nightTime = tz.TZDateTime(
-      tz.local,
+
+    var nightTime = tz.TZDateTime(
+      _location,
       now.year,
       now.month,
       now.day,
@@ -140,171 +197,60 @@ class NotificationService {
     if (now.isAfter(morningTime)) {
       morningTime = morningTime.add(const Duration(days: 1));
     }
+
     if (now.isAfter(nightTime)) {
       nightTime = nightTime.add(const Duration(days: 1));
     }
 
-    // Morning channel (used by Android system)
     const morningDetails = NotificationDetails(
       android: AndroidNotificationDetails(
         'daily_morning_channel',
-        'Daily Morning Reminder',
-        channelDescription: 'Morning motivation reminders ☀️',
+        'Morning Reminder',
+        channelDescription: 'Morning reminders',
         importance: Importance.max,
         priority: Priority.high,
         icon: '@drawable/ic_stat_notification',
-        styleInformation: BigTextStyleInformation(''),
       ),
       iOS: DarwinNotificationDetails(),
     );
 
-    // Night channel
     const nightDetails = NotificationDetails(
       android: AndroidNotificationDetails(
         'daily_night_channel',
-        'Daily Night Reminder',
-        channelDescription: 'Night reflection reminders 🌙',
+        'Night Reminder',
+        channelDescription: 'Night reminders',
         importance: Importance.max,
         priority: Priority.high,
         icon: '@drawable/ic_stat_notification',
-        styleInformation: BigTextStyleInformation(''),
       ),
       iOS: DarwinNotificationDetails(),
     );
 
-    // ✅ Morning notification text
+    final scheduleMode = !kIsWeb && Platform.isAndroid
+        ? AndroidScheduleMode.exactAllowWhileIdle
+        : AndroidScheduleMode.exact;
+
     await notificationsPlugin.zonedSchedule(
       id,
-      'Wakey-wakey! ☀️',
-      "If today is even half as amazing as you are, it's going to be a good one. 🌻",
+      'Wakey-wakey ☀️',
+      'Have a great day!',
       morningTime,
       morningDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      
+      androidScheduleMode: scheduleMode,
       matchDateTimeComponents: DateTimeComponents.time,
     );
-    hasNewNotification.value = true;
 
-    // ✅ Night notification text
     await notificationsPlugin.zonedSchedule(
       id + 1,
-      'Good night! 🌙',
-      'Before you close your eyes, remember you did great today! ✨',
+      'Good night 🌙',
+      'You did great today!',
       nightTime,
       nightDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: scheduleMode,
       matchDateTimeComponents: DateTimeComponents.time,
     );
-    hasNewNotification.value = true;
 
-    debugPrint('Morning scheduled: $morningTime');
-    debugPrint('Night scheduled: $nightTime');
+    debugPrint("🌅 Morning: $morningTime");
+    debugPrint("🌙 Night: $nightTime");
   }
-
-  // -------------------------------------------------
-  // OTP Notification (Instant) — shows OTP in notification bar
-  // -------------------------------------------------
-  Future<void> showOtpNotification(String otp) async {
-    await notificationsPlugin.show(
-      NOTIFICATION_ID, // Unique ID for OTP notifications
-      'Your OTP Code',
-      'OTP: $otp', // Content shown in notification
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'otp_notification_channel',
-          'OTP Notifications',
-          channelDescription: 'Used for showing OTP verification codes',
-          importance: Importance.max,
-          priority: Priority.high,
-          icon: '@drawable/ic_stat_notification',
-          styleInformation: BigTextStyleInformation(''),
-        ),
-        iOS: DarwinNotificationDetails(),
-      ),
-    );
-
-    hasNewNotification.value = true;
-  }
-
-  // // Future<void> scheduleWakeNotification(DateTime wakeDateTime) async {
-  // //   await notificationsPlugin.zonedSchedule(
-  // //     999, // fixed ID for wake alarm
-  // //     'Wake Time',
-  // //     'Stopping sleep monitoring',
-  // //     tz.TZDateTime.from(wakeDateTime, tz.local),
-  // //     const NotificationDetails(
-  // //       android: AndroidNotificationDetails(
-  // //         'wake_channel',
-  // //         'Wake Alarm',
-  // //         importance: Importance.max,
-  // //         priority: Priority.high,
-  // //       ),
-  // //     ),
-  // //     androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-  // //     matchDateTimeComponents: DateTimeComponents.time,
-  // //   );
-  // // }
-
-  // // Future<void> showWakeNotification() async {
-  // //   await notificationsPlugin.show(
-  // //     WAKE_NOTIFICATION_ID,
-  // //     'Wake Up',
-  // //     'Tap STOP to turn off alarm',
-  // //     NotificationDetails(
-  // //       android: AndroidNotificationDetails(
-  // //         'alarm_channel',
-  // //         'Alarm',
-  // //         importance: Importance.max,
-  // //         priority: Priority.high,
-  // //         fullScreenIntent: true,
-  // //         actions: [
-  // //           AndroidNotificationAction(
-  // //             'STOP_ALARM',
-  // //             'Stop Alarm',
-  // //             cancelNotification: true,
-  // //           ),
-  // //         ],
-  // //       ),
-  // //     ),
-  // //   );
-  // // }
-  // Future<void> scheduleWakeNotification({required DateTime dateTime}) async {
-  //   final scheduledDate =
-  //   nextInstanceOfTime(dateTime.hour, dateTime.minute);
-
-  //   await notificationsPlugin.zonedSchedule(
-  //     WAKE_NOTIFICATION_ID,
-  //     'Wake Time',
-  //     'Wake up! Time to start your day.',
-  //     scheduledDate,
-  //     NotificationDetails(
-  //       android: AndroidNotificationDetails(
-  //         'STOP_ALARM',
-  //         'Wake Alarm',
-  //         channelDescription: 'Wake-up alerts',
-  //         playSound: true,
-  //         //sound: RawResourceAndroidNotificationSound('alarm'),
-  //         audioAttributesUsage: AudioAttributesUsage.alarm,
-  //         importance: Importance.max,
-  //         priority: Priority.max,
-  //         fullScreenIntent: true,
-
-  //         autoCancel: false,
-  //         // actions: const [
-  //         //   AndroidNotificationAction(
-  //         //     'STOP_ALARM',
-  //         //     'Stop',
-  //         //     cancelNotification: true,
-  //         //
-  //         //   ),
-  //         // ],
-  //       ),
-  //     ),
-  //     androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-  //   );
-  // }
-
-  // Future<void> cancelWakeNotification() async {
-  //   await notificationsPlugin.cancel(WAKE_NOTIFICATION_ID); // Changed from 999 to 998
-  // }
 }

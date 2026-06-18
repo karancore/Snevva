@@ -5,6 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../common/global_variables.dart';
 import '../env/env.dart';
 import '../services/api_service.dart';
 
@@ -99,6 +100,8 @@ class DeviceTokenService {
   Future<bool> registerDeviceToken({required String fcmToken}) async {
     final payload = {"FCMToken": fcmToken};
 
+    logLong("Registering device token with payload:", "$payload");
+
     final response = await ApiService.post(
       fcmTokenApi,
       payload,
@@ -147,6 +150,20 @@ class DeviceTokenService {
 
     // final currentDeviceId = await getDeviceId();
     // final storedDeviceId = prefs.getString('device_id');
+
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      String? apnsToken;
+      int retries = 0;
+      while (apnsToken == null && retries < 5) {
+        apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+        debugPrint('🍎 APNS Token (attempt ${retries + 1}): $apnsToken');
+        if (apnsToken == null) {
+          await Future.delayed(const Duration(seconds: 2));
+          retries++;
+        }
+      }
+      debugPrint('🍎 Final APNS Token: $apnsToken');
+    }
 
     final fcmToken = await FirebaseMessaging.instance.getToken();
     if (fcmToken == null || fcmToken.isEmpty) return;

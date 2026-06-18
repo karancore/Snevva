@@ -1,24 +1,22 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:math';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
-import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/common/custom_snackbar.dart';
+import 'package:snevva/consts/consts.dart';
 import 'package:snevva/env/env.dart';
-
 import 'package:snevva/models/queryParamViewModels/step_goal_vm.dart';
 import 'package:snevva/services/api_service.dart';
-import 'package:snevva/consts/consts.dart';
 import 'package:snevva/services/file_storage_service.dart';
 import 'package:snevva/services/tracking_service_manager.dart';
 
 import '../../common/global_variables.dart';
-
 // ─────────────────────────────────────────────────────────────────────────────
 // StepCounterController
 //
@@ -65,7 +63,8 @@ class StepCounterController extends GetxController {
   final Map<String, List<FlSpot>> _monthlySpotsCache = <String, List<FlSpot>>{};
 
   static const _stepChannel =
-      MethodChannel('com.coretegra.snevva/step_detector');
+      MethodChannel('com.coretegra.snevvaa/step_detector');
+
 
   // =======================
   // INIT
@@ -82,6 +81,7 @@ class StepCounterController extends GetxController {
   void onClose() {
     _stepChannel.setMethodCallHandler(null);
     deactivateRealtimeTracking();
+    _iosHealthPoller?.cancel();
     super.onClose();
   }
 
@@ -92,6 +92,45 @@ class StepCounterController extends GetxController {
 
     await loadGoal();
 
+
+   if (Platform.isIOS) {
+     _stepChannel.setMethodCallHandler((call) async {
+       if (call.method == 'onStepDetected') {
+         final int newSteps = (call.arguments as int?) ?? 0;
+         _lastServiceEventAt = DateTime.now();
+
+         if (newSteps > todaySteps.value) {
+           lastSteps = todaySteps.value;
+           lastStepsRx.value = lastSteps;
+           lastPercent = _currentPercent;
+           todaySteps.value = newSteps;
+           todaySteps.refresh();
+           await _saveToFile(newSteps);
+           await _maybeSyncSteps();
+         }
+       }
+     });
+     _startFilePoller(); // ← new
+   } else {
+     // Android: MethodChannel + file poller (unchanged)
+     _stepChannel.setMethodCallHandler((call) async {
+       if (call.method == 'onStepDetected') {
+         final int newSteps = (call.arguments as int?) ?? 0;
+         _lastServiceEventAt = DateTime.now();
+
+         if (newSteps > todaySteps.value) {
+           lastSteps = todaySteps.value;
+           lastStepsRx.value = lastSteps;
+           lastPercent = _currentPercent;
+           todaySteps.value = newSteps;
+           todaySteps.refresh();
+           await _saveToFile(newSteps);
+           await _maybeSyncSteps();
+         }
+       }
+     });
+     _startFilePoller();
+   }
     // MethodChannel handler: native StepCounterService pushes live steps
     _stepChannel.setMethodCallHandler((call) async {
       if (call.method == 'onStepDetected') {
@@ -112,6 +151,69 @@ class StepCounterController extends GetxController {
 
     _startFilePoller();
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+// iOS / Apple HealthKit
+// ─────────────────────────────────────────────────────────────────────────────
+
+  // Future<void> _initIOSHealth() async {
+  //   _iOSHealth = Health();
+  //   await _iOSHealth!.configure();
+  //
+  //   final granted = await _iOSHealth!.requestAuthorization(
+  //     [HealthDataType.STEPS],
+  //     permissions: [HealthDataAccess.READ],
+  //   );
+  //   _iosHealthPermissionGranted = granted;
+  //
+  //   if (granted) {
+  //     await _fetchIOSStepsToday();
+  //     _startIOSHealthPoller();         // poll every 30s like Android
+  //   } else {
+  //     debugPrint('⚠️ iOS HealthKit permission denied');
+  //   }
+  // }
+
+  // Future<void> _fetchIOSStepsToday() async {
+  //   if (_iOSHealth == null || !_iosHealthPermissionGranted) return;
+  //
+  //   try {
+  //     final now = DateTime.now();
+  //     final midnight = DateTime(now.year, now.month, now.day);
+  //
+  //     final steps = await _iOSHealth!.getTotalStepsInInterval(midnight, now) ?? 0;
+  //
+  //     _debugLog('🍎 iOS HealthKit steps today: $steps');
+  //
+  //     if (steps > todaySteps.value) {
+  //       lastSteps = todaySteps.value;
+  //       lastStepsRx.value = lastSteps;
+  //       lastPercent = _currentPercent;
+  //
+  //       todaySteps.value = steps;
+  //       todaySteps.refresh();
+  //
+  //       await _prefs.setInt('today_steps', steps);
+  //       _invalidateMonthlySpotsCache(month: now);
+  //       await updateStepSpots();
+  //       stepSpots.refresh();
+  //
+  //       await _maybeSyncSteps();
+  //     }
+  //   } catch (e) {
+  //     debugPrint('❌ iOS HealthKit fetch error: $e');
+  //   }
+  // }
+
+  Timer? _iosHealthPoller;
+
+  // void _startIOSHealthPoller() {
+  //   _iosHealthPoller?.cancel();
+  //   _iosHealthPoller = Timer.periodic(
+  //     _filePollInterval,             // reuse same 30s constant
+  //         (_) => _fetchIOSStepsToday(),
+  //   );
+  // }
 
   // =======================
   // FILE POLLER (replaces Hive poller)
@@ -255,6 +357,14 @@ class StepCounterController extends GetxController {
   }
 
   Future<void> _saveToFile(int steps) async {
+    if (Platform.isIOS) {
+      // HealthKit is the source of truth; no local file buffer on iOS
+      await _prefs.setInt('today_steps', steps);
+      _invalidateMonthlySpotsCache(month: DateTime.now());
+      await updateStepSpots();
+      stepSpots.refresh();
+      return;
+    }
     // Append to file buffer — Kotlin's BufferManager is the primary writer;
     // this call ensures the Dart isolate also records steps if both are active.
     await FileStorageService().appendStepEvent(steps);
@@ -267,6 +377,10 @@ class StepCounterController extends GetxController {
   }
 
   Future<void> loadTodayStepsFromFile() async {
+    // if (Platform.isIOS) {
+    //   await _fetchIOSStepsToday();
+    //   return;
+    // }
     final todayKey = _dayKey(DateTime.now());
     // Prefer SharedPrefs fast-path (written by native service every step)
     final prefSteps = _prefs.getInt('today_steps') ?? 0;

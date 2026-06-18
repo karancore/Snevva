@@ -3,13 +3,13 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
-import 'package:snevva/services/reminder/native_alarm_bridge.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Controllers/Reminder/water_controller.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
 import 'package:snevva/models/reminder_schedule_metadata.dart';
+import 'package:snevva/services/reminder/device_timezone_service.dart';
 import 'package:snevva/services/reminder/reminder_identity.dart';
 import 'package:snevva/services/reminder/reminder_schedule_resolver.dart';
 
@@ -110,7 +110,7 @@ class EventController extends GetxController {
       semantics: ScheduleSemantics.absolute,
     );
 
-    print("Resolved startDate: ${_resolvedStartDate(scheduledTime)}");
+    debugPrint("Resolved startDate: ${_resolvedStartDate(scheduledTime)}");
     final eventData = ReminderPayloadModel(
       id: id,
       category: "event",
@@ -236,11 +236,12 @@ class EventController extends GetxController {
         existingAlarm?.payload == null
             ? null
             : jsonDecode(existingAlarm!.payload!) as Map<String, dynamic>;
+    final timezoneId = await DeviceTimezoneService.instance.getTimeZoneId();
     final existingMetadata = ReminderScheduleMetadata.fromJson(
       payload?['scheduleMetadata'] is Map
           ? Map<String, dynamic>.from(payload!['scheduleMetadata'] as Map)
           : null,
-      timezoneIdFallback: 'UTC',
+      timezoneIdFallback: timezoneId,
       semanticsFallback: ScheduleSemantics.absolute,
     );
 
@@ -269,9 +270,7 @@ class EventController extends GetxController {
         matchedEntries.map((entry) => entry.values.first.id).toSet()
           ..addAll(existingMetadata.alarmIds)
           ..addAll(existingMetadata.preAlarmIds);
-    for (final staleAlarmId in staleAlarmIds) {
-      await Alarm.stop(staleAlarmId);
-    }
+    await reminderController.stopReminderAlarmIds(staleAlarmIds);
     eventList.removeWhere(
       (entry) =>
           ReminderIdentity.matchesReminderId(entry.values.first, reminderId),

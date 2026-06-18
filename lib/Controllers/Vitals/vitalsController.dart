@@ -9,6 +9,7 @@ import 'package:snevva/models/queryParamViewModels/bloodpressure.dart';
 import 'package:snevva/services/api_service.dart';
 
 import '../../common/custom_snackbar.dart';
+import '../../models/glucose_reading_model.dart';
 
 class VitalsController extends GetxController {
   var bpm = 0.obs;
@@ -16,10 +17,58 @@ class VitalsController extends GetxController {
   var dia = 0.obs; // Observable for DIA
   var bloodGlucose = 0.obs; // Observable for BloodGlucose
 
+  final glucoseController = TextEditingController();
   @override
   void onInit() {
     super.onInit();
+    loadGlucoseReadings();
     loadVitalsFromLocalStorage(); // Load vitals when the controller is initialized
+  }
+
+  // Reactive list — GlucoseScreen rebuilds automatically via Obx
+  final RxList<GlucoseReading> glucoseReadings = <GlucoseReading>[].obs;
+
+  static const _prefKey = 'glucose_readings';
+
+  @override
+  void onClose() {
+    glucoseController.dispose();
+    super.onClose();
+  }
+
+  // ── Persistence ──────────────────────────────────────────────────────────
+
+  Future<void> loadGlucoseReadings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String> raw = prefs.getStringList(_prefKey) ?? [];
+    glucoseReadings.assignAll(
+      raw.map((e) => GlucoseReading.fromJson(e)).toList(),
+    );
+  }
+
+  Future<void> _persist() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      _prefKey,
+      glucoseReadings.map((r) => r.toJson()).toList(),
+    );
+  }
+
+  // ── CRUD ─────────────────────────────────────────────────────────────────
+
+  Future<void> addGlucoseReading(String level, String type) async {
+    final reading = GlucoseReading(
+      glucoseLevel: level,
+      time: DateTime.now().toIso8601String(),
+      type: type,
+    );
+    glucoseReadings.insert(0, reading); // newest first
+    await _persist();
+  }
+
+  Future<void> deleteGlucoseReading(int index) async {
+    glucoseReadings.removeAt(index);
+    await _persist();
   }
 
   String getBpmStatus(int bpm) {
@@ -55,11 +104,10 @@ class VitalsController extends GetxController {
     await prefs.setInt('bpm', bpm.value); // Save BPM
     await prefs.setInt('sys', sys.value); // Save SYS
     await prefs.setInt('dia', dia.value); // Save DIA
-    await prefs.setInt('bloodGlucose', bloodGlucose.value); // Save BloodGlucose
     await prefs.setBool('isFirstTime', false);
 
     debugPrint(
-      'Vitals saved: BPM: ${bpm.value}, SYS: ${sys.value}, DIA: ${dia.value}, BloodGlucose: ${bloodGlucose.value}',
+      'Vitals saved: BPM: ${bpm.value}, SYS: ${sys.value}, DIA: ${dia.value}',
     );
   }
 
@@ -105,13 +153,12 @@ class VitalsController extends GetxController {
           bpm.value = latestRecord['HeartRate'] ?? 0;
           sys.value = latestRecord['SYS'] ?? 0;
           dia.value = latestRecord['DIA'] ?? 0;
-          bloodGlucose.value = latestRecord['BloodGlucose'] ?? 0;
 
           // Optional: You could also save these values to local storage here
           saveVitalsToLocalStorage();
 
           debugPrint(
-            'Fetched and updated BPM: ${bpm.value}, SYS: ${sys.value}, DIA: ${dia.value}, BloodGlucose: ${bloodGlucose.value}',
+            'Fetched and updated BPM: ${bpm.value}, SYS: ${sys.value}, DIA: ${dia.value}',
           );
         }
       } else {
@@ -185,6 +232,83 @@ class VitalsController extends GetxController {
         title: 'Error',
         message: 'Failed saving Vitals record',
       );
+      return false;
+    }
+  }
+
+  // ── Blood Glucose Submit ──────────────────────────────────────────────────
+
+  Future<bool> submitBloodGlucose({
+    required double glucoseValue,
+    required String type, // 'Fasting', 'Post Meal', 'Random'
+    required BuildContext context,
+  }) async {
+    try {
+      // Validate range (mmol/L: 1.0 – 33.3)
+      // if (glucoseValue < 1.0 || glucoseValue > 33.3) {
+      //   CustomSnackbar.showError(
+      //     context: context,
+      //     title: 'Invalid Value',
+      //     message: 'Glucose must be between 1.0 and 33.3 mmol/L.',
+      //   );
+      //   return false;
+      // }
+
+      // 1️⃣ Save locally in the readings list (persisted via SharedPreferences)
+      await addGlucoseReading(glucoseValue.toString(), type);
+
+      // 2️⃣ Update reactive var so other screens react
+      bloodGlucose.value = glucoseValue.toInt();
+
+      // 3️⃣ Persist bloodGlucose scalar separately (for VitalScreen tile etc.)
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('bloodGlucose', bloodGlucose.value);
+
+      debugPrint('Blood Glucose submitted: $glucoseValue mmol/L [$type]');
+
+      // 4️⃣ Hit the API
+      final now = DateTime.now();
+
+      // Map display label → API value
+      final typeMap = {
+        'Fasting': 'Fasting',
+        'Post Meal': 'PostMeal',
+        'Random': 'Random',
+      };
+
+      final payload = {
+        'BloodGlucose': glucoseValue,
+        'TypeOfSugar': typeMap[type] ?? type,
+        'Day': now.day,
+        'Month': now.month,
+        'Year': now.year,
+        'Time': now.toIso8601String(),
+      };
+
+      debugPrint('API payload: $payload');
+
+      try {
+        final response = await ApiService.post(
+          bloodglucoseapi,
+          payload,
+          withAuth: true,
+          encryptionRequired: true,
+        );
+        if (response is http.Response) {
+          debugPrint('API sync failed, but saved locally');
+        }
+      } catch (e) {
+        debugPrint('API error: $e');
+      }
+      return true;
+
+    } catch (e) {
+      debugPrint('submitBloodGlucose error: $e');
+      // CustomSnackbar.showError(
+      //   context: context,
+      //   title: 'Error',
+      //   message: 'Failed to save blood glucose record.',
+      // );
       return false;
     }
   }

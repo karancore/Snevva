@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
+
 import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
 
@@ -21,13 +22,23 @@ class CommonStatGraphWidget extends StatelessWidget {
     required this.isSleepGraph,
     required this.isWaterGraph,
     this.maxXForWeek,
+    this.highlightIndex,
     this.weekLabels,
     this.selectedMonthForHeader,
+    this.onBarTouched,
   });
 
   final bool isDarkMode;
   final double height;
+
+  /// Legacy param — still supported so existing callers don't break.
   final int? maxXForWeek;
+
+  /// Explicit highlight column. Pass the 0-based index of the bar to
+  /// highlight (e.g. today's weekday: Mon=0 … Sun=6), or -1 to highlight
+  /// nothing (past week / monthly view). Takes precedence over [maxXForWeek].
+  final int? highlightIndex;
+
   final String graphTitle;
   final double yAxisInterval;
   final double gridLineInterval;
@@ -35,38 +46,38 @@ class CommonStatGraphWidget extends StatelessWidget {
   final String measureUnit;
   final bool isMonthlyView;
   final bool isSleepGraph;
-
   final bool isWaterGraph;
-  final List<FlSpot> points; // Data points for the graph
-  final List<String>?
-  weekLabels; // Can be days (Mon-Sun) or month days (1,5,10...)
+  final List<FlSpot> points;
+  final List<String>? weekLabels;
   final DateTime? selectedMonthForHeader;
+  final Function(int, FlSpot)? onBarTouched;
+
+  double get _dynamicBarWidth {
+    final count = points.length;
+    if (count <= 7) return 40;
+    if (count <= 15) return 30;
+    return 30;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final List<String> fixedWeekLabels = const [
-      "Mon",
-      "Tue",
-      "Wed",
-      "Thu",
-      "Fri",
-      "Sat",
-      "Sun",
+    const List<String> fixedWeekLabels = [
+      'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun',
     ];
 
-    // Use provided labels, or default weekly labels
     final labels = weekLabels ?? fixedWeekLabels;
-
-    // If labels > 7, treat it as monthly data
-    //final bool isMonthly = labels.length > 7;
     final bool isMonthly = isMonthlyView;
 
-    // Weekly labels are often partial (Mon..today), so highlight by the
-    // provided weekly max index instead of assuming 7 labels are present.
+    // Resolve highlighted index
     int todayIndex = -1;
-    if (!isMonthly && labels.isNotEmpty) {
-      final int resolvedIndex = maxXForWeek ?? (labels.length - 1);
-      todayIndex = resolvedIndex.clamp(0, labels.length - 1).toInt();
+    if (!isMonthly) {
+      if (highlightIndex != null) {
+        todayIndex = highlightIndex!; // caller wins (-1 = none)
+      } else {
+        // Legacy fallback
+        final int resolved = maxXForWeek ?? (labels.length - 1);
+        todayIndex = resolved.clamp(0, labels.length - 1).toInt();
+      }
     }
 
     final now = DateTime.now();
@@ -75,10 +86,9 @@ class CommonStatGraphWidget extends StatelessWidget {
       final selected = selectedMonthForHeader!;
       final isCurrentMonth =
           selected.year == now.year && selected.month == now.month;
-      headerDate =
-          isCurrentMonth
-              ? DateTime(now.year, now.month, now.day)
-              : DateTime(selected.year, selected.month + 1, 0);
+      headerDate = isCurrentMonth
+          ? DateTime(now.year, now.month, now.day)
+          : DateTime(selected.year, selected.month + 1, 0);
     }
 
     final String formattedDate = DateFormat('d MMM, yyyy').format(headerDate);
@@ -96,7 +106,6 @@ class CommonStatGraphWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ===== Header Section =====
             Row(
               children: [
                 SvgPicture.asset(statisticIcon, height: 22),
@@ -105,50 +114,42 @@ class CommonStatGraphWidget extends StatelessWidget {
                   child: Text(
                     graphTitle,
                     style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
+                        fontWeight: FontWeight.w600, fontSize: 14),
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
+                      horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    border: Border.all(color: mediumGrey, width: border04px),
+                    border:
+                    Border.all(color: mediumGrey, width: border04px),
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Text(
-                    formattedDate,
-                    style: const TextStyle(fontSize: 10),
-                  ),
+                  child: Text(formattedDate,
+                      style: const TextStyle(fontSize: 10)),
                 ),
               ],
             ),
-
-            const SizedBox(height: 15),
-
-            // ===== Graph Section =====
+            const SizedBox(height: 1),
             isMonthlyView
                 ? SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: _buildChart(
-                    labels: labels,
-                    points: points,
-                    context: context,
-                    isMonthly: isMonthly,
-                    todayIndex: todayIndex,
-                  ),
-                )
+              scrollDirection: Axis.horizontal,
+              child: _buildChart(
+                labels: labels,
+                points: points,
+                context: context,
+                isMonthly: isMonthly,
+                todayIndex: todayIndex,
+              ),
+            )
                 : _buildChart(
-                  labels: labels,
-                  context: context,
-                  maxXForWeek: maxXForWeek,
-                  points: points,
-                  isMonthly: isMonthly,
-                  todayIndex: todayIndex,
-                ),
+              labels: labels,
+              context: context,
+              maxXForWeek: maxXForWeek,
+              points: points,
+              isMonthly: isMonthly,
+              todayIndex: todayIndex,
+            ),
           ],
         ),
       ),
@@ -163,11 +164,15 @@ class CommonStatGraphWidget extends StatelessWidget {
     required BuildContext context,
     int? maxXForWeek,
   }) {
-    String formatted = '';
-    final double safeMaxX =
-        isMonthly
-            ? max(0, labels.length - 1).toDouble()
-            : max(0, (maxXForWeek ?? labels.length - 1)).toDouble();
+    if (points.isEmpty || labels.isEmpty) {
+      return SizedBox(
+        height: height * 0.28,
+        child: const Center(
+          child: Text('No data available',
+              style: TextStyle(fontSize: 12, color: Colors.grey)),
+        ),
+      );
+    }
 
     double chartWidth = max(
       labels.length * 42.0,
@@ -175,62 +180,76 @@ class CommonStatGraphWidget extends StatelessWidget {
     );
     if (isMonthly) chartWidth += 1;
 
-    if (points.isEmpty || labels.isEmpty) {
-      return SizedBox(
-        height: height * 0.28,
-        child: const Center(
-          child: Text(
-            'No data available',
-            style: TextStyle(fontSize: 12, color: Colors.grey),
-          ),
-        ),
+    final barGroups = List.generate(labels.length, (index) {
+      final spot = points.firstWhere(
+            (p) => p.x.toInt() == index,
+        orElse: () => FlSpot(index.toDouble(), 0),
       );
-    }
+
+      final bool isHighlighted =
+          !isMonthly && todayIndex != -1 && index == todayIndex;
+
+      return BarChartGroupData(
+        x: index,
+        barRods: [
+          BarChartRodData(
+            toY: spot.y,
+            width: _dynamicBarWidth,
+            borderRadius:
+            const BorderRadius.vertical(top: Radius.circular(4)),
+            gradient: LinearGradient(
+              colors: isHighlighted
+                  ? [AppColors.primaryColor, AppColors.primaryColor]
+                  : [
+                AppColors.primaryColor.withOpacity(0.5),
+                AppColors.primaryColor,
+              ],
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
+            ),
+          ),
+        ],
+      );
+    });
 
     return Container(
-      padding: const EdgeInsets.only(top: 52),
+      padding: const EdgeInsets.only(top: 32),
       height: height * 0.28,
       width: chartWidth,
       child: RepaintBoundary(
-        child: LineChart(
+        child: BarChart(
           key: ValueKey(isMonthlyView),
-          LineChartData(
-            minX: 0,
-            maxX: safeMaxX,
-            // use dynamic maxX
+          BarChartData(
             minY: 0,
             maxY: yAxisMaxValue,
-
+            barGroups: barGroups,
             titlesData: FlTitlesData(
               bottomTitles: AxisTitles(
                 sideTitles: SideTitles(
                   showTitles: true,
                   reservedSize: 24,
-                  interval: 1,
                   getTitlesWidget: (value, _) {
                     final int index = value.toInt();
-
                     if (index >= 0 && index < labels.length) {
-                      final bool isToday =
-                          !isMonthly && todayIndex != -1 && index == todayIndex;
-
+                      final bool isHighlighted = !isMonthly &&
+                          todayIndex != -1 &&
+                          index == todayIndex;
                       return Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(
                           labels[index],
                           style: TextStyle(
                             fontSize: 9,
-                            fontWeight:
-                                isToday ? FontWeight.bold : FontWeight.normal,
-                            color:
-                                isToday
-                                    ? AppColors.primaryColor
-                                    : Colors.grey.shade600,
+                            fontWeight: isHighlighted
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: isHighlighted
+                                ? AppColors.primaryColor
+                                : Colors.grey.shade600,
                           ),
                         ),
                       );
                     }
-
                     return const SizedBox.shrink();
                   },
                 ),
@@ -239,8 +258,8 @@ class CommonStatGraphWidget extends StatelessWidget {
                 sideTitles: SideTitles(
                   showTitles: true,
                   interval: yAxisInterval,
-                  getTitlesWidget:
-                      (value, _) => Text(
+                  getTitlesWidget: (value, _) =>
+                      Text(
                         value % 1 == 0
                             ? '${value.toInt()}$measureUnit'
                             : '${value.toStringAsFixed(1)}$measureUnit',
@@ -248,17 +267,17 @@ class CommonStatGraphWidget extends StatelessWidget {
                       ),
                 ),
               ),
-              rightTitles: AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
-              topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false)),
+              topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false)),
             ),
             gridData: FlGridData(
               show: true,
               horizontalInterval: gridLineInterval,
               drawVerticalLine: false,
-              getDrawingHorizontalLine:
-                  (_) => const FlLine(color: mediumGrey, strokeWidth: 0.8),
+              getDrawingHorizontalLine: (_) =>
+              const FlLine(color: mediumGrey, strokeWidth: 0.8),
             ),
             borderData: FlBorderData(
               show: true,
@@ -269,74 +288,40 @@ class CommonStatGraphWidget extends StatelessWidget {
                 top: BorderSide(color: Colors.transparent),
               ),
             ),
-            lineBarsData: [
-              LineChartBarData(
-                spots: points,
-                isCurved: true,
-                preventCurveOverShooting: true,
-
-                color: AppColors.primaryColor,
-                barWidth: 2,
-                dotData: FlDotData(
-                  show: true,
-                  getDotPainter: (spot, percent, barData, index) {
-                    if (spot.y == 0) {
-                      return FlDotCirclePainter(
-                        radius: 0, // 👈 invisible
-                        color: Colors.transparent,
-                        strokeWidth: 0,
-                        strokeColor: Colors.transparent,
-                      );
-                    }
-
-                    return FlDotCirclePainter(
-                      radius: 4,
-                      color: white,
-                      strokeWidth: 2,
-                      strokeColor: AppColors.primaryColor,
-                    );
-                  },
-                ),
-
-                belowBarData: BarAreaData(
-                  show: true,
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.primaryColor.withOpacity(0.3),
-                      Colors.transparent,
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
-              ),
-            ],
-            lineTouchData: LineTouchData(
+            barTouchData: BarTouchData(
               enabled: true,
-              touchTooltipData: LineTouchTooltipData(
-                getTooltipColor: (touchedSpot) => AppColors.primaryColor,
+              touchCallback: (FlTouchEvent event, barTouchResponse) {
+                if (!event.isInterestedForInteractions ||
+                    barTouchResponse == null ||
+                    barTouchResponse.spot == null) return;
+                if (onBarTouched != null) {
+                  final index =
+                      barTouchResponse.spot!.touchedBarGroupIndex;
+                  final yVal =
+                      barTouchResponse.spot!.touchedRodData.toY;
+                  onBarTouched!(index, FlSpot(index.toDouble(), yVal));
+                }
+              },
+              touchTooltipData: BarTouchTooltipData(
+                getTooltipColor: (_) => AppColors.primaryColor,
                 tooltipPadding: const EdgeInsets.all(8),
                 tooltipBorderRadius: BorderRadius.circular(24),
-                getTooltipItems: (touchedSpots) {
-                  return touchedSpots.map((spot) {
-                    if (isSleepGraph) {
-                      final int minutes = (spot.y * 60).round();
-                      formatted = formatDurationToHM(
-                        Duration(minutes: minutes),
-                      );
-                    }
-
-                    return LineTooltipItem(
-                      isSleepGraph
-                          ? formatted
-                          : '${(spot.y * 1000).round()} ml',
-                      const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    );
-                  }).toList();
+                getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                  String label;
+                  if (isSleepGraph) {
+                    final int minutes = (rod.toY * 60).round();
+                    label = formatDurationToHM(Duration(minutes: minutes));
+                  } else {
+                    label = '${(rod.toY * 1000).round()} ml';
+                  }
+                  return BarTooltipItem(
+                    label,
+                    const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  );
                 },
               ),
             ),
@@ -346,6 +331,8 @@ class CommonStatGraphWidget extends StatelessWidget {
     );
   }
 }
+
+// ── Helpers ──────────────────────────────────────────────────────
 
 double getNiceHydrationMaxY(double value) {
   if (value <= 1) return 1;
@@ -367,11 +354,6 @@ double getNiceHydrationInterval(double maxY) {
 }
 
 double getNiceSleepMaxY(double value) {
-  // if (value <= 0) return 0;
-  // if (value <= 1) return 1;
-  // if (value <= 2) return 2;
-  // if (value <= 3) return 3;
-
   if (value <= 4) return 4;
   if (value <= 5) return 5;
   if (value <= 6) return 6;

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:alarm/alarm.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -11,6 +13,8 @@ import 'package:snevva/models/hive_models/reminder_payload_model.dart';
 import 'package:snevva/services/file_storage_service.dart';
 import 'package:snevva/services/notification_service.dart';
 import 'package:snevva/services/reminder/device_timezone_service.dart';
+// reminder_alarm_platform.dart import removed — clearLegacyFlutterReminderAlarms
+// is no longer called at startup (native AlarmManager is the sole scheduler).
 import 'package:snevva/services/reminder/reminder_worker.dart';
 import 'package:snevva/services/unified_background_service.dart';
 import 'package:timezone/data/latest.dart';
@@ -31,6 +35,9 @@ Future<void> ensureAlarmInitialized() {
 }
 
 Future<void> createServiceNotificationChannel() async {
+  // Android-only: iOS does not use notification channels.
+  if (kIsWeb || !Platform.isAndroid) return;
+
   // Single unified channel used by BOTH the native StepCounterService and the
   // Dart flutter_background_service isolate. Creating it here ensures it exists
   // before either service tries to post notifications.
@@ -55,23 +62,22 @@ Future<void> createServiceNotificationChannel() async {
 // ====================================================================
 Future<void> requestAllPermissions() async {
   final req = <Permission>[
-    Permission.activityRecognition,
-    Permission.sensors,
-    Permission.locationWhenInUse,
-    Permission.ignoreBatteryOptimizations,
     Permission.notification,
+    // activityRecognition & battery optimization are Android-only
+    if (!kIsWeb && Platform.isAndroid) Permission.activityRecognition,
+    if (!kIsWeb && Platform.isAndroid) Permission.ignoreBatteryOptimizations,
   ];
 
   // ✅ Request permissions without blocking
   final statuses = await req.request();
 
-  // For reliable background step counting, battery optimization must be ignored.
-  if (statuses[Permission.ignoreBatteryOptimizations]?.isDenied ?? true) {
-    print(
-      "⚠️ Ignoring battery optimizations is NOT granted, background isolate might drop.",
-    );
-    // Note: If you want 100% 24/7 reliability, you must prompt the user
-    // to disable battery optimizations for Snevva in Android Settings.
+  if (!kIsWeb && Platform.isAndroid) {
+    // For reliable background step counting, battery optimization must be ignored.
+    if (statuses[Permission.ignoreBatteryOptimizations]?.isDenied ?? true) {
+      debugPrint(
+        "⚠️ Ignoring battery optimizations is NOT granted, background isolate might drop.",
+      );
+    }
   }
 
   // Only show settings if user permanently denied
@@ -138,6 +144,14 @@ Future<void> setupHive() async {
 // 3️⃣ BACKGROUND SERVICE INITIALIZATION (PREVENT DOUBLE START)
 // ====================================================================
 Future<void> initBackgroundService() async {
+  // iOS step counting is handled natively by CMPedometer in AppDelegate.swift.
+  // Sleep tracking is Android-only (ScreenStateReceiver / SleepCalcWorker).
+  // The flutter_background_service isolate is therefore Android-only.
+  if (!kIsWeb && !Platform.isAndroid) {
+    debugPrint("ℹ️ initBackgroundService: skipped on non-Android platform");
+    return;
+  }
+
   final service = FlutterBackgroundService();
 
   // ✅ Check if service is already running
@@ -159,8 +173,9 @@ Future<void> initBackgroundService() async {
       autoStart: true,
       autoStartOnBoot: true,
       notificationChannelId: 'tracker_channel',
-      initialNotificationTitle: 'Snevva Active',
-      initialNotificationContent: '👟 Steps: 0   😴 Sleep: --',
+      initialNotificationTitle: 'Tracking your day',
+      initialNotificationContent:
+          'Steps, sleep & wellness running in the background',
       // ✅ FIX: Same notification ID as StepCounterService.kt (ID = 1)
       // so Android shows only ONE notification for both services.
       foregroundServiceNotificationId: 1,
@@ -246,11 +261,19 @@ Future<bool> initializeApp() async {
     // The alarm plugin expects initialization before any alarm reads,
     // restores, reconciliation, or scheduling happen in app startup flows.
     await ensureAlarmInitialized();
+    // NOTE: clearLegacyFlutterReminderAlarms() (Alarm.stopAll) removed.
+    // The native AlarmManager is the sole scheduler on Android, so the
+    // flutter_alarm plugin DB is always empty — the sweep was wasting
+    // SQLite time on every open and stacking with the Stage 3 cleanup.
 
     // ⏰ Register WorkManager periodic task for reminder rescheduling.
     // Runs every ~6 hours even if the app is killed, ensuring the 36h
     // scheduling window is continuously refreshed.
-    await initReminderWorker();
+    final prefs = await SharedPreferences.getInstance();
+    final hasSession = (prefs.getString('auth_token') ?? '').isNotEmpty;
+    if (hasSession && !kIsWeb && Platform.isAndroid) {
+      await initReminderWorker();
+    }
 
     // 📦 One-time file path migration: copies any daily JSON files that were
     // written to the OLD app_flutter/fs/daily/ path into the NEW files/fs/daily/
@@ -264,11 +287,13 @@ Future<bool> initializeApp() async {
     final notifService = NotificationService();
     await notifService.init();
 
-    // ⏰ One-time reminder
-    final prefs = await SharedPreferences.getInstance();
-    if (!(prefs.getBool('reminder_scheduled') ?? false)) {
+    // ⏰ Schedule daily reminders (morning + night).
+    // We intentionally run this on every startup — zonedSchedule with a fixed
+    // ID is idempotent (overwrites the previous entry), so there is no
+    // duplication risk.  This also self-heals any notification that was
+    // previously scheduled in UTC due to the timezone-fallback bug.
+    if (hasSession) {
       await notifService.scheduleReminder(id: 100);
-      await prefs.setBool('reminder_scheduled', true);
     }
 
     _isInitialized = true;
@@ -277,7 +302,7 @@ Future<bool> initializeApp() async {
     return prefs.getBool('remember_me') ?? false;
   } catch (e, stackTrace) {
     debugPrint("❌ App initialization failed: $e");
-    debugPrint(stackTrace as String?);
+    debugPrint(stackTrace.toString());
     return false;
   }
 }

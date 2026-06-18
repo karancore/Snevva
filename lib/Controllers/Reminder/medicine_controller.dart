@@ -1,9 +1,7 @@
 import 'dart:async';
-
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
-import 'package:snevva/services/reminder/native_alarm_bridge.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pinput/pinput.dart';
@@ -11,6 +9,8 @@ import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/models/mappers/medicine_to_reminder_mapper.dart';
 import 'package:snevva/models/reminder_schedule_metadata.dart';
 import 'package:snevva/services/hive_service.dart';
+import 'package:snevva/services/reminder/device_timezone_service.dart';
+import 'package:snevva/services/reminder/native_alarm_bridge.dart';
 import 'package:snevva/services/reminder/reminder_schedule_resolver.dart';
 
 import '../../common/custom_snackbar.dart';
@@ -528,6 +528,7 @@ class MedicineController extends GetxController {
     debugPrint('📦 Loading medicine reminders from Hive Key: $key');
     // final box = Hive.box(reminderBox);
     final box = await HiveService().remindersBox();
+    final timezoneId = await DeviceTimezoneService.instance.getTimeZoneId();
 
     // Get the list of strings (safely)
     final List<dynamic>? storedList = box.get(key);
@@ -541,7 +542,10 @@ class MedicineController extends GetxController {
         // Decode JSON String -> Map -> Model
         if (item is String) {
           final Map<String, dynamic> decoded = jsonDecode(item);
-          final model = MedicineReminderModel.fromJson(decoded);
+          final model = MedicineReminderModel.fromJson(
+            decoded,
+            timezoneIdFallback: timezoneId,
+          );
           loadedList.add(model);
         }
       } catch (e) {
@@ -613,7 +617,6 @@ class MedicineController extends GetxController {
     );
 
     // Native AlarmManager is the sole scheduler — skip Alarm.set().
-
 
     // 2. Update the List in Hive
     final id = alarmId;
@@ -709,9 +712,17 @@ class MedicineController extends GetxController {
 
     final model = medicineList[index];
     final candidateTimes = _candidateReminderTimes(model);
-    final idsToStop = <int>{...model.alarmIds, model.id};
 
-    for (final id in idsToStop) {
+    // Collect ALL alarm IDs that need to be cancelled — both from the model's
+    // stored alarm ID list and from scheduleMetadata (native-only path).
+    final nativeIdsToCancel = <int>{
+      ...model.alarmIds,
+      model.id,
+      ...model.scheduleMetadata.alarmIds,
+      ...model.scheduleMetadata.preAlarmIds,
+    };
+
+    for (final id in nativeIdsToCancel) {
       await Alarm.stop(id);
     }
 
@@ -724,6 +735,7 @@ class MedicineController extends GetxController {
         if (decoded['category'] == ReminderCategory.medicine.toString() &&
             decoded['groupId'] == reminderId.toString()) {
           await Alarm.stop(alarm.id);
+          nativeIdsToCancel.add(alarm.id);
         }
       } catch (_) {}
     }
@@ -743,6 +755,7 @@ class MedicineController extends GetxController {
         );
         if (matchesTitle && matchesMedicine && matchesTime) {
           await Alarm.stop(alarm.id);
+          nativeIdsToCancel.add(alarm.id);
         }
       }
     }
@@ -768,8 +781,21 @@ class MedicineController extends GetxController {
 
         if (matchesMainTime) {
           await Alarm.stop(alarm.id);
+          nativeIdsToCancel.add(alarm.id);
         }
       } catch (_) {}
+    }
+
+    // ✅ KEY FIX: cancel native AlarmManager entries AND purge from SharedPrefs.
+    // Alarm.stop() only touches the flutter_alarm package; without this the
+    // Kotlin-side AlarmManager entry remains armed and the alarm still fires.
+    if (nativeIdsToCancel.isNotEmpty) {
+      debugPrint(
+        '🗑️ [Medicine] Cancelling ${nativeIdsToCancel.length} native alarms: $nativeIdsToCancel',
+      );
+      await NativeAlarmBridge.cancelAlarms(
+        nativeIdsToCancel.toList(growable: false),
+      );
     }
 
     medicineList.removeAt(index);

@@ -9,9 +9,7 @@
         </item>
 
         <!-- Splash icon (VECTOR) -->
-        <item name="android:windowSplashScreenAnimatedIcon">
-            @mipmap/snevva_elly_round
-        </item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/snevva_elly_foreground</item>
 
     </style>
 

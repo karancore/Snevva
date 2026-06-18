@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, TargetPlatform, kIsWeb;
 import 'package:snevva/consts/colors.dart';
 
 class Navbar extends StatelessWidget {
@@ -24,17 +22,8 @@ class Navbar extends StatelessWidget {
       Icons.notifications_active,
       Icons.apps,
     ];
-    final List<IconData> iosIcons = [
-      Icons.home_outlined,
-      Icons.person_2_outlined,
-      Icons.notification_important,
-      Icons.grid_view,
-    ];
 
-    final icons =
-        (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS)
-            ? iosIcons
-            : androidIcons;
+    final icons = androidIcons;
 
     return SafeArea(
       child: Container(

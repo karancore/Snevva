@@ -1,20 +1,42 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter_svg/svg.dart';
-import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
-import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:snevva/Widgets/Drawer/drawer_menu_wigdet.dart';
 import 'package:snevva/consts/colors.dart';
 import 'package:snevva/consts/images.dart';
+import 'package:snevva/models/common_tips_response.dart';
+import 'package:snevva/widgets/app_loader.dart';
 
-class NutritionTipsPage extends StatelessWidget {
+class NutritionTipsPage extends StatefulWidget {
+
+  const NutritionTipsPage(
+      {super.key, this.commonTip, required this.placeHolder});
+
+  final CommonTip? commonTip;
+  final String placeHolder;
+
+  @override
+  State<NutritionTipsPage> createState() => _NutritionTipsPageState();
+}
+
+class _NutritionTipsPageState extends State<NutritionTipsPage> {
+  List<String?> commonSteps = [];
+
+  String commonImageUrl = '';
+
+  @override
+  void initState() {
+    super.initState();
+
+    final tipData = widget.commonTip;
+    commonSteps = List<String>.from(widget?.commonTip?.steps ?? []);
+    commonImageUrl = 'https://${widget.commonTip?.thumbnailMedia?.cdnUrl}';
+    commonImageUrl ??= placeHolderImage;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final Map<String, dynamic> tipData = Get.arguments;
-    final List<String> steps = List<String>.from(tipData['Steps'] ?? []);
-    final imageUrl = 'https://${tipData?["ThumbnailMedia"]?["CdnUrl"]}';
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
 
@@ -29,7 +51,7 @@ class NutritionTipsPage extends StatelessWidget {
         backgroundColor: transparent,
         centerTitle: true,
         title: Text(
-          tipData['Heading'] ?? "Sleep Well",
+          widget.commonTip?.heading ?? "Sleep Well",
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -98,30 +120,21 @@ class NutritionTipsPage extends StatelessWidget {
                     Center(
                       child: ClipOval(
                         child: CachedNetworkImage(
-                          imageUrl:
-                              imageUrl ??
-                              "https://d3byuuhm0bg21i.cloudfront.net/derivatives/c3d47d00-8a25-46ef-bba3-ec5609c49b08/thumb.webp",
+                          imageUrl: commonImageUrl,
                           height: 220,
                           width: 220,
                           fit: BoxFit.cover,
-                          // loadingBuilder: (context, child, progress) {
-                          //   if (progress == null) return child;
-                          //   return Container(
-                          //     height: 220,
-                          //     width: 220,
-                          //     alignment: Alignment.center,
-                          //     child: const CircularProgressIndicator(),
-                          //   );
-                          // },
-                          // errorBuilder: (context, error, stackTrace) {
-                          //   return Container(
-                          //     height: 220,
-                          //     width: 220,
-                          //     color: Colors.grey[300],
-                          //     alignment: Alignment.center,
-                          //     child: const Icon(Icons.broken_image, size: 40),
-                          //   );
-                          // },
+                          errorWidget:
+                              (context, error, stackTrace) =>
+                              Image.asset(
+                                  widget.placeHolder, fit: BoxFit.cover),
+                          placeholder: (context, url) {
+                            return Container(
+                              height: 120,
+                              color: Colors.grey[200],
+                              child: const AppLoader(size: 40),
+                            );
+                          },
                         ),
                       ),
                     ),
@@ -130,7 +143,7 @@ class NutritionTipsPage extends StatelessWidget {
 
                     // Title
                     Text(
-                      tipData['Title'] ?? "",
+                      widget.commonTip?.title ?? "",
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -141,7 +154,7 @@ class NutritionTipsPage extends StatelessWidget {
 
                     // Short Description
                     AutoSizeText(
-                      tipData['ShortDescription'] ?? "",
+                      widget.commonTip?.shortDescription ?? "",
                       textAlign: TextAlign.justify,
                       style: const TextStyle(color: Colors.grey),
                     ),
@@ -149,7 +162,7 @@ class NutritionTipsPage extends StatelessWidget {
                     const SizedBox(height: 40),
 
                     // Steps Heading
-                    if (steps.isNotEmpty)
+                    if (commonSteps.isNotEmpty)
                       const Text(
                         "Tips",
                         style: TextStyle(
@@ -161,7 +174,7 @@ class NutritionTipsPage extends StatelessWidget {
                     const SizedBox(height: 12),
 
                     // Steps List (dynamically built)
-                    ...steps.asMap().entries.map((entry) {
+                    ...commonSteps.asMap().entries.map((entry) {
                       final index = entry.key + 1;
                       final step = entry.value;
 

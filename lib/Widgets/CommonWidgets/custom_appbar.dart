@@ -1,4 +1,5 @@
 import 'package:flutter_svg/flutter_svg.dart';
+
 import '../../consts/consts.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -83,11 +84,11 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                         onClose != null ? onClose!() : Navigator.pop(context);
                       },
                       child: SizedBox(
-                        height: 24,
-                        width: 24,
+                        height: 36,
+                        width: 36,
                         child: Icon(
                           Icons.clear,
-                          size: 21,
+                          size: 34,
                           color:
                               isWhiteRequired!
                                   ? white

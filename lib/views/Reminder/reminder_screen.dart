@@ -1,8 +1,8 @@
+import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
-import 'package:snevva/common/loader.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/models/hive_models/reminder_payload_model.dart';
 import 'package:snevva/views/Reminder/add_reminder_screen.dart';
@@ -14,8 +14,11 @@ import '../../common/global_variables.dart';
 import 'collapsed_header.dart';
 
 class ReminderScreen extends StatefulWidget {
-  const ReminderScreen({super.key});
+  const ReminderScreen(
+      {super.key, this.isClose = false, this.isHydrationScreen = false});
 
+  final bool? isClose;
+  final bool ? isHydrationScreen;
   @override
   State<ReminderScreen> createState() => _ReminderScreenState();
 }
@@ -31,6 +34,10 @@ class _ReminderScreenState extends State<ReminderScreen>
 
   late AnimationController listAnimationController;
 
+
+  final scrollController = ScrollController();
+  bool _showAppBar = true;
+
   @override
   void initState() {
     super.initState();
@@ -41,7 +48,26 @@ class _ReminderScreenState extends State<ReminderScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
     });
+
+    scrollController.addListener(() {
+      if (scrollController.position.userScrollDirection ==
+          ScrollDirection.reverse) {
+        if (_showAppBar) {
+          setState(() {
+            _showAppBar = false;
+          });
+        }
+      } else if (scrollController.position.userScrollDirection ==
+          ScrollDirection.forward) {
+        if (!_showAppBar) {
+          setState(() {
+            _showAppBar = true;
+          });
+        }
+      }
+    });
   }
+
 
   void _triggerListAnimationIfNeeded(int itemCount) {
     if (itemCount == 0 || itemCount == _lastAnimatedCount) return;
@@ -68,14 +94,14 @@ class _ReminderScreenState extends State<ReminderScreen>
 
   @override
   void dispose() {
+    scrollController.dispose();
     listAnimationController.dispose();
     super.dispose();
   }
 
   Future<void> _loadData() async {
     await controller.loadAllReminderLists();
-    final reminders = await controller.getReminderFromAPI(context);
-    logLong("REMINDERS", reminders.toString());
+    // final reminders = await controller.getReminderFromAPI(context);
   }
 
   @override
@@ -87,17 +113,24 @@ class _ReminderScreenState extends State<ReminderScreen>
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
-      appBar: CustomAppBar(
-        appbarText: "Reminder",
-        showCloseButton: false,
-        onClose: () {
-          Navigator.of(context).pop();
-        },
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(_showAppBar ? kToolbarHeight : 0),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: _showAppBar ? 1.0 : 0.0,
+          child: CustomAppBar(
+
+            appbarText: "Reminder",
+            showCloseButton: widget.isClose ?? false,
+            onClose: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
       ),
       body: Obx(() {
-        //Show loading indicator
         if (controller.isLoading.value) {
-          return Loader();
+          return const AppLoader();
         }
 
         // Show empty state
@@ -114,9 +147,11 @@ class _ReminderScreenState extends State<ReminderScreen>
         _triggerListAnimationIfNeeded(controller.reminders.length);
 
         return Column(
+
           children: [
             Expanded(
               child: ListView(
+                controller: scrollController,
                 padding: EdgeInsets.only(left: 16, right: 16, bottom: 16),
                 children: [
                   ...controller.reminders.asMap().entries.map((entry) {
@@ -514,6 +549,7 @@ class _ReminderScreenState extends State<ReminderScreen>
         );
 
       case 'meal':
+        print("Times per day: ${reminder.customReminder?.timesPerDay?.list}");
         return Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.start,
@@ -530,22 +566,13 @@ class _ReminderScreenState extends State<ReminderScreen>
               reminder.customReminder.type == Option.interval
                   ? "Reminder will ring after every $frequencyHour ${pluralizeHour(frequencyHour)}"
                   : formatReminderTime(
-                    reminder.customReminder?.timesPerDay?.list ?? [],
+                    reminder.customReminder.timesPerDay?.list ?? [],
                   ),
               style: TextStyle(fontSize: 12, color: Color(0xff878787)),
             ),
             Spacer(),
             InkWell(
               onTap: () {
-                // Get.snackbar(
-                //   "WIP",
-                //   "Reminder inundation is work in progress.",
-                //   snackPosition: SnackPosition.BOTTOM,
-                //   colorText: white,
-                //   backgroundColor: AppColors.primaryColor,
-                //   duration: const Duration(seconds: 3),
-                // );
-                // return;
                 Get.to(() => AddReminderScreen(reminder: reminder));
               },
               child: SvgPicture.asset(
@@ -573,6 +600,9 @@ class _ReminderScreenState extends State<ReminderScreen>
         );
 
       case 'event':
+        debugPrint(
+          "Times per day: ${reminder.customReminder?.timesPerDay?.list}",
+        );
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

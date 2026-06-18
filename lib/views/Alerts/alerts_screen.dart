@@ -1,13 +1,11 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
+
 import '../../Controllers/alerts/alerts_controller.dart';
 import '../../consts/colors.dart';
 import '../../consts/images.dart';
 import '../../models/alerts.dart';
-import '../../services/notification_service.dart';
-import '../../widgets/CommonWidgets/custom_appbar.dart';
 
 class AlertsScreen extends StatefulWidget {
   const AlertsScreen({super.key});
@@ -18,192 +16,44 @@ class AlertsScreen extends StatefulWidget {
 
 class _AlertsScreenState extends State<AlertsScreen>
     with SingleTickerProviderStateMixin {
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+  late FirebaseMessaging messaging;
 
   final alertsController = Get.find<AlertsController>();
-  List<Alerts> _alerts = [];
 
   @override
   void initState() {
     super.initState();
+
+    messaging = FirebaseMessaging.instance;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       alertsController.hitAlertsNotifications();
-      // alertsController.scheduleAllAlerts(_dummyAlerts);
+      // alertsController.scheduleAllAlerts(_alerts);
     });
   }
 
-  final List<Alerts> _dummyAlerts = [
-    Alerts(
-      dataCode: "N001",
-      heading: "Fitness Motivation",
-      title: "Workout Reminder",
-      times: ["12:20", "08:00"],
-      isActive: true,
-    ),
-    Alerts(
-      dataCode: "N002",
-      heading: "General Info",
-      title: "Stay Safe!",
-      times: ["08:30", "08:15"],
-      isActive: true,
-    ),
-    Alerts(
-      dataCode: "N003",
-      heading: "Fitness Motivation",
-      title: "Workout Reminder",
-      times: ["07:30", "08:30"],
-      isActive: true,
-    ),
-  ];
-
-  bool _isClearing = false;
-  final GlobalKey<AnimatedListState> _dummyListKey =
-      GlobalKey<AnimatedListState>();
-  final GlobalKey<AnimatedListState> _apiListKey =
-      GlobalKey<AnimatedListState>();
-
-  Future<void> _clearAll(
-    GlobalKey<AnimatedListState> key,
-    List<Alerts> list,
-  ) async {
-    if (_isClearing || list.isEmpty) return;
-
-    _isClearing = true;
-
-    for (int i = list.length - 1; i >= 0; i--) {
-      await Future.delayed(const Duration(milliseconds: 120));
-      // use the general remove helper
-      if (key == _dummyListKey) {
-        _removeAnimatedItem(i, key, list);
-      } else {
-        // for non-animated lists, just remove normally
-        setState(() {
-          list.removeAt(i);
-        });
-      }
-    }
-
-    await Future.delayed(const Duration(milliseconds: 350));
-
-    setState(() {
-      _showEmptyState = true;
-    });
-
-    _isClearing = false;
-  }
-
-  bool _showEmptyState = false;
-
-  // Removes an item from an AnimatedList safely.
-  void _removeAnimatedItem(
-    int index,
-    GlobalKey<AnimatedListState> key,
-    List<Alerts> list,
-  ) {
-    if (index < 0 || index >= list.length) return;
-    final removedItem = list.removeAt(index);
-
-    key.currentState?.removeItem(
-      index,
-      (context, animation) => _buildDismissibleItem(
-        removedItem,
-        index,
-        key,
-        isAnimatedList: true,
-        underlyingList: list,
-        animation: animation,
-      ),
-      duration: const Duration(milliseconds: 300),
-    );
-  }
-
-  // General builder for both AnimatedList (dummy) and ListView (API)
-  Widget _buildDismissibleItem(
-    Alerts item,
-    int index,
-    GlobalKey<AnimatedListState> key, {
-    required bool isAnimatedList,
-    required List<Alerts> underlyingList,
-    Animation<double>? animation,
-  }) {
-    final dismissibleKey = ValueKey(item.dataCode ?? item.title);
-
-    Widget content = Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color:
-            Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey.shade900
-                : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            spreadRadius: 2,
-            blurRadius: 6,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.heading,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  item.title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-
-    // If this is from AnimatedList, wrap with SizeTransition (animation supplied)
-    if (animation != null) {
-      content = SizeTransition(sizeFactor: animation, child: content);
-    }
-
+  Widget _buildDismissibleItem(Alerts item, {bool isRead = false}) {
     return Dismissible(
-      key: dismissibleKey,
+      key: ValueKey('${item.dataCode}_${isRead ? "read" : "unread"}'),
       direction: DismissDirection.endToStart,
+      confirmDismiss: (_) async {
+        await alertsController.readNotifications(item.id);
+        return false; // don't auto-remove; reactive list rebuilds
+      },
       background: Container(
-        margin: const EdgeInsets.only(bottom: 16),
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFFFF5F6D), Color(0xFFFF2E63)],
-            begin: Alignment.centerRight,
-            end: Alignment.centerLeft,
-          ),
+          gradient: AppColors.greenGradient,
           borderRadius: BorderRadius.circular(16),
         ),
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Row(
+        child: const Row(
           mainAxisAlignment: MainAxisAlignment.end,
-          children: const [
-            Icon(Icons.delete_outline, color: Colors.white, size: 26),
+          children: [
+            Icon(Icons.mark_chat_read, color: Colors.white, size: 26),
             SizedBox(width: 8),
             Text(
-              "Delete",
+              "Mark Read",
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
@@ -213,45 +63,135 @@ class _AlertsScreenState extends State<AlertsScreen>
           ],
         ),
       ),
-      onDismissed: (direction) async {
-        if (isAnimatedList) {
-          // remove via AnimatedList helper
-          final idx = underlyingList.indexWhere(
-            (a) => a.dataCode == item.dataCode,
-          );
-          if (idx != -1) {
-            _removeAnimatedItem(idx, key, underlyingList);
-          }
-        } else {
-          // API list: update controller (make sure controller has method to persist deletion)
-          await alertsController.markAsDeleted(item.dataCode);
-          // remove from the controller list (GetX will rebuild)
-          alertsController.notifications.removeWhere(
-            (a) => a.dataCode == item.dataCode,
-          );
-        }
-      },
-      child: content,
+      child: GestureDetector(
+        onTap: () {
+          if (!isRead) alertsController.readNotifications(item.id);
+        },
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme
+                .of(context)
+                .brightness == Brightness.dark
+                ? Colors.grey.shade900
+                : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            // ✅ Unread items get a left accent border
+            border: isRead
+                ? null
+                : Border(
+              left: BorderSide(
+                color: AppColors.greenGradient.colors.first,
+                width: 4,
+              ),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.15),
+                spreadRadius: 1,
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ✅ Unread dot indicator
+              if (!isRead)
+                Padding(
+                  padding: const EdgeInsets.only(top: 5, right: 10),
+                  child: CircleAvatar(
+                    radius: 5,
+                    backgroundColor: AppColors.greenGradient.colors.first,
+                  ),
+                ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.heading,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.title,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight:
+                        isRead ? FontWeight.normal : FontWeight.bold,
+                        color: isRead ? Colors.grey.shade600 : null,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionHeader(String label, int count) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 10),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(width: 8),
+          if (count > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.greenGradient.colors.first.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.greenGradient.colors.first,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme
+        .of(context)
+        .brightness == Brightness.dark;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: isDarkMode ? black : white,
+        backgroundColor: isDark ? black : white,
         centerTitle: true,
         scrolledUnderElevation: 0.0,
-        surfaceTintColor: isDarkMode ? black : white,
+        surfaceTintColor: isDark ? black : white,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios,
-            size: 24,
-            color: isDarkMode ? white : black,
-          ),
+          icon: Icon(Icons.arrow_back_ios,
+              size: 24, color: isDark ? white : black),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -259,70 +199,41 @@ class _AlertsScreenState extends State<AlertsScreen>
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: isDarkMode ? white : black,
+            color: isDark ? white : black,
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed:
-                _dummyAlerts.isEmpty
-                    ? null
-                    : () => _clearAll(_dummyListKey, _dummyAlerts),
-            child: const Text("Clear All", style: TextStyle(color: Colors.red)),
-          ),
-        ],
       ),
       body: SafeArea(
         child: GetX<AlertsController>(
           builder: (controller) {
-            final apiList = controller.notifications;
+            final unread = controller.unreadNotifications;
+            final read = controller.readNotifications_;
 
-            // 1️⃣ If API has data -> use ListView to avoid AnimatedList coordination issues
-            if (apiList.isNotEmpty) {
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: apiList.length,
-                itemBuilder: (context, index) {
-                  final item = apiList[index];
-                  return _buildDismissibleItem(
-                    item,
-                    index,
-                    _apiListKey,
-                    isAnimatedList: false,
-                    underlyingList: apiList,
-                  );
-                },
-              );
+            if (unread.isEmpty && read.isEmpty) {
+              return _noNotificationsWidget();
             }
 
-            // 2️⃣ If dummy has data -> use AnimatedList
-            if (_dummyAlerts.isNotEmpty) {
-              return AnimatedList(
-                key: _dummyListKey,
-                padding: const EdgeInsets.all(16),
-                initialItemCount: _dummyAlerts.length,
-                itemBuilder: (context, index, animation) {
-                  final item = _dummyAlerts[index];
-                  return _buildDismissibleItem(
-                    item,
-                    index,
-                    _dummyListKey,
-                    isAnimatedList: true,
-                    underlyingList: _dummyAlerts,
-                    animation: animation,
-                  );
-                },
-              );
+            // Build a flat list of widgets:
+            // [Unread header] + unread tiles + [Read header] + read tiles
+            final List<Widget> items = [];
+
+            if (unread.isNotEmpty) {
+              items.add(_sectionHeader("NEW", unread.length));
+              for (final alert in unread) {
+                items.add(_buildDismissibleItem(alert, isRead: false));
+              }
             }
 
-            if (_showEmptyState || _dummyAlerts.isEmpty || apiList.isEmpty) {
-              return _noNotificationsWidget(
-                Theme.of(context).brightness == Brightness.dark,
-              );
+            if (read.isNotEmpty) {
+              items.add(_sectionHeader("EARLIER", read.length));
+              for (final alert in read) {
+                items.add(_buildDismissibleItem(alert, isRead: true));
+              }
             }
 
-            return _noNotificationsWidget(
-              Theme.of(context).brightness == Brightness.dark,
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              children: items,
             );
           },
         ),
@@ -330,7 +241,7 @@ class _AlertsScreenState extends State<AlertsScreen>
     );
   }
 
-  Widget _noNotificationsWidget(bool isDarkMode) {
+  Widget _noNotificationsWidget() {
     return Center(child: Image.asset(noNotif, scale: 3.5));
   }
 }

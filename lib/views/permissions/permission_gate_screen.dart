@@ -1,7 +1,5 @@
 import 'package:permission_handler/permission_handler.dart';
 
-import '../../Widgets/home_wrapper.dart';
-import '../../bindings/initial_bindings.dart';
 import '../../consts/consts.dart';
 import '../../services/permission_manager.dart';
 
@@ -140,7 +138,7 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
     setState(() => _requesting = false);
 
     if (_allGranted) {
-      Navigator.of(context).pop(true);
+      Get.back(result: true);
     }
   }
 
@@ -150,28 +148,25 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
       builder: (dialogContext) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+              borderRadius: BorderRadius.circular(16)),
           title: const Text('Skip Permissions?'),
           content: const Text(
             'Step and sleep tracking will not work until permissions are granted.',
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
+              onPressed: () => Navigator.of(dialogContext).pop(false), // Stay
               child: const Text('Stay'),
             ),
             TextButton(
-              onPressed: () {
-                Get.offAll(HomeWrapper(), binding: InitialBindings());
-              },
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              // ✅ sirf pop karo
               child: const Text('Skip'),
             ),
           ],
         );
       },
     );
-
     return result ?? false;
   }
 
@@ -262,7 +257,7 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
         if (_requesting) return false;
         final skip = await _confirmSkip();
         if (skip && mounted) {
-          Navigator.of(context).pop(false);
+          Get.back(result: false);
         }
         return false;
       },
@@ -377,7 +372,7 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
                                 _requesting
                                     ? null
                                     : (_allGranted
-                                        ? () => Navigator.of(context).pop(true)
+                                    ? () => Get.back(result: true)
                                         : _requestSequentially),
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -390,14 +385,7 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
                             ),
                             child:
                                 _requesting
-                                    ? const SizedBox(
-                                      height: 18,
-                                      width: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
+                                    ? const AppLoader(size: 18)
                                     : Text(
                                       _allGranted
                                           ? 'Continue'
@@ -415,7 +403,7 @@ class _PermissionGateScreenState extends State<PermissionGateScreen>
                                     : () async {
                                       final skip = await _confirmSkip();
                                       if (skip && mounted) {
-                                        Navigator.of(context).pop(false);
+                                        Get.back(result: false);
                                       }
                                     },
                             style: OutlinedButton.styleFrom(

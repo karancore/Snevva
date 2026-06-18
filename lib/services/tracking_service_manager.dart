@@ -10,7 +10,7 @@ class TrackingServiceManager {
 
   static final TrackingServiceManager instance = TrackingServiceManager._();
   static const MethodChannel _stepServiceChannel = MethodChannel(
-    'com.coretegra.snevva/step_service',
+    'com.coretegra.snevvaa/step_service',
   );
 
   Future<void> start() async {
@@ -60,6 +60,21 @@ class TrackingServiceManager {
       debugPrint('🛑 stopNativeStepService: foreground service stopped');
     } on PlatformException catch (e) {
       debugPrint('⚠️ stopNativeStepService failed: $e');
+    }
+  }
+
+  /// Sends a REFRESH_NOTIFICATION intent to the native StepCounterService so
+  /// the sticky notification re-reads steps + sleep from SharedPreferences and
+  /// updates immediately (instead of waiting up to 60 s for the 1-min ticker).
+  /// Call this after seeding sleep data into FlutterSharedPreferences at login.
+  Future<void> refreshStickyNotification() async {
+    if (!Platform.isAndroid) return;
+
+    try {
+      await _stepServiceChannel.invokeMethod<bool>('refreshNotification');
+      debugPrint('🔔 refreshStickyNotification sent');
+    } on PlatformException catch (e) {
+      debugPrint('⚠️ refreshStickyNotification failed: $e');
     }
   }
 }

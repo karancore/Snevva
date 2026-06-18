@@ -3,19 +3,20 @@ import 'dart:math';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:geolocator/geolocator.dart';
-
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
+import 'package:snevva/Controllers/common/common_tips_controller.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Information/StepCounter/step_counter_bottom_sheet.dart';
+import 'package:snevva/widgets/common/common_tip_widget.dart';
 import 'package:snevva/widgets/semi_circular_progress.dart';
 
 import '../../../common/global_variables.dart';
 import '../../../widgets/CommonWidgets/custom_appbar.dart';
 import '../../../widgets/CommonWidgets/step_stat_graph_widget.dart';
 import '../../../widgets/Drawer/drawer_menu_wigdet.dart';
+import 'step_report_screen.dart';
 
 class StepCounter extends StatefulWidget {
   final int? customGoal;
@@ -29,169 +30,77 @@ class StepCounter extends StatefulWidget {
 class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
   final stepController = Get.find<StepCounterController>();
 
-  List<FlSpot> _points = [];
-  int daysSinceMonday = 0;
-  int todayDate = 1;
+  /// 0 = current week, 1 = previous week, etc.
+  int _weekOffset = 0;
+
   DateTime _selectedMonth = DateTime.now();
   bool _isMonthlyView = false;
 
-  Position? _currentPosition;
-  StreamSubscription<Position>? _locationSub;
-
   Timer? _uiRefreshTimer;
-
-  String _dayKey(DateTime d) => "${d.year}-${d.month}-${d.day}";
-
-  DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
-
-
-
-
-  // final service = FlutterBackgroundService();
-  // StreamSubscription? _serviceSub;
-
   Timer? _debounce;
   int _secretTapCount = 0;
   Timer? _secretResetTimer;
 
-  @override
-  void initState() {
-    super.initState();
+  late CommonTipsController commonTipsController;
+  final ScrollController _scrollController = ScrollController();
 
-    // Ensure we observe app lifecycle to refresh on resume
-    WidgetsBinding.instance.addObserver(this);
+  // ───────── week helpers ─────────
 
-    // Start the MethodChannel listener + file poller so this screen receives
-    // live step updates from the native StepCounterService immediately.
-    stepController.activateRealtimeTracking();
-
-    // Load whatever is already in the daily file so the UI shows steps right away.
-    stepController.loadTodayStepsFromFile();
+  DateTime _mondayOfWeek(int offset) {
+    final now = DateTime.now();
+    final monday = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - DateTime.monday));
+    return monday.subtract(Duration(days: offset * 7));
   }
 
-  @override
-  void dispose() {
-    _locationSub?.cancel();
-    _uiRefreshTimer?.cancel();
-    _debounce?.cancel();
-    _secretResetTimer?.cancel();
-    WidgetsBinding.instance.removeObserver(this);
-    // Signal controller that this screen is no longer the active consumer.
-    // (MethodChannel handler stays alive in the controller for background updates.)
-    stepController.deactivateRealtimeTracking();
-    super.dispose();
+  int _daysInWeek(int offset) {
+    if (offset == 0) return DateTime.now().weekday; // Mon=1…Sun=7
+    return 7;
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-
-    if (state == AppLifecycleState.resumed) {
-      // Force reload from Hive and prefs when app returns to foreground
-      debugPrint('🔁 App resumed - reloading steps from file');
-      stepController.loadTodayStepsFromFile();
-    }
-  }
-
-  Future<void> toggleStepsCard() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isStepGoalSet', true);
-  }
-
-  //   Future<void> _loadWeeklyData() async {
-  //
-  //   final start = _startOfDay(now).subtract(const Duration(days: 6));
-
-  //   final pts = <FlSpot>[];
-  //   int maxSteps = 0;
-
-  //   for (int i = 0; i < 7; i++) {
-  //     final day = start.add(Duration(days: i));
-  //     final key = _dayKey(day);
-  //     final steps = _box.get(key)?.steps ?? 0;
-
-  //     if (steps > maxSteps) maxSteps = steps;
-
-  //     // Use raw step counts (Option B)
-  //     pts.add(FlSpot(i.toDouble(), steps.toDouble()));
-  //   }
-
-  //   if (!mounted) return;
-  //   setState(() {
-  //     _points = pts;
-  //     _graphMaxY = maxSteps * 1.1; // add 10% padding
-  //   });
-
-  //   debugPrint("📈 Weekly data loaded: $_points");
-  // }
-
-  //   Future<void> _loadMonthlyData(DateTime month) async {
-  //   final start = DateTime(month.year, month.month, 1);
-  //   final days = DateTime(month.year, month.month + 1, 0).day;
-
-  //   final pts = <FlSpot>[];
-  //   int maxSteps = 0;
-
-  //   for (int i = 0; i < days; i++) {
-  //     final day = start.add(Duration(days: i));
-  //     final key = _dayKey(day);
-  //     final steps = _box.get(key)?.steps ?? 0;
-
-  //     if (steps > maxSteps) maxSteps = steps;
-
-  //     pts.add(FlSpot(i.toDouble(), steps.toDouble())); // raw steps
-  //   }
-
-  //   if (!mounted) return;
-  //   setState(() {
-  //     _points = pts;
-  //     _graphMaxY = maxSteps * 1.1; // 10% padding
-  //   });
-  // }
-
-  Future<void> _initLocationTracking() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      await Geolocator.openLocationSettings();
-    }
-
-    LocationPermission permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever)
-      return;
-
-    _locationSub = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10,
-      ),
-    ).listen((pos) {
-      if (!mounted) return;
-      setState(() => _currentPosition = pos);
+  List<String> _weekLabelsForOffset(int offset) {
+    final monday = _mondayOfWeek(offset);
+    final count = _daysInWeek(offset);
+    return List.generate(count, (i) {
+      final d = monday.add(Duration(days: i));
+      return DateFormat('E').format(d);
     });
   }
 
-  // ===== LABELS =====
-  //
-  // List<String> _weekLabels() {
-  //
-  //   final start = _startOfDay(now).subtract(const Duration(days: 6));
-  //   return List.generate(7, (i) {
-  //     final d = start.add(Duration(days: i));
-  //     return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.weekday % 7];
-  //   });
-  // }
-  //
-  // List<String> _monthLabels(DateTime month) {
-  //   final days = DateTime(month.year, month.month + 1, 0).day;
-  //   return List.generate(days, (i) => "${i + 1}");
-  // }
+  List<FlSpot> _weekSpotsForOffset(int offset) {
+    final monday = _mondayOfWeek(offset);
+    final count = _daysInWeek(offset);
+    final spots = <FlSpot>[];
+    for (int i = 0; i < count; i++) {
+      final d = monday.add(Duration(days: i));
+      final key =
+          "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+      final steps = stepController.stepsHistoryByDate[key] ?? 0;
+      spots.add(FlSpot(i.toDouble(), steps.toDouble()));
+    }
+    return spots;
+  }
 
-  // ===== SWITCH VIEWS =====
+  String _weekRangeLabel(int offset) {
+    final monday = _mondayOfWeek(offset);
+    final lastDay = monday.add(Duration(days: _daysInWeek(offset) - 1));
+    final fmt = DateFormat('d MMM');
+    return "${fmt.format(monday)} – ${fmt.format(lastDay)}";
+  }
+
+  void _changeWeek(int delta) {
+    setState(() {
+      _weekOffset = (_weekOffset + delta).clamp(0, 52);
+    });
+  }
+
+  // ───────── month helpers ─────────
 
   void _toggleView() async {
     setState(() => _isMonthlyView = !_isMonthlyView);
-
     if (_isMonthlyView) {
       await stepController.loadStepsfromAPI(
         month: _selectedMonth.month,
@@ -206,16 +115,103 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
       _selectedMonth.month + delta,
       1,
     );
-
     setState(() => _selectedMonth = newMonth);
-
     await stepController.loadStepsfromAPI(
       month: newMonth.month,
       year: newMonth.year,
     );
   }
 
-  // ===== BUILD =====
+  // ───────── lifecycle ─────────
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    commonTipsController = Get.find<CommonTipsController>();
+    _scrollController.addListener(_onTipsScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      commonTipsController.getCommonTips(context: context, tag: 'Steps');
+    });
+    stepController.activateRealtimeTracking();
+    stepController.loadTodayStepsFromFile();
+  }
+
+  void _onTipsScroll() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    if (position.maxScrollExtent <= 0) return;
+    if (position.pixels >= position.maxScrollExtent - 200) {
+      commonTipsController.loadMoreCommonTips(context);
+    }
+  }
+
+  @override
+  void dispose() {
+    _uiRefreshTimer?.cancel();
+    _debounce?.cancel();
+    _secretResetTimer?.cancel();
+    _scrollController.removeListener(_onTipsScroll);
+    _scrollController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    stepController.deactivateRealtimeTracking();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('🔁 App resumed - reloading steps from file');
+      stepController.loadTodayStepsFromFile();
+    }
+  }
+
+  Future<void> toggleStepsCard() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isStepGoalSet', true);
+  }
+
+  // ───────── dynamic Y helpers ─────────
+
+  double getDynamicMaxY(double value, {double paddingFactor = 1.2}) {
+    if (value <= 0) return 1000;
+    double rawMax = value * paddingFactor;
+    double magnitude = pow(10, rawMax.floor().toString().length - 1).toDouble();
+    double normalized = rawMax / magnitude;
+    double niceNormalized;
+    if (normalized <= 1) {
+      niceNormalized = 1;
+    } else if (normalized <= 2) {
+      niceNormalized = 2;
+    } else if (normalized <= 5) {
+      niceNormalized = 5;
+    } else {
+      niceNormalized = 10;
+    }
+    return niceNormalized * magnitude;
+  }
+
+  double getDynamicInterval(double maxY, {int targetSteps = 5}) {
+    if (maxY <= 0) return 1000;
+    double rawInterval = maxY / targetSteps;
+    double magnitude =
+        pow(10, rawInterval.floor().toString().length - 1).toDouble();
+    double normalized = rawInterval / magnitude;
+    double niceNormalized;
+    if (normalized <= 1) {
+      niceNormalized = 1;
+    } else if (normalized <= 2) {
+      niceNormalized = 2;
+    } else if (normalized <= 5) {
+      niceNormalized = 5;
+    } else {
+      niceNormalized = 10;
+    }
+    return niceNormalized * magnitude;
+  }
+
+  // ───────── build ─────────
 
   @override
   Widget build(BuildContext context) {
@@ -230,9 +226,10 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
+          controller: _scrollController,
           child: Column(
             children: [
-              // ===== STEP PROGRESS =====
+              // ── Progress ring ──
               Stack(
                 alignment: Alignment.center,
                 children: [
@@ -242,8 +239,6 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
                       const SizedBox(height: 50),
                     ],
                   ),
-
-                  /// ✅ PROGRESS RING (smooth, no reset)
                   Obx(() {
                     final goal = stepController.stepGoal.value;
                     final percent =
@@ -262,7 +257,7 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
                       ),
                       duration: const Duration(milliseconds: 500),
                       builder:
-                          (_, val, __) => SemiCircularProgress(
+                          (_, val, _) => SemiCircularProgress(
                             percent: val,
                             radius: width / 3,
                             strokeWidth: 12,
@@ -271,25 +266,18 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
                           ),
                     );
                   }),
-
                   Column(
                     children: [
                       const SizedBox(height: 90),
-
-                      /// ✅ STEP COUNTER (incremental animation)
                       Obx(() {
-                        // Use reactive lastStepsRx so this Obx rebuilds when the
-                        // starting value for the animation changes (enables smooth
-                        // animation when steps update from background/Hive).
                         final begin = stepController.lastStepsRx.value;
                         final end = stepController.todaySteps.value;
-
                         return TweenAnimationBuilder<int>(
                           key: ValueKey(end),
                           tween: IntTween(begin: begin, end: end),
                           duration: const Duration(milliseconds: 400),
                           builder:
-                              (_, val, __) => Text(
+                              (_, val, _) => Text(
                                 "$val",
                                 style: const TextStyle(
                                   fontSize: 38,
@@ -298,31 +286,25 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
                               ),
                         );
                       }),
-
                       GestureDetector(
                         onTap: () {
                           _secretTapCount++;
-
                           _secretResetTimer?.cancel();
                           _secretResetTimer = Timer(
                             const Duration(seconds: 2),
-                            () {
-                              _secretTapCount = 0;
-                            },
+                            () => _secretTapCount = 0,
                           );
-
                           if (_secretTapCount == 7) {
                             debugPrint("🕵️ Secret API push activated");
                             stepController.saveStepRecordToServer();
                             _secretTapCount = 0;
                           }
                         },
-                        child: Text(
+                        child: const Text(
                           "Steps",
-                          style: const TextStyle(fontSize: 16),
+                          style: TextStyle(fontSize: 16),
                         ),
                       ),
-
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -357,10 +339,9 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
 
               const SizedBox(height: 30),
 
-              // ===== STATS =====
+              // ── Stats row ──
               Obx(() {
                 final steps = stepController.todaySteps.value;
-
                 return Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -373,7 +354,7 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
 
               const SizedBox(height: 25),
 
-              // ===== GRAPH HEADER =====
+              // ── Graph header ──
               Column(
                 children: [
                   Text(
@@ -387,23 +368,44 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        if (_isMonthlyView)
-                          Row(
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.chevron_left),
-                                onPressed: () => _changeMonth(-1),
-                              ),
-                              Text(
-                                DateFormat('MMMM yyyy').format(_selectedMonth),
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.chevron_right),
-                                onPressed: () => _changeMonth(1),
-                              ),
-                            ],
+                        // Week navigation
+                        if (!_isMonthlyView) ...[
+                          IconButton(
+                            icon: const Icon(Icons.chevron_left),
+                            tooltip: "Previous week",
+                            onPressed: () => _changeWeek(1),
                           ),
+                          Text(
+                            _weekRangeLabel(_weekOffset),
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              Icons.chevron_right,
+                              color:
+                                  _weekOffset == 0
+                                      ? Colors.grey.shade400
+                                      : null,
+                            ),
+                            onPressed:
+                                _weekOffset == 0 ? null : () => _changeWeek(-1),
+                          ),
+                        ],
+                        // Month navigation
+                        if (_isMonthlyView) ...[
+                          IconButton(
+                            icon: const Icon(Icons.chevron_left),
+                            onPressed: () => _changeMonth(-1),
+                          ),
+                          Text(
+                            DateFormat('MMMM yyyy').format(_selectedMonth),
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.chevron_right),
+                            onPressed: () => _changeMonth(1),
+                          ),
+                        ],
                         TextButton(
                           onPressed: _toggleView,
                           child: Text(
@@ -421,56 +423,133 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
 
               const SizedBox(height: 10),
 
-              // ===== GRAPH =====
+              // ── Graph ──
               SizedBox(
-                height: height * 0.41,
+                height: height * 0.37,
                 child: Obx(() {
-                  final labels =
-                      _isMonthlyView
-                          ? generateMonthLabels(_selectedMonth)
-                          : generateShortWeekdays();
+                  final List<String> labels;
+                  final List<FlSpot> points;
+                  final int maxXForWeek;
 
-                  final points =
-                      _isMonthlyView
-                          ? stepController.getMonthlyStepsSpots(_selectedMonth)
-                          : stepController.stepSpots
-                              .take(daysSinceMonday + 1)
-                              .toList();
+                  if (_isMonthlyView) {
+                    labels = generateMonthLabels(_selectedMonth);
+                    points = stepController.getMonthlyStepsSpots(
+                      _selectedMonth,
+                    );
+                    maxXForWeek = 0;
+                  } else {
+                    labels = _weekLabelsForOffset(_weekOffset);
+                    points = _weekSpotsForOffset(_weekOffset);
+                    maxXForWeek = _daysInWeek(_weekOffset) - 1;
+                  }
 
-                  // ✅ Calculate maxY from actual data
-                  final double maxSteps =
-                      points.isEmpty
-                          ? 1000
-                          : points
-                              .map((e) => e.y)
-                              .reduce((a, b) => a > b ? a : b);
-
-                  // ✅ Add padding + minimum scale
-                  // final double maxY = (maxSteps * 1.2).clamp(1000, double.infinity);
                   final double rawMax =
                       points.isEmpty
                           ? 0
                           : points
                               .map((e) => e.y)
                               .reduce((a, b) => a > b ? a : b);
-
                   final double maxY = getDynamicMaxY(rawMax);
-                  final double interval = getDynamicInterval(maxY);
 
-                  return StepStatGraphWidget(
-                    isDarkMode: isDarkMode,
-                    height: height,
-                    points: points,
-
-                    weekLabels: labels,
-                    yAxisMaxValue: maxY,
-                    maxXForWeek: daysSinceMonday,
-                    isMonthlyView: _isMonthlyView,
-                    graphTitle: 'Steps',
-                    maxY: maxY,
+                  return GestureDetector(
+                    onHorizontalDragEnd: (details) {
+                      final dx = details.primaryVelocity ?? 0;
+                      if (_isMonthlyView) {
+                        if (dx > 300) _changeMonth(-1);
+                        if (dx < -300) _changeMonth(1);
+                      } else {
+                        if (dx > 300) _changeWeek(1);
+                        if (dx < -300 && _weekOffset > 0) _changeWeek(-1);
+                      }
+                    },
+                    child: StepStatGraphWidget(
+                      isDarkMode: isDarkMode,
+                      height: height,
+                      points: points,
+                      weekLabels: labels,
+                      yAxisMaxValue: maxY,
+                      maxXForWeek: maxXForWeek,
+                      isMonthlyView: _isMonthlyView,
+                      graphTitle: 'Step Statistics',
+                      maxY: maxY,
+                      selectedMonthForHeader:
+                          _isMonthlyView ? _selectedMonth : null,
+                      highlightIndex:
+                          _isMonthlyView
+                              ? (_selectedMonth.year == DateTime.now().year &&
+                                      _selectedMonth.month ==
+                                          DateTime.now().month
+                                  ? getCurrentDateIndex()
+                                  : -1)
+                              : (_weekOffset == 0
+                                  ? (DateTime.now().weekday - 1)
+                                  : -1),
+                    ),
                   );
                 }),
               ),
+              const SizedBox(height: 20),
+
+              // ── Step Report nav card ──
+              GestureDetector(
+                onTap: () => Get.to(() => const StepReportScreen()),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? darkGray : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryColor.withOpacity(0.3),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.analytics_outlined,
+                          color: AppColors.primaryColor,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "View Step Report",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "Detailed analysis of your steps",
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right, color: Colors.grey),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 30),
+              CommonTipsList(),
             ],
           ),
         ),
@@ -478,100 +557,6 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
     );
   }
 
-  int getTodayDayNumber() {
-    todayDate = DateTime.now().day;
-    return todayDate;
-  }
-
-  double getNiceMaxY(double value) {
-    if (value <= 1000) return 1000;
-    if (value <= 5000) return 5000;
-    if (value <= 10000) return 10000;
-    if (value <= 20000) return 20000;
-    if (value <= 50000) return 50000;
-    return (value / 10000).ceil() * 10000;
-  }
-
-  double getNiceInterval(double maxY) {
-    if (maxY <= 5000) return 1000;
-    if (maxY <= 10000) return 2000;
-    if (maxY <= 20000) return 5000;
-    return 10000;
-  }
-
-  double getDynamicMaxY(double value, {double paddingFactor = 1.2}) {
-    if (value <= 0) return 1000; // Minimum fallback
-
-    // Apply padding
-    double rawMax = value * paddingFactor;
-
-    // Round to nearest "nice" step: 1, 2, 5, 10, 20, 50, 100, 1000, etc.
-    double magnitude = pow(10, rawMax.floor().toString().length - 1).toDouble();
-    double normalized = rawMax / magnitude;
-
-    double niceNormalized;
-    if (normalized <= 1) {
-      niceNormalized = 1;
-    } else if (normalized <= 2) {
-      niceNormalized = 2;
-    } else if (normalized <= 5) {
-      niceNormalized = 5;
-    } else {
-      niceNormalized = 10;
-    }
-
-    return niceNormalized * magnitude;
-  }
-
-  /// Returns a "nice" interval for Y-axis based on maxY
-  double getDynamicInterval(double maxY, {int targetSteps = 5}) {
-    if (maxY <= 0) return 1000;
-
-    double rawInterval = maxY / targetSteps;
-
-    // Round to nearest "nice" number (1, 2, 5, 10, etc.)
-    double magnitude =
-        pow(10, rawInterval.floor().toString().length - 1).toDouble();
-    double normalized = rawInterval / magnitude;
-
-    double niceNormalized;
-    if (normalized <= 1) {
-      niceNormalized = 1;
-    } else if (normalized <= 2) {
-      niceNormalized = 2;
-    } else if (normalized <= 5) {
-      niceNormalized = 5;
-    } else {
-      niceNormalized = 10;
-    }
-
-    return niceNormalized * magnitude;
-  }
-
-  List<String> generateShortWeekdays() {
-    List<String> shortWeekdays = [];
-    DateTime now = DateTime.now();
-
-    daysSinceMonday = (now.weekday - DateTime.monday);
-
-    // Remove time part to avoid carrying 12:48:xx everywhere
-    DateTime startOfWeek = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: daysSinceMonday));
-
-    // 🔥 CHANGE IS HERE
-    for (int i = 0; i <= daysSinceMonday; i++) {
-      DateTime date = startOfWeek.add(Duration(days: i));
-      String dayName = DateFormat('E').format(date);
-      shortWeekdays.add(dayName);
-    }
-
-    return shortWeekdays;
-  }
-
-  // Info Row UI
   Widget _infoItem(String icon, String text) =>
       Column(children: [Image.asset(icon, width: 30, height: 30), Text(text)]);
 }

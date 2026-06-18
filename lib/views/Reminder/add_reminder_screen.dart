@@ -23,7 +23,10 @@ import '../../widgets/reminder/custom_Radio.dart';
 class AddReminderScreen extends StatefulWidget {
   final ReminderPayloadModel? reminder;
 
-  const AddReminderScreen({super.key, this.reminder});
+  final bool ? isHydrationScreen;
+
+  const AddReminderScreen(
+      {super.key, this.reminder, this.isHydrationScreen = false});
 
   @override
   State<AddReminderScreen> createState() => _AddReminderScreenState();
@@ -54,12 +57,18 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
     final reminder = widget.reminder;
 
+
     debugPrint("Reminder ${reminder.toString()}");
+
     if (reminder != null) {
       // editing existing reminder
       fillByCategory(reminder);
     } else {
-      reminderController.selectedCategory.value = 'medicine';
+      if (widget.isHydrationScreen == true) {
+        reminderController.selectedCategory.value = 'water';
+      } else {
+        reminderController.selectedCategory.value = 'medicine';
+      }
     }
   }
 
@@ -79,6 +88,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         break;
     }
   }
+
 
   void fillTimeControllers(List<String> times) {
     medicineGetxController.timeControllers.clear();
@@ -129,8 +139,6 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     } else {
       parsedDate = DateTime.now();
     }
-
-    print("Raw start date: '$rawStartDate'");
 
     // ✅ FORMAT PROPERLY (THIS IS THE FIX)
     reminderController.startDateString.value = DateFormat(
@@ -323,8 +331,6 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
     final savedStartDate = (reminder.startDate ?? '').trim();
     final savedEndDate = (reminder.endDate ?? '').trim();
-    
-
 
     medicineGetxController.startDateString.value =
         savedStartDate.isEmpty ? 'Start Date' : formatDate(savedStartDate);
@@ -710,11 +716,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       );
                     }
                     : () async {
-                      await reminderController.validateAndUpdate(
+                      final result = await reminderController.validateAndUpdate(
                         context: context,
                         reminder: widget.reminder!,
                         dosage: dosage,
                       );
+                      debugPrint("Update $result");
                     },
           ),
         ),
@@ -847,7 +854,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     Text(
                       displayDosage,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -855,7 +862,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       unit,
                       style: const TextStyle(
                         fontWeight: FontWeight.w400,
-                        fontSize: 10,
+                        fontSize: 9,
                       ),
                     ),
                   ],
@@ -980,7 +987,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             medicineGetxController.startDateString.value ==
                                     "Start Date"
                                 ? grey
-                                : black,
+                                : (Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? white
+                                    : black),
                       ),
                     ),
                   ),
@@ -1020,7 +1030,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             medicineGetxController.endDateString.value ==
                                     "End Date"
                                 ? grey
-                                : black,
+                                : (Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? white
+                                    : black),
                       ),
                     ),
                   ),
@@ -1114,7 +1127,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                               : white)
                           : grey,
                   value: reminderController.selectedValue.value,
-                  isExpanded: false,
+                  isExpanded: true,
                   iconSize: 18,
                   items:
                       ['minutes', 'hours']
@@ -1546,7 +1559,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   color:
                       reminderController.startDateString.value == "Start Date"
                           ? grey
-                          : black,
+                          : (Theme.of(context).brightness == Brightness.dark
+                              ? white
+                              : black),
                 ),
               ),
             ),
@@ -1664,7 +1679,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                                   ? black
                                   : white)
                               : grey,
-                      isExpanded: false,
+                      isExpanded: true,
                       iconSize: 18,
                       items:
                           ['minutes', 'hours']
@@ -1683,7 +1698,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                                                       Brightness.dark)
                                                   ? white
                                                   : black)
-                                              : grey,
+                                              : black,
                                     ),
                                   ),
                                 ),

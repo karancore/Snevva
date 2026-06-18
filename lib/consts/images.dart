@@ -1,19 +1,21 @@
 const doc1 = "assets/Images/Doc1.webp";
 const doc2 = "assets/Images/Doc2.webp";
 const doc3 = "assets/Images/Doc3.webp";
-
+const bdayCard = "assets/Icons/Common_Icons/bday-card.png";
 const forgotpass = "assets/Images/forgotPassword.webp";
 const newPass = "assets/Images/newPassword.webp";
 const veriemail = "assets/Images/verifyEmail.webp";
 const noEntries = "assets/Images/MoodTracker/elly no entry 1.webp";
-const girlMood = "assets/Images/MoodTracker/Layer 4.webp";
+const girlMood = "assets/Images/MoodTracker/Layer 4.png";
 const face = "assets/Images/MoodTracker/Untitled design 1.webp";
+const placeHolderImage =
+    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT5SX05Y_Pg5HW3GYJW6ywCcxf4q_BQsdeD5w&s";
+const placeholderElly = "assets/Images/placeholder_elly.png";
+const pleasant = "assets/Images/MoodTracker/pleasnt.svg.png";
+const neutral = "assets/Images/MoodTracker/good 1.svg.png";
+const unpleasant = "assets/Images/MoodTracker/unpleasant.svg.png";
 
-const pleasant = "assets/Images/MoodTracker/pleasnt.svg.webp";
-const neutral = "assets/Images/MoodTracker/good 1.svg.webp";
-const unpleasant = "assets/Images/MoodTracker/unpleasant.svg.webp";
-
-const mascotAi = "assets/Images/eleAI.webp";
+const mascotAi = "assets/Images/eleAI.png";
 const elemascot = "assets/Images/loginel.webp";
 const splash = "assets/Icons/splash.webp";
 const avatar1 = "assets/Images/avatar1.webp";
@@ -33,7 +35,7 @@ const calenderIcon = 'assets/Icons/Profile/calendar-2-line.svg';
 
 const editIcon = "assets/Icons/Common_Icons/editIcon.svg";
 const phoneIcon = "assets/Icons/Common_Icons/phone-line.svg";
-
+const strokeAndHeart = "assets/Icons/vitals/stroke.webp";
 const appbarActionCross = "assets/Icons/Common_Icons/appBarActionCross.svg";
 
 const drawerIconWhite = "assets/Icons/Common_Icons/whiteDrawerIcon.svg";
@@ -55,6 +57,8 @@ const bookDocIcon = "assets/Icons/Info/shield-cross-fill-4.svg";
 const womenIcon = "assets/Icons/Info/shield-cross-fill-5.svg";
 const waterTrackingIcon = "assets/Icons/Info/shield-cross-fill-6.svg";
 const stepsTrackingIcon = "assets/Icons/Info/shield-cross-fill-7.svg";
+const bloodGlucoseIcon = "assets/Dashboard/glucose-menu-icon.svg";
+const bloodGlucoseDark = "assets/Dashboard/glucose-dark.svg";
 
 //Sign up screen
 const apple = 'assets/Icons/Apple.webp';
@@ -74,6 +78,7 @@ const hydrationEleBottom = "assets/Dashboard/Rectangle 31.webp";
 //Icons
 // Dashboard_containers
 const ecgDashboardLottie = 'assets/Dashboard/lhWa8wKgs5.json';
+const handWaveLottie = 'assets/Dashboard/hand wave.json';
 // Dashboard Ads Images
 const adImg1 = "assets/Dashboard/img.png";
 // const adImg1 = "assets/Dashboard/Slider%205%20-%20Health%20Companion.png";
@@ -86,6 +91,7 @@ const adImg5 = "assets/Dashboard/Slider 5 - Health Companion.png";
 //Drawer_menu
 const homeIcon = "assets/Icons/Drawer/home-line.svg";
 const scannerIcon = "assets/Icons/Drawer/qr-scan-line.svg";
+const healthReportIcon = "assets/Icons/Drawer/health-report.svg";
 const profileIcon = "assets/Icons/Drawer/user-3-line.svg";
 const addEmergencyContactIcon = "assets/Icons/Drawer/team-line.svg";
 const appointmentIcon = "assets/Icons/Drawer/user-3-line.svg";
@@ -108,8 +114,13 @@ const pen = "assets/Icons/reminder/pencil.svg";
 const clockRemIcon = "assets/Icons/reminder/clock.svg";
 
 //Vitals Screen
-const heartVitalIcon = "assets/Icons/vitals/heart.webp";
-const bloodDropsIcon = "assets/Icons/vitals/blood_drops.webp";
+const heartVitalIcon = "assets/Icons/vitals/heart.png";
+const bloodDropsIcon = "assets/Icons/vitals/blood_drops.png";
+const waterDrops = "assets/Images/,.png";
+const glucoseDrop = "assets/Images/glucose-drop.png";
+const glucoseBanner = "assets/Images/glucose-banner.png";
+const normalGlucose = "assets/Images/health_Range.png";
+const highGlucose = "assets/Images/need_control.png";
 //Mental Wellness
 const wellnessContainerImg1 =
     "assets/Images/MentalWellness/person_Sitting.webp";
@@ -138,7 +149,7 @@ const downloadIcon = "assets/Icons/music/download-music.svg";
 
 //Health Tips
 const fitnessImg = "assets/Images/fitness.webp";
-
+const healthTipPlaceholder = "assets/Images/health-tip.png";
 //Profile
 const profileImg = 'assets/Images/ProfileSetup/profile.webp';
 const profileMainImg = 'assets/Images/ProfileSetup/dp.webp';
@@ -181,6 +192,7 @@ const heightFemale = "assets/Images/Height_And_Weight/height1.svg";
 const hydrationEle = 'assets/Images/HydrationEle.webp';
 const statIcon = 'assets/Icons/Hydration/StatIcon.svg';
 const gearIcon2 = 'assets/Icons/Hydration/GearIcon.svg';
+const smileyIcon = "assets/Icons/WomenHealth/Vector (1).svg";
 const statisticIcon = 'assets/Icons/Hydration/bar-chart-grouped-line.svg';
 const deleteIcon = 'assets/Icons/Hydration/delete-bin-line.svg';
 
@@ -192,6 +204,9 @@ const bmiElephant = 'assets/Images/BMI/bmi_Eli.svg';
 const bmidiet = 'assets/Images/BMI/bmiDiet.webp';
 const bmiCalculator = 'assets/Images/BMI/bmi-calculator-hero-img.webp';
 const circularArrowButton = "assets/Images/Emergency/circularArrowButton.svg";
+const bubble = "assets/Images/BMI/bubble.png";
+const female = "assets/Images/BMI/female.png";
+const male = "assets/Images/BMI/male.png";
 //Emergency Screen
 const emergencyButton = "assets/Images/Emergency/emergencyButton.svg";
 
@@ -251,7 +266,9 @@ const spottingIcon = "assets/Icons/WomenHealth/zczdsx.webp";
 
 //Chat Screem
 
-const chatWallpaper = "assets/chat/chat_wallpaper_new.webp";
+// const chatWallpaper = "assets/chat/chat_wallpaper_new.webp";
+const chatWallpaper = "assets/chat/Isolated Doodle Background.webp";
+const chatwallpaperdark = "assets/chat/Doodle Background _ Dark.webp";
 
 //Step Counter
 const run = "assets/Images/Steps/run.webp";
@@ -283,12 +300,33 @@ const morningDietImg = "assets/Images/DietPlan/image10.webp";
 const afternoonDietImg = "assets/Images/DietPlan/image11.webp";
 const eveningDietImg = "assets/Images/DietPlan/image12.webp";
 
+const suggestionsPlaceholder =
+    "assets/Images/DietPlan/suggestions-placeholder.png";
+const categoryPlaceholder = "assets/Images/DietPlan/category-placeholder.png";
+const celebrityPlaceholder = "assets/Images/DietPlan/celeb-placeholder.png";
+const searchPlaceHolder = "assets/Images/DietPlan/search-placeholder.png";
+
 // Sleep Screen
 
 const bedIcon = "assets/Icons/SleepScreen/Bed.webp";
 const clockIcon = "assets/Icons/SleepScreen/Rectangle-2.webp";
-
 const errorIcon = "assets/Images/error.webp";
 const noNotif = "assets/Images/notificon.webp";
 const fatty = "assets/Images/BMI/fatty.webp";
 const skinny = "assets/Images/BMI/skiiny.webp";
+
+const balance = "assets/Images/BMI/balance.png";
+const bulk = "assets/Images/BMI/bulk.png";
+const track = "assets/Images/BMI/track.png";
+
+//Health Report
+const pdfIcon = "assets/Icons/ScanReport/pdf.png";
+const excelIcon = "assets/Icons/ScanReport/excel.png";
+const stepsHealthReportIcon = "assets/Icons/health_report/steps.svg";
+const bpHealthReportIcon = "assets/Icons/health_report/bp.svg";
+const hydrationHealthReportIcon = "assets/Icons/health_report/hydration.svg";
+const bloodHealthReportIcon = "assets/Icons/health_report/glucose.svg";
+const sleepHealthReportIcon = "assets/Icons/health_report/sleep.svg";
+const bmiHealthReportIcon = "assets/Icons/health_report/bmi.svg";
+const smileyHealthReportIcon = "assets/Icons/health_report/smiley.svg";
+const genderHealthReportIcon = "assets/Icons/health_report/gender.svg";

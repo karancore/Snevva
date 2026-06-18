@@ -1,3 +1,4 @@
+import 'package:flutter/rendering.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/consts/consts.dart';
@@ -12,9 +13,12 @@ import 'package:snevva/views/Information/mental_wellness_screen.dart';
 import 'package:snevva/views/Information/vitals.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
 import 'package:snevva/views/Reminder/reminder_wrapper.dart';
+import 'package:snevva/views/Vitals/glucose_screen.dart';
 import 'package:snevva/views/WomenHealth/women_health_screen.dart';
 
+import '../../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import '../../Controllers/StepCounter/step_counter_controller.dart';
+import '../../Controllers/local_storage_manager.dart';
 import '../../Widgets/CommonWidgets/custom_appbar.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../Widgets/menu_item_widget.dart';
@@ -34,19 +38,60 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen>
     with SingleTickerProviderStateMixin {
-  String? gender;
   bool isLoading = true;
 
   late AnimationController listAnimationController;
   late List<Animation<Offset>> _slideAnimation;
 
+  late EditprofileController editprofileController; // ✅ add
+
   late final List<MenuItem> menuItems;
   List<MenuItem> filteredMenuItems = [];
+
+  final scrollController = ScrollController();
+  bool _showAppBar = true;
 
   @override
   void initState() {
     super.initState();
+
+    editprofileController = Get.find<EditprofileController>();
+
+    final savedGender =
+        Get.find<LocalStorageManager>().userMap['Gender']?.toString();
+    if (savedGender != null && editprofileController.gender.value.isEmpty) {
+      editprofileController.gender.value = savedGender;
+    }
+
+    // ✅ Jab gender change ho, menu rebuild karo
+    ever(editprofileController.gender, (_) {
+      if (mounted) {
+        setState(() {
+          _initializeMenuItems(); // filter dobara lagao
+          _initializeAnimations();
+        });
+      }
+    });
+
     _loadGenderAndInit();
+
+    scrollController.addListener(() {
+      if (scrollController.position.userScrollDirection ==
+          ScrollDirection.reverse) {
+        if (_showAppBar) {
+          setState(() {
+            _showAppBar = false;
+          });
+        }
+      } else if (scrollController.position.userScrollDirection ==
+          ScrollDirection.forward) {
+        if (!_showAppBar) {
+          setState(() {
+            _showAppBar = true;
+          });
+        }
+      }
+    });
   }
 
   Future<void> _loadGenderAndInit() async {
@@ -70,17 +115,17 @@ class _MenuScreenState extends State<MenuScreen>
     if (!mounted) return;
 
     setState(() {
-      gender = resolvedGender;
       isLoading = false;
     });
-
-    debugPrint('MenuScreen gender = $gender');
 
     _initializeMenuItems();
     _initializeAnimations();
   }
 
   void _initializeMenuItems() {
+    final currentGender =
+        editprofileController.gender.value; // ✅ controller se lo
+
     menuItems = [
       MenuItem(
         title: "Sleep Tracker",
@@ -100,10 +145,10 @@ class _MenuScreenState extends State<MenuScreen>
         navigateTo: MoodTrackerScreen(),
       ),
       MenuItem(
-        title: "Add A Reminder",
+        title: "Add Reminder",
         subtitle: "Medication, meal, hydration alert",
         imagePath: reminderIcon,
-        navigateTo: ReminderScreenWrapper(),
+        navigateTo: ReminderScreenWrapper(isClose: true),
       ),
       MenuItem(
         title: "Steps Tracker",
@@ -117,10 +162,20 @@ class _MenuScreenState extends State<MenuScreen>
         navigateTo: BmiCal(),
       ),
       MenuItem(
-        title: "Vital Monitor",
-        subtitle: "Heart rate, SpO₂ tracking",
-        imagePath: vitalIcon,
+          title: "Blood Pressure Monitor",
+          subtitle: "Track heart rate & oxygen levels",
+          imagePath: vitalIcon,
+          navigateTo: VitalScreen()
       ),
+
+      MenuItem(
+        title: "Blood Glucose",
+        subtitle: "Monitor blood sugar levels",
+        imagePath: bloodGlucoseIcon,
+        darkImagePath: bloodGlucoseDark,
+        navigateTo: GlucoseScreen(),
+      ),
+
       MenuItem(
         title: "Mental Wellness",
         subtitle: "Music or therapy support",
@@ -139,12 +194,13 @@ class _MenuScreenState extends State<MenuScreen>
         imagePath: aiChatIcon,
         navigateTo: SnevvaAIChatScreen(),
       ),
-      MenuItem(
-        title: "AI Symptom Checker",
-        subtitle: "AI-based symptom analysis",
-        imagePath: aiSymptomIcon,
-        isDisabled: true,
-      ),
+      // MenuItem(
+      //   title: "AI Symptom Checker",
+      //   subtitle: "AI-based symptom analysis",
+      //   imagePath: aiSymptomIcon,
+      //   isDisabled: false,
+      //   navigateTo: ScanReportLandingScreen(),
+      // ),
       MenuItem(
         title: "Women's Health",
         subtitle: "Menstrual and pregnancy tracker",
@@ -166,9 +222,8 @@ class _MenuScreenState extends State<MenuScreen>
     // Filter items based on gender
     filteredMenuItems =
         menuItems.where((item) {
-          if (item.title == "Women's Health" && gender != 'Female') {
+          if (item.title == "Women's Health" && currentGender != 'Female')
             return false;
-          }
           return true;
         }).toList();
   }
@@ -202,6 +257,7 @@ class _MenuScreenState extends State<MenuScreen>
 
   @override
   void dispose() {
+    scrollController.dispose();
     listAnimationController.dispose();
     super.dispose();
   }
@@ -209,7 +265,7 @@ class _MenuScreenState extends State<MenuScreen>
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: AppLoader());
     }
 
     final mediaQuery = MediaQuery.of(
@@ -228,7 +284,7 @@ class _MenuScreenState extends State<MenuScreen>
                   "Sleep Tracker",
                   "Hydration",
                   "Mood Tracker",
-                  "Add A Reminder",
+                  "Add Reminder",
                   "Steps Tracker",
                 ].contains(item.title),
               )
@@ -237,7 +293,11 @@ class _MenuScreenState extends State<MenuScreen>
           filteredMenuItems
               .where(
                 (item) =>
-                    ["BMI Calculator", "Vital Monitor"].contains(item.title),
+                    [
+                      "BMI Calculator",
+                      "Blood Pressure Monitor",
+                      'Blood Glucose'
+                    ].contains(item.title),
               )
               .toList(),
       "Mental Health & Wellness":
@@ -268,8 +328,16 @@ class _MenuScreenState extends State<MenuScreen>
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
-      appBar: CustomAppBar(appbarText: "Services", showCloseButton: false),
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(_showAppBar ? kToolbarHeight : 0),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: _showAppBar ? 1.0 : 0.0,
+          child: CustomAppBar(appbarText: "Services", showCloseButton: false),
+        ),
+      ),
       body: SingleChildScrollView(
+        controller: scrollController,
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -333,11 +401,12 @@ Widget _buildMenuGrid(
             subtitle: item.subtitle,
             imagePath: item.imagePath,
             isDarkMode: isDarkMode,
+            darkImagePath: item.darkImagePath,
             onTap: () async {
               debugPrint("Tapped on: ${item.title}");
 
               // Handle Vital Monitor
-              if (item.title == "Vital Monitor") {
+              if (item.title == "Blood Pressure Monitor") {
                 final prefs = await SharedPreferences.getInstance();
                 final isFirstTime = prefs.getBool('isFirstTime') ?? true;
 

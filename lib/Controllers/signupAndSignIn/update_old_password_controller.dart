@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/services/device_token_service.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
 
@@ -22,13 +23,13 @@ class UpdateOldPasswordController extends GetxService {
   var confirmPassword = ''.obs;
   var isChecked = false.obs;
 
-  bool get hasLetter => RegExp(r'[A-Za-z]').hasMatch(password.value);
+  bool get hasUppercase => RegExp(r'[A-Z]').hasMatch(password.value);
 
   bool get hasNumberOrSymbol => RegExp(r'[\d!@#$&*~]').hasMatch(password.value);
 
   bool get hasMinLength => password.value.length >= 10;
 
-  bool get isPasswordValid => hasLetter && hasNumberOrSymbol && hasMinLength;
+  bool get isPasswordValid => hasUppercase && hasNumberOrSymbol && hasMinLength;
 
   bool get isConfirmPasswordValid {
     if (password.value.isEmpty || confirmPassword.value.isEmpty) {
@@ -92,11 +93,12 @@ class UpdateOldPasswordController extends GetxService {
     String password,
     BuildContext context,
   ) async {
+    final hashedPassword = encryptPasswordRuntime(password);
     final newPlanePassword = jsonEncode({
       'Gmail': email,
       'Otp': otp,
       'IsVerified': verificationStatus,
-      'Password': password,
+      'Password': hashedPassword,
     });
 
     try {
@@ -147,11 +149,12 @@ class UpdateOldPasswordController extends GetxService {
     String password,
     BuildContext context,
   ) async {
+    final hashedPassword = encryptPasswordRuntime(password);
     final newPlanePassword = jsonEncode({
       'PhoneNumber': phone,
       'Otp': otp,
       'IsVerified': verificationStatus,
-      'Password': password,
+      'Password': hashedPassword,
     });
 
     try {

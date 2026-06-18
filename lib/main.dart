@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
 
 import 'package:alarm/alarm.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -23,12 +25,18 @@ import 'package:snevva/Controllers/Reminder/medicine_controller.dart';
 import 'package:snevva/Controllers/Reminder/reminder_controller.dart';
 import 'package:snevva/Controllers/Vitals/vitalsController.dart';
 import 'package:snevva/Controllers/WomenHealth/women_health_controller.dart';
+import 'package:snevva/Controllers/common/common_tips_controller.dart';
+import 'package:snevva/Controllers/health_report/health_report_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/otp_verification_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/update_old_password_controller.dart';
+import 'package:snevva/services/connectivity_service.dart';
 import 'package:snevva/services/firebase_init.dart';
 import 'package:snevva/services/google_auth.dart';
+import 'package:snevva/services/google_backend_auth_service.dart';
+import 'package:snevva/services/in_app_update_service.dart';
+import 'package:snevva/utils/push_notifications_controller.dart';
 import 'package:snevva/utils/theme_controller.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
@@ -37,6 +45,7 @@ import 'Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import 'Controllers/ProfileSetupAndQuestionnare/profile_setup_controller.dart';
 import 'Controllers/Reminder/water_controller.dart';
+import 'Controllers/ReportScan/scan_report_controller.dart';
 import 'Controllers/SleepScreen/sleep_controller.dart';
 import 'Controllers/StepCounter/step_counter_controller.dart';
 import 'Controllers/WomenHealth/bottom_sheet_controller.dart';
@@ -45,6 +54,7 @@ import 'Controllers/local_storage_manager.dart';
 import 'Controllers/signupAndSignIn/create_password_controller.dart';
 import 'common/ExceptionLogger.dart';
 import 'common/agent_debug_logger.dart';
+import 'common/app_keys.dart';
 import 'common/global_variables.dart';
 import 'consts/consts.dart';
 import 'firebase_options.dart';
@@ -66,6 +76,38 @@ const bool _kShowPerformanceOverlay = bool.fromEnvironment(
   defaultValue: false,
 );
 
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  Future<bool> _hasValidSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      return token != null && token.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: _hasValidSession(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const InitializationSplash();
+        }
+
+        if (snapshot.data == false) {
+          return SignInScreen(); // ❌ No token → ONLY LOGIN
+        }
+
+        return HomeWrapper(); // ✅ Valid session
+      },
+    );
+  }
+}
+
 Future<void> ensureFirebaseInitialized() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -76,10 +118,102 @@ Future<void> ensureFirebaseInitialized() async {
   }
 }
 
+Future<String?> _downloadImageToTempFile(String url) async {
+  try {
+    final uri = Uri.parse(url);
+    final request = await HttpClient().getUrl(uri);
+    final response = await request.close();
+
+    if (response.statusCode != 200) return null;
+
+    final bytes = await consolidateHttpClientResponseBytes(response);
+    final file = File(
+      '${Directory.systemTemp.path}/fcm_${DateTime
+          .now()
+          .microsecondsSinceEpoch}.jpg',
+    );
+
+    await file.writeAsBytes(bytes);
+    return file.path;
+  } catch (e) {
+    debugPrint('Image download failed: $e');
+    return null;
+  }
+}
+
+Future<void> _showFcmNotification(RemoteMessage message) async {
+  final title = message.notification?.title ?? message.data['title'] ?? '';
+  final body = message.notification?.body ?? message.data['body'] ?? '';
+  final imageUrl =
+      message.notification?.android?.imageUrl ?? message.data['imageUrl'];
+
+  final fln = FlutterLocalNotificationsPlugin();
+
+  final imagePath = (imageUrl != null && imageUrl.isNotEmpty)
+      ? await _downloadImageToTempFile(imageUrl)
+      : null;
+
+  print("IMAGE URL: $imageUrl");
+  print("IMAGE PATH: $imagePath");
+
+  final androidDetails = imagePath != null
+      ? AndroidNotificationDetails(
+    'high_importance_channel',
+    'High Importance Notifications',
+    importance: Importance.max,
+    priority: Priority.high,
+    icon: 'ic_stat_notification_bg',
+    largeIcon: imagePath != null
+        ? FilePathAndroidBitmap(imagePath)
+        : null,
+    styleInformation: BigPictureStyleInformation(
+      FilePathAndroidBitmap(imagePath),
+      largeIcon: FilePathAndroidBitmap(imagePath),
+      contentTitle: title,
+      summaryText: body,
+      htmlFormatContentTitle: true,
+      htmlFormatSummaryText: true,
+    ),
+  )
+      : const AndroidNotificationDetails(
+    'high_importance_channel',
+    'High Importance Notifications',
+    importance: Importance.max,
+    priority: Priority.high,
+    icon: 'ic_stat_notification_bg',
+  );
+
+  final iosDetails = imagePath != null
+      ? DarwinNotificationDetails(
+    presentAlert: true,
+    presentBadge: true,
+    presentSound: true,
+    attachments: [DarwinNotificationAttachment(imagePath)],
+  )
+      : const DarwinNotificationDetails(
+    presentAlert: true,
+    presentBadge: true,
+    presentSound: true,
+  );
+
+  await fln.show(
+    DateTime
+        .now()
+        .millisecondsSinceEpoch ~/ 1000,
+    title,
+    body,
+    NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    ),
+  );
+}
+
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // await ensureFirebaseInitialized();
   await FirebaseInit.init();
+  await _showFcmNotification(message);
   final fln = FlutterLocalNotificationsPlugin();
 
   const androidDetails = AndroidNotificationDetails(
@@ -90,11 +224,10 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     icon: 'snevva_elly',
   );
 
-  await fln.show(
-    DateTime.now().millisecondsSinceEpoch ~/ 1000,
-    message.notification?.title ?? message.data['title'],
-    message.notification?.body ?? message.data['body'],
-    const NotificationDetails(android: androidDetails),
+  const iosDetails = DarwinNotificationDetails(
+    presentAlert: true,
+    presentBadge: true,
+    presentSound: true,
   );
 }
 
@@ -108,11 +241,16 @@ void main() {
       stackTrace: details.stack,
     );
 
+    // In debug builds expose the real error so blank screens can be diagnosed.
+    if (kDebugMode) {
+      return ErrorWidget(details.exception);
+    }
+
     return Builder(
       builder: (context) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           final overlay = Overlay.of(context);
-          overlay?.insert(
+          overlay.insert(
             OverlayEntry(
               builder: (context) {
                 return Material(
@@ -139,7 +277,7 @@ void main() {
           );
         });
 
-        return const SizedBox(); // 👈 REQUIRED return
+        return const SizedBox();
       },
     );
   };
@@ -150,21 +288,25 @@ void main() {
 
       // Register the step MethodChannel so the native StepCounterService can
       // deliver step counts to this Flutter engine via onStepDetected.
-      const stepChannel = MethodChannel('com.coretegra.snevva/step_detector');
-      stepChannel.setMethodCallHandler((call) async {
-        if (call.method == 'onStepDetected') {
-          // Write directly to SharedPrefs so the controller poller picks it up
-          // even if the background service isolate isn't running yet.
-          final p = await SharedPreferences.getInstance();
-          final steps = call.arguments as int;
-          await p.setInt('today_steps', steps);
-          FlutterBackgroundService().invoke('onStepDetected', {
-            'steps': call.arguments,
-          });
-        } else if (call.method == 'onAlarmWakeup') {
-          FlutterBackgroundService().invoke('onAlarmWakeup');
-        }
-      });
+      // Android only — on iOS, CMPedometer in AppDelegate writes directly to
+      // UserDefaults and the controller's 30-second poller picks it up.
+      if (!kIsWeb && Platform.isAndroid) {
+        const stepChannel = MethodChannel('com.coretegra.snevvaa/step_detector');
+        stepChannel.setMethodCallHandler((call) async {
+          if (call.method == 'onStepDetected') {
+            // Write directly to SharedPrefs so the controller poller picks it up
+            // even if the background service isolate isn't running yet.
+            final p = await SharedPreferences.getInstance();
+            final steps = call.arguments as int;
+            await p.setInt('today_steps', steps);
+            FlutterBackgroundService().invoke('onStepDetected', {
+              'steps': call.arguments,
+            });
+          } else if (call.method == 'onAlarmWakeup') {
+            FlutterBackgroundService().invoke('onAlarmWakeup');
+          }
+        });
+      }
 
       final refreshRateProfile = await RefreshRateBootstrap.initialize();
 
@@ -174,14 +316,28 @@ void main() {
         );
       }
 
-      final prefs = await SharedPreferences.getInstance();
-      final isRemembered = prefs.getBool('remember_me') ?? false;
+      // SharedPreferences can throw PlatformException on iOS during the
+      // legacy-to-new migration. Catch and default so runApp always runs.
+      bool isRemembered = false;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        isRemembered = prefs.getBool('remember_me') ?? false;
+      } catch (e) {
+        debugPrint(
+            '❌ SharedPreferences init failed, continuing with defaults: $e');
+      }
 
       _registerCriticalDependencies();
       FirebaseMessaging.onBackgroundMessage(
         _firebaseMessagingBackgroundHandler,
       );
 
+      Get.put(GoogleBackendAuthService());
+      final googleAuth = Get.put(GoogleAuthService());
+      await googleAuth.init().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => debugPrint('⚠️ googleAuth.init timed out'),
+      );
       runApp(
         MyApp(
           isRemembered: isRemembered,
@@ -199,6 +355,10 @@ void _registerCriticalDependencies() {
   if (!Get.isRegistered<ThemeController>()) {
     Get.put(ThemeController(), permanent: true);
   }
+  if (!Get.isRegistered<PushNotificationsController>()) {
+    Get.put(PushNotificationsController(), permanent: true);
+  }
+
   _registerLazyDependencies();
 }
 
@@ -238,6 +398,9 @@ void _registerLazyDependencies() {
   _lazyPut<EventController>(() => EventController());
   _lazyPut<MealController>(() => MealController());
   _lazyPut<AlertsController>(() => AlertsController());
+  _lazyPut<HealthReportController>(() => HealthReportController());
+  _lazyPut<CommonTipsController>(() => CommonTipsController());
+  _lazyPut<ScanReportController>(() => ScanReportController());
 }
 
 void _lazyPut<T>(T Function() builder) {
@@ -278,8 +441,6 @@ List<int> _findExpiredBeforeAlarmIdsForStartup(Map<String, dynamic> payload) {
   return expiredIds;
 }
 
-
-
 int _countLargePrefsCandidates(List<String> keys) {
   var count = 0;
   for (final key in keys) {
@@ -318,6 +479,8 @@ class _MyAppState extends State<MyApp> {
   bool _stage3Started = false;
   late final ThemeController _themeController;
 
+  StreamSubscription<bool>? _connectivitySub;
+
   @override
   void initState() {
     super.initState();
@@ -337,6 +500,25 @@ class _MyAppState extends State<MyApp> {
 
     _safeInit();
     _handlePendingNavigation();
+
+    ConnectivityService().init();
+
+    // Set initial connectivity state
+    Connectivity().checkConnectivity().then((results) {
+      final isConnected = results.any((r) => r != ConnectivityResult.none);
+      ConnectivityService.isOnline.value = isConnected;
+    });
+
+    // Keep stream subscription so ConnectivityService.init() updates isOnline
+    _connectivitySub =
+        ConnectivityService().onConnectivityChanged.listen((_) {});
+  }
+
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
   }
 
   Future<void> _handlePendingNavigation() async {
@@ -364,11 +546,25 @@ class _MyAppState extends State<MyApp> {
         _warmCriticalPostFrameServices(),
       ]);
 
+
+      if (Platform.isAndroid) {
+        await InAppUpdateService.checkForUpdate();
+      }
+
+
       try {
         PushNotificationService().initialize();
       } catch (_) {}
 
-      FirebaseMessaging.onMessageOpenedApp.listen((_) {});
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+        print("FULL JSON:");
+        print(jsonEncode(message.toMap()));
+        await _showFcmNotification(message);
+      });
+
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        debugPrint("Firebase message ${message.data.toString()}");
+      });
       await _handleInitialMessage();
       await _runDeferredFeatureWarmups();
     } catch (e, s) {
@@ -439,11 +635,14 @@ class _MyAppState extends State<MyApp> {
       final prefs = await SharedPreferences.getInstance();
       final hasSession = (prefs.getString('auth_token') ?? '').isNotEmpty;
 
-      if (!hasSession) {
-        _runStage3BackgroundTasks(hasSession: false);
-        Get.offAll(() => SignInScreen());
-        return;
+      _timeoutTimer?.cancel();
+
+      if (mounted) {
+        setState(() => _initState = AppInitState.success);
       }
+
+      // 🚀 Only control background tasks here
+      _runStage3BackgroundTasks(hasSession: hasSession);
 
       if (!Get.isRegistered<AlertsController>()) {
         Get.lazyPut(() => AlertsController(), fenix: true);
@@ -455,7 +654,10 @@ class _MyAppState extends State<MyApp> {
         setState(() => _initState = AppInitState.success);
       }
 
-      _runStage3BackgroundTasks(hasSession: true);
+      // ⚠️ Removed second _runStage3BackgroundTasks(hasSession: true) call that
+      // was dead code (blocked by _stage3Started guard) but had a dangerous
+      // hardcoded hasSession=true which could start the background service
+      // for logged-out users if the guard was ever removed.
     } catch (e, s) {
       logLong('INIT ERROR', '$e\n$s');
 
@@ -473,25 +675,43 @@ class _MyAppState extends State<MyApp> {
       // ✅ Delay 1 s so the splash→home transition renders at full FPS
       // before the background-isolate JIT spike hits.
       Future<void>.delayed(const Duration(seconds: 1), () async {
-        await _cleanupExpiredStartupAlarms();
-        await _mergeSleepHistoryInBackground();
-        await _scanLargeSharedPreferences();
-        
+        // ✅ Run independent prep tasks in parallel instead of sequentially.
+        await Future.wait([
+          _cleanupExpiredStartupAlarms(),
+          _mergeSleepHistoryInBackground(),
+          _scanLargeSharedPreferences(),
+        ]);
+
+        if (!hasSession) return;
+
         try {
-          final engine = snevva_reconciliation.ReconciliationEngine(
-            saveReminder: (reminder) async {
-              if (Get.isRegistered<ReminderController>(tag: 'reminder')) {
-                final controller = Get.find<ReminderController>(tag: 'reminder');
-                await controller.updateReminderLocalOnly(reminder);
-              }
-            }
-          );
-          await engine.handleTimezoneStartupChecks();
+          // ✅ Use batch mode so all per-reminder saves during reconciliation
+          // are accumulated in memory and flushed in a single Hive pass at
+          // the end, instead of N × (4 reads + 4 writes) on the event loop.
+          final controller =
+              Get.isRegistered<ReminderController>(tag: 'reminder')
+                  ? Get.find<ReminderController>(tag: 'reminder')
+                  : null;
+
+          controller?.beginBatchUpdate();
+          try {
+            final engine = snevva_reconciliation.ReconciliationEngine(
+              saveReminder: (reminder) async {
+                if (Get.isRegistered<ReminderController>(tag: 'reminder')) {
+                  Get.find<ReminderController>(
+                    tag: 'reminder',
+                  ).updateReminderLocalOnly(reminder);
+                }
+              },
+            );
+            await engine.handleTimezoneStartupChecks();
+          } finally {
+            // Always flush, even if reconciliation threw an error.
+            await controller?.endBatchUpdate();
+          }
         } catch (e, s) {
           logLong('RECONCILIATION ERROR', '$e\n$s');
         }
-
-        if (!hasSession) return;
 
         AgentDebugLogger.log(
           runId: 'auth-bg',
@@ -530,8 +750,11 @@ class _MyAppState extends State<MyApp> {
             ? await compute(_findExpiredBeforeAlarmIdsForStartup, payload)
             : _findExpiredBeforeAlarmIdsForStartup(payload);
 
-    for (final id in idsToStop) {
-      await Alarm.stop(id);
+    // \u2705 Stop all expired alarms concurrently instead of one-at-a-time.
+    if (idsToStop.isNotEmpty) {
+      await Future.wait(
+        idsToStop.map((id) => Alarm.stop(id).catchError((_) => false)),
+      );
     }
   }
 
@@ -553,6 +776,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return Obx(
       () => GetMaterialApp(
+        navigatorKey: appNavigatorKey,
         debugShowCheckedModeBanner: false,
         showPerformanceOverlay:
             _kShowPerformanceOverlay && (kDebugMode || kProfileMode),
@@ -565,7 +789,6 @@ class _MyAppState extends State<MyApp> {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         locale: const Locale('en'),
         getPages: [
-          GetPage(name: '/home', page: () => HomeWrapper()),
           GetPage(name: '/reminder', page: () => ReminderScreen()),
           GetPage(name: '/mood', page: () => MoodTrackerScreen()),
           GetPage(name: '/perf-120', page: () => const HighFpsDemoScreen()),
@@ -578,7 +801,7 @@ class _MyAppState extends State<MyApp> {
                   child: const InitializationSplash(),
                 )
                 : _initState == AppInitState.success
-                ? HomeWrapper()
+                ? const AuthGate()
                 : ErrorPlaceholder(
                   onRetry: () {
                     _startTimeout();
@@ -613,7 +836,7 @@ class InitializationSplash extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-              HeartBeatLoader(isDarkMode: isDarkMode),
+              const HeartBeatLoader(),
               const SizedBox(height: 24),
               Text(
                 "Monitoring What Matters",
@@ -649,6 +872,7 @@ class HeartBeatLoader extends StatefulWidget {
 class _HeartBeatLoaderState extends State<HeartBeatLoader>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+
   // ✅ Painter caches are owned here so they survive rebuilds.
   final _HeartBeatCaches _caches = _HeartBeatCaches();
 
@@ -734,14 +958,17 @@ class _HeartBeatLoaderPainter extends CustomPainter {
 
   // ── Reusable paint objects ─────────────────────────────────────────────
   final Paint _gridPaint = Paint()..strokeWidth = 1;
-  final Paint _linePaint = Paint()
-    ..strokeWidth = 2.5
-    ..style = PaintingStyle.stroke
-    ..strokeCap = StrokeCap.round;
-  final Paint _glowPaint = Paint()
-    ..strokeWidth = 8           // wider than line → visible halo
-    ..style = PaintingStyle.stroke
-    ..strokeCap = StrokeCap.round;
+  final Paint _linePaint =
+      Paint()
+        ..strokeWidth = 2.5
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+  final Paint _glowPaint =
+      Paint()
+        ..strokeWidth =
+            8 // wider than line → visible halo
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
   final Paint _layerPaint = Paint()..color = const Color(0x55FFFFFF);
   final Paint _dotPaint = Paint()..color = const Color(0xFF5A189A);
 
@@ -769,43 +996,43 @@ class _HeartBeatLoaderPainter extends CustomPainter {
 
     while (x < size.width - 20) {
       path.lineTo(x += 15, midY);
-      path.lineTo(x += 2,  midY - 7);
-      path.lineTo(x += 2,  midY);
+      path.lineTo(x += 2, midY - 7);
+      path.lineTo(x += 2, midY);
 
       path.lineTo(x += 12, midY);
-      path.lineTo(x += 8,  midY - 32);
-      path.lineTo(x += 6,  midY + 24);
-      path.lineTo(x += 6,  midY - 10);
-      path.lineTo(x += 2,  midY);
+      path.lineTo(x += 8, midY - 32);
+      path.lineTo(x += 6, midY + 24);
+      path.lineTo(x += 6, midY - 10);
+      path.lineTo(x += 2, midY);
 
       path.lineTo(x += 15, midY);
-      path.lineTo(x += 2,  midY - 7);
-      path.lineTo(x += 2,  midY);
+      path.lineTo(x += 2, midY - 7);
+      path.lineTo(x += 2, midY);
 
       path.lineTo(x += 18, midY);
-      path.lineTo(x += 4,  midY - 16);
-      path.lineTo(x += 6,  midY + 12);
-      path.lineTo(x += 2,  midY);
+      path.lineTo(x += 4, midY - 16);
+      path.lineTo(x += 6, midY + 12);
+      path.lineTo(x += 2, midY);
 
-      path.lineTo(x += 8,  midY);
-      path.lineTo(x += 2,  midY - 7);
-      path.lineTo(x += 2,  midY);
+      path.lineTo(x += 8, midY);
+      path.lineTo(x += 2, midY - 7);
+      path.lineTo(x += 2, midY);
 
       path.lineTo(x += 10, midY - 32);
       path.lineTo(x += 10, midY + 24);
 
-      path.lineTo(x += 8,  midY);
+      path.lineTo(x += 8, midY);
       path.lineTo(x += 16, midY);
 
-      path.lineTo(x += 4,  midY - 16);
-      path.lineTo(x += 6,  midY + 12);
+      path.lineTo(x += 4, midY - 16);
+      path.lineTo(x += 6, midY + 12);
 
-      path.lineTo(x += 2,  midY);
+      path.lineTo(x += 2, midY);
       path.lineTo(x += 18, midY);
     }
 
     caches.fullPath = path;
-    caches.metric  = path.computeMetrics().first;
+    caches.metric = path.computeMetrics().first;
     caches.lineShader = _gradient.createShader(rect);
     caches.glowShader = _gradient.createShader(rect);
   }

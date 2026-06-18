@@ -82,11 +82,7 @@ class HealthTipsController extends GetxService {
       );
 
       if (response is http.Response) {
-        CustomSnackbar.showError(
-          context: context,
-          title: 'Error',
-          message: 'Failed to load general tips: ${response.statusCode}',
-        );
+        debugPrint("response is #${response.body}");
         generalTips = [];
         randomTip = null;
         return;
@@ -105,11 +101,6 @@ class HealthTipsController extends GetxService {
     } catch (e) {
       generalTips = <dynamic>[];
       randomTip = null;
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'Failed to load general tips',
-      );
     }
   }
 

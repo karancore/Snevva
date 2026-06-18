@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
 import '../../Controllers/Reminder/event_controller.dart';
 import '../../Controllers/Reminder/meal_controller.dart';
 import '../../Controllers/Reminder/medicine_controller.dart';
@@ -8,7 +9,14 @@ import '../../Controllers/Reminder/water_controller.dart';
 import 'reminder_screen.dart';
 
 class ReminderScreenWrapper extends StatelessWidget {
-  const ReminderScreenWrapper({super.key});
+  const ReminderScreenWrapper(
+      {super.key, this.isClose = false, this.isHydrationScreen = false});
+
+  final bool ? isClose;
+
+  final bool ? isHydrationScreen;
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -18,6 +26,7 @@ class ReminderScreenWrapper extends StatelessWidget {
     Get.find<MedicineController>();
     Get.find<ReminderController>(tag: 'reminder');
 
-    return ReminderScreen();
+    return ReminderScreen(
+      isClose: isClose, isHydrationScreen: isHydrationScreen,);
   }
 }

@@ -14,17 +14,37 @@ class OldDeviceAlert extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme
+        .of(context)
+        .brightness == Brightness.dark;
+    final Color dialogBgColor = isDarkMode ? const Color(0xFF1A1A1A) : Colors
+        .white;
+    final Color subtitleColor = isDarkMode ? Colors.white60 : Colors.grey
+        .shade600;
+    final Color cardBgColor = isDarkMode ? const Color(0xFF262626) : Colors.grey
+        .shade50;
+    final Color cardBorderColor = isDarkMode ? const Color(0xFF3A3A3A) : Colors
+        .grey.shade200;
+    final Color textColor = isDarkMode ? Colors.white : Colors.black87;
+    final Color iconColor = isDarkMode ? const Color(0xFF4A4A4A) : Colors.grey
+        .shade600;
+    final Color keepSessionBgColor = isDarkMode
+        ? const Color(0xFF2A2A2A)
+        : Colors.grey.shade100;
+    final Color keepSessionTextColor = isDarkMode ? Colors.white70 : Colors
+        .black87;
+
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: dialogBgColor,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.08),
               blurRadius: 20,
               offset: const Offset(0, 10),
             )
@@ -40,7 +60,7 @@ class OldDeviceAlert extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
+                    color: Colors.red.withOpacity(isDarkMode ? 0.2 : 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -51,12 +71,13 @@ class OldDeviceAlert extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
 
-                const Expanded(
+                Expanded(
                   child: Text(
                     "Active Session Detected",
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
+                      color: textColor,
                     ),
                   ),
                 ),
@@ -70,7 +91,7 @@ class OldDeviceAlert extends StatelessWidget {
               "You're already logged in on another device. Review the details below.",
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey.shade600,
+                color: subtitleColor,
                 height: 1.4,
               ),
             ),
@@ -81,20 +102,24 @@ class OldDeviceAlert extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
+                color: cardBgColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(color: cardBorderColor),
               ),
               child: Column(
                 children: [
-                  _infoTile(Icons.android, "OS", deviceInfo['brand']),
-                  _divider(),
-                  _infoTile(Icons.phone_iphone, "Device", deviceInfo['device']),
-                  _divider(),
-                  _infoTile(Icons.memory, "Model", deviceInfo['model']),
-                  _divider(),
+                  _infoTile(Icons.android, "OS", deviceInfo['brand'], iconColor,
+                      isDarkMode),
+                  _divider(isDarkMode, cardBorderColor),
+                  _infoTile(Icons.phone_iphone, "Device", deviceInfo['device'],
+                      iconColor, isDarkMode),
+                  _divider(isDarkMode, cardBorderColor),
+                  _infoTile(
+                      Icons.memory, "Model", deviceInfo['model'], iconColor,
+                      isDarkMode),
+                  _divider(isDarkMode, cardBorderColor),
                   _infoTile(Icons.system_update, "Version",
-                      deviceInfo['androidVersion']),
+                      deviceInfo['androidVersion'], iconColor, isDarkMode),
                 ],
               ),
             ),
@@ -109,14 +134,14 @@ class OldDeviceAlert extends StatelessWidget {
                     onPressed: onRejectDevice,
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: Colors.grey.shade100,
+                      backgroundColor: keepSessionBgColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       "Keep Session",
-                      style: TextStyle(color: Colors.black87),
+                      style: TextStyle(color: keepSessionTextColor),
                     ),
                   ),
                 ),
@@ -148,16 +173,18 @@ class OldDeviceAlert extends StatelessWidget {
     );
   }
 
-  Widget _infoTile(IconData icon, String title, dynamic value) {
+  Widget _infoTile(IconData icon, String title, dynamic value, Color iconColor,
+      bool isDarkMode) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: Colors.grey.shade600),
+        Icon(icon, size: 18, color: iconColor),
         const SizedBox(width: 10),
         Text(
           "$title:",
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 13,
+            color: isDarkMode ? Colors.white : Colors.black87,
           ),
         ),
         const SizedBox(width: 6),
@@ -165,7 +192,7 @@ class OldDeviceAlert extends StatelessWidget {
           child: Text(
             value?.toString() ?? "Unknown",
             style: TextStyle(
-              color: Colors.grey.shade700,
+              color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
               fontSize: 13,
             ),
           ),
@@ -174,10 +201,10 @@ class OldDeviceAlert extends StatelessWidget {
     );
   }
 
-  Widget _divider() {
+  Widget _divider(bool isDarkMode, Color borderColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Divider(color: Colors.grey.shade200, height: 1),
+      child: Divider(color: borderColor, height: 1),
     );
   }
 }

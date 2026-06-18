@@ -20,12 +20,13 @@ import 'package:snevva/models/mappers/reminder_api_mapper.dart';
 import 'package:snevva/models/mappers/reminder_payload_mapper.dart';
 import 'package:snevva/models/reminder_schedule_metadata.dart';
 import 'package:snevva/services/api_service.dart';
-import 'package:snevva/services/reminder/native_alarm_bridge.dart';
-import 'package:snevva/services/reminder/reminder_scheduler.dart';
 import 'package:snevva/services/reminder/device_timezone_service.dart';
+import 'package:snevva/services/reminder/native_alarm_bridge.dart';
 import 'package:snevva/services/reminder/reminder_alarm_transaction.dart';
 import 'package:snevva/services/reminder/reminder_identity.dart';
 import 'package:snevva/services/reminder/reminder_schedule_resolver.dart';
+import 'package:snevva/services/reminder/reminder_scheduler.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 import '../../common/global_variables.dart';
 import '../../models/reminders/medicine_reminder_model.dart'
@@ -63,6 +64,25 @@ List<String> normalizeReminderTimesForPersistence(List<String>? rawTimes) {
   }
 
   return normalized;
+}
+
+@visibleForTesting
+DateTime reminderDateTimeInTimezone(
+  DateTime scheduledTime, {
+  required String timezoneId,
+}) {
+  final normalizedTimezoneId = timezoneId.trim();
+  if (normalizedTimezoneId.isEmpty ||
+      normalizedTimezoneId.toLowerCase() == 'local') {
+    return scheduledTime.toLocal();
+  }
+
+  try {
+    final location = tz.getLocation(normalizedTimezoneId);
+    return tz.TZDateTime.from(scheduledTime, location);
+  } catch (_) {
+    return scheduledTime.toLocal();
+  }
 }
 
 String _audioPathForReminderCategory(String category) {
@@ -178,10 +198,20 @@ class ReminderController extends GetxController {
   }
 
   Future<void> _runDeferredInit() async {
-    await checkAndroidNotificationPermission();
-    await checkAndroidScheduleExactAlarmPermission();
-    await cleanupExpiredBeforeAlarms();
-    await loadAlarms();
+    // ✅ Single Alarm.getAlarms() call shared by both cleanup and loadAlarms,
+    // avoiding two redundant SQLite reads on every controller initialisation.
+    final loadedAlarms = await Alarm.getAlarms();
+    final stoppedIds = await _cleanupExpiredBeforeAlarmsFromList(loadedAlarms);
+    // Filter the local list so alarms.value doesn't contain stale entries
+    // that were just stopped — avoids a second Alarm.getAlarms() round-trip.
+    final activeAlarms =
+        stoppedIds.isEmpty
+            ? loadedAlarms
+            : loadedAlarms
+                .where((a) => !stoppedIds.contains(a.id))
+                .toList(growable: false);
+    activeAlarms.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+    alarms.value = activeAlarms;
     await loadAllReminderLists();
   }
 
@@ -333,7 +363,7 @@ class ReminderController extends GetxController {
       if (reminder != null) {
         final updated = reminder.copyWithScheduleMetadata(
           reminder.scheduleMetadata.copyWith(
-            lastFiredAt: DateTime.now().toUtc().toIso8601String(),
+            lastFiredAt: DateTime.now().toLocal().toIso8601String(),
           ),
         );
         await updateReminderLocalOnly(updated);
@@ -463,7 +493,17 @@ class ReminderController extends GetxController {
 
   Future<void> cleanupExpiredBeforeAlarms() async {
     final alarms = await Alarm.getAlarms();
-    if (alarms.isEmpty) return;
+    await _cleanupExpiredBeforeAlarmsFromList(alarms);
+  }
+
+  /// Inner cleanup that accepts a pre-fetched alarm list, avoiding a redundant
+  /// [Alarm.getAlarms()] call when the list was already fetched by the caller.
+  /// Returns the set of alarm IDs that were stopped so the caller can filter
+  /// them from any in-memory list without a second [Alarm.getAlarms()] call.
+  Future<Set<int>> _cleanupExpiredBeforeAlarmsFromList(
+    List<AlarmSettings> alarms,
+  ) async {
+    if (alarms.isEmpty) return const {};
 
     final scanInput = alarms
         .where((alarm) => alarm.payload != null)
@@ -475,7 +515,7 @@ class ReminderController extends GetxController {
         )
         .toList(growable: false);
 
-    if (scanInput.isEmpty) return;
+    if (scanInput.isEmpty) return const {};
 
     final payload = <String, dynamic>{
       'nowEpochMs': DateTime.now().millisecondsSinceEpoch,
@@ -487,9 +527,14 @@ class ReminderController extends GetxController {
             ? await compute(_collectExpiredBeforeAlarmIds, payload)
             : _collectExpiredBeforeAlarmIds(payload);
 
-    for (final id in expiredIds) {
-      await Alarm.stop(id);
-    }
+    if (expiredIds.isEmpty) return const {};
+
+    // ✅ Stop all expired alarms concurrently instead of sequentially.
+    await Future.wait(
+      expiredIds.map((id) => Alarm.stop(id).catchError((_) => false)),
+    );
+
+    return expiredIds.toSet();
   }
 
   DateTime calculateBeforeReminder() {
@@ -534,11 +579,14 @@ class ReminderController extends GetxController {
       timeOfDay.hour,
       timeOfDay.minute,
     );
+    debugPrint("   ↳ initial scheduledTime: $scheduledTime");
 
     if (scheduledTime.isBefore(now) || scheduledTime.isAtSameMomentAs(now)) {
+      debugPrint("⚠️ [addAlarm] Time is in past or same as now");
       scheduledTime = scheduledTime.add(Duration(days: 1));
-      debugPrint('⚠️ Time was in past/now, moved to tomorrow: $scheduledTime');
+      debugPrint("   ↳ moved to next day: $scheduledTime");
     }
+
     debugPrint("Add Alarm category $category");
 
     switch (category) {
@@ -546,11 +594,14 @@ class ReminderController extends GetxController {
       //   await medicineGetxController.addMedicineAlarm(scheduledTime, context);
       //   break;
       case "meal":
+        debugPrint("🍽️ [addAlarm] Meal flow → calling addMealAlarm()");
+
         await mealController.addMealAlarm(
           scheduledTime,
           context,
           reminderIdOverride: reminderIdOverride,
         );
+        debugPrint("   ↳ Meal alarm created");
         break;
       case "event":
         await eventGetxController.addEventAlarm(
@@ -711,18 +762,53 @@ class ReminderController extends GetxController {
         );
   }
 
+  Future<void> syncReminderTransactionWithNative(
+    ReminderAlarmTransactionResult transaction,
+  ) async {
+    final alarms = <AlarmSettings>[
+      ...transaction.mainAlarms,
+      ...transaction.preAlarms,
+    ];
+    if (alarms.isEmpty) return;
+
+    await NativeAlarmBridge.saveAndArm(alarms);
+  }
+
+  Future<void> stopReminderAlarmIds(Iterable<int> alarmIds) async {
+    final ids = alarmIds.where((id) => id > 0).toSet().toList(growable: false);
+    if (ids.isEmpty) return;
+
+    for (final id in ids) {
+      try {
+        await Alarm.stop(id);
+      } catch (e) {
+        debugPrint('⚠️ Failed to stop Flutter alarm id=$id: $e');
+      }
+    }
+
+    await NativeAlarmBridge.cancelAlarms(ids);
+  }
+
   Future<ReminderAlarmTransactionResult> scheduleReminderLocally(
     reminder_payload.ReminderPayloadModel reminder,
   ) async {
     _recentlyUpdatedIds.add(reminder.id);
     final updated = reminder.copyWith(updatedAt: DateTime.now());
-    return _alarmTransaction.schedule(updated);
+    final transaction = await _alarmTransaction.schedule(updated);
+    await syncReminderTransactionWithNative(transaction);
+    return transaction;
   }
 
   Future<void> rollbackReminderSchedule(
     reminder_payload.ReminderPayloadModel reminder,
   ) async {
+    final alarmIds = <int>{
+      ...reminder.scheduleMetadata.alarmIds,
+      ...reminder.scheduleMetadata.preAlarmIds,
+      ...reminder.scheduleMetadata.pendingAlarmIds,
+    };
     await _alarmTransaction.rollbackReminder(reminder);
+    await NativeAlarmBridge.cancelAlarms(alarmIds.toList(growable: false));
   }
 
   Future<void> scheduleAlarmEveryXHours(int intervalHours) async {
@@ -763,7 +849,7 @@ class ReminderController extends GetxController {
     AlarmSettings alarm,
     dynamic reminderList,
   ) async {
-    await Alarm.stop(alarm.id);
+    await stopReminderAlarmIds([alarm.id]);
     reminderList.removeAt(index);
     String listKey = _getListKeyFromType(reminderList);
     if (listKey.isNotEmpty) {
@@ -1001,7 +1087,58 @@ class ReminderController extends GetxController {
     debugPrint('✅ Saved ${stringList.length} items to Hive → $keyName');
   }
 
+  // ─── loadAllReminderLists with concurrent-call deduplication ───────────────
+  //
+  // When Stage 2 warmup, ReminderController._runDeferredInit, and Stage 3
+  // reconciliation all call loadAllReminderLists() within the same ~1-second
+  // window, the Completer guard collapses them into a single 4-category Hive
+  // read instead of three independent reads + three Rx rebuilds.
+
+  Completer<void>? _loadAllCompleter;
+
   Future<void> loadAllReminderLists() async {
+    if (_loadAllCompleter != null) {
+      // A load is already in progress — wait for it instead of starting another.
+      return _loadAllCompleter!.future;
+    }
+    _loadAllCompleter = Completer<void>();
+    try {
+      await _doLoadAllReminderLists();
+      _loadAllCompleter!.complete();
+    } catch (e, s) {
+      _loadAllCompleter!.completeError(e, s);
+      rethrow;
+    } finally {
+      _loadAllCompleter = null;
+    }
+  }
+
+  // ─── Batch-update helpers ───────────────────────────────────────────────────
+  //
+  // During reconcileAllReminders() there can be N calls to updateReminderLocalOnly
+  // — each of which previously triggered _saveToCategoryWiseLists (4 Hive reads
+  // + 4 Hive writes).  Call beginBatchUpdate() before the loop so writes are
+  // deferred, then endBatchUpdate() to flush everything in a single pass.
+
+  bool _batchUpdateMode = false;
+
+  /// Puts the controller into batch mode. While active,
+  /// [updateReminderLocalOnly] only updates the in-memory [reminders] list
+  /// without triggering Hive I/O.
+  void beginBatchUpdate() {
+    _batchUpdateMode = true;
+    debugPrint('[ReminderCtrl] beginBatchUpdate — Hive writes deferred');
+  }
+
+  /// Flushes all in-memory changes accumulated since [beginBatchUpdate] to
+  /// Hive in a single _saveToCategoryWiseLists pass, then clears batch mode.
+  Future<void> endBatchUpdate() async {
+    _batchUpdateMode = false;
+    debugPrint('[ReminderCtrl] endBatchUpdate — flushing to Hive');
+    await _saveToCategoryWiseLists(reminders);
+  }
+
+  Future<void> _doLoadAllReminderLists() async {
     try {
       debugPrint('🔄 loadAllReminderLists() START');
       isLoading(true);
@@ -1276,13 +1413,19 @@ class ReminderController extends GetxController {
   Future<void> updateReminderLocalOnly(
     reminder_payload.ReminderPayloadModel reminder,
   ) async {
-    final index = reminders.indexWhere((r) => r.id == reminder.id);
+    final index = reminders.indexWhere(
+      (e) => e.id.toString() == reminder.id.toString(),
+    );
     if (index >= 0) {
       reminders[index] = reminder;
     } else {
       reminders.add(reminder);
     }
-    await _saveToCategoryWiseLists(reminders);
+    // Skip Hive I/O during batch reconciliation — endBatchUpdate() will flush
+    // all accumulated changes in a single pass.
+    if (!_batchUpdateMode) {
+      await _saveToCategoryWiseLists(reminders);
+    }
   }
 
   Future<List<reminder_payload.ReminderPayloadModel>> _saveToCategoryWiseLists(
@@ -1533,7 +1676,7 @@ class ReminderController extends GetxController {
     final title = entry.keys.first.trim().toLowerCase();
     final alarm = entry.values.first;
     final body = alarm.notificationSettings.body.trim().toLowerCase();
-    final when = alarm.dateTime.toUtc().toIso8601String();
+    final when = alarm.dateTime.toLocal().toIso8601String();
     return '$category|$title|$body|$when';
   }
 
@@ -1879,7 +2022,7 @@ class ReminderController extends GetxController {
     final rawMetadata = payload['scheduleMetadata'];
     return ReminderScheduleMetadata.fromJson(
       rawMetadata is Map ? Map<String, dynamic>.from(rawMetadata as Map) : null,
-      timezoneIdFallback: 'UTC',
+      timezoneIdFallback: 'Local',
       semanticsFallback: reminder_payload
           .ReminderPayloadModel.defaultSemanticsForCategory(
         category,
@@ -1933,16 +2076,24 @@ class ReminderController extends GetxController {
   String _normalizeWaterText(String? value) =>
       (value ?? '').trim().toLowerCase();
 
-  String _alarmWallClockTime(DateTime dateTime) {
-    final hour = dateTime.hour.toString().padLeft(2, '0');
-    final minute = dateTime.minute.toString().padLeft(2, '0');
+  String _alarmWallClockTime(DateTime dateTime, {String? timezoneId}) {
+    final zonedDateTime =
+        timezoneId == null
+            ? dateTime.toLocal()
+            : reminderDateTimeInTimezone(dateTime, timezoneId: timezoneId);
+    final hour = zonedDateTime.hour.toString().padLeft(2, '0');
+    final minute = zonedDateTime.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
   }
 
-  String _alarmWallClockDate(DateTime dateTime) {
-    final year = dateTime.year.toString().padLeft(4, '0');
-    final month = dateTime.month.toString().padLeft(2, '0');
-    final day = dateTime.day.toString().padLeft(2, '0');
+  String _alarmWallClockDate(DateTime dateTime, {String? timezoneId}) {
+    final zonedDateTime =
+        timezoneId == null
+            ? dateTime.toLocal()
+            : reminderDateTimeInTimezone(dateTime, timezoneId: timezoneId);
+    final year = zonedDateTime.year.toString().padLeft(4, '0');
+    final month = zonedDateTime.month.toString().padLeft(2, '0');
+    final day = zonedDateTime.day.toString().padLeft(2, '0');
     return '$year-$month-$day';
   }
 
@@ -2055,7 +2206,7 @@ class ReminderController extends GetxController {
     if (hint.isNotEmpty) {
       final parsed = DateTime.tryParse(hint);
       if (parsed != null) {
-        final local = parsed.isUtc ? parsed.toLocal() : parsed;
+        final local = parsed.toLocal();
         return DateTime(
           local.year,
           local.month,
@@ -2085,7 +2236,7 @@ class ReminderController extends GetxController {
     if (trimmed.isEmpty) return '';
     final parsed = DateTime.tryParse(trimmed);
     if (parsed == null) return trimmed;
-    final local = parsed.isUtc ? parsed.toLocal() : parsed;
+    final local = parsed.toLocal();
     final y = local.year.toString().padLeft(4, '0');
     final m = local.month.toString().padLeft(2, '0');
     final d = local.day.toString().padLeft(2, '0');
@@ -2638,6 +2789,7 @@ class ReminderController extends GetxController {
 
     switch (category) {
       case "medicine":
+
         final isInterval =
             medicineGetxController.medicineReminderOption.value ==
             Option.interval;
@@ -2670,10 +2822,47 @@ class ReminderController extends GetxController {
               colorText: white,
               backgroundColor: AppColors.primaryColor,
               duration: const Duration(seconds: 3),
+              icon: const Icon(
+                Icons.watch_later_outlined,
+                color: Colors.white,
+              ),
             );
 
             return false;
           }
+
+          if (medicineGetxController.startDateString.value == 'Start Date' ||
+              medicineGetxController.endDateString.value == 'End Date') {
+            String message = '';
+
+            if (medicineGetxController.startDateString.value == 'Start Date' &&
+                medicineGetxController.endDateString.value == 'End Date') {
+              message = "Please select start and end dates.";
+            } else
+            if (medicineGetxController.startDateString.value == 'Start Date') {
+              message = "Please select a start date.";
+            } else {
+              message = "Please select an end date.";
+            }
+
+            Get.snackbar(
+              "Missing Information",
+              message,
+              snackPosition: SnackPosition.TOP,
+              colorText: white,
+              backgroundColor: AppColors.primaryColor,
+              margin: const EdgeInsets.all(12),
+              borderRadius: 12,
+              duration: const Duration(seconds: 3),
+              icon: const Icon(
+                Icons.calendar_today_rounded,
+                color: Colors.white,
+              ),
+            );
+
+            return false;
+          }
+
           debugPrint("✅ Adding medicine times-based alarm");
           final ok = await medicineGetxController.addMedicineAlarm(
             context: context,
@@ -2703,6 +2892,39 @@ class ReminderController extends GetxController {
             );
             return false;
           }
+
+          if (medicineGetxController.startDateString.value == 'Start Date' ||
+              medicineGetxController.endDateString.value == 'End Date') {
+            String message = '';
+
+            if (medicineGetxController.startDateString.value == 'Start Date' &&
+                medicineGetxController.endDateString.value == 'End Date') {
+              message = "Please select start and end dates.";
+            } else
+            if (medicineGetxController.startDateString.value == 'Start Date') {
+              message = "Please select a start date.";
+            } else {
+              message = "Please select an end date.";
+            }
+
+            Get.snackbar(
+              "Missing Information",
+              message,
+              snackPosition: SnackPosition.TOP,
+              colorText: white,
+              backgroundColor: AppColors.primaryColor,
+              margin: const EdgeInsets.all(12),
+              borderRadius: 12,
+              duration: const Duration(seconds: 3),
+              icon: const Icon(
+                Icons.calendar_today_rounded,
+                color: Colors.white,
+              ),
+            );
+
+            return false;
+          }
+
 
           final ok = await medicineGetxController.addMedicineIntervalAlarm(
             context: context,
@@ -2806,6 +3028,10 @@ class ReminderController extends GetxController {
         colorText: white,
         backgroundColor: AppColors.primaryColor,
         duration: const Duration(seconds: 2),
+        icon: const Icon(
+          Icons.title_sharp,
+          color: Colors.white,
+        ),
       );
       return false;
     }
@@ -2827,6 +3053,10 @@ class ReminderController extends GetxController {
             colorText: white,
             backgroundColor: AppColors.primaryColor,
             duration: const Duration(seconds: 2),
+            icon: const Icon(
+              Icons.close,
+              color: Colors.white,
+            ),
           );
           return false;
         }
@@ -3004,40 +3234,23 @@ class ReminderController extends GetxController {
     required BuildContext context,
     TimeOfDay? resolvedTime,
   }) async {
+    debugPrint("══════════════════════════════════════════");
+    debugPrint("🧭 [ReminderUpdate] START");
+
     final previousCategory = _normalizeCategory(reminder.category);
     final nextCategory = _normalizeCategory(newCategory);
     final hasValidId = reminder.id > 0;
 
-    debugPrint("🧭 [ReminderUpdate] handleReminderUpdate called");
-    debugPrint("   ↳ reminderId: ${reminder.id}");
-    debugPrint("   ↳ oldCategory: $previousCategory");
-    debugPrint("   ↳ newCategory: $nextCategory");
+    debugPrint("📌 Reminder ID: ${reminder.id}");
+    debugPrint("📂 Previous Category: $previousCategory");
+    debugPrint("📂 New Category: $nextCategory");
+    debugPrint("💊 Dosage: $dosage");
+    debugPrint("⏰ Resolved Time: $resolvedTime");
+    debugPrint("🆔 Has Valid ID: $hasValidId");
 
+    // 🛑 Invalid ID fallback
     if (!hasValidId) {
-      debugPrint(
-        "⚠️ [ReminderUpdate] invalid reminder id (${reminder.id}) -> create fallback",
-      );
-      return createNewReminder(
-        newCategory: nextCategory,
-        dosage: dosage,
-        context: context,
-        preferredReminderId: reminder.id,
-        resolvedTime: resolvedTime,
-      );
-    }
-
-    if (detectCategoryChange(previousCategory, nextCategory)) {
-      debugPrint(
-        "🛤️ [ReminderUpdate] category changed -> delete + create path",
-      );
-
-      final backendDeleted = await _deleteReminderFromApiSilently(reminder.id);
-      debugPrint(
-        "🧼 [ReminderUpdate] backend cleanup for old category completed: $backendDeleted",
-      );
-
-      final removed = await deleteOldReminder(reminder);
-      debugPrint("🧹 [ReminderUpdate] old reminder removed: $removed");
+      debugPrint("⚠️ Invalid reminder ID → Switching to CREATE flow");
 
       final created = await createNewReminder(
         newCategory: nextCategory,
@@ -3047,7 +3260,41 @@ class ReminderController extends GetxController {
         resolvedTime: resolvedTime,
       );
 
+      debugPrint("🆕 Create fallback result: $created");
+      debugPrint("══════════════════════════════════════════");
+
+      return created;
+    }
+
+    // 🔄 Category Change Flow
+    final isCategoryChanged = detectCategoryChange(
+      previousCategory,
+      nextCategory,
+    );
+    debugPrint("🔍 Category Changed: $isCategoryChanged");
+
+    if (isCategoryChanged) {
+      debugPrint("🛤️ Entering DELETE + CREATE flow");
+
+      final backendDeleted = await _deleteReminderFromApiSilently(reminder.id);
+      debugPrint("🌐 Backend delete result: $backendDeleted");
+
+      final removed = await deleteOldReminder(reminder);
+      debugPrint("🧹 Local delete result: $removed");
+
+      final created = await createNewReminder(
+        newCategory: nextCategory,
+        dosage: dosage,
+        context: context,
+        preferredReminderId: reminder.id,
+        resolvedTime: resolvedTime,
+      );
+
+      debugPrint("🆕 New reminder created: $created");
+
       if (!created) {
+        debugPrint("❌ ERROR: Failed to create new reminder after deletion");
+
         Get.snackbar(
           "Update failed",
           "We couldn't move your reminder to the new category. Please try again.",
@@ -3055,8 +3302,13 @@ class ReminderController extends GetxController {
           colorText: Colors.white,
         );
       }
+
+      debugPrint("══════════════════════════════════════════");
       return created;
     }
+
+    // ✏️ Same Category Update Flow
+    debugPrint("✏️ Entering SAME CATEGORY UPDATE flow");
 
     final updated = await updateSameCategoryReminder(
       reminder: reminder,
@@ -3064,7 +3316,12 @@ class ReminderController extends GetxController {
       dosage: dosage,
       context: context,
     );
+
+    debugPrint("🔄 Update result: $updated");
+
     if (!updated) {
+      debugPrint("❌ ERROR: Failed to update reminder in same category");
+
       Get.snackbar(
         "Update failed",
         "The changes couldn't be saved. Please check your connection.",
@@ -3072,6 +3329,10 @@ class ReminderController extends GetxController {
         colorText: Colors.white,
       );
     }
+
+    debugPrint("🏁 [ReminderUpdate] END");
+    debugPrint("══════════════════════════════════════════");
+
     return updated;
   }
 
@@ -3145,71 +3406,123 @@ class ReminderController extends GetxController {
     num? dosage,
     required BuildContext context,
   }) async {
+    debugPrint("══════════════════════════════════════════");
+    debugPrint("📝 [SameCategoryUpdate] START");
+
     final normalizedCategory = _normalizeCategory(category);
     final reminderId = reminder.id;
 
-    debugPrint("📝 [ReminderUpdate] updateSameCategoryReminder called");
-    debugPrint("   ↳ reminderId: $reminderId");
-    debugPrint(
-      "   ↳ list source used: ${_listKeyForCategory(normalizedCategory)}",
-    );
+    debugPrint("📌 Reminder ID: $reminderId");
+    debugPrint("📂 Raw Category: $category");
+    debugPrint("📂 Normalized Category: $normalizedCategory");
+    debugPrint("💊 Dosage: $dosage");
+    debugPrint("📋 List Source: ${_listKeyForCategory(normalizedCategory)}");
 
+    // 🔍 Existence Check
+    debugPrint("🔍 Checking if reminder exists in current category list...");
     final exists = await _reminderExistsInCategory(
       reminderId: reminderId,
       category: normalizedCategory,
     );
+
+    debugPrint("🔍 Exists in list: $exists");
+
     if (!exists) {
-      debugPrint(
-        "⚠️ [ReminderUpdate] reminder missing in current list -> create fallback",
-      );
-      return createNewReminder(
+      debugPrint("⚠️ Reminder NOT FOUND → Switching to CREATE fallback");
+
+      final created = await createNewReminder(
         newCategory: normalizedCategory,
         dosage: dosage,
         context: context,
         preferredReminderId: reminderId > 0 ? reminderId : null,
         resolvedTime: null,
       );
+
+      debugPrint("🆕 Fallback Create Result: $created");
+      debugPrint("══════════════════════════════════════════");
+      return created;
     }
 
+    // 🔀 Category Switch
+    debugPrint("🔀 Routing to category handler → $normalizedCategory");
+
     switch (normalizedCategory) {
+      // 💊 MEDICINE
       case 'medicine':
+        debugPrint("💊 Handling MEDICINE update...");
+
         final updated = await _updateMedicineReminderLocally(
           context: context,
           dosage: dosage,
           reminderId: reminderId,
         );
+
+        debugPrint("💊 Medicine update result: $updated");
+
         if (!updated) {
-          debugPrint(
-            "⚠️ [ReminderUpdate] medicine update failed -> create fallback",
-          );
-          return createNewReminder(
+          debugPrint("⚠️ Medicine update FAILED → fallback CREATE");
+
+          final created = await createNewReminder(
             newCategory: normalizedCategory,
             dosage: dosage,
             context: context,
             preferredReminderId: reminderId,
             resolvedTime: null,
           );
+
+          debugPrint("🆕 Fallback Create Result: $created");
+          debugPrint("══════════════════════════════════════════");
+          return created;
         }
+
+        debugPrint("✅ Medicine update SUCCESS");
+        debugPrint("══════════════════════════════════════════");
         return true;
+
+      // 💧 WATER
       case 'water':
-        final timesPerDay = int.tryParse(
-          waterController.timesPerDayController.text.trim(),
-        );
+        debugPrint("💧 Handling WATER update...");
+
+        final rawInput = waterController.timesPerDayController.text.trim();
+        debugPrint("💧 Raw timesPerDay input: '$rawInput'");
+
+        final timesPerDay = int.tryParse(rawInput);
+        debugPrint("💧 Parsed timesPerDay: $timesPerDay");
+
+        if (timesPerDay == null) {
+          debugPrint(
+            "⚠️ Invalid timesPerDay input → may cause incorrect update",
+          );
+        }
+
         await waterController.updateWaterReminderFromLocal(
           context,
           reminderId.toString(),
           timesPerDay,
         );
-        debugPrint("✅ [ReminderUpdate] water updated");
+
+        debugPrint("✅ Water update COMPLETED");
+        debugPrint("══════════════════════════════════════════");
         return true;
+
+      // 🍽️ MEAL / 📅 EVENT
       case 'meal':
       case 'event':
-        final resolvedTime =
-            pickedTime.value ?? _resolveTimeForCategory(normalizedCategory);
+        debugPrint("🍽️/📅 Handling $normalizedCategory update...");
+
+        final picked = pickedTime.value;
+        final fallbackTime = _resolveTimeForCategory(normalizedCategory);
+
+        debugPrint("⏰ Picked Time: $picked");
+        debugPrint("⏰ Fallback Time: $fallbackTime");
+
+        final resolvedTime = picked ?? fallbackTime;
+
+        debugPrint("⏰ Final Resolved Time: $resolvedTime");
+
         if (resolvedTime == null) {
-          debugPrint(
-            "⚠️ [ReminderUpdate] no resolved time for $normalizedCategory",
-          );
+          debugPrint("❌ ERROR: No valid time available → aborting update");
+          debugPrint("══════════════════════════════════════════");
           return false;
         }
 
@@ -3219,12 +3532,15 @@ class ReminderController extends GetxController {
           category: normalizedCategory,
           timeOfDay: resolvedTime,
         );
-        debugPrint("✅ [ReminderUpdate] $normalizedCategory updated");
+
+        debugPrint("✅ $normalizedCategory update COMPLETED");
+        debugPrint("══════════════════════════════════════════");
         return true;
+
+      // ❌ DEFAULT
       default:
-        debugPrint(
-          "⚠️ [ReminderUpdate] unsupported same-category update: $normalizedCategory",
-        );
+        debugPrint("❌ Unsupported category: $normalizedCategory");
+        debugPrint("══════════════════════════════════════════");
         return false;
     }
   }
@@ -3241,47 +3557,78 @@ class ReminderController extends GetxController {
         resolvedTime ?? pickedTime.value ?? _resolveTimeForCategory(category);
 
     debugPrint("🆕 [ReminderUpdate] createNewReminder called");
-    debugPrint("   ↳ newCategory: $category");
+    debugPrint("   ↳ rawCategory: $newCategory");
+    debugPrint("   ↳ normalizedCategory: $category");
     debugPrint("   ↳ preferredReminderId: $preferredReminderId");
-    debugPrint("   ↳ creation path: $category");
+    debugPrint("   ↳ resolvedTime param: $resolvedTime");
+    debugPrint("   ↳ pickedTime.value: ${pickedTime.value}");
+    debugPrint("   ↳ finalTime used: $finalTime");
+    debugPrint("   ↳ dosage: $dosage");
 
     switch (category) {
       case 'medicine':
         final isInterval =
             medicineGetxController.medicineReminderOption.value ==
             Option.interval;
-        return isInterval
-            ? medicineGetxController.addMedicineIntervalAlarm(
-              context: context,
-              dosage: dosage,
-              reminderIdOverride: preferredReminderId,
-            )
-            : medicineGetxController.addMedicineAlarm(
-              context: context,
-              dosage: dosage,
-              reminderIdOverride: preferredReminderId,
-            );
+
+        debugPrint("💊 [ReminderUpdate] Medicine flow");
+        debugPrint("   ↳ isInterval: $isInterval");
+
+        bool result;
+
+        if (isInterval) {
+          debugPrint("   ↳ Calling addMedicineIntervalAlarm()");
+          result = await medicineGetxController.addMedicineIntervalAlarm(
+            context: context,
+            dosage: dosage,
+            reminderIdOverride: preferredReminderId,
+          );
+        } else {
+          debugPrint("   ↳ Calling addMedicineAlarm()");
+          result = await medicineGetxController.addMedicineAlarm(
+            context: context,
+            dosage: dosage,
+            reminderIdOverride: preferredReminderId,
+          );
+        }
+
+        debugPrint("   ↳ Medicine result: $result");
+        return result;
+
       case 'water':
-        return waterController.validateAndSaveWaterReminder(
+        debugPrint("💧 [ReminderUpdate] Water flow");
+        final result = await waterController.validateAndSaveWaterReminder(
           context,
           reminderIdOverride: preferredReminderId,
         );
+        debugPrint("   ↳ Water result: $result");
+        return result;
+
       case 'meal':
       case 'event':
+        debugPrint("🍽️📅 [ReminderUpdate] $category flow");
+
         if (finalTime == null) {
-          debugPrint("⚠️ [ReminderUpdate] missing time for $category create");
+          debugPrint("⚠️ [ReminderUpdate] Missing time for $category create");
           return false;
         }
+
+        debugPrint("   ↳ Calling addAlarm()");
+        debugPrint("   ↳ timeOfDay: $finalTime");
+
         await addAlarm(
           context,
           timeOfDay: finalTime,
           category: category,
           reminderIdOverride: preferredReminderId,
         );
+
+        debugPrint("   ↳ $category alarm created successfully");
         return true;
+
       default:
         debugPrint(
-          "⚠️ [ReminderUpdate] unsupported create category: $category",
+          "⚠️ [ReminderUpdate] Unsupported create category: $category",
         );
         return false;
     }
@@ -3347,12 +3694,11 @@ class ReminderController extends GetxController {
 
     for (var index = 0; index < loadedList.length; index++) {
       final alarm = loadedList[index].values.first;
-      if (
-          _matchesSingleAlarmReminderEntry(
-            alarm: alarm,
-            reminder: reminder,
-            candidateTimes: candidateTimes,
-          )) {
+      if (_matchesSingleAlarmReminderEntry(
+        alarm: alarm,
+        reminder: reminder,
+        candidateTimes: candidateTimes,
+      )) {
         indexesToDelete.add(index);
         alarmIdsToStop.add(alarm.id);
       }
@@ -3377,6 +3723,19 @@ class ReminderController extends GetxController {
       debugPrint("⏹️ [ReminderUpdate] stopping primary alarmId: $alarmId");
       await Alarm.stop(alarmId);
     }
+
+    // ✅ KEY FIX: cancel native AlarmManager entries AND purge from SharedPrefs.
+    // Alarm.stop() only touches the flutter_alarm package; without this the
+    // Kotlin-side AlarmManager entry remains armed and the alarm still fires.
+    if (alarmIdsToStop.isNotEmpty) {
+      debugPrint(
+        "🗑️ [ReminderUpdate] cancelling ${alarmIdsToStop.length} native alarms: $alarmIdsToStop",
+      );
+      await NativeAlarmBridge.cancelAlarms(
+        alarmIdsToStop.toList(growable: false),
+      );
+    }
+
     await _cleanupBeforeReminderAlarms(
       category: _normalizeCategory(reminder.category),
       reminder: reminder,
@@ -3495,7 +3854,7 @@ class ReminderController extends GetxController {
     for (final raw in times) {
       final parsed = DateTime.tryParse(raw.trim());
       if (parsed != null) {
-        results.add(parsed.isUtc ? parsed.toLocal() : parsed);
+        results.add(parsed.toLocal());
       }
     }
 
@@ -3663,12 +4022,25 @@ class ReminderController extends GetxController {
     for (final item in mealItems) {
       item.forEach((title, alarm) {
         final payloadData = _decodeAlarmPayload(alarm.payload);
+        final scheduleMetadata = _scheduleMetadataFromPayload(
+          payloadData,
+          category: 'meal',
+        ).copyWith(
+          alarmIds: [alarm.id],
+          lastResolutionStatus: ReminderResolutionStatus.scheduled,
+        );
         final reminderId = ReminderIdentity.reminderIdFromPayload(
           payloadData,
           fallbackId: alarm.id,
         );
-        final alarmTime = _alarmWallClockTime(alarm.dateTime);
-        final alarmDate = _alarmWallClockDate(alarm.dateTime);
+        final alarmTime = _alarmWallClockTime(
+          alarm.dateTime,
+          timezoneId: scheduleMetadata.timezoneId,
+        );
+        final alarmDate = _alarmWallClockDate(
+          alarm.dateTime,
+          timezoneId: scheduleMetadata.timezoneId,
+        );
         combined.add(
           reminder_payload.ReminderPayloadModel(
             id: reminderId,
@@ -3682,13 +4054,7 @@ class ReminderController extends GetxController {
               ),
             ),
             startDate: alarmDate,
-            scheduleMetadata: _scheduleMetadataFromPayload(
-              payloadData,
-              category: 'meal',
-            ).copyWith(
-              alarmIds: [alarm.id],
-              lastResolutionStatus: ReminderResolutionStatus.scheduled,
-            ),
+            scheduleMetadata: scheduleMetadata,
           ),
         );
       });
@@ -3699,11 +4065,21 @@ class ReminderController extends GetxController {
         reminder_payload.RemindBefore? remindBefore;
         String? startDate;
         final payloadData = _decodeAlarmPayload(alarm.payload);
+        final scheduleMetadata = _scheduleMetadataFromPayload(
+          payloadData,
+          category: 'event',
+        ).copyWith(
+          alarmIds: [alarm.id],
+          lastResolutionStatus: ReminderResolutionStatus.scheduled,
+        );
         final reminderId = ReminderIdentity.reminderIdFromPayload(
           payloadData,
           fallbackId: alarm.id,
         );
-        final alarmTime = _alarmWallClockTime(alarm.dateTime);
+        final alarmTime = _alarmWallClockTime(
+          alarm.dateTime,
+          timezoneId: scheduleMetadata.timezoneId,
+        );
 
         if (alarm.payload != null) {
           try {
@@ -3743,15 +4119,14 @@ class ReminderController extends GetxController {
               ),
             ),
             remindBefore: remindBefore,
-            startDate: startDate ?? _alarmWallClockDate(alarm.dateTime),
+            startDate:
+                startDate ??
+                _alarmWallClockDate(
+                  alarm.dateTime,
+                  timezoneId: scheduleMetadata.timezoneId,
+                ),
             notes: alarm.notificationSettings.body,
-            scheduleMetadata: _scheduleMetadataFromPayload(
-              payloadData,
-              category: 'event',
-            ).copyWith(
-              alarmIds: [alarm.id],
-              lastResolutionStatus: ReminderResolutionStatus.scheduled,
-            ),
+            scheduleMetadata: scheduleMetadata,
           ),
         );
       });
@@ -3821,8 +4196,9 @@ class ReminderController extends GetxController {
 
     medicineGetxController.medicineList.value = await medicineGetxController
         .loadMedicineReminderList("medicine_list");
+
     final index = medicineGetxController.medicineList.indexWhere(
-      (item) => item.id == reminderId,
+      (e) => e.id.toString() == reminderId.toString(),
     );
     if (index == -1) {
       return false;
@@ -3997,16 +4373,11 @@ class ReminderController extends GetxController {
         ...transaction.reminder.scheduleMetadata.alarmIds,
         ...transaction.reminder.scheduleMetadata.preAlarmIds,
       });
+      await stopReminderAlarmIds(obsoleteIds);
       unawaited(
-        updateReminder(transaction.reminder, context)
-            .then((_) async {
-              for (final alarmId in obsoleteIds) {
-                await Alarm.stop(alarmId);
-              }
-            })
-            .catchError((e) {
-              debugPrint('⚠️ Background medicine update API failed: $e');
-            }),
+        updateReminder(transaction.reminder, context).catchError((e) {
+          debugPrint('⚠️ Background medicine update API failed: $e');
+        }),
       );
 
       return true;

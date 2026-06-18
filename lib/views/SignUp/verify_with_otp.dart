@@ -4,22 +4,21 @@ import 'package:flutter/services.dart';
 import 'package:pinput/pinput.dart';
 import 'package:smart_auth/smart_auth.dart';
 
+import '../../Controllers/signupAndSignIn/forgot_password_controller.dart';
 import '../../Controllers/signupAndSignIn/otp_verification_controller.dart';
 import '../../Controllers/signupAndSignIn/sign_up_controller.dart';
 import '../../common/custom_snackbar.dart';
-import '../../common/loader.dart';
+import '../../common/global_variables.dart';
 import '../../consts/consts.dart';
 
 class VerifyWithOtpScreen extends StatefulWidget {
   final String emailOrPasswordText;
-  final String appBarText;
   final String responseOtp;
   final bool isForgotPasswordScreen;
 
   const VerifyWithOtpScreen({
     super.key,
     required this.emailOrPasswordText,
-    required this.appBarText,
     required this.responseOtp,
     required this.isForgotPasswordScreen,
   });
@@ -39,7 +38,16 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
     super.initState();
     debugPrint("emailOrPasswordText ${widget.emailOrPasswordText}");
 
-    otpController = Get.put(OTPVerificationController());
+    otpController =
+        Get.isRegistered<OTPVerificationController>()
+            ? Get.find<OTPVerificationController>()
+            : Get.put(
+              OTPVerificationController(
+                isForgotPasswordScreen: widget.isForgotPasswordScreen,
+              ),
+            );
+
+    otpController.isForgotPasswordScreen.value = widget.isForgotPasswordScreen;
     otpController.emailOrPasswordText.value = widget.emailOrPasswordText;
 
     _listenForSms();
@@ -60,7 +68,13 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
 
     if (!otpController.isVerifying.value &&
         code.trim() == widget.responseOtp.trim()) {
-      otpController.verifyOtp(code, widget.responseOtp, context);
+      otpController.verifyOtp(
+        code,
+        otpController.responseOtp.value.isNotEmpty
+            ? otpController.responseOtp.value
+            : widget.responseOtp,
+        context,
+      );
     }
   }
 
@@ -86,17 +100,20 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
       return;
     }
 
-    final success = otpController.verifyOtp(pin, widget.responseOtp, context);
+    final success = otpController.verifyOtp(
+      pin,
+      otpController.responseOtp.value.isNotEmpty
+          ? otpController.responseOtp.value
+          : widget.responseOtp,
+      context,
+    );
 
     setState(() => _isLoading = false);
+  }
 
-    if (!success) {
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'OTP Verification Failed',
-      );
-    }
+  void _handleBack() {
+    otpController.pinController.clear();
+    Get.back();
   }
 
   @override
@@ -138,103 +155,163 @@ class _VerifyWithOtpScreenState extends State<VerifyWithOtpScreen> {
       ),
     );
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.appBarText),
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 18),
-          onPressed: () => Get.back(),
+    final bool isEmail = widget.emailOrPasswordText.contains('@');
+
+    return WillPopScope(
+      onWillPop: () async {
+        _handleBack();
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text("Verify Account"),
+          centerTitle: true,
+          automaticallyImplyLeading: false,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios,
+                size: 24, color: isDarkMode ? white : black),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-        child: Column(
-          children: [
-            Image.asset(veriemail, height: 200),
-            const SizedBox(height: 30),
-            Text(
-              '${AppLocalizations.of(context)!.enter6DigitCodeText}\n${widget.emailOrPasswordText}',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 30),
-
-            Pinput(
-              length: 6,
-              controller: otpController.pinController,
-              defaultPinTheme: defaultPinTheme,
-              focusedPinTheme: focusedPinTheme,
-              submittedPinTheme: submittedPinTheme,
-              followingPinTheme: followingPinTheme,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              onCompleted: (pin) {
-                otpController.verifyOtp(pin, widget.responseOtp, context);
-              },
-            ),
-
-            const SizedBox(height: 20),
-
-            if (Platform.isAndroid)
-              Text(
-                'You may be prompted to allow one-tap OTP autofill.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: grey),
-              ),
-
-            const SizedBox(height: 20),
-
-            InkWell(
-              onTap: () async {
-                final result = await SignUpController().signUpUsingGmail(
-                  widget.emailOrPasswordText,
-                  context,
-                );
-
-                if (result != null && result is String) {
-                  otpController.responseOtp.value = result;
-                }
-              },
-              child: Text(
-                AppLocalizations.of(context)!.resendCode,
-                style: TextStyle(
-                  decoration: TextDecoration.underline,
-                  decorationColor: AppColors.primaryColor,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
-                  foreground:
-                      Paint()
-                        ..shader = AppColors.primaryGradient.createShader(
-                          const Rect.fromLTWH(0, 0, 200, 20),
-                        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            children: [
+              Container(
+                height: 200,
+                width: 200,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: circleBackground,
+                  boxShadow: [
+                    BoxShadow(
+                      color: shadowColor.withOpacity(0.15),
+                      blurRadius: 30,
+                      spreadRadius: 2,
+                    ),
+                  ],
                 ),
-              ),
-            ),
-
-            const SizedBox(height: 30),
-
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: ElevatedButton(
-                onPressed:
-                    otpController.isVerifying.value ? null : _onVerifyPressed,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  foregroundColor: Colors.white,
-                  shadowColor: Colors.transparent,
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                child: Center(
+                  child: Icon(
+                    isEmail
+                        ? Icons.email_rounded
+                        : Icons.phone_rounded,
+                    size: 120,
+                    color: iconColor,
                   ),
                 ),
-                child: _isLoading ? const Loader() : const Text('Verify'),
               ),
-            ),
-          ],
+              const SizedBox(height: 30),
+              Text(
+                '${AppLocalizations.of(context)!.enter6DigitCodeText}\n${widget.emailOrPasswordText}',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 30),
+
+              Pinput(
+                length: 6,
+                controller: otpController.pinController,
+                defaultPinTheme: defaultPinTheme,
+                focusedPinTheme: focusedPinTheme,
+                submittedPinTheme: submittedPinTheme,
+                followingPinTheme: followingPinTheme,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                onCompleted: (pin) {
+                  otpController.verifyOtp(
+                    pin,
+                    otpController.responseOtp.value.isNotEmpty
+                        ? otpController.responseOtp.value
+                        : widget.responseOtp,
+                    context,
+                  );
+                },
+              ),
+
+              const SizedBox(height: 20),
+
+              if (Platform.isAndroid)
+                Text(
+                  'You may be prompted to allow one-tap OTP autofill.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: grey),
+                ),
+
+              const SizedBox(height: 20),
+
+              InkWell(
+                onTap: () async {
+                  dynamic result;
+
+                  if (widget.isForgotPasswordScreen) {
+                    // ✅ Use forgot password controller for resend
+                    final forgotController = Get.find<ForgotPasswordController>();
+                    result =
+                        widget.emailOrPasswordText.contains('@')
+                            ? await forgotController.resetPasswordUsingGmail(
+                              widget.emailOrPasswordText,
+                              context,
+                            )
+                            : await forgotController.resetPasswordUsingPhone(
+                              widget.emailOrPasswordText,
+                              context,
+                            );
+                  } else {
+                    // ✅ Use signup controller for resend
+                    result = await SignUpController().signUpUsingGmail(
+                      widget.emailOrPasswordText,
+                      context,
+                    );
+                  }
+
+                  if (result != null && result is String) {
+                    otpController.responseOtp.value = result;
+                  }
+                },
+                child: Text(
+                  AppLocalizations.of(context)!.resendCode,
+                  style: TextStyle(
+                    decoration: TextDecoration.underline,
+                    decorationColor: AppColors.primaryColor,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                    foreground:
+                        Paint()
+                          ..shader = AppColors.primaryGradient.createShader(
+                            const Rect.fromLTWH(0, 0, 200, 20),
+                          ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 30),
+
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ElevatedButton(
+                  onPressed:
+                      otpController.isVerifying.value ? null : _onVerifyPressed,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: Colors.white,
+                    shadowColor: Colors.transparent,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: AppLoadingButtonChild(
+                    isLoading: _isLoading,
+                    loaderSize: 24,
+                    child: const Text('Verify'),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

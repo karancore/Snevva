@@ -509,7 +509,7 @@ class _ProfileSetupInitialState extends State<ProfileSetupInitial> {
                                       initialProfileController
                                           .selectedOccupation
                                           .value;
-                                  print(
+                                  debugPrint(
                                       "Selected Occupation: $occupationValue");
                                   if (occupationValue == "Occupation" ||
                                       occupationValue.isEmpty) {

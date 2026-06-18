@@ -44,8 +44,6 @@ class _AnimatedReminderBarState extends State<AnimatedReminderBar>
 
   @override
   Widget build(BuildContext context) {
-    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     if (!_showBar) return const SizedBox.shrink(); // 🔥 Hide widget
 
     return AnimatedBuilder(
@@ -59,10 +57,19 @@ class _AnimatedReminderBarState extends State<AnimatedReminderBar>
           ),
           child: Column(
             children: [
-              LinearProgressIndicator(
-                value: _controller.value,
-                backgroundColor: grey.withOpacity(0.1),
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(4),
+                ),
+                child: Stack(
+                  children: [
+                    Container(height: 4, color: grey.withOpacity(0.1)),
+                    FractionallySizedBox(
+                      widthFactor: _controller.value.clamp(0.0, 1.0).toDouble(),
+                      child: Container(height: 4, color: Colors.green),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 4),
               Row(
