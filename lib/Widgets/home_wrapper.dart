@@ -96,6 +96,8 @@ class _HomeWrapperState extends State<HomeWrapper> {
             _userMapWorker = null;
             _ensurePageInitialized(_selectedIndex);
             setState(() => _userMapReady = true);
+            // Trigger birthday check now that userMap is populated
+            _showBirthdayIfNeeded(map);
           }
         },
       );
@@ -108,24 +110,9 @@ class _HomeWrapperState extends State<HomeWrapper> {
       // if (_redirectToProfileSetupIfNeeded()) return;
       await _ensureStartupSequence();
 
-      // ── Birthday popup ────────────────────────────────────────────────
-      if (!_birthdayShown && mounted) {
-        _birthdayShown = true;
-        final today = DateTime.now();
-        debugPrint("2027 ${DateTime.now().year + 1}");
-        final lastShownKey =
-            'birthday_shown_${today.year}_${today.month}_${today.day}';
-        final prefs = await SharedPreferences.getInstance();
-        final alreadyShownToday = prefs.getBool(lastShownKey) ?? false;
-
-        if (!alreadyShownToday && mounted) {
-          await BirthdayPopupHelper.showIfBirthday(
-            context,
-            localStorageManager.userMap,
-          );
-          // Mark as shown so reloading the app mid-day doesn't repeat it
-          await prefs.setBool(lastShownKey, true);
-        }
+      // ── Birthday popup (cached session only; fresh login handled in worker) ─
+      if (_userMapReady && mounted) {
+        _showBirthdayIfNeeded(localStorageManager.userMap);
       }
       // ─────────────────────────────────────────────────────────────────
     });
@@ -140,6 +127,20 @@ class _HomeWrapperState extends State<HomeWrapper> {
   Future<void> _ensureStartupSequence() async {
     _sharedStartupTask ??= _startupSequence();
     await _sharedStartupTask;
+  }
+
+  Future<void> _showBirthdayIfNeeded(Map<String, dynamic> map) async {
+    if (_birthdayShown || !mounted) return;
+    _birthdayShown = true;
+    final today = DateTime.now();
+    final lastShownKey =
+        'birthday_shown_${today.year}_${today.month}_${today.day}';
+    final prefs = await SharedPreferences.getInstance();
+    final alreadyShownToday = prefs.getBool(lastShownKey) ?? false;
+    if (!alreadyShownToday && mounted) {
+      await BirthdayPopupHelper.showIfBirthday(context, map);
+      await prefs.setBool(lastShownKey, true);
+    }
   }
 
   bool _redirectToProfileSetupIfNeeded() {

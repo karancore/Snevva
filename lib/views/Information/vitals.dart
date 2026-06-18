@@ -34,6 +34,22 @@ class _BpmInputWidgetState extends State<BpmInputWidget> {
   final FocusNode _bpmFocusNode = FocusNode();
 
   @override
+  void initState() {
+    super.initState();
+    widget.bpmController.addListener(_syncFocusAvailability);
+    // handle the case where a value is already present when this widget mounts
+    _syncFocusAvailability();
+  }
+
+  void _syncFocusAvailability() {
+    final hasValue = widget.bpmController.text.trim().isNotEmpty;
+    _bpmFocusNode.canRequestFocus = !hasValue;
+    if (hasValue && _bpmFocusNode.hasFocus) {
+      _bpmFocusNode.unfocus();
+    }
+  }
+
+  @override
   void dispose() {
     _bpmFocusNode.dispose();
     super.dispose();

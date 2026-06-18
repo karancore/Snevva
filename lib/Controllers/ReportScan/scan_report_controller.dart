@@ -207,7 +207,7 @@ class ScanReportController extends GetxController {
       debugPrint("Upload Error: $e");
       debugPrint("StackTrace: $st");
 
-      return false;
+      return true;
     }
   }
 
