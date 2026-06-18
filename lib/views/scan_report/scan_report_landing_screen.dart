@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:snevva/views/scan_report/report_details_screen.dart';
 import 'package:snevva/views/scan_report/scan_report_screen.dart';
@@ -69,13 +67,73 @@ class ScanReportLandingScreen extends StatelessWidget {
                       itemCount: history.length,
                       itemBuilder: (context, index) {
                         final item = history[index];
-                        return _ReportCard(
-                          item: item,
-                          isDark: isDark,
-                          onTap: () => Get.to(
-                            () => ReportDetailsScreen.fromHistory(
-                              content: item.content,
-                              title: item.title,
+                        return Dismissible(
+                          key: Key(item.id),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 20),
+                            margin: const EdgeInsets.only(bottom: 14),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent.shade400,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Delete',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Icon(
+                                  Icons.delete_outline,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ],
+                            ),
+                          ),
+                          onDismissed: (direction) async {
+                            final deletedItem = item;
+                            final originalIndex = index;
+                            await controller.deleteHistoryEntry(item.id);
+
+                            if (context.mounted) {
+                              final name = (deletedItem.patientName != null &&
+                                  deletedItem.patientName!.isNotEmpty)
+                                  ? deletedItem.patientName!
+                                  : deletedItem.title;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Report "$name" deleted'),
+                                  duration: const Duration(seconds: 4),
+                                  action: SnackBarAction(
+                                    label: 'Undo',
+                                    textColor: Colors.amber,
+                                    onPressed: () async {
+                                      await controller.insertHistoryEntry(
+                                          originalIndex, deletedItem);
+                                    },
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          child: _ReportCard(
+                            item: item,
+                            isDark: isDark,
+                            onTap: () =>
+                                Get.to(
+                                      () =>
+                                      ReportDetailsScreen.fromHistory(
+                                        content: item.content,
+                                        title: item.title,
+                                      ),
                             ),
                           ),
                         );
@@ -223,7 +281,17 @@ class _ReportCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            item.title,
+                            (item.patientName != null &&
+                                item.patientName!.isNotEmpty)
+                                ? '${item.patientName}'
+                                '${item.gender != null &&
+                                item.gender!.isNotEmpty
+                                ? ' • ${item.gender}'
+                                : ''}'
+                                '${item.ageRange != null &&
+                                item.ageRange!.isNotEmpty ? ' • ${item
+                                .ageRange}y' : ''}'
+                                : item.title,
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 15,

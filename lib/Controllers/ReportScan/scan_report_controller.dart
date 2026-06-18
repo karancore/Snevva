@@ -104,27 +104,25 @@ class ScanReportController extends GetxController {
     return base64Encode(bytes);
   }
 
-
-  int calculateAge({
-    required int day,
-    required int month,
-    required int year,
-  }) {
+  int calculateAge({required int day, required int month, required int year}) {
     final today = DateTime.now();
 
     int age = today.year - year;
 
-    if (today.month < month ||
-        (today.month == month &&
-            today.day < day)) {
+    if (today.month < month || (today.month == month && today.day < day)) {
       age--;
     }
 
     return age;
   }
 
-  Future<bool> sendReportToServer(
-      {required String ? pdfPath, required bool isOwnPdf, required String ? selectedGender, required TextEditingController ageController}) async {
+  Future<bool> sendReportToServer({
+    required String? pdfPath,
+    required bool isOwnPdf,
+    required String? selectedGender,
+    required TextEditingController ageController,
+    required TextEditingController nameController,
+  }) async {
     if (pdfPath == null) return false;
 
     try {
@@ -136,37 +134,25 @@ class ScanReportController extends GetxController {
 
       final fileName = pdfPath!.split('/').last;
 
-      final mimeType =
-          lookupMimeType(pdfPath!) ?? 'application/pdf';
+      final mimeType = lookupMimeType(pdfPath!) ?? 'application/pdf';
 
-      String patientCode = await Get
-          .find<LocalStorageManager>()
-          .userGoalDataMap['PatientCode'];
-      String cachedGender = await Get
-          .find<LocalStorageManager>()
-          .userMap['Gender'];
-      final userInfo =
-          Get
-              .find<LocalStorageManager>()
-              .userMap;
+      String patientCode =
+          await Get.find<LocalStorageManager>().userGoalDataMap['PatientCode'];
+      String cachedGender =
+          await Get.find<LocalStorageManager>().userMap['Gender'];
+      String cachedName = await Get.find<LocalStorageManager>().userMap['Name'];
 
-      final int day =
-      userInfo['DayOfBirth'];
+      final userInfo = Get.find<LocalStorageManager>().userMap;
 
-      final int month =
-      userInfo['MonthOfBirth'];
+      final int day = userInfo['DayOfBirth'];
 
-      final int year =
-      userInfo['YearOfBirth'];
+      final int month = userInfo['MonthOfBirth'];
 
-      final int cachedAge = calculateAge(
-        day: day,
-        month: month,
-        year: year,
-      );
+      final int year = userInfo['YearOfBirth'];
+
+      final int cachedAge = calculateAge(day: day, month: month, year: year);
 
       debugPrint("Cached age is $cachedAge");
-
 
       // Payload
       final Map<String, dynamic> payload = {
@@ -181,15 +167,11 @@ class ScanReportController extends GetxController {
         "isYourReport": isOwnPdf,
 
         // Required only when report is NOT user's
-        "ageRange":
-        !isOwnPdf
-            ? ageController.text.trim()
-            : cachedAge,
+        "name": !isOwnPdf ? nameController.text.trim() : cachedName,
 
-        "gender":
-        !isOwnPdf
-            ? selectedGender
-            : cachedGender,
+        "ageRange": !isOwnPdf ? ageController.text.trim() : cachedAge,
+
+        "gender": !isOwnPdf ? selectedGender : cachedGender,
       };
 
       debugPrint("Payload: $payload");
@@ -211,29 +193,31 @@ class ScanReportController extends GetxController {
     }
   }
 
-
   Future<void> addToHistory({
     required String title,
     required String content,
+    String? patientName,
+    String? gender,
+    String? ageRange,
   }) async {
     final entry = ScanReportHistory(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       title: title,
       dateTime: DateTime.now(),
       content: content,
+      patientName: patientName,
+      gender: gender,
+      ageRange: ageRange,
     );
     reportHistory.insert(0, entry);
     await _saveHistory();
   }
-
   Future<void> loadHistory() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getStringList(_historyPrefKey) ?? [];
       reportHistory.value =
-          raw
-              .map((e) => ScanReportHistory.fromJson(jsonDecode(e)))
-              .toList();
+          raw.map((e) => ScanReportHistory.fromJson(jsonDecode(e))).toList();
     } catch (e) {
       log("Load history error: $e");
     }
@@ -249,10 +233,26 @@ class ScanReportController extends GetxController {
     }
   }
 
+  Future<void> deleteHistoryEntry(String id) async {
+    reportHistory.removeWhere((e) => e.id == id);
+    await _saveHistory();
+  }
+
+  Future<void> insertHistoryEntry(int index, ScanReportHistory entry) async {
+    if (index >= 0 && index <= reportHistory.length) {
+      reportHistory.insert(index, entry);
+      await _saveHistory();
+    }
+  }
+
   Future<void> downloadReport(ScanReportHistory report) async {
     await Share.share(
       '${report.title}\n\n${report.content}',
       subject: report.title,
     );
+  }
+
+  Future<void> shareReportPdf(File file, String title) async {
+    await Share.shareXFiles([XFile(file.path)], subject: title);
   }
 }

@@ -123,5 +123,9 @@
     <key>NSHealthUpdateUsageDescription</key>
     <string>We need access to your health data to track your daily steps.</string>
 
+    <key>UIFileSharingEnabled</key>
+    <true />
+    <key>LSSupportsOpeningDocumentsInPlace</key>
+    <true />
 </dict>
 </plist>

@@ -3,156 +3,24 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:snevva/views/scan_report/scan_report_landing_screen.dart';
 
 import '../../Controllers/ReportScan/scan_report_controller.dart';
+import '../../Controllers/local_storage_manager.dart';
 import '../../consts/colors.dart';
+import '../../models/health_report.dart';
+import '../../services/report_pdf_generator.dart';
 
 // ─────────────────────────────────────────────
 // DUMMY DATA — replace with real API call later
 // ─────────────────────────────────────────────
 
-const String _dummy = "{\"overall_health_score\":84,\"overall_status\":\"Good\",\"doctor_consultation_recommended\":true,\"urgent_medical_review_needed\":false,\"key_findings\":[\"Your Iron is lower than normal (31.00 \\u00B5g/dL). Low iron levels may indicate iron deficiency.\",\"Your Transferrin Saturation is lower than normal (9.14 %). Low transferrin saturation may indicate iron deficiency.\",\"Your RDW is higher than normal (15.30 %). Elevated RDW may indicate variability in red blood cell size.\",\"Your Lymphocytes is lower than normal (6.40 %). Low lymphocyte count may indicate immune issues.\",\"Your Alkaline Phosphatase is higher than normal (129.00 U/L). Slightly elevated alkaline phosphatase may indicate liver or bone issues.\",\"Your Bilirubin Direct is higher than normal (0.33 mg/dL). Slightly elevated direct bilirubin may indicate liver issues.\"],\"parameters\":[{\"test_name\":\"Creatinine\",\"value\":\"1.10\",\"unit\":\"mg/dL\",\"reference_range\":\"0.70 - 1.30\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal kidney function.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"GFR Estimated\",\"value\":\"86\",\"unit\":\"mL/min/1.73m2\",\"reference_range\":\"\\u003E59\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal kidney filtration rate.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Urea\",\"value\":\"29.00\",\"unit\":\"mg/dL\",\"reference_range\":\"13.00 - 43.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal urea levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Uric Acid\",\"value\":\"6.20\",\"unit\":\"mg/dL\",\"reference_range\":\"3.50 - 7.20\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal uric acid levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"AST (SGOT)\",\"value\":\"22.0\",\"unit\":\"U/L\",\"reference_range\":\"15.00 - 40.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal liver enzyme levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"ALT (SGPT)\",\"value\":\"25.0\",\"unit\":\"U/L\",\"reference_range\":\"10.00 - 49.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal liver enzyme levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"AST:ALT Ratio\",\"value\":\"0.88\",\"unit\":\"\",\"reference_range\":\"\\u003C1.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal liver function.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"GGTP\",\"value\":\"24.0\",\"unit\":\"U/L\",\"reference_range\":\"0 - 73\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal liver function.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Alkaline Phosphatase\",\"value\":\"129.00\",\"unit\":\"U/L\",\"reference_range\":\"30.00 - 120.00\",\"status\":\"Above Average\",\"severity_score\":2,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Slightly elevated alkaline phosphatase may indicate liver or bone issues.\",\"recommended_actions\":[\"Consider further evaluation of liver function.\",\"Monitor for symptoms of liver disease.\"],\"diet_recommendations\":[\"Eat balanced meals with adequate protein and vegetables\",\"Avoid processed foods and excess salt/sugar\",\"Stay hydrated \\u2014 8-10 glasses water daily\",\"Consult doctor for specific dietary guidance\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Bilirubin Total\",\"value\":\"0.99\",\"unit\":\"mg/dL\",\"reference_range\":\"0.30 - 1.20\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal bilirubin levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Bilirubin Direct\",\"value\":\"0.33\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C0.3\",\"status\":\"Above Average\",\"severity_score\":2,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Slightly elevated direct bilirubin may indicate liver issues.\",\"recommended_actions\":[\"Consider further evaluation of liver function.\",\"Monitor for symptoms of liver disease.\"],\"diet_recommendations\":[\"Eat balanced meals with adequate protein and vegetables\",\"Avoid processed foods and excess salt/sugar\",\"Stay hydrated \\u2014 8-10 glasses water daily\",\"Consult doctor for specific dietary guidance\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Bilirubin Indirect\",\"value\":\"0.66\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C1.10\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal indirect bilirubin levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Total Protein\",\"value\":\"7.00\",\"unit\":\"g/dL\",\"reference_range\":\"5.70 - 8.20\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal protein levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Albumin\",\"value\":\"4.57\",\"unit\":\"g/dL\",\"reference_range\":\"3.20 - 4.80\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal albumin levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Globulin\",\"value\":\"2.43\",\"unit\":\"g/dL\",\"reference_range\":\"2.0 - 3.5\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal globulin levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Calcium, Total\",\"value\":\"9.30\",\"unit\":\"mg/dL\",\"reference_range\":\"8.70 - 10.40\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal calcium levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Phosphorus\",\"value\":\"2.80\",\"unit\":\"mg/dL\",\"reference_range\":\"2.40 - 5.10\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal phosphorus levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Sodium\",\"value\":\"140.00\",\"unit\":\"mEq/L\",\"reference_range\":\"136.00 - 145.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal sodium levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Potassium\",\"value\":\"4.53\",\"unit\":\"mEq/L\",\"reference_range\":\"3.50 - 5.10\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal potassium levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Chloride\",\"value\":\"104.00\",\"unit\":\"mEq/L\",\"reference_range\":\"98.00 - 107.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal chloride levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Cholesterol, Total\",\"value\":\"158.00\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C200.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal total cholesterol levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Triglycerides\",\"value\":\"102.00\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C150.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal triglyceride levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"HDL Cholesterol\",\"value\":\"45.30\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003E40.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal HDL cholesterol levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"LDL Cholesterol, Calculated\",\"value\":\"92.30\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C100.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal LDL cholesterol levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"VLDL Cholesterol,Calculated\",\"value\":\"20.40\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C30.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal VLDL cholesterol levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Non-HDL Cholesterol\",\"value\":\"113\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C130\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal non-HDL cholesterol levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"TSH\",\"value\":\"0.87\",\"unit\":\"\\u00B5IU/mL\",\"reference_range\":\"0.550 - 4.780\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal thyroid function.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"T3, Total\",\"value\":\"1.56\",\"unit\":\"ng/mL\",\"reference_range\":\"0.60 - 1.81\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal T3 levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"T4, Total\",\"value\":\"8.30\",\"unit\":\"\\u00B5g/dL\",\"reference_range\":\"4.50 - 11.60\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal T4 levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Amylase\",\"value\":\"125.00\",\"unit\":\"U/L\",\"reference_range\":\"30.00 - 118.00\",\"status\":\"Above Average\",\"severity_score\":2,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Elevated amylase may indicate pancreatic issues.\",\"recommended_actions\":[\"Consider further evaluation of pancreatic function.\"],\"diet_recommendations\":[\"Eat balanced meals with adequate protein and vegetables\",\"Avoid processed foods and excess salt/sugar\",\"Stay hydrated \\u2014 8-10 glasses water daily\",\"Consult doctor for specific dietary guidance\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Iron\",\"value\":\"31.00\",\"unit\":\"\\u00B5g/dL\",\"reference_range\":\"65.00 - 175.00\",\"status\":\"Below Average\",\"severity_score\":4,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Low iron levels may indicate iron deficiency.\",\"recommended_actions\":[\"Consider iron supplementation.\",\"Evaluate dietary intake of iron-rich foods.\"],\"diet_recommendations\":[\"Include more red meat, beans, and leafy greens.\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Total Iron Binding Capacity (TIBC)\",\"value\":\"339.17\",\"unit\":\"\\u00B5g/dL\",\"reference_range\":\"250 - 425\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal iron binding capacity.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Transferrin Saturation\",\"value\":\"9.14\",\"unit\":\"%\",\"reference_range\":\"20.00 - 50.00\",\"status\":\"Below Average\",\"severity_score\":4,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Low transferrin saturation may indicate iron deficiency.\",\"recommended_actions\":[\"Consider iron supplementation.\",\"Evaluate dietary intake of iron-rich foods.\"],\"diet_recommendations\":[\"Include more red meat, beans, and leafy greens.\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Hemoglobin\",\"value\":\"13.10\",\"unit\":\"g/dL\",\"reference_range\":\"13.00 - 17.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal hemoglobin levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Hematocrit\",\"value\":\"40.30\",\"unit\":\"%\",\"reference_range\":\"40.00 - 50.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal hematocrit levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"RBC Count\",\"value\":\"4.83\",\"unit\":\"mill/mm3\",\"reference_range\":\"4.50 - 5.50\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal red blood cell count.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"MCV\",\"value\":\"83.60\",\"unit\":\"fL\",\"reference_range\":\"83.00 - 101.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal mean corpuscular volume.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"MCH\",\"value\":\"27.10\",\"unit\":\"pg\",\"reference_range\":\"27.00 - 32.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal mean corpuscular hemoglobin.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"MCHC\",\"value\":\"32.50\",\"unit\":\"g/dL\",\"reference_range\":\"31.50 - 34.50\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal mean corpuscular hemoglobin concentration.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"RDW\",\"value\":\"15.30\",\"unit\":\"%\",\"reference_range\":\"11.60 - 14.00\",\"status\":\"Above Average\",\"severity_score\":4,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Elevated RDW may indicate variability in red blood cell size.\",\"recommended_actions\":[\"Consider further evaluation for anemia.\"],\"diet_recommendations\":[\"Eat balanced meals with adequate protein and vegetables\",\"Avoid processed foods and excess salt/sugar\",\"Stay hydrated \\u2014 8-10 glasses water daily\",\"Consult doctor for specific dietary guidance\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Total Leukocyte Count\",\"value\":\"8.40\",\"unit\":\"thou/mm3\",\"reference_range\":\"4.00 - 10.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal white blood cell count.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Segmented Neutrophils\",\"value\":\"86.40\",\"unit\":\"%\",\"reference_range\":\"40.00 - 80.00\",\"status\":\"Above Average\",\"severity_score\":2,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Elevated neutrophils may indicate infection or inflammation.\",\"recommended_actions\":[\"Consider further evaluation for infection.\"],\"diet_recommendations\":[\"Eat immunity-boosting foods: citrus fruits, garlic, ginger\",\"Include zinc-rich foods: nuts, seeds, legumes\",\"Stay well hydrated\",\"Avoid processed and junk food\"],\"exercise_recommendations\":[\"Light exercise only \\u2014 avoid overexertion\",\"Walking 20-30 min daily is sufficient\",\"Avoid crowded places if immunity is low\",\"Rest and sleep 7-8 hours\"]},{\"test_name\":\"Lymphocytes\",\"value\":\"6.40\",\"unit\":\"%\",\"reference_range\":\"20.00 - 40.00\",\"status\":\"Below Average\",\"severity_score\":4,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Low lymphocyte count may indicate immune issues.\",\"recommended_actions\":[\"Consider further evaluation of immune function.\"],\"diet_recommendations\":[\"Eat immunity-boosting foods: citrus fruits, garlic, ginger\",\"Include zinc-rich foods: nuts, seeds, legumes\",\"Stay well hydrated\",\"Avoid processed and junk food\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Monocytes\",\"value\":\"6.60\",\"unit\":\"%\",\"reference_range\":\"2.00 - 10.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal monocyte count.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Eosinophils\",\"value\":\"0.30\",\"unit\":\"%\",\"reference_range\":\"1.00 - 6.00\",\"status\":\"Below Average\",\"severity_score\":2,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Eosinophils is lower than the normal range and may need medical attention.\",\"recommended_actions\":[\"Consult your doctor about this result\",\"Recheck Eosinophils in 4-6 weeks\",\"Follow doctor\\u0027s prescribed treatment\"],\"diet_recommendations\":[\"Eat balanced meals with adequate protein and vegetables\",\"Avoid processed foods and excess salt/sugar\",\"Stay hydrated \\u2014 8-10 glasses water daily\",\"Consult doctor for specific dietary guidance\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Platelet Count\",\"value\":\"197\",\"unit\":\"thou/mm3\",\"reference_range\":\"150.00 - 410.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal platelet count.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Mean Platelet Volume\",\"value\":\"12.4\",\"unit\":\"fL\",\"reference_range\":\"6.5 - 12.0\",\"status\":\"Above Average\",\"severity_score\":2,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Slightly elevated mean platelet volume may indicate platelet activation.\",\"recommended_actions\":[\"Consider further evaluation of platelet function.\"],\"diet_recommendations\":[\"Include pomegranate, beetroot, spinach in diet\",\"Papaya and papaya leaf known to support platelets\",\"Avoid alcohol completely\",\"Stay hydrated\"],\"exercise_recommendations\":[\"Avoid contact sports or activities with injury risk\",\"Light walking is fine\",\"No heavy lifting or strenuous activity\"]},{\"test_name\":\"E.S.R.\",\"value\":\"11\",\"unit\":\"mm/hr\",\"reference_range\":\"0 - 15\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal erythrocyte sedimentation rate.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"PSA, TOTAL\",\"value\":\"0.200\",\"unit\":\"ng/mL\",\"reference_range\":\"\\u003C4.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal prostate-specific antigen levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"A : G Ratio\",\"value\":\"1.88\",\"unit\":\"Ratio\",\"reference_range\":\"0.90 - 2.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal A/G ratio indicates balanced protein levels\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Vitamin-D 25 Hydroxy\",\"value\":\"94.88\",\"unit\":\"nmol/L\",\"reference_range\":\"75.00 - 250.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Vitamin D is essential for bone health.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]}],\"top_concerns\":[{\"rank\":1,\"parameter\":\"HbA1c\",\"message\":\"At risk for Diabetes (Prediabetes)\",\"hex_code\":\"#EF4444\"},{\"rank\":2,\"parameter\":\"C-REACTIVE PROTEIN HIGH SENSITIVITY\",\"message\":\"Persistent elevation may indicate inflammation\",\"hex_code\":\"#EF4444\"},{\"rank\":3,\"parameter\":\"Iron\",\"message\":\"Low iron levels may indicate deficiency\",\"hex_code\":\"#EF4444\"},{\"rank\":4,\"parameter\":\"Transferrin Saturation\",\"message\":\"Low transferrin saturation may indicate deficiency\",\"hex_code\":\"#EF4444\"},{\"rank\":5,\"parameter\":\"Segmented Neutrophils\",\"message\":\"Elevated neutrophils may indicate infection\",\"hex_code\":\"#EF4444\"},{\"rank\":6,\"parameter\":\"Mean Platelet Volume\",\"message\":\"Slightly elevated may indicate activation\",\"hex_code\":\"#EF4444\"}],\"overall_diet_plan\":[\"Include more iron-rich foods such as red meat, beans, and leafy greens.\"],\"overall_exercise_plan\":[\"Engage in regular physical activity to maintain healthy blood sugar levels.\"],\"recommendations\":[],\"patient_summary\":\"The patient has normal kidney and liver function tests, but shows elevated HbA1c indicating prediabetes and high sensitivity CRP suggesting inflammation.\",\"ai_disclaimer\":\"This is AI-generated wellness guidance only. It is not a medical diagnosis. Always consult a qualified doctor before making health decisions.\",\"merge_meta\":{\"source\":\"KB\\u002BAI\",\"total_params\":55,\"ai_params\":50,\"kb_params\":5,\"merged_at\":\"2026-06-16T06:37:37.1367360Z\"}}"
-;
-
-// ─────────────────────────────────────────────
-// DATA MODELS
-// ─────────────────────────────────────────────
-
-class TopConcern {
-  final int rank;
-  final String parameter;
-  final String message;
-  final String hexCode;
-
-  TopConcern.fromJson(Map<String, dynamic> j)
-      : rank = j['rank'] ?? 0,
-        parameter = j['parameter'] ?? '',
-        message = j['message'] ?? '',
-        hexCode = j['hex_code'] ?? '#EF4444';
-
-  Color get color {
-    try {
-      final hex = hexCode.replaceAll('#', '');
-      return Color(int.parse('FF$hex', radix: 16));
-    } catch (_) {
-      return Colors.red;
-    }
-  }
-}
-
-class MergeMeta {
-  final String source;
-  final int totalParams;
-  final int aiParams;
-  final int kbParams;
-  final String mergedAt;
-
-  MergeMeta.fromJson(Map<String, dynamic> j)
-      : source = j['source'] ?? '',
-        totalParams = j['total_params'] ?? 0,
-        aiParams = j['ai_params'] ?? 0,
-        kbParams = j['kb_params'] ?? 0,
-        mergedAt = j['merged_at'] ?? '';
-
-  /// Formats ISO-8601 string to a readable date, gracefully.
-  String get formattedDate {
-    try {
-      final dt = DateTime.parse(mergedAt).toLocal();
-      final dd = dt.day.toString().padLeft(2, '0');
-      final mm = dt.month.toString().padLeft(2, '0');
-      final yyyy = dt.year;
-      final hh = dt.hour.toString().padLeft(2, '0');
-      final min = dt.minute.toString().padLeft(2, '0');
-      return '$dd/$mm/$yyyy  $hh:$min';
-    } catch (_) {
-      return mergedAt;
-    }
-  }
-}
-
-class ReportParameter {
-  final String testName;
-  final String value;
-  final String unit;
-  final String referenceRange;
-  final String status;
-  final int severityScore;
-  final String hexCode;
-  final String clinicalMeaning;
-  final List<String> possibleCauses;
-  final List<String> recommendedActions;
-  final List<String> dietRecommendations;
-  final List<String> exerciseRecommendations;
-
-  ReportParameter.fromJson(Map<String, dynamic> j)
-      : testName = j['test_name'] ?? '',
-        value = j['value'] ?? '',
-        unit = j['unit'] ?? '',
-        referenceRange = j['reference_range'] ?? '',
-        status = j['status'] ?? '',
-        severityScore = j['severity_score'] ?? 0,
-        hexCode = j['hex_code'] ?? '#22C55E',
-        clinicalMeaning = j['clinical_meaning'] ?? '',
-        possibleCauses = List<String>.from(j['possible_causes'] ?? []),
-        recommendedActions =
-        List<String>.from(j['recommended_actions'] ?? []),
-        dietRecommendations =
-        List<String>.from(j['diet_recommendations'] ?? []),
-        exerciseRecommendations =
-        List<String>.from(j['exercise_recommendations'] ?? []);
-
-  Color get statusColor {
-    try {
-      final hex = hexCode.replaceAll('#', '');
-      return Color(int.parse('FF$hex', radix: 16));
-    } catch (_) {
-      return Colors.grey;
-    }
-  }
-}
-
-class HealthReport {
-  final int overallHealthScore;
-  final String overallStatus;
-  final bool doctorConsultationRecommended;
-  final bool emergencyAttentionNeeded;
-  final List<String> keyFindings;
-  final List<ReportParameter> parameters;
-  final List<TopConcern> topConcerns;
-  final List<String> overallDietPlan;
-  final List<String> overallExercisePlan;
-  final List<String> recommendations;
-  final String patientSummary;
-  final String aiDisclaimer;
-  final MergeMeta? mergeMeta;
-
-  HealthReport.fromJson(Map<String, dynamic> j)
-      : overallHealthScore = j['overall_health_score'] ?? 0,
-        overallStatus = j['overall_status'] ?? '',
-        doctorConsultationRecommended =
-            j['doctor_consultation_recommended'] ?? false,
-        emergencyAttentionNeeded =
-            j['emergency_attention_needed'] ??
-                j['urgent_medical_review_needed'] ?? false,
-        keyFindings = List<String>.from(j['key_findings'] ?? []),
-        parameters = (j['parameters'] as List? ?? [])
-            .map((e) => ReportParameter.fromJson(e))
-            .toList(),
-        topConcerns = (j['top_concerns'] as List? ?? [])
-            .map((e) => TopConcern.fromJson(e))
-            .toList(),
-        overallDietPlan =
-        List<String>.from(j['overall_diet_plan'] ?? []),
-        overallExercisePlan =
-        List<String>.from(j['overall_exercise_plan'] ?? []),
-        recommendations =
-        List<String>.from(j['recommendations'] ?? []),
-        patientSummary = j['patient_summary'] ?? '',
-        aiDisclaimer = j['ai_disclaimer'] ?? '',
-        mergeMeta = j['merge_meta'] != null
-            ? MergeMeta.fromJson(j['merge_meta'])
-            : null;
-}
+const String _dummy =
+    "{\"overall_health_score\":84,\"overall_status\":\"Good\",\"doctor_consultation_recommended\":true,\"urgent_medical_review_needed\":false,\"key_findings\":[\"Your Iron is lower than normal (31.00 \\u00B5g/dL). Low iron levels may indicate iron deficiency.\",\"Your Transferrin Saturation is lower than normal (9.14 %). Low transferrin saturation may indicate iron deficiency.\",\"Your RDW is higher than normal (15.30 %). Elevated RDW may indicate variability in red blood cell size.\",\"Your Lymphocytes is lower than normal (6.40 %). Low lymphocyte count may indicate immune issues.\",\"Your Alkaline Phosphatase is higher than normal (129.00 U/L). Slightly elevated alkaline phosphatase may indicate liver or bone issues.\",\"Your Bilirubin Direct is higher than normal (0.33 mg/dL). Slightly elevated direct bilirubin may indicate liver issues.\"],\"parameters\":[{\"test_name\":\"Creatinine\",\"value\":\"1.10\",\"unit\":\"mg/dL\",\"reference_range\":\"0.70 - 1.30\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal kidney function.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"GFR Estimated\",\"value\":\"86\",\"unit\":\"mL/min/1.73m2\",\"reference_range\":\"\\u003E59\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal kidney filtration rate.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Urea\",\"value\":\"29.00\",\"unit\":\"mg/dL\",\"reference_range\":\"13.00 - 43.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal urea levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Uric Acid\",\"value\":\"6.20\",\"unit\":\"mg/dL\",\"reference_range\":\"3.50 - 7.20\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal uric acid levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"AST (SGOT)\",\"value\":\"22.0\",\"unit\":\"U/L\",\"reference_range\":\"15.00 - 40.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal liver enzyme levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"ALT (SGPT)\",\"value\":\"25.0\",\"unit\":\"U/L\",\"reference_range\":\"10.00 - 49.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal liver enzyme levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"AST:ALT Ratio\",\"value\":\"0.88\",\"unit\":\"\",\"reference_range\":\"\\u003C1.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal liver function.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"GGTP\",\"value\":\"24.0\",\"unit\":\"U/L\",\"reference_range\":\"0 - 73\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal liver function.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Alkaline Phosphatase\",\"value\":\"129.00\",\"unit\":\"U/L\",\"reference_range\":\"30.00 - 120.00\",\"status\":\"Above Average\",\"severity_score\":2,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Slightly elevated alkaline phosphatase may indicate liver or bone issues.\",\"recommended_actions\":[\"Consider further evaluation of liver function.\",\"Monitor for symptoms of liver disease.\"],\"diet_recommendations\":[\"Eat balanced meals with adequate protein and vegetables\",\"Avoid processed foods and excess salt/sugar\",\"Stay hydrated \\u2014 8-10 glasses water daily\",\"Consult doctor for specific dietary guidance\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Bilirubin Total\",\"value\":\"0.99\",\"unit\":\"mg/dL\",\"reference_range\":\"0.30 - 1.20\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal bilirubin levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Bilirubin Direct\",\"value\":\"0.33\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C0.3\",\"status\":\"Above Average\",\"severity_score\":2,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Slightly elevated direct bilirubin may indicate liver issues.\",\"recommended_actions\":[\"Consider further evaluation of liver function.\",\"Monitor for symptoms of liver disease.\"],\"diet_recommendations\":[\"Eat balanced meals with adequate protein and vegetables\",\"Avoid processed foods and excess salt/sugar\",\"Stay hydrated \\u2014 8-10 glasses water daily\",\"Consult doctor for specific dietary guidance\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Bilirubin Indirect\",\"value\":\"0.66\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C1.10\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal indirect bilirubin levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Total Protein\",\"value\":\"7.00\",\"unit\":\"g/dL\",\"reference_range\":\"5.70 - 8.20\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal protein levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Albumin\",\"value\":\"4.57\",\"unit\":\"g/dL\",\"reference_range\":\"3.20 - 4.80\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal albumin levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Globulin\",\"value\":\"2.43\",\"unit\":\"g/dL\",\"reference_range\":\"2.0 - 3.5\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal globulin levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Calcium, Total\",\"value\":\"9.30\",\"unit\":\"mg/dL\",\"reference_range\":\"8.70 - 10.40\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal calcium levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Phosphorus\",\"value\":\"2.80\",\"unit\":\"mg/dL\",\"reference_range\":\"2.40 - 5.10\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal phosphorus levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Sodium\",\"value\":\"140.00\",\"unit\":\"mEq/L\",\"reference_range\":\"136.00 - 145.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal sodium levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Potassium\",\"value\":\"4.53\",\"unit\":\"mEq/L\",\"reference_range\":\"3.50 - 5.10\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal potassium levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Chloride\",\"value\":\"104.00\",\"unit\":\"mEq/L\",\"reference_range\":\"98.00 - 107.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal chloride levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Cholesterol, Total\",\"value\":\"158.00\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C200.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal total cholesterol levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Triglycerides\",\"value\":\"102.00\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C150.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal triglyceride levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"HDL Cholesterol\",\"value\":\"45.30\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003E40.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal HDL cholesterol levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"LDL Cholesterol, Calculated\",\"value\":\"92.30\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C100.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal LDL cholesterol levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"VLDL Cholesterol,Calculated\",\"value\":\"20.40\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C30.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal VLDL cholesterol levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Non-HDL Cholesterol\",\"value\":\"113\",\"unit\":\"mg/dL\",\"reference_range\":\"\\u003C130\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal non-HDL cholesterol levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"TSH\",\"value\":\"0.87\",\"unit\":\"\\u00B5IU/mL\",\"reference_range\":\"0.550 - 4.780\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal thyroid function.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"T3, Total\",\"value\":\"1.56\",\"unit\":\"ng/mL\",\"reference_range\":\"0.60 - 1.81\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal T3 levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"T4, Total\",\"value\":\"8.30\",\"unit\":\"\\u00B5g/dL\",\"reference_range\":\"4.50 - 11.60\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal T4 levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Amylase\",\"value\":\"125.00\",\"unit\":\"U/L\",\"reference_range\":\"30.00 - 118.00\",\"status\":\"Above Average\",\"severity_score\":2,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Elevated amylase may indicate pancreatic issues.\",\"recommended_actions\":[\"Consider further evaluation of pancreatic function.\"],\"diet_recommendations\":[\"Eat balanced meals with adequate protein and vegetables\",\"Avoid processed foods and excess salt/sugar\",\"Stay hydrated \\u2014 8-10 glasses water daily\",\"Consult doctor for specific dietary guidance\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Iron\",\"value\":\"31.00\",\"unit\":\"\\u00B5g/dL\",\"reference_range\":\"65.00 - 175.00\",\"status\":\"Below Average\",\"severity_score\":4,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Low iron levels may indicate iron deficiency.\",\"recommended_actions\":[\"Consider iron supplementation.\",\"Evaluate dietary intake of iron-rich foods.\"],\"diet_recommendations\":[\"Include more red meat, beans, and leafy greens.\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Total Iron Binding Capacity (TIBC)\",\"value\":\"339.17\",\"unit\":\"\\u00B5g/dL\",\"reference_range\":\"250 - 425\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal iron binding capacity.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Transferrin Saturation\",\"value\":\"9.14\",\"unit\":\"%\",\"reference_range\":\"20.00 - 50.00\",\"status\":\"Below Average\",\"severity_score\":4,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Low transferrin saturation may indicate iron deficiency.\",\"recommended_actions\":[\"Consider iron supplementation.\",\"Evaluate dietary intake of iron-rich foods.\"],\"diet_recommendations\":[\"Include more red meat, beans, and leafy greens.\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Hemoglobin\",\"value\":\"13.10\",\"unit\":\"g/dL\",\"reference_range\":\"13.00 - 17.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal hemoglobin levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Hematocrit\",\"value\":\"40.30\",\"unit\":\"%\",\"reference_range\":\"40.00 - 50.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal hematocrit levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"RBC Count\",\"value\":\"4.83\",\"unit\":\"mill/mm3\",\"reference_range\":\"4.50 - 5.50\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal red blood cell count.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"MCV\",\"value\":\"83.60\",\"unit\":\"fL\",\"reference_range\":\"83.00 - 101.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal mean corpuscular volume.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"MCH\",\"value\":\"27.10\",\"unit\":\"pg\",\"reference_range\":\"27.00 - 32.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal mean corpuscular hemoglobin.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"MCHC\",\"value\":\"32.50\",\"unit\":\"g/dL\",\"reference_range\":\"31.50 - 34.50\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal mean corpuscular hemoglobin concentration.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"RDW\",\"value\":\"15.30\",\"unit\":\"%\",\"reference_range\":\"11.60 - 14.00\",\"status\":\"Above Average\",\"severity_score\":4,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Elevated RDW may indicate variability in red blood cell size.\",\"recommended_actions\":[\"Consider further evaluation for anemia.\"],\"diet_recommendations\":[\"Eat balanced meals with adequate protein and vegetables\",\"Avoid processed foods and excess salt/sugar\",\"Stay hydrated \\u2014 8-10 glasses water daily\",\"Consult doctor for specific dietary guidance\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Total Leukocyte Count\",\"value\":\"8.40\",\"unit\":\"thou/mm3\",\"reference_range\":\"4.00 - 10.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal white blood cell count.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Segmented Neutrophils\",\"value\":\"86.40\",\"unit\":\"%\",\"reference_range\":\"40.00 - 80.00\",\"status\":\"Above Average\",\"severity_score\":2,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Elevated neutrophils may indicate infection or inflammation.\",\"recommended_actions\":[\"Consider further evaluation for infection.\"],\"diet_recommendations\":[\"Eat immunity-boosting foods: citrus fruits, garlic, ginger\",\"Include zinc-rich foods: nuts, seeds, legumes\",\"Stay well hydrated\",\"Avoid processed and junk food\"],\"exercise_recommendations\":[\"Light exercise only \\u2014 avoid overexertion\",\"Walking 20-30 min daily is sufficient\",\"Avoid crowded places if immunity is low\",\"Rest and sleep 7-8 hours\"]},{\"test_name\":\"Lymphocytes\",\"value\":\"6.40\",\"unit\":\"%\",\"reference_range\":\"20.00 - 40.00\",\"status\":\"Below Average\",\"severity_score\":4,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Low lymphocyte count may indicate immune issues.\",\"recommended_actions\":[\"Consider further evaluation of immune function.\"],\"diet_recommendations\":[\"Eat immunity-boosting foods: citrus fruits, garlic, ginger\",\"Include zinc-rich foods: nuts, seeds, legumes\",\"Stay well hydrated\",\"Avoid processed and junk food\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Monocytes\",\"value\":\"6.60\",\"unit\":\"%\",\"reference_range\":\"2.00 - 10.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal monocyte count.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Eosinophils\",\"value\":\"0.30\",\"unit\":\"%\",\"reference_range\":\"1.00 - 6.00\",\"status\":\"Below Average\",\"severity_score\":2,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Eosinophils is lower than the normal range and may need medical attention.\",\"recommended_actions\":[\"Consult your doctor about this result\",\"Recheck Eosinophils in 4-6 weeks\",\"Follow doctor\\u0027s prescribed treatment\"],\"diet_recommendations\":[\"Eat balanced meals with adequate protein and vegetables\",\"Avoid processed foods and excess salt/sugar\",\"Stay hydrated \\u2014 8-10 glasses water daily\",\"Consult doctor for specific dietary guidance\"],\"exercise_recommendations\":[\"30 minutes moderate exercise daily\",\"Walking, yoga, or light stretching recommended\",\"Consult doctor before starting intense exercise\"]},{\"test_name\":\"Platelet Count\",\"value\":\"197\",\"unit\":\"thou/mm3\",\"reference_range\":\"150.00 - 410.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal platelet count.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Mean Platelet Volume\",\"value\":\"12.4\",\"unit\":\"fL\",\"reference_range\":\"6.5 - 12.0\",\"status\":\"Above Average\",\"severity_score\":2,\"status_color\":\"orange\",\"hex_code\":\"#F97316\",\"clinical_meaning\":\"Slightly elevated mean platelet volume may indicate platelet activation.\",\"recommended_actions\":[\"Consider further evaluation of platelet function.\"],\"diet_recommendations\":[\"Include pomegranate, beetroot, spinach in diet\",\"Papaya and papaya leaf known to support platelets\",\"Avoid alcohol completely\",\"Stay hydrated\"],\"exercise_recommendations\":[\"Avoid contact sports or activities with injury risk\",\"Light walking is fine\",\"No heavy lifting or strenuous activity\"]},{\"test_name\":\"E.S.R.\",\"value\":\"11\",\"unit\":\"mm/hr\",\"reference_range\":\"0 - 15\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal erythrocyte sedimentation rate.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"PSA, TOTAL\",\"value\":\"0.200\",\"unit\":\"ng/mL\",\"reference_range\":\"\\u003C4.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal prostate-specific antigen levels.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"A : G Ratio\",\"value\":\"1.88\",\"unit\":\"Ratio\",\"reference_range\":\"0.90 - 2.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Normal A/G ratio indicates balanced protein levels\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]},{\"test_name\":\"Vitamin-D 25 Hydroxy\",\"value\":\"94.88\",\"unit\":\"nmol/L\",\"reference_range\":\"75.00 - 250.00\",\"status\":\"Good\",\"severity_score\":1,\"status_color\":\"green\",\"hex_code\":\"#22C55E\",\"clinical_meaning\":\"Vitamin D is essential for bone health.\",\"recommended_actions\":[],\"diet_recommendations\":[],\"exercise_recommendations\":[]}],\"top_concerns\":[{\"rank\":1,\"parameter\":\"HbA1c\",\"message\":\"At risk for Diabetes (Prediabetes)\",\"hex_code\":\"#EF4444\"},{\"rank\":2,\"parameter\":\"C-REACTIVE PROTEIN HIGH SENSITIVITY\",\"message\":\"Persistent elevation may indicate inflammation\",\"hex_code\":\"#EF4444\"},{\"rank\":3,\"parameter\":\"Iron\",\"message\":\"Low iron levels may indicate deficiency\",\"hex_code\":\"#EF4444\"},{\"rank\":4,\"parameter\":\"Transferrin Saturation\",\"message\":\"Low transferrin saturation may indicate deficiency\",\"hex_code\":\"#EF4444\"},{\"rank\":5,\"parameter\":\"Segmented Neutrophils\",\"message\":\"Elevated neutrophils may indicate infection\",\"hex_code\":\"#EF4444\"},{\"rank\":6,\"parameter\":\"Mean Platelet Volume\",\"message\":\"Slightly elevated may indicate activation\",\"hex_code\":\"#EF4444\"}],\"overall_diet_plan\":[\"Include more iron-rich foods such as red meat, beans, and leafy greens.\"],\"overall_exercise_plan\":[\"Engage in regular physical activity to maintain healthy blood sugar levels.\"],\"recommendations\":[],\"patient_summary\":\"The patient has normal kidney and liver function tests, but shows elevated HbA1c indicating prediabetes and high sensitivity CRP suggesting inflammation.\",\"ai_disclaimer\":\"This is AI-generated wellness guidance only. It is not a medical diagnosis. Always consult a qualified doctor before making health decisions.\",\"merge_meta\":{\"source\":\"KB\\u002BAI\",\"total_params\":55,\"ai_params\":50,\"kb_params\":5,\"merged_at\":\"2026-06-16T06:37:37.1367360Z\"}}";
 
 // ─────────────────────────────────────────────
 // MAIN SCREEN
@@ -163,6 +31,10 @@ class ReportDetailsScreen extends StatefulWidget {
   final String? mimeType;
   final String? historyContent;
   final String? historyTitle;
+  final bool isOwnPdf;
+  final String? enteredName;
+  final String? enteredAge;
+  final String? enteredGender;
 
   const ReportDetailsScreen({
     super.key,
@@ -171,6 +43,10 @@ class ReportDetailsScreen extends StatefulWidget {
     this.mimeType,
     this.historyContent,
     this.historyTitle,
+    this.isOwnPdf = true,
+    this.enteredName,
+    this.enteredAge,
+    this.enteredGender,
   }) : assert(
   historyContent != null ||
       (file != null && fileName != null && mimeType != null),
@@ -181,11 +57,16 @@ class ReportDetailsScreen extends StatefulWidget {
     super.key,
     required String content,
     required String title,
-  })  : historyContent = content,
+  })
+      : historyContent = content,
         historyTitle = title,
         file = null,
         fileName = null,
-        mimeType = null;
+        mimeType = null,
+        isOwnPdf = true,
+        enteredName = null,
+        enteredAge = null,
+        enteredGender = null;
 
   bool get isHistoryMode => historyContent != null;
 
@@ -197,6 +78,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
   final ScanReportController _controller = Get.find<ScanReportController>();
   bool _isUploading = false;
   String? _errorMessage;
+  bool _isGeneratingPdf = false;
   HealthReport? _report;
 
   bool get _isPdf => widget.mimeType == 'application/pdf';
@@ -230,9 +112,35 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       final contentJson = jsonDecode(_dummy);
       final report = HealthReport.fromJson(contentJson);
 
+      String resolvedName;
+      String resolvedGender;
+      String resolvedAge;
+
+      if (widget.isOwnPdf) {
+        final userInfo = Get
+            .find<LocalStorageManager>()
+            .userMap;
+        resolvedName = userInfo['Name'] ?? '';
+        resolvedGender = userInfo['Gender'] ?? '';
+        final day = userInfo['DayOfBirth'];
+        final month = userInfo['MonthOfBirth'];
+        final year = userInfo['YearOfBirth'];
+        resolvedAge =
+            _controller
+                .calculateAge(day: day, month: month, year: year)
+                .toString();
+      } else {
+        resolvedName = widget.enteredName ?? '';
+        resolvedGender = widget.enteredGender ?? '';
+        resolvedAge = widget.enteredAge ?? '';
+      }
+
       await _controller.addToHistory(
         title: widget.fileName!,
         content: _dummy,
+        patientName: resolvedName,
+        gender: resolvedGender,
+        ageRange: resolvedAge,
       );
 
       setState(() => _report = report);
@@ -245,12 +153,103 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
     }
   }
 
+  Future<Directory> _resolveDownloadsDirectory() async {
+    if (Platform.isAndroid) {
+      try {
+        final status = await Permission.storage.status;
+        if (!status.isGranted) {
+          await Permission.storage.request();
+        }
+      } catch (e) {
+        debugPrint("Error requesting storage permission: $e");
+      }
+
+      final Directory dir = Directory('/storage/emulated/0/Download');
+      try {
+        if (!await dir.exists()) {
+          await dir.create(recursive: true);
+        }
+        // Test write access
+        final testFile = File('${dir.path}/.test_write');
+        await testFile.writeAsString('test');
+        await testFile.delete();
+        return dir;
+      } catch (e) {
+        debugPrint("Android Download directory not writable, falling back: $e");
+      }
+    }
+    return await getApplicationDocumentsDirectory();
+  }
+
+  String _resolveTitle() {
+    if (widget.historyTitle != null && widget.historyTitle!.trim().isNotEmpty) {
+      return widget.historyTitle!;
+    }
+
+    final patientName = widget.isOwnPdf
+        ? (Get
+        .find<LocalStorageManager>()
+        .userMap['Name'] ?? '')
+        : (widget.enteredName ?? '');
+
+    final dateStr = DateFormat('d MMM yyyy').format(DateTime.now());
+
+    if (patientName
+        .trim()
+        .isNotEmpty) {
+      return "$patientName's Health Report - $dateStr";
+    }
+
+    return widget.fileName != null
+        ? 'Health Report - $dateStr'
+        : 'Health Report';
+  }
+
+  Future<void> _downloadReportPdf() async {
+    if (_report == null || _isGeneratingPdf) return;
+    setState(() => _isGeneratingPdf = true);
+    try {
+      final title = _resolveTitle();
+      final downloadDir = await _resolveDownloadsDirectory();
+
+      final file = await ReportPdfGenerator.generate(
+        report: _report!,
+        title: title,
+        customDirectory: downloadDir,
+      );
+
+      if (mounted) {
+        Get.snackbar(
+          'PDF Downloaded!',
+          '',
+          snackPosition: SnackPosition.BOTTOM,
+          colorText: white,
+          backgroundColor: AppColors.primaryColor,
+          duration: const Duration(seconds: 3),
+        );
+
+        await OpenFile.open(file.path);
+      }
+    } catch (e, st) {
+      debugPrint("Exception of pdf $e");
+      debugPrint("Stack trace of pdf $st");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not generate PDF: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGeneratingPdf = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color bg = isDark ? scaffoldColorDark : scaffoldColorLight;
     final Color titleColor = isDark ? Colors.white : Colors.black87;
-    final String appBarTitle = widget.isHistoryMode
+    final String appBarTitle =
+    widget.isHistoryMode
         ? (widget.historyTitle ?? 'Report Details')
         : 'Report Details';
 
@@ -269,35 +268,52 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
           overflow: TextOverflow.ellipsis,
         ),
         centerTitle: true,
-        actions: widget.isHistoryMode
-            ? [
-          Container(
-            margin: const EdgeInsets.only(right: 12),
-            padding:
-            const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.secondaryColor.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                  color: AppColors.secondaryColor.withOpacity(0.5)),
-            ),
-            child: Text(
-              'History',
-              style: TextStyle(
-                color: AppColors.secondaryColor,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
+        actions: [
+          if (_report != null)
+            IconButton(
+              onPressed: _isGeneratingPdf ? null : _downloadReportPdf,
+              icon: _isGeneratingPdf
+                  ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: titleColor,
+                ),
+              )
+                  : Icon(Icons.download, color: titleColor),
+            )
+          else
+            if (widget.isHistoryMode)
+              Container(
+                margin: const EdgeInsets.only(right: 12),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.secondaryColor.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                      color: AppColors.secondaryColor.withOpacity(0.5)),
+                ),
+                child: Text(
+                  'History',
+                  style: TextStyle(
+                    color: AppColors.secondaryColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-            ),
-          ),
-        ]
-            : null,
+        ],
       ),
-      body: _errorMessage != null && _report == null
+      body:
+      _errorMessage != null && _report == null
           ? _ErrorView(message: _errorMessage!)
           : _report != null
           ? _ReportResultView(
-          report: _report!, isHistoryMode: widget.isHistoryMode)
+        report: _report!,
+        isHistoryMode: widget.isHistoryMode,
+      )
           : widget.isHistoryMode
           ? const Center(child: CircularProgressIndicator())
           : _FilePreviewView(
@@ -310,6 +326,39 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
         onRetake: () => Navigator.pop(context),
         onAnalyze: _uploadFile,
       ),
+      bottomNavigationBar:
+      _report != null
+          ? SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: AppColors.primaryGradient,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () => Get.offAll(() => ScanReportLandingScreen()),
+              child: Text(
+                'Done',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+        ),
+      )
+          : null,
     );
   }
 }
@@ -319,6 +368,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
 // ─────────────────────────────────────────────
 class _ErrorView extends StatelessWidget {
   final String message;
+
   const _ErrorView({required this.message});
 
   @override
@@ -348,9 +398,7 @@ class _ErrorView extends StatelessWidget {
               ),
               child: Text(
                 'Go Back',
-                style: TextStyle(
-                  color: isDark ? Colors.white : Colors.black87,
-                ),
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
               ),
             ),
           ],
@@ -395,7 +443,8 @@ class _FilePreviewView extends StatelessWidget {
     return Column(
       children: [
         Expanded(
-          child: isPdf
+          child:
+          isPdf
               ? _PdfPreview(fileName: fileName)
               : Image.file(file, fit: BoxFit.contain),
         ),
@@ -455,10 +504,7 @@ class _FilePreviewView extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                   onPressed: isUploading ? null : onRetake,
-                  child: Text(
-                    'Retake',
-                    style: TextStyle(color: valueColor),
-                  ),
+                  child: Text('Retake', style: TextStyle(color: valueColor)),
                 ),
               ),
               const SizedBox(width: 16),
@@ -478,7 +524,8 @@ class _FilePreviewView extends StatelessWidget {
                       ),
                     ),
                     onPressed: isUploading ? null : onAnalyze,
-                    child: isUploading
+                    child:
+                    isUploading
                         ? const SizedBox(
                       height: 20,
                       width: 20,
@@ -509,10 +556,7 @@ class _ReportResultView extends StatelessWidget {
   final HealthReport report;
   final bool isHistoryMode;
 
-  const _ReportResultView({
-    required this.report,
-    this.isHistoryMode = false,
-  });
+  const _ReportResultView({required this.report, this.isHistoryMode = false});
 
   Color get _scoreColor {
     final s = report.overallHealthScore;
@@ -537,15 +581,13 @@ class _ReportResultView extends StatelessWidget {
             _AlertBanner(
               icon: Icons.emergency,
               color: const Color(0xFFEF4444),
-              text:
-              'Emergency attention needed — visit a doctor immediately.',
+              text: 'Emergency attention needed — visit a doctor immediately.',
             ),
           if (report.doctorConsultationRecommended)
             _AlertBanner(
               icon: Icons.medical_services_outlined,
               color: const Color(0xFFF97316),
-              text:
-              'Doctor consultation recommended based on your results.',
+              text: 'Doctor consultation recommended based on your results.',
             ),
           if (report.doctorConsultationRecommended ||
               report.emergencyAttentionNeeded)
@@ -563,7 +605,9 @@ class _ReportResultView extends StatelessWidget {
           // ── 4. Key Findings ──────────────────────
           if (report.keyFindings.isNotEmpty) ...[
             const _SectionTitle(
-                title: 'Key Findings', icon: Icons.flag_outlined),
+              title: 'Key Findings',
+              icon: Icons.flag_outlined,
+            ),
             const SizedBox(height: 8),
             ...report.keyFindings.map((f) => _FindingChip(text: f)),
             const SizedBox(height: 20),
@@ -572,7 +616,9 @@ class _ReportResultView extends StatelessWidget {
           // ── 5. Top Concerns ──────────────────────
           if (report.topConcerns.isNotEmpty) ...[
             const _SectionTitle(
-                title: 'Top Concerns', icon: Icons.warning_amber_outlined),
+              title: 'Top Concerns',
+              icon: Icons.warning_amber_outlined,
+            ),
             const SizedBox(height: 8),
             _TopConcernsCard(concerns: report.topConcerns),
             const SizedBox(height: 20),
@@ -581,8 +627,9 @@ class _ReportResultView extends StatelessWidget {
           // ── 6. Overall Diet Plan ─────────────────
           if (report.overallDietPlan.isNotEmpty) ...[
             const _SectionTitle(
-                title: 'Overall Diet Plan',
-                icon: Icons.restaurant_outlined),
+              title: 'Overall Diet Plan',
+              icon: Icons.restaurant_outlined,
+            ),
             const SizedBox(height: 8),
             _PlanCard(
               items: report.overallDietPlan,
@@ -595,8 +642,9 @@ class _ReportResultView extends StatelessWidget {
           // ── 7. Overall Exercise Plan ─────────────
           if (report.overallExercisePlan.isNotEmpty) ...[
             const _SectionTitle(
-                title: 'Overall Exercise Plan',
-                icon: Icons.fitness_center_outlined),
+              title: 'Overall Exercise Plan',
+              icon: Icons.fitness_center_outlined,
+            ),
             const SizedBox(height: 8),
             _PlanCard(
               items: report.overallExercisePlan,
@@ -609,8 +657,9 @@ class _ReportResultView extends StatelessWidget {
           // ── 8. Recommendations ───────────────────
           if (report.recommendations.isNotEmpty) ...[
             const _SectionTitle(
-                title: 'Recommendations',
-                icon: Icons.check_circle_outline),
+              title: 'Recommendations',
+              icon: Icons.check_circle_outline,
+            ),
             const SizedBox(height: 8),
             _PlanCard(
               items: report.recommendations,
@@ -622,44 +671,17 @@ class _ReportResultView extends StatelessWidget {
 
           // ── 9. Test Parameters ───────────────────
           const _SectionTitle(
-              title: 'Test Parameters', icon: Icons.biotech_outlined),
+            title: 'Test Parameters',
+            icon: Icons.biotech_outlined,
+          ),
           const SizedBox(height: 8),
           ...report.parameters.map((p) => _ParameterCard(param: p)),
           const SizedBox(height: 20),
 
-
           // ── 11. AI Disclaimer ────────────────────
           if (report.aiDisclaimer.isNotEmpty) ...[
             _AiDisclaimerBanner(text: report.aiDisclaimer),
-            const SizedBox(height: 20),
           ],
-
-          // ── Done / Back button ───────────────────
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: () => isHistoryMode
-                  ? Navigator.pop(context)
-                  : Navigator.popUntil(context, (route) => route.isFirst),
-              child: Text(
-                isHistoryMode ? 'Back' : 'Done',
-                style: const TextStyle(color: Colors.white, fontSize: 16),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
         ],
       ),
     );
@@ -742,8 +764,7 @@ class _ScoreCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Container(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
               color: scoreColor.withOpacity(0.15),
               borderRadius: BorderRadius.circular(20),
@@ -772,8 +793,11 @@ class _AlertBanner extends StatelessWidget {
   final Color color;
   final String text;
 
-  const _AlertBanner(
-      {required this.icon, required this.color, required this.text});
+  const _AlertBanner({
+    required this.icon,
+    required this.color,
+    required this.text,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -790,10 +814,7 @@ class _AlertBanner extends StatelessWidget {
           Icon(icon, color: color, size: 20),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              text,
-              style: TextStyle(color: color, fontSize: 13),
-            ),
+            child: Text(text, style: TextStyle(color: color, fontSize: 13)),
           ),
         ],
       ),
@@ -823,9 +844,7 @@ class _PatientSummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.secondaryColor.withOpacity(0.3),
-        ),
+        border: Border.all(color: AppColors.secondaryColor.withOpacity(0.3)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
@@ -836,11 +855,7 @@ class _PatientSummaryCard extends StatelessWidget {
       ),
       child: Text(
         summary,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 13,
-          height: 1.55,
-        ),
+        style: TextStyle(color: textColor, fontSize: 13, height: 1.55),
       ),
     );
   }
@@ -875,7 +890,8 @@ class _TopConcernsCard extends StatelessWidget {
         ],
       ),
       child: Column(
-        children: concerns
+        children:
+        concerns
             .asMap()
             .entries
             .map((entry) {
@@ -886,7 +902,9 @@ class _TopConcernsCard extends StatelessWidget {
               if (i != 0) Divider(height: 1, color: dividerColor),
               Padding(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 12),
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 child: Row(
                   children: [
                     // Rank badge
@@ -897,8 +915,7 @@ class _TopConcernsCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: c.color.withOpacity(0.18),
                         shape: BoxShape.circle,
-                        border:
-                        Border.all(color: c.color.withOpacity(0.5)),
+                        border: Border.all(color: c.color.withOpacity(0.5)),
                       ),
                       child: Text(
                         '${c.rank}',
@@ -926,9 +943,8 @@ class _TopConcernsCard extends StatelessWidget {
                           Text(
                             c.message,
                             style: TextStyle(
-                              color: isDark
-                                  ? Colors.white54
-                                  : Colors.black45,
+                              color:
+                              isDark ? Colors.white54 : Colors.black45,
                               fontSize: 12,
                             ),
                           ),
@@ -985,7 +1001,8 @@ class _PlanCard extends StatelessWidget {
         ],
       ),
       child: Column(
-        children: items
+        children:
+        items
             .map(
               (item) =>
               Padding(
@@ -999,7 +1016,10 @@ class _PlanCard extends StatelessWidget {
                       child: Text(
                         item,
                         style: TextStyle(
-                            color: textColor, fontSize: 13, height: 1.45),
+                          color: textColor,
+                          fontSize: 13,
+                          height: 1.45,
+                        ),
                       ),
                     ),
                   ],
@@ -1051,7 +1071,8 @@ class _MergeMetaCard extends StatelessWidget {
         ],
       ),
       child: Column(
-        children: rows
+        children:
+        rows
             .asMap()
             .entries
             .map((entry) {
@@ -1062,18 +1083,24 @@ class _MergeMetaCard extends StatelessWidget {
               if (i != 0) Divider(height: 1, color: dividerColor),
               Padding(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 10),
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(row.label,
-                        style:
-                        TextStyle(color: labelColor, fontSize: 12)),
-                    Text(row.value,
-                        style: TextStyle(
+                    Text(
+                      row.label,
+                      style: TextStyle(color: labelColor, fontSize: 12),
+                    ),
+                    Text(
+                      row.value,
+                      style: TextStyle(
                             color: valueColor,
                             fontSize: 13,
-                            fontWeight: FontWeight.w500)),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1254,8 +1281,10 @@ class _ParameterCardState extends State<_ParameterCard> {
                   Container(
                     width: 10,
                     height: 10,
-                    decoration:
-                    BoxDecoration(color: color, shape: BoxShape.circle),
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -1282,14 +1311,18 @@ class _ParameterCardState extends State<_ParameterCard> {
                       Text(
                         'Ref: ${p.referenceRange}',
                         style: const TextStyle(
-                            color: Colors.grey, fontSize: 11),
+                          color: Colors.grey,
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: color.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(6),
@@ -1322,8 +1355,7 @@ class _ParameterCardState extends State<_ParameterCard> {
                 padding: const EdgeInsets.fromLTRB(34, 0, 14, 12),
                 child: Text(
                   p.clinicalMeaning,
-                  style:
-                  const TextStyle(color: Colors.grey, fontSize: 12),
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
               ),
 

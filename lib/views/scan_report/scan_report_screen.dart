@@ -71,6 +71,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
           isOwnPdf: _isOwnPdf,
           selectedGender: _selectedGender,
           ageController: _ageController,
+      nameController: _nameController,
         );
 
     debugPrint("Upload Result: $isUploaded");
@@ -114,6 +115,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
               file: file,
               fileName: fileName,
               mimeType: mimeType,
+
             ),
       ),
     );
@@ -121,6 +123,8 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
 
   String? _selectedGender;
   final TextEditingController _ageController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+
 
   bool _isOwnPdf = true;
 
@@ -185,6 +189,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                             setModalState(() {
                               _isOwnPdf = true;
                               _selectedGender = null;
+                              _nameController.clear();
                               _ageController.clear();
                             });
                           },
@@ -261,8 +266,40 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                     ],
                   ),
 
+                  const SizedBox(height: 12),
+
+
+
                   if (!_isOwnPdf) ...[
-                    const SizedBox(height: 28),
+                    Text(
+                      'Name',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    TextField(
+                      controller: _nameController,
+                      keyboardType: TextInputType.number,
+                      style: TextStyle(
+                        color: isDark ? white : black,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Enter name',
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white70 : Colors.grey,
+                        ),
+                        filled: true,
+                        fillColor: isDark ? darkGray : Colors.grey.shade100,
+
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(18),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
 
                     const Text(
                       'Gender',
@@ -346,10 +383,16 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                       onPressed: () {
                         if (!_isOwnPdf) {
                           if (_selectedGender == null ||
-                              _ageController.text.trim().isEmpty) {
+                              _ageController.text
+                                  .trim()
+                                  .isEmpty ||
+                              _nameController.text
+                                  .trim()
+                                  .isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Please enter gender and age'),
+                                content: Text(
+                                    'Please enter name , gender and age'),
                               ),
                             );
 
@@ -427,6 +470,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _ageController.dispose();
     super.dispose();
   }
