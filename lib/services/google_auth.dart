@@ -10,46 +10,88 @@ import 'google_backend_auth_service.dart';
 class GoogleAuthService extends GetxService {
   final GoogleSignIn _google = GoogleSignIn.instance;
   Rxn<GoogleSignInAccount> user = Rxn();
-
-  RxBool isLoading = false.obs;
-
   StreamSubscription<GoogleSignInAuthenticationEvent>? _authEventsSub;
   bool _initialized = false;
 
-  Future<void> init() async {
-    if (_initialized) return;
+  // ---------------- INIT ----------------
+  Future<bool> init(BuildContext context) async {
+    if (_initialized) {
+      debugPrint("ℹ️ Already initialized → retrying lightweight auth");
 
-    await _authEventsSub?.cancel();
-    _authEventsSub = null;
+      try {
+        await _google.attemptLightweightAuthentication();
+      } catch (_) {}
+
+      return user.value != null;
+    }
+
+    debugPrint("🔵 GoogleAuthService: init started");
 
     await _google.initialize(serverClientId: WEB);
 
+    debugPrint("🟢 GoogleSignIn initialized with clientId: $WEB");
+
+    // LISTEN AUTH EVENTS
     _authEventsSub = _google.authenticationEvents.listen(
-          (event) async {
+      (event) async {
+        debugPrint("📡 Authentication event received: ${event.runtimeType}");
+
+        // SIGNED IN
         if (event is GoogleSignInAuthenticationEventSignIn) {
-          isLoading.value = true;
-          user.value = event.user;
+          final GoogleSignInAccount account = event.user;
 
-          // Precache handled by UI layer — not here
-          await Get.find<GoogleBackendAuthService>()
-              .handleBackendLogin(event.user);
+          debugPrint("✅ User signed in");
+          debugPrint("   Email: ${account.email}");
+          debugPrint("   Display Name: ${account.displayName}");
+          debugPrint("   ID: ${account.id}");
 
-          isLoading.value = false;
-        } else if (event is GoogleSignInAuthenticationEventSignOut) {
+          user.value = account;
+
+          await precacheImage(
+            CachedNetworkImageProvider(account.photoUrl ?? ''),
+            context,
+          );
+
+          await _handleBackendLogin(account, context, account.email);
+        }
+        // SIGNED OUT
+        else if (event is GoogleSignInAuthenticationEventSignOut) {
+          debugPrint("🚪 User signed out");
           user.value = null;
-          isLoading.value = false;
         }
       },
       onError: (error) {
-        isLoading.value = false;
+        debugPrint("❌ authenticationEvents error triggered");
+        _initialized = false; // Reset init state to allow re-init if needed
+        if (error is GoogleSignInException) {
+          debugPrint("   Error code: ${error.code}");
+          debugPrint("   Error message: ${error.description}");
+        } else {
+          debugPrint("   Unknown error: $error");
+        }
+
+        // Ignore cancel (user just closed popup)
         if (error is GoogleSignInException &&
-            error.code == GoogleSignInExceptionCode.canceled) return;
-        _initialized = false;
-        debugPrint("❌ Auth event error: $error");
+            error.code == GoogleSignInExceptionCode.canceled) {
+          debugPrint("⚠️ User cancelled Google sign-in UI");
+        }
       },
     );
 
-    _initialized = true;
+    // Attempt auto login
+    debugPrint("🔄 Attempting lightweight authentication...");
+    try {
+      await _google.attemptLightweightAuthentication();
+    } catch (e) {
+      debugPrint("❌ Lightweight auth failed: $e");
+
+      CustomSnackbar.showError(
+        context: context,
+        title: 'Sign-in Issue',
+        message: 'Google auto sign-in failed. Please try manually.',
+      );
+      _initialized = true;
+    }
   }
 
   Future<void> signIn() async {
