@@ -23,6 +23,7 @@ import '../../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dar
 import '../../Controllers/StepCounter/step_counter_controller.dart';
 import '../../Controllers/signupAndSignIn/sign_in_controller.dart';
 import '../../common/global_variables.dart';
+import '../../features/health_sdk/controllers/health_sdk_controller.dart';
 import '../../widgets/CommonWidgets/custom_appbar.dart';
 
 class MyHealthScreen extends StatefulWidget {
@@ -175,18 +176,37 @@ class _MyHealthScreenState extends State<MyHealthScreen>
         icon: Icons.bedtime,
         iconColor: Color(0xffe79051),
         cardType: "sleep",
-        title: Obx(
-          () => Text(
+        title: Obx(() {
+          final sdkController = Get.find<HealthSdkController>();
+          final latestSleep = sdkController.latestSleep.value;
+          if (latestSleep != null) {
+            return Text(
+              latestSleep.formattedDuration,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+            );
+          }
+          return Text(
             formatDurationHHmm(sleepController.deepSleepDuration.value),
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
-          ),
-        ),
-        subtitle: Obx(
-          () => Text(
+          );
+        }),
+        subtitle: Obx(() {
+          final sdkController = Get.find<HealthSdkController>();
+          final latestSleep = sdkController.latestSleep.value;
+          if (latestSleep != null && latestSleep.sourceName != null) {
+            return Text(
+              '/ ${formatDurationHHmm(
+                  sleepController.sleepGoal.value)} (${latestSleep
+                  .sourceName})',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              overflow: TextOverflow.ellipsis,
+            );
+          }
+          return Text(
             '/ ${formatDurationHHmm(sleepController.sleepGoal.value)}',
             style: const TextStyle(fontSize: 14, color: Colors.grey),
-          ),
-        ),
+          );
+        }),
         buttonText: 'Track sleep',
         onPressed: () => Get.to(() => const SleepTrackerScreen()),
       ),
@@ -232,16 +252,31 @@ class _MyHealthScreenState extends State<MyHealthScreen>
         icon: Icons.favorite,
         iconColor: Colors.red,
         cardType: "bpm",
-        title: Obx(
-          () => Text(
-            '${vitalController.bpm.value}',
+        title: Obx(() {
+          final sdkController = Get.find<HealthSdkController>();
+          final latestHeartRate = sdkController.latestHeartRate.value;
+          final val = latestHeartRate != null ? latestHeartRate.beatsPerMinute
+              .toInt() : vitalController.bpm.value;
+          return Text(
+            val > 0 ? '$val' : '—',
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
-          ),
-        ),
-        subtitle: const Text(
-          'bpm',
-          style: TextStyle(fontSize: 14, color: Colors.grey),
-        ),
+          );
+        }),
+        subtitle: Obx(() {
+          final sdkController = Get.find<HealthSdkController>();
+          final latestHeartRate = sdkController.latestHeartRate.value;
+          if (latestHeartRate != null && latestHeartRate.sourceName != null) {
+            return Text(
+              'bpm (${latestHeartRate.sourceName})',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              overflow: TextOverflow.ellipsis,
+            );
+          }
+          return const Text(
+            'bpm',
+            style: TextStyle(fontSize: 14, color: Colors.grey),
+          );
+        }),
         buttonText: 'Add BPM',
         onPressed: () => Get.to(() => VitalScreen()),
       ),
@@ -291,23 +326,32 @@ class _MyHealthScreenState extends State<MyHealthScreen>
         icon: Icons.bloodtype,
         iconColor: Colors.deepPurple,
         cardType: "glucose",
-        title: Obx(
-              () =>
-              Text(
-                '${vitalController.bloodGlucose.value }',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 22,
-                ),
-          ),
-        ),
-        subtitle: const Text(
-          'mg/dL',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey,
-          ),
-        ),
+        title: Obx(() {
+          final sdkController = Get.find<HealthSdkController>();
+          final latestGlucose = sdkController.latestGlucose.value;
+          final val = latestGlucose != null
+              ? latestGlucose.mgPerDl.toInt()
+              : vitalController.bloodGlucose.value;
+          return Text(
+            val > 0 ? '$val' : '—',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+          );
+        }),
+        subtitle: Obx(() {
+          final sdkController = Get.find<HealthSdkController>();
+          final latestGlucose = sdkController.latestGlucose.value;
+          if (latestGlucose != null && latestGlucose.sourceName != null) {
+            return Text(
+              'mg/dL (${latestGlucose.sourceName})',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              overflow: TextOverflow.ellipsis,
+            );
+          }
+          return const Text(
+            'mg/dL',
+            style: TextStyle(fontSize: 14, color: Colors.grey),
+          );
+        }),
         buttonText: 'Add Glucose',
         onPressed: () => Get.to(() => GlucoseScreen()),
       ),

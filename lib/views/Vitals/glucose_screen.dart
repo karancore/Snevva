@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_instance/src/extension_instance.dart';
-import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
+import 'package:get/get.dart';
 import 'package:snevva/widgets/add_glucose_card.dart';
 import 'package:snevva/widgets/glucose_card.dart';
 
@@ -10,6 +8,7 @@ import '../../Controllers/Vitals/vitalsController.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../consts/colors.dart';
 import '../../consts/images.dart';
+import '../../features/health_sdk/controllers/health_sdk_controller.dart';
 
 class GlucoseScreen extends StatefulWidget {
   const GlucoseScreen({super.key});
@@ -250,7 +249,10 @@ class _BloodGlucoseHeaderState extends State<BloodGlucoseHeader> {
                     // Glucose Drop + Text Overlay
                     Positioned(
                       bottom:
-                      vitalsController.glucoseReadings.isEmpty
+                      (vitalsController.glucoseReadings.isEmpty && Get
+                          .find<HealthSdkController>()
+                          .latestGlucose
+                          .value == null)
                           ? 100 * scale
                           : 120 * scale,
                       left: 0,
@@ -274,7 +276,18 @@ class _BloodGlucoseHeaderState extends State<BloodGlucoseHeader> {
                                   Text(" ",
                                       style: TextStyle(height: 0.5 * scale)),
                                   Text(
-                                    vitalsController.glucoseReadings.isEmpty
+                                    Get
+                                        .find<HealthSdkController>()
+                                        .latestGlucose
+                                        .value != null
+                                        ? Get
+                                        .find<HealthSdkController>()
+                                        .latestGlucose
+                                        .value!
+                                        .mgPerDl
+                                        .toStringAsFixed(0)
+                                        : (vitalsController.glucoseReadings
+                                        .isEmpty
                                         ? ''
                                         : (double.parse(
                                       vitalsController
@@ -295,7 +308,7 @@ class _BloodGlucoseHeaderState extends State<BloodGlucoseHeader> {
                                           .glucoseReadings
                                           .first
                                           .glucoseLevel,
-                                    ).toStringAsFixed(1),
+                                    ).toStringAsFixed(1)),
                                     style: TextStyle(
                                       // ✅ Dark: white text | Light: black text
                                       color: isDarkMode ? darkGray : black,
@@ -305,7 +318,11 @@ class _BloodGlucoseHeaderState extends State<BloodGlucoseHeader> {
                                     ),
                                   ),
                                   Text(
-                                    vitalsController.glucoseReadings.isEmpty
+                                    (vitalsController.glucoseReadings.isEmpty &&
+                                        Get
+                                            .find<HealthSdkController>()
+                                            .latestGlucose
+                                            .value == null)
                                         ? ''
                                         : 'mg/dL',
                                     style: TextStyle(
@@ -325,7 +342,10 @@ class _BloodGlucoseHeaderState extends State<BloodGlucoseHeader> {
                     ),
 
                     // Status Badge
-                    vitalsController.glucoseReadings.isEmpty
+                    (vitalsController.glucoseReadings.isEmpty && Get
+                        .find<HealthSdkController>()
+                        .latestGlucose
+                        .value == null)
                         ? SizedBox.shrink()
                         : Positioned(
                       bottom: 90 * scale,
@@ -342,16 +362,31 @@ class _BloodGlucoseHeaderState extends State<BloodGlucoseHeader> {
                             borderRadius: BorderRadius.circular(7),
                           ),
                           child: Center(
-                            child: Text(
-                              '${getStatusLabel(getStatus(
-                                  vitalsController.glucoseReadings.first
-                                      .glucoseLevel))} Blood Sugar',
-                              style: TextStyle(
-                                // ✅ Dark: white text | Light: black text
-                                color: isDarkMode ? white : black,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
+                            child: Builder(
+                                builder: (context) {
+                                  final String lvlStr = Get
+                                      .find<HealthSdkController>()
+                                      .latestGlucose
+                                      .value != null
+                                      ? Get
+                                      .find<HealthSdkController>()
+                                      .latestGlucose
+                                      .value!
+                                      .mgPerDl
+                                      .toStringAsFixed(0)
+                                      : vitalsController.glucoseReadings.first
+                                      .glucoseLevel;
+                                  return Text(
+                                    '${getStatusLabel(
+                                        getStatus(lvlStr))} Blood Sugar',
+                                    style: TextStyle(
+                                      // ✅ Dark: white text | Light: black text
+                                      color: isDarkMode ? white : black,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  );
+                                }
                             ),
                           ),
                         ),
@@ -359,7 +394,10 @@ class _BloodGlucoseHeaderState extends State<BloodGlucoseHeader> {
                     ),
 
                     // "Need Attention" label
-                    vitalsController.glucoseReadings.isEmpty
+                    (vitalsController.glucoseReadings.isEmpty && Get
+                        .find<HealthSdkController>()
+                        .latestGlucose
+                        .value == null)
                         ? SizedBox.shrink()
                         : Positioned(
                       bottom: 75 * scale,
@@ -368,22 +406,33 @@ class _BloodGlucoseHeaderState extends State<BloodGlucoseHeader> {
                       child: Align(
                         alignment: Alignment.center,
                         child: Center(
-                          child: Text(
-                            getHealthBanner(
-                              getStatusLabel(
-                                getStatus(
-                                  vitalsController
-                                      .glucoseReadings
-                                      .first
-                                      .glucoseLevel,
-                                ),
-                              ),
-                            ),
-                            style: TextStyle(
-                              color: white, // always white on purple bg
-                              fontSize: 8,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          child: Builder(
+                              builder: (context) {
+                                final String lvlStr = Get
+                                    .find<HealthSdkController>()
+                                    .latestGlucose
+                                    .value != null
+                                    ? Get
+                                    .find<HealthSdkController>()
+                                    .latestGlucose
+                                    .value!
+                                    .mgPerDl
+                                    .toStringAsFixed(0)
+                                    : vitalsController.glucoseReadings.first
+                                    .glucoseLevel;
+                                return Text(
+                                  getHealthBanner(
+                                    getStatusLabel(
+                                      getStatus(lvlStr),
+                                    ),
+                                  ),
+                                  style: TextStyle(
+                                    color: white, // always white on purple bg
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                );
+                              }
                           ),
                         ),
                       ),

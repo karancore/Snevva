@@ -57,6 +57,7 @@ import 'common/agent_debug_logger.dart';
 import 'common/app_keys.dart';
 import 'common/global_variables.dart';
 import 'consts/consts.dart';
+import 'features/health_sdk/controllers/health_sdk_controller.dart';
 import 'firebase_options.dart';
 import 'performance/frame_timing_monitor.dart';
 import 'performance/refresh_rate_bootstrap.dart';
@@ -388,6 +389,7 @@ void _registerLazyDependencies() {
 
   _lazyPut<SleepController>(() => SleepController());
   _lazyPut<StepCounterController>(() => StepCounterController());
+  _lazyPut<HealthSdkController>(() => HealthSdkController());
   _lazyPutTagged<ReminderController>(
     () => ReminderController(),
     tag: 'reminder',

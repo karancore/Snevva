@@ -210,11 +210,7 @@ class VitalsController extends GetxController {
 
       // Handle response
       if (response is http.Response) {
-        CustomSnackbar.showError(
-          context: context,
-          title: 'Error',
-          message: 'Failed to save Vitals record: ${response.statusCode}',
-        );
+        debugPrint("Error submitting vitals: ${response.body}");
         return false;
       }
 
@@ -225,13 +221,11 @@ class VitalsController extends GetxController {
         message: 'Vitals record saved successfully!',
       );
       return true;
-    } catch (e) {
+    } catch (e, st) {
       // Handle error and show error message
-      CustomSnackbar.showError(
-        context: context,
-        title: 'Error',
-        message: 'Failed saving Vitals record',
-      );
+      debugPrint("Error submitting vitals: $e");
+      debugPrint("Stack Trace for vitals $st");
+
       return false;
     }
   }

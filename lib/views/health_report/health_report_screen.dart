@@ -70,9 +70,10 @@ class HealthReportScreen extends StatelessWidget {
                     height: scale * 36,
                     width: scale * 332,
                     decoration: BoxDecoration(
-                      color: isDarkMode
-                          ? Colors.grey.shade900
-                          : Colors.grey.shade200,
+                      color:
+                          isDarkMode
+                              ? Colors.grey.shade900
+                              : Colors.grey.shade200,
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.25),
@@ -119,7 +120,8 @@ class HealthReportScreen extends StatelessWidget {
                   controller: controller,
                   scale: scale,
                   itemHeight: itemHeight,
-                  items: segValue == 0 ? dateRangeList : controller.yearRangeList,
+                  items:
+                      segValue == 0 ? dateRangeList : controller.yearRangeList,
                   selectedIndex: selectedIdx,
                   segmentedValue: segValue,
                   customFromDate: customFrom,
@@ -146,50 +148,56 @@ class HealthReportScreen extends StatelessWidget {
                       ),
                       ...ExportType.values.map((type) {
                         final isSelected = selectedType == type;
-                        final label =
-                        type == ExportType.pdf ? 'PDF' : 'Excel';
-                        final icon = type == ExportType.pdf
-                            ? Icons.picture_as_pdf_rounded
-                            : Icons.table_chart_rounded;
+                        final label = type == ExportType.pdf ? 'PDF' : 'Excel';
+                        final icon =
+                            type == ExportType.pdf
+                                ? Icons.picture_as_pdf_rounded
+                                : Icons.table_chart_rounded;
                         return Padding(
                           padding: const EdgeInsets.only(right: 8.0),
                           child: ChoiceChip(
                             avatar: Icon(
                               icon,
                               size: 16,
-                              color: isSelected
-                                  ? Colors.white
-                                  : AppColors.secondaryColor,
+                              color:
+                                  isSelected
+                                      ? Colors.white
+                                      : AppColors.secondaryColor,
                             ),
                             label: Text(
                               label,
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
-                                color: isSelected
-                                    ? Colors.white
-                                    : AppColors.secondaryColor,
+                                color:
+                                    isSelected
+                                        ? Colors.white
+                                        : AppColors.secondaryColor,
                               ),
                             ),
                             selected: isSelected,
-                            onSelected: (_) =>
-                                controller.setExportType(type),
+                            onSelected: (_) => controller.setExportType(type),
                             selectedColor: AppColors.secondaryColor,
-                            backgroundColor: isDarkMode
-                                ? darkGray
-                                : healthServiceBackgroundCardColor,
+                            backgroundColor:
+                                isDarkMode
+                                    ? darkGray
+                                    : healthServiceBackgroundCardColor,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                               side: BorderSide(
-                                color: isSelected
-                                    ? AppColors.secondaryColor
-                                    : AppColors.secondaryColor
-                                    .withOpacity(0.4),
+                                color:
+                                    isSelected
+                                        ? AppColors.secondaryColor
+                                        : AppColors.secondaryColor.withOpacity(
+                                          0.4,
+                                        ),
                               ),
                             ),
                             showCheckmark: false,
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
                           ),
                         );
                       }),
@@ -206,8 +214,8 @@ class HealthReportScreen extends StatelessWidget {
                 return Align(
                   alignment: Alignment.centerLeft,
                   child: InkWell(
-                    onTap: () =>
-                        controller.toggleSelectAll(
+                    onTap:
+                        () => controller.toggleSelectAll(
                           !isAll,
                           healthServices.length,
                         ),
@@ -217,8 +225,8 @@ class HealthReportScreen extends StatelessWidget {
                         Checkbox(
                           value: isAll,
                           activeColor: AppColors.secondaryColor,
-                          onChanged: (val) =>
-                              controller.toggleSelectAll(
+                          onChanged:
+                              (val) => controller.toggleSelectAll(
                                 val,
                                 healthServices.length,
                               ),
@@ -240,8 +248,9 @@ class HealthReportScreen extends StatelessWidget {
 
               // ── Health Service Grid ───────────────────────────────
               Obx(() {
-                final selectedIndexes =
-                Set<int>.from(controller.selectedHealthIndexes);
+                final selectedIndexes = Set<int>.from(
+                  controller.selectedHealthIndexes,
+                );
                 return _healthServiceList(
                   controller: controller,
                   healthServices: healthServices,
@@ -262,26 +271,39 @@ class HealthReportScreen extends StatelessWidget {
                   isDarkMode: isDarkMode,
                   borderRadius: 12,
                   backgroundColor: AppColors.secondaryColor,
-                  buttonName: isLoading
-                      ? 'Generating Report…'
-                      : 'Request Health Record',
-                  onTap: isLoading
-                      ? null
-                      : () =>
-                      controller.requestHealthRecord(
-                          allServices: healthServices), // ← FIX 1
+                  buttonName:
+                      isLoading
+                          ? 'Generating Report…'
+                          : 'Request Health Record',
+                  onTap:
+                      isLoading
+                          ? null
+                          : () => controller.requestHealthRecord(
+                            allServices: healthServices,
+                          ), // ← FIX 1
                 );
               }),
 
               SizedBox(height: 16 * scale),
 
-              const Text(
-                " Requested Health Record",
-                style:
-                TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-              ),
+              Obx(() {
+                if (controller.requestedReports.isEmpty) {
+                  return const SizedBox.shrink();
+                }
 
-              SizedBox(height: 12 * scale),
+                return Column(
+                  children: [
+                    const Text(
+                      "Requested Health Record",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                    SizedBox(height: 12 * scale),
+                  ],
+                );
+              }),
 
               // ── Requested Reports List ────────────────────────────
               // FIX 2: use requestedReports directly (RxList), no .value
@@ -291,8 +313,7 @@ class HealthReportScreen extends StatelessWidget {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: reports.length,
-                  separatorBuilder: (_, __) =>
-                      SizedBox(height: 10 * scale),
+                  separatorBuilder: (_, __) => SizedBox(height: 10 * scale),
                   itemBuilder: (context, index) {
                     final report = reports[index];
                     return _downloadedReportContainer(
@@ -344,8 +365,7 @@ class HealthReportScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Padding(
-        padding:
-        const EdgeInsets.symmetric(horizontal: 15.0, vertical: 12.0),
+        padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 12.0),
         child: GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -359,8 +379,11 @@ class HealthReportScreen extends StatelessWidget {
           itemBuilder: (context, index) {
             final item = healthServices[index];
             return InkWell(
-              onTap: () =>
-                  controller.toggleHealthService(index, healthServices.length),
+              onTap:
+                  () => controller.toggleHealthService(
+                    index,
+                    healthServices.length,
+                  ),
               child: SizedBox(
                 width: 72 * scale,
                 height: 52 * scale,
@@ -388,9 +411,10 @@ class HealthReportScreen extends StatelessWidget {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: isSelected
-            ? AppColors.secondaryColor
-            : (isDarkMode ? darkGray : healthServiceBackgroundCardColor),
+        color:
+            isSelected
+                ? AppColors.secondaryColor
+                : (isDarkMode ? darkGray : healthServiceBackgroundCardColor),
         borderRadius: BorderRadius.circular(7),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 10),
@@ -409,8 +433,7 @@ class HealthReportScreen extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.w400,
                 fontSize: 8,
-                color:
-                isSelected ? white : (isDarkMode ? white : black),
+                color: isSelected ? white : (isDarkMode ? white : black),
               ),
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
@@ -456,27 +479,29 @@ class HealthReportScreen extends StatelessWidget {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: items.length,
-        separatorBuilder: (_, _) => Divider(
-          height: 1,
-          thickness: 1,
-          color: Colors.grey.withOpacity(0.2),
-        ),
+        separatorBuilder:
+            (_, _) => Divider(
+              height: 1,
+              thickness: 1,
+              color: Colors.grey.withOpacity(0.2),
+            ),
         itemBuilder: (ctx, index) {
           final isSelected = selectedIndex == index;
           final isCustomRow = segmentedValue == 0 && index == 4;
-          final showDateSubtitle =
-              isCustomRow && isCustomSelected && hasDates;
+          final showDateSubtitle = isCustomRow && isCustomSelected && hasDates;
 
           return InkWell(
             borderRadius: BorderRadius.only(
               topLeft: index == 0 ? const Radius.circular(12) : Radius.zero,
               topRight: index == 0 ? const Radius.circular(12) : Radius.zero,
-              bottomLeft: index == items.length - 1
-                  ? const Radius.circular(12)
-                  : Radius.zero,
-              bottomRight: index == items.length - 1
-                  ? const Radius.circular(12)
-                  : Radius.zero,
+              bottomLeft:
+                  index == items.length - 1
+                      ? const Radius.circular(12)
+                      : Radius.zero,
+              bottomRight:
+                  index == items.length - 1
+                      ? const Radius.circular(12)
+                      : Radius.zero,
             ),
             onTap: () async {
               controller.onRangeSelected(index);
@@ -485,24 +510,26 @@ class HealthReportScreen extends StatelessWidget {
                   context: context,
                   firstDate: DateTime(2020),
                   lastDate: DateTime.now(),
-                  initialDateRange: hasDates
-                      ? DateTimeRange(
-                          start: customFromDate,
-                          end: customToDate,
-                        )
-                      : null,
-                  builder: (ctx, child) => Theme(
-                    data: Theme.of(ctx).copyWith(
-                      colorScheme: ColorScheme.fromSeed(
-                        seedColor: AppColors.secondaryColor,
-                        brightness: Theme.of(ctx).brightness,
-                      ).copyWith(
-                        primary: AppColors.secondaryColor,
-                        onPrimary: Colors.white,
+                  initialDateRange:
+                      hasDates
+                          ? DateTimeRange(
+                            start: customFromDate,
+                            end: customToDate,
+                          )
+                          : null,
+                  builder:
+                      (ctx, child) => Theme(
+                        data: Theme.of(ctx).copyWith(
+                          colorScheme: ColorScheme.fromSeed(
+                            seedColor: AppColors.secondaryColor,
+                            brightness: Theme.of(ctx).brightness,
+                          ).copyWith(
+                            primary: AppColors.secondaryColor,
+                            onPrimary: Colors.white,
+                          ),
+                        ),
+                        child: child!,
                       ),
-                    ),
-                    child: child!,
-                  ),
                 );
                 if (picked != null) {
                   controller.setCustomFromDate(picked.start);
@@ -512,20 +539,22 @@ class HealthReportScreen extends StatelessWidget {
             },
             child: Container(
               decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.secondaryColor.withOpacity(0.1)
-                    : Colors.transparent,
+                color:
+                    isSelected
+                        ? AppColors.secondaryColor.withOpacity(0.1)
+                        : Colors.transparent,
                 borderRadius: BorderRadius.only(
-                  topLeft:
-                      index == 0 ? const Radius.circular(12) : Radius.zero,
+                  topLeft: index == 0 ? const Radius.circular(12) : Radius.zero,
                   topRight:
                       index == 0 ? const Radius.circular(12) : Radius.zero,
-                  bottomLeft: index == items.length - 1
-                      ? const Radius.circular(12)
-                      : Radius.zero,
-                  bottomRight: index == items.length - 1
-                      ? const Radius.circular(12)
-                      : Radius.zero,
+                  bottomLeft:
+                      index == items.length - 1
+                          ? const Radius.circular(12)
+                          : Radius.zero,
+                  bottomRight:
+                      index == items.length - 1
+                          ? const Radius.circular(12)
+                          : Radius.zero,
                 ),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -567,9 +596,8 @@ class HealthReportScreen extends StatelessWidget {
                     Icon(
                       Icons.calendar_month_outlined,
                       size: 16,
-                      color: isSelected
-                          ? AppColors.secondaryColor
-                          : Colors.grey,
+                      color:
+                          isSelected ? AppColors.secondaryColor : Colors.grey,
                     ),
                 ],
               ),
@@ -597,35 +625,36 @@ class HealthReportScreen extends StatelessWidget {
     required bool isDarkMode,
   }) {
     return Obx(() {
-      final isDownloading =
-          controller.isDownloadingMap[reportIndex] ?? false;
-      final isDownloaded =
-          controller.isDownloadedMap[reportIndex] ?? false;
+      final isDownloading = controller.isDownloadingMap[reportIndex] ?? false;
+      final isDownloaded = controller.isDownloadedMap[reportIndex] ?? false;
       final downloadProgress =
           controller.downloadProgressMap[reportIndex] ?? 0.0;
 
       // FIX 4: pick icon asset based on export type
       final String reportIcon =
-      exportType == ExportType.pdf ? pdfIcon : excelIcon;
+          exportType == ExportType.pdf ? pdfIcon : excelIcon;
 
       return InkWell(
-        onTap: (isDownloading || isFailed)
-            ? null
-            : () => controller.downloadReport(reportIndex),
+        onTap:
+            (isDownloading || isFailed)
+                ? null
+                : () => controller.downloadReport(reportIndex),
         child: Container(
           height: 53 * scale,
           width: double.infinity,
           decoration: BoxDecoration(
             // FIX 5: tint red if generation failed
-            color: isFailed
-                ? Colors.red.withOpacity(0.07)
-                : (isDarkMode
-                ? darkGray
-                : healthServiceBackgroundCardColor),
+            color:
+                isFailed
+                    ? Colors.red.withOpacity(0.07)
+                    : (isDarkMode
+                        ? darkGray
+                        : healthServiceBackgroundCardColor),
             borderRadius: BorderRadius.circular(12),
-            border: isFailed
-                ? Border.all(color: Colors.red.withOpacity(0.3))
-                : null,
+            border:
+                isFailed
+                    ? Border.all(color: Colors.red.withOpacity(0.3))
+                    : null,
           ),
           padding: const EdgeInsets.all(8),
           child: Center(
@@ -634,14 +663,12 @@ class HealthReportScreen extends StatelessWidget {
                 // FIX 4: dynamic icon
                 CircleAvatar(
                   radius: 16 * scale,
-                  backgroundColor:
-                  AppColors.secondaryColor.withOpacity(0.2),
+                  backgroundColor: AppColors.secondaryColor.withOpacity(0.2),
                   child: Image.asset(
                     reportIcon,
                     color: AppColors.secondaryColor.withOpacity(0.9),
                     height: 24,
                     width: 24,
-
                   ),
                 ),
                 SizedBox(width: 15 * scale),
@@ -652,9 +679,8 @@ class HealthReportScreen extends StatelessWidget {
                     children: [
                       Text(
                         "${serviceType.take(2).join(', ')}"
-                            "${serviceType.length > 2 ? ' +${serviceType
-                            .length - 2} more' : ''}"
-                            " • $timePeriod",
+                        "${serviceType.length > 2 ? ' +${serviceType.length - 2} more' : ''}"
+                        " • $timePeriod",
                         style: const TextStyle(
                           fontWeight: FontWeight.w400,
                           fontSize: 12,
@@ -667,14 +693,13 @@ class HealthReportScreen extends StatelessWidget {
                         isFailed
                             ? "Generation failed"
                             : "Requested on ${requestedOn.day} "
-                            "${_monthName(requestedOn.month)} "
-                            "${requestedOn.year}",
+                                "${_monthName(requestedOn.month)} "
+                                "${requestedOn.year}",
                         style: TextStyle(
                           fontWeight: FontWeight.w400,
                           fontSize: 7,
-                          color: isFailed
-                              ? Colors.red
-                              : const Color(0xff626262),
+                          color:
+                              isFailed ? Colors.red : const Color(0xff626262),
                         ),
                       ),
                     ],
@@ -684,100 +709,100 @@ class HealthReportScreen extends StatelessWidget {
                 // FIX 5: hide download button if generation failed
                 if (!isFailed)
                   InkWell(
-                    onTap: isDownloading
-                        ? null
-                        : () => controller.downloadReport(reportIndex),
+                    onTap:
+                        isDownloading
+                            ? null
+                            : () => controller.downloadReport(reportIndex),
                     child: Container(
                       height: 26 * scale,
                       width: 110 * scale,
                       padding: const EdgeInsets.all(1.5),
                       decoration: BoxDecoration(
-                        gradient: isDownloaded
-                            ? AppColors.greenGradient
-                            : AppColors.primaryGradient,
+                        gradient:
+                            isDownloaded
+                                ? AppColors.greenGradient
+                                : AppColors.primaryGradient,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: isDarkMode
-                              ? darkGray.withOpacity(0.3)
-                              : Colors.white,
+                          color:
+                              isDarkMode
+                                  ? darkGray.withOpacity(0.3)
+                                  : Colors.white,
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        child: isDownloading
-                            ? Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            ClipRRect(
-                              borderRadius:
-                              BorderRadius.circular(14),
-                              child: LinearProgressIndicator(
-                                value: downloadProgress,
-                                minHeight: double.infinity,
-                                backgroundColor: isDarkMode
-                                    ? AppColors.secondaryColor
-                                    .withOpacity(0.5)
-                                    : Colors.grey.shade200,
-                                valueColor:
-                                AlwaysStoppedAnimation(
-                                  isDarkMode
-                                      ? white
-                                      : AppColors.secondaryColor,
+                        child:
+                            isDownloading
+                                ? Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(14),
+                                      child: LinearProgressIndicator(
+                                        value: downloadProgress,
+                                        minHeight: double.infinity,
+                                        backgroundColor:
+                                            isDarkMode
+                                                ? AppColors.secondaryColor
+                                                    .withOpacity(0.5)
+                                                : Colors.grey.shade200,
+                                        valueColor: AlwaysStoppedAnimation(
+                                          isDarkMode
+                                              ? white
+                                              : AppColors.secondaryColor,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      "${(downloadProgress * 100).toInt()}%",
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDarkMode ? black : white,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                                : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      isDownloaded
+                                          ? Icons.download_done_rounded
+                                          : Icons.download_rounded,
+                                      size: 14,
+                                      color:
+                                          isDownloaded
+                                              ? Colors.green
+                                              : (isDarkMode ? white : black),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      isDownloaded ? "Downloaded" : "Download",
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                        color:
+                                            isDownloaded
+                                                ? (isDarkMode ? white : black)
+                                                : (isDarkMode ? white : black),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ),
-                            Text(
-                              "${(downloadProgress * 100).toInt()}%",
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color:
-                                isDarkMode ? black : white,
-                              ),
-                            ),
-                          ],
-                        )
-                            : Row(
-                          mainAxisAlignment:
-                          MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              isDownloaded
-                                  ? Icons.download_done_rounded
-                                  : Icons.download_rounded,
-                              size: 14,
-                              color: isDownloaded
-                                  ? Colors.green
-                                  : (isDarkMode ? white : black),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              isDownloaded
-                                  ? "Downloaded"
-                                  : "Download",
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                                color: isDownloaded
-                                    ? (isDarkMode ? white : black)
-                                    : (isDarkMode ? white : black),
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
                     ),
                   )
                 else
-                // FIX 5: "Failed" badge when isFailed = true
+                  // FIX 5: "Failed" badge when isFailed = true
                   Container(
                     height: 26 * scale,
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     decoration: BoxDecoration(
                       color: Colors.red.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                          color: Colors.red.withOpacity(0.4)),
+                      border: Border.all(color: Colors.red.withOpacity(0.4)),
                     ),
                     child: const Center(
                       child: Text(
@@ -814,8 +839,18 @@ class HealthReportScreen extends StatelessWidget {
 
   String _monthName(int month) {
     const months = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
     ];
     return months[month - 1];
   }

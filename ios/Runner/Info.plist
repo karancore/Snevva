@@ -104,12 +104,12 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 
+
     <key>CFBundleURLTypes</key>
     <array>
         <dict>
             <key>CFBundleTypeRole</key>
             <string>Editor</string>
-
             <key>CFBundleURLSchemes</key>
             <array>
                 <string>com.googleusercontent.apps.760082000923-oqaot6mujmcgro2bbrb396mul4edcipa
@@ -117,6 +117,7 @@
             </array>
         </dict>
     </array>
+
 
     <key>NSHealthShareUsageDescription</key>
     <string>We need access to your health data to track your daily steps.</string>

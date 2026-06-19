@@ -10,6 +10,7 @@ import 'package:snevva/widgets/common/common_tip_widget.dart';
 import '../../Controllers/Vitals/vitalsController.dart';
 import '../../Controllers/common/common_tips_controller.dart';
 import '../../common/global_variables.dart';
+import '../../features/health_sdk/controllers/health_sdk_controller.dart';
 import '../../widgets/CommonWidgets/custom_appbar.dart';
 import '../../widgets/CommonWidgets/custom_outlined_button.dart';
 import '../../widgets/Drawer/drawer_menu_wigdet.dart';
@@ -217,15 +218,29 @@ class _VitalScreenState extends State<VitalScreen> {
       );
     });
 
+    final healthSdk = Get.find<HealthSdkController>();
+
     if (_controller.bpm.value > 0) {
       bpmController.text = _controller.bpm.value.toString();
       heartRateNotifier.value = _controller.bpm.value;
+    } else if (healthSdk.latestHeartRate.value != null) {
+      final bpmVal = healthSdk.latestHeartRate.value!.beatsPerMinute.toInt();
+      bpmController.text = bpmVal.toString();
+      heartRateNotifier.value = bpmVal;
     }
+
     if (_controller.sys.value > 0) {
       systolicController.text = _controller.sys.value.toString();
+    } else if (healthSdk.latestBloodPressure.value != null) {
+      systolicController.text = healthSdk.latestBloodPressure.value!.systolic
+          .toStringAsFixed(0);
     }
+
     if (_controller.dia.value > 0) {
       diastolicController.text = _controller.dia.value.toString();
+    } else if (healthSdk.latestBloodPressure.value != null) {
+      diastolicController.text = healthSdk.latestBloodPressure.value!.diastolic
+          .toStringAsFixed(0);
     }
 
     _controller.loadVitalsFromLocalStorage().then((_) {
@@ -233,12 +248,27 @@ class _VitalScreenState extends State<VitalScreen> {
       if (_controller.bpm.value > 0) {
         bpmController.text = _controller.bpm.value.toString();
         heartRateNotifier.value = _controller.bpm.value;
+      } else if (healthSdk.latestHeartRate.value != null) {
+        final bpmVal = healthSdk.latestHeartRate.value!.beatsPerMinute.toInt();
+        bpmController.text = bpmVal.toString();
+        heartRateNotifier.value = bpmVal;
       }
+
       if (_controller.sys.value > 0) {
         systolicController.text = _controller.sys.value.toString();
+      } else if (healthSdk.latestBloodPressure.value != null) {
+        systolicController.text = healthSdk.latestBloodPressure.value!.systolic
+            .toStringAsFixed(0);
       }
+
       if (_controller.dia.value > 0) {
         diastolicController.text = _controller.dia.value.toString();
+      } else if (healthSdk.latestBloodPressure.value != null) {
+        diastolicController.text = healthSdk
+            .latestBloodPressure
+            .value!
+            .diastolic
+            .toStringAsFixed(0);
       }
     });
 
