@@ -1,14 +1,12 @@
-import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_navigation/src/extension_navigation.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:snevva/consts/colors.dart';
 import 'package:snevva/consts/images.dart';
-import 'package:snevva/env/env.dart';
-import 'package:snevva/services/api_service.dart';
 
 /// ---------- DECISION TREE MODEL ----------
 
@@ -38,90 +36,6 @@ class Option {
   }
 }
 
-
-Future<Map<String, DecisionNode>> loadDecisionTree() async {
-  try {
-    final jsonString = await rootBundle.loadString(
-      'assets/json/decision_tree.json',
-    );
-
-    final Map<String, dynamic> res = jsonDecode(jsonString);
-
-    final nodes = <String, DecisionNode>{};
-
-    res.forEach((key, value) {
-      try {
-        nodes[key] = DecisionNode.fromJson(
-          Map<String, dynamic>.from(value),
-        );
-      } catch (e) {
-        debugPrint('❌ Error parsing node $key: $e');
-      }
-    });
-
-    debugPrint("✅ Local decision tree loaded");
-    debugPrint("🌳 Tree size: ${nodes.length}");
-
-    return nodes;
-  } catch (e, stack) {
-    debugPrint("❌ Failed loading local decision tree");
-    debugPrint(e.toString());
-    debugPrint(stack.toString());
-
-    return {};
-  }
-}
-
-/// ---------- LOAD DECISION TREE FROM API OR CACHE ----------
-
-Future<Map<String, DecisionNode>> loadDecisionTreeFromApi() async {
-  try {
-    final response = await ApiService.post(
-      ellychat,
-      null,
-      withAuth: true,
-      encryptionRequired: true,
-    );
-
-    debugPrint(response.toString());
-
-    // Convert to Map
-    if (response is Map && response['data'] != null) {
-      final res = Map<String, dynamic>.from(response['data']);
-      debugPrint("API decision tree fetched.");
-
-      // Save JSON
-      // await _saveDecisionJsonLocally(res);
-      // debugPrint("Decision tree saved locally.");
-      // Parse
-      final nodes = <String, DecisionNode>{};
-
-      res.forEach((key, value) {
-        try {
-          final normalized = Map<String, dynamic>.from(
-            jsonDecode(jsonEncode(value)),
-          );
-
-          nodes[key] = DecisionNode.fromJson(normalized);
-        } catch (e) {
-          debugPrint('Error parsing decision node for key $key: $e');
-        }
-      });
-
-      // debugPrint("Decision tree parsed from API.");
-
-      return nodes;
-    } else {
-      throw FormatException("Response does not contain 'data'");
-    }
-  } catch (e, stack) {
-    debugPrint("❌ API FAILED in loadDecisionTree");
-    debugPrint(e.toString());
-    debugPrint(stack.toString());
-    rethrow; // TEMP: let it crash so you see the real issue
-  }
-}
-
 /// ---------- LOCAL STORAGE ----------
 
 /// ---------- CHAT MESSAGE MODEL ----------
@@ -130,8 +44,11 @@ class ChatMessage {
   final String text;
   final bool isUser;
   final DateTime time;
+  final File? image;
 
-  ChatMessage({required this.text, required this.isUser, required this.time});
+
+  ChatMessage(
+      {required this.text, required this.isUser, required this.time, this.image});
 }
 
 /// ---------- MAIN SCREEN ----------
@@ -145,7 +62,25 @@ class SnevvaAIChatScreen extends StatefulWidget {
 
 class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
   final List<ChatMessage> messages = [];
+  final _userController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+
+  File? _selectedImage;
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _openGallery() async {
+    final XFile? pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
+    } else {
+      debugPrint("No image selected");
+    }
+  }
 
   Map<String, DecisionNode> decisionTree = {};
   String currentNodeKey = "welcome";
@@ -153,12 +88,9 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
 
   bool _isScrolled = false;
 
-
   @override
   void initState() {
     super.initState();
-
-    _initializeTree();
 
     _scrollController.addListener(() {
       final scrolled = _scrollController.offset > 10;
@@ -169,23 +101,6 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
         });
       }
     });
-  }
-
-  Future<void> _initializeTree() async {
-    // decisionTree = await loadDecisionTree();
-    decisionTree = await loadDecisionTreeFromApi();
-
-    if (decisionTree.isEmpty) {
-      debugPrint("❌ decisionTree is EMPTY. Chat cannot load.");
-      return;
-    }
-
-    if (!decisionTree.containsKey("welcome")) {
-      debugPrint("❌ 'welcome' node is missing. Using first key.");
-      currentNodeKey = decisionTree.keys.first;
-    }
-
-    _showCurrentNode();
   }
 
   /// Smooth scroll
@@ -218,11 +133,24 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
     _scrollToBottom();
   }
 
-  void _addUserMessage(String text) {
+  void _addUserMessage(String text, {File ? image}) {
     setState(() {
-      messages.add(ChatMessage(text: text, isUser: true, time: DateTime.now()));
+      messages.add(ChatMessage(
+          text: text, isUser: true, time: DateTime.now(), image: image));
     });
     _scrollToBottom();
+  }
+
+  void _sendMessage() {
+    final text = _userController.text.trim();
+    if (text.isEmpty && _selectedImage == null) return; // nothing to send
+
+    _addUserMessage(text, image: _selectedImage);
+
+    _userController.clear();
+    setState(() {
+      _selectedImage = null; // clears the thumbnail preview too
+    });
   }
 
   void _handleOptionSelected(Option option) async {
@@ -239,6 +167,12 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
     }
   }
 
+  Future<void> _cancelImage() async {
+    setState(() {
+      _selectedImage = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
@@ -248,6 +182,7 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      resizeToAvoidBottomInset: true,
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(kToolbarHeight),
         child: AnimatedContainer(
@@ -256,9 +191,7 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
             elevation: 0,
             automaticallyImplyLeading: false,
             backgroundColor:
-            _isScrolled
-                ? (isDarkMode ? black : white)
-                : Colors.transparent,
+            _isScrolled ? (isDarkMode ? black : white) : Colors.transparent,
             leading: IconButton(
               onPressed: () {
                 Get.back();
@@ -361,82 +294,182 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
                       final msg = messages[i];
 
                       return Align(
-                        alignment:
-                            msg.isUser
-                                ? Alignment.centerRight
-                                : Alignment.centerLeft,
+                        alignment: msg.isUser
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
                         child: Column(
                           crossAxisAlignment:
-                              msg.isUser
-                                  ? CrossAxisAlignment.end
-                                  : CrossAxisAlignment.start,
+                          msg.isUser
+                              ? CrossAxisAlignment.end
+                              : CrossAxisAlignment.start,
                           children: [
                             msg.isUser
-                                ? SizedBox.shrink()
+                                ? const SizedBox.shrink()
                                 : Text(
-                                  "Elly  ${DateFormat('hh:mm a').format(msg.time)}",
-                                  style: TextStyle(fontSize: 10),
-                                ),
-
-                            Container(
-                              margin: const EdgeInsets.symmetric(vertical: 6),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              constraints: BoxConstraints(
-                                maxWidth: mediaQuery.size.width * 0.75,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient:
-                                    msg.isUser
-                                        ? AppColors.primaryGradient
-                                        : AppColors.whiteGradient,
-                                // White for bot
-                                borderRadius: BorderRadius.only(
-                                  topLeft: const Radius.circular(20),
-                                  topRight: const Radius.circular(20),
-                                  bottomLeft:
-                                      msg.isUser
-                                          ? const Radius.circular(20)
-                                          : Radius.zero,
-                                  bottomRight:
-                                      msg.isUser
-                                          ? Radius.zero
-                                          : const Radius.circular(20),
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 5,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Text(
-                                msg.text,
-                                style: TextStyle(
-                                  color:
-                                      msg.isUser
-                                          ? Colors.white
-                                          : Colors.black87,
-                                  fontSize: 16,
-                                ),
-                              ),
+                              "Elly  ${DateFormat('hh:mm a').format(msg.time)}",
+                              style: const TextStyle(fontSize: 10),
                             ),
+
+                            // Image bubble (only if this message has an image)
+                            if (msg.image != null)
+                              Container(
+                                margin: const EdgeInsets.only(top: 6),
+                                constraints: BoxConstraints(
+                                  maxWidth: mediaQuery.size.width * 0.6,
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Image.file(
+                                    msg.image!, fit: BoxFit.cover),
+                              ),
+
+                            // Text bubble (only if there's actual text)
+                            if (msg.text.isNotEmpty)
+                              Container(
+                                margin: const EdgeInsets.symmetric(vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
+                                constraints: BoxConstraints(
+                                  maxWidth: mediaQuery.size.width * 0.75,
+                                ),
+                                decoration: BoxDecoration(
+                                  gradient: msg.isUser
+                                      ? AppColors.primaryGradient
+                                      : AppColors.whiteGradient,
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: const Radius.circular(20),
+                                    topRight: const Radius.circular(20),
+                                    bottomLeft: msg.isUser ? const Radius
+                                        .circular(20) : Radius.zero,
+                                    bottomRight: msg.isUser
+                                        ? Radius.zero
+                                        : const Radius.circular(20),
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 5,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  msg.text,
+                                  style: TextStyle(
+                                    color: msg.isUser ? Colors.white : Colors
+                                        .black87,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+
                             msg.isUser
                                 ? Text(
-                                  "YOU  ${DateFormat('hh:mm a').format(msg.time)}",
-                                  style: TextStyle(fontSize: 10),
-                                )
-                                : SizedBox.shrink(),
+                              "YOU  ${DateFormat('hh:mm a').format(msg.time)}",
+                              style: const TextStyle(fontSize: 10),
+                            )
+                                : const SizedBox.shrink(),
                           ],
                         ),
                       );
                     },
                   ),
                 ),
+                SafeArea(
+                  top: false,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_selectedImage != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _selectedImageViewer(),
+                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _userController,
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: white,
+                                  hintText: "Enter message",
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: _openGallery,
+                              icon: Icon(
+                                  Icons.attach_file_outlined, color: black),
+                            ),
+                            InkWell(
+                              onTap: _sendMessage,
+                              child: Container(
+                                height: 36,
+                                width: 36,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.primaryColor,
+                                ),
+                                child: Center(
+                                  child: Icon(Icons.send, color: white),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _selectedImageViewer() {
+    if (_selectedImage == null) return const SizedBox.shrink();
+
+    return Align(
+      alignment: Alignment.topLeft,
+      child: Stack(
+        clipBehavior: Clip.none, // lets the cancel badge overflow the corner
+        children: [
+          Container(
+            height: 70,
+            width: 70,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Image.file(_selectedImage!, fit: BoxFit.cover),
+          ),
+          Positioned(
+            top: -8,
+            right: -8,
+            child: GestureDetector(
+              onTap: _cancelImage,
+              child: Container(
+                height: 20,
+                width: 20,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.black54,
+                ),
+                child: const Icon(Icons.close, size: 14, color: Colors.white),
+              ),
             ),
           ),
         ],
