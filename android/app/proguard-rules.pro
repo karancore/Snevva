@@ -24,6 +24,8 @@
 -keep class com.google.android.gms.common.** { *; }
 -keep class com.google.android.gms.signin.** { *; }
 -keep class com.google.android.gms.tasks.** { *; }
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.android.gms.**
 
 # Firebase Auth
 -keep class com.google.firebase.auth.** { *; }

@@ -1,11 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:snevva/utils/push_notifications_controller.dart';
 import 'package:snevva/utils/theme_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../Widgets/CommonWidgets/custom_appbar.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../consts/consts.dart';
 import '../debug_log_page.dart';
@@ -48,7 +48,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-
     fetchAppVersion();
   }
 
@@ -59,10 +58,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<String> getAppVersion() async {
     final packageInfo = await PackageInfo.fromPlatform();
-
     String version = packageInfo.version; // e.g. 1.0.0
-    String buildNumber = packageInfo.buildNumber; // e.g. 1
-
     return version;
   }
 
@@ -73,62 +69,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final width = mediaQuery.size.width;
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        surfaceTintColor: Colors.transparent,
-        centerTitle: true,
-        scrolledUnderElevation: 0.0,
-
-        title: Text(
-          "Settings",
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
-
-        leading: Builder(
-          builder: (context) {
-            return Padding(
-              padding: const EdgeInsets.only(left: 12),
-              child: IconButton(
-                iconSize: 200.0,
-                icon: SvgPicture.asset(drawerIcon),
-                onPressed: () {
-                  final scaffold = Scaffold.maybeOf(context);
-
-                  if (scaffold != null) {
-                    scaffold.openDrawer();
-                  }
-                },
-              ),
-            );
-          },
-        ),
-
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 20),
-            child: InkWell(
-              onTap: () {
-                Navigator.pop(context);
-              },
-              child: SizedBox(
-                height: 24,
-                width: 24,
-                child: Icon(
-                  Icons.clear,
-                  size: 21,
-                  color: isDarkMode ? white : black,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+      appBar: CustomAppBar(appbarText: 'Settings', showDrawerIcon: true),
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       body: SingleChildScrollView(
         child: Padding(

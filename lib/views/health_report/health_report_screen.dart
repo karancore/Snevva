@@ -8,6 +8,7 @@ import 'package:snevva/Widgets/CommonWidgets/custom_outlined_button.dart';
 import 'package:snevva/consts/images.dart';
 import 'package:snevva/widgets/reminder/custom_Radio.dart';
 
+import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../consts/colors.dart';
 import '../../models/queryParamViewModels/fetch_health_report_vm.dart';
 
@@ -47,14 +48,15 @@ class HealthReportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(HealthReportController());
-
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final width = MediaQuery.of(context).size.width;
-    final double scale = width / 360;
     const double itemHeight = 52.0;
-
+    final mediaQuery = MediaQuery.of(context);
+    final height = mediaQuery.size.height;
+    final width = mediaQuery.size.width;
+    final double scale = width / 360;
     return Scaffold(
-      appBar: CustomAppBar(appbarText: 'Health Record', showDrawerIcon: false),
+      appBar: CustomAppBar(appbarText: 'Health Record', showDrawerIcon: true),
+      drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -275,13 +277,24 @@ class HealthReportScreen extends StatelessWidget {
 
               SizedBox(height: 16 * scale),
 
-              const Text(
-                " Requested Health Record",
-                style:
-                TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-              ),
 
-              SizedBox(height: 12 * scale),
+              Obx(() {
+                final reports = controller.requestedReports;
+                if (reports.isEmpty) {
+                  return SizedBox.shrink();
+                }
+                return Column(
+                  children: [
+                    const Text(
+                      " Requested Health Record",
+                      style:
+                      TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                    ),
+
+                    SizedBox(height: 12 * scale),
+                  ],
+                );
+              }),
 
               // ── Requested Reports List ────────────────────────────
               // FIX 2: use requestedReports directly (RxList), no .value

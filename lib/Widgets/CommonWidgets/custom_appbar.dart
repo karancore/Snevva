@@ -49,13 +49,16 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                       padding: const EdgeInsets.only(left: 12),
                       child: IconButton(
                         iconSize: 200.0,
+                        splashRadius: 24,
+                        style: IconButton.styleFrom(
+                          shape: const CircleBorder(),
+                        ),
                         icon: SvgPicture.asset(
                           isWhiteRequired! ? drawerIconWhite : drawerIcon,
                         ),
                         onPressed: () {
                           // 🔍 Check if Scaffold exists
                           final scaffold = Scaffold.maybeOf(context);
-
                           if (scaffold != null) {
                             scaffold.openDrawer();
                           }
@@ -79,20 +82,25 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ? [
                   Padding(
                     padding: const EdgeInsets.only(right: 20),
-                    child: InkWell(
-                      onTap: () {
-                        onClose != null ? onClose!() : Navigator.pop(context);
-                      },
-                      child: SizedBox(
-                        height: 36,
-                        width: 36,
-                        child: Icon(
-                          Icons.clear,
-                          size: 34,
-                          color:
-                              isWhiteRequired!
-                                  ? white
-                                  : (isDarkMode ? white : black),
+                    child: Material(
+                      shape: const CircleBorder(),
+                      color: Colors.transparent,
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () {
+                          onClose != null ? onClose!() : Navigator.pop(context);
+                        },
+                        child: SizedBox(
+                          height: 36,
+                          width: 36,
+                          child: Icon(
+                            Icons.clear,
+                            size: 30,
+                            color:
+                                isWhiteRequired!
+                                    ? white
+                                    : (isDarkMode ? white : black),
+                          ),
                         ),
                       ),
                     ),

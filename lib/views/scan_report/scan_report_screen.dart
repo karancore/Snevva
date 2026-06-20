@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:mime/mime.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:snevva/Controllers/ReportScan/scan_report_controller.dart';
+import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/scan_report/report_details_screen.dart';
 
@@ -483,25 +484,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
     return Scaffold(
       backgroundColor: bg,
 
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: bg,
-        centerTitle: true,
-
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: isDark ? white : black),
-          onPressed: () => Navigator.pop(context),
-        ),
-
-        title: Text(
-          'Upload Report',
-          style: TextStyle(
-            color: isDark ? white : black,
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
-          ),
-        ),
-      ),
+      appBar: CustomAppBar(appbarText: 'Upload Report'),
 
       bottomNavigationBar:
           _pdfPath != null

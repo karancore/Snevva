@@ -3,6 +3,8 @@ import 'package:snevva/views/scan_report/report_details_screen.dart';
 import 'package:snevva/views/scan_report/scan_report_screen.dart';
 
 import '../../Controllers/ReportScan/scan_report_controller.dart';
+import '../../Widgets/CommonWidgets/custom_appbar.dart';
+import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../consts/consts.dart';
 import '../../models/scan_report_history.dart';
 
@@ -13,33 +15,17 @@ class ScanReportLandingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.find<ScanReportController>();
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-
     final Color scaffoldBg = isDark ? scaffoldColorDark : scaffoldColorLight;
-    final Color titleColor = isDark ? Colors.white : Colors.black87;
-    final Color backIconColor = isDark ? Colors.white : Colors.black87;
+    final mediaQuery = MediaQuery.of(context);
+    final height = mediaQuery.size.height;
+    final width = mediaQuery.size.width;
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: AppBar(
-        backgroundColor: scaffoldBg,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: backIconColor),
-          onPressed: () => Get.back(),
-        ),
-        title: Text(
-          'Scan Report',
-          style: TextStyle(
-            color: titleColor,
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-          ),
-        ),
-        centerTitle: true,
-      ),
+      appBar: CustomAppBar(appbarText: 'Scan Report', showDrawerIcon: true),
+      drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       body: Obx(() {
         final history = controller.reportHistory;
-
         return Column(
           children: [
             Expanded(
@@ -101,27 +87,63 @@ class ScanReportLandingScreen extends StatelessWidget {
                           onDismissed: (direction) async {
                             final deletedItem = item;
                             final originalIndex = index;
-                            await controller.deleteHistoryEntry(item.id);
 
-                            if (context.mounted) {
+                            debugPrint(
+                              'Deleting report -> id: ${deletedItem
+                                  .id}, title: ${deletedItem
+                                  .title}, index: $originalIndex',
+                            );
+
+                            try {
+                              await controller.deleteHistoryEntry(item.id);
+
+                              debugPrint(
+                                  'Report deleted -> id: ${deletedItem.id}');
+
                               final name = (deletedItem.patientName != null &&
                                   deletedItem.patientName!.isNotEmpty)
                                   ? deletedItem.patientName!
                                   : deletedItem.title;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Report "$name" deleted'),
-                                  duration: const Duration(seconds: 4),
-                                  action: SnackBarAction(
-                                    label: 'Undo',
-                                    textColor: Colors.amber,
-                                    onPressed: () async {
-                                      await controller.insertHistoryEntry(
-                                          originalIndex, deletedItem);
-                                    },
+
+                              Get.snackbar(
+                                'Report Deleted',
+                                '"$name" has been removed',
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: isDark ? const Color(
+                                    0xFF2C2C2E) : const Color(0xFF1C1C1E),
+                                colorText: Colors.white,
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  color: Colors.redAccent,
+                                  size: 24,
+                                ),
+                                margin: const EdgeInsets.all(16),
+                                borderRadius: 12,
+                                duration: const Duration(seconds: 4),
+                                mainButton: TextButton(
+                                  onPressed: () async {
+                                    if (Get.isSnackbarOpen) Get.back();
+                                    debugPrint(
+                                      'Undo pressed -> restoring report id: ${deletedItem
+                                          .id} at index: $originalIndex',
+                                    );
+                                    await controller.insertHistoryEntry(
+                                        originalIndex, deletedItem);
+                                    debugPrint(
+                                        'Report restored -> id: ${deletedItem
+                                            .id}');
+                                  },
+                                  child: const Text(
+                                    'UNDO',
+                                    style: TextStyle(
+                                      color: AppColors.primaryColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               );
+                            } catch (e) {
+                              debugPrint('Error deleting report: $e');
                             }
                           },
                           child: _ReportCard(

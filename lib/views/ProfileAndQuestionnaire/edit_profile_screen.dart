@@ -108,6 +108,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
     final width = mediaQuery.size.width;
+    double scale = width / 360;
     // ✅ Listens to the app's current theme command
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
@@ -200,59 +201,61 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           SizedBox(
                             height: height * 0.18,
                             width: width * 0.35,
-                            child: Obx(() {
-                              final pickedFile = initialProfileController
-                                  .pickedImage.value;
-                              final String? cdnUrl = localStorageManager
-                                  .userMap['ProfilePicture']?['CdnUrl'];
+                            child: Center(
+                              child: Obx(() {
+                                final pickedFile = initialProfileController
+                                    .pickedImage.value;
+                                final String? cdnUrl = localStorageManager
+                                    .userMap['ProfilePicture']?['CdnUrl'];
 
-                              // ── Case 1: Local picked file ──
-                              if (pickedFile != null) {
+                                // ── Case 1: Local picked file ──
+                                if (pickedFile != null) {
+                                  return CircleAvatar(
+                                    radius: 60,
+                                    backgroundColor: Colors.grey,
+                                    child: ClipOval(
+                                      child: Image.file(
+                                        pickedFile,
+                                        width: 120 * scale,
+                                        height: 120 * scale,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  );
+                                }
+
+                                // ── Case 2: CDN URL ──
+                                if (cdnUrl != null && cdnUrl.isNotEmpty) {
+                                  final imageUrl = cdnUrl.startsWith('http')
+                                      ? cdnUrl
+                                      : 'https://$cdnUrl';
+                                  return CircleAvatar(
+                                    radius: 60,
+                                    backgroundColor: Colors.grey,
+                                    child: ClipOval(
+                                      child: CachedNetworkImage(
+                                        imageUrl: imageUrl,
+                                        width: 120 * scale,
+                                        height: 120 * scale,
+                                        fit: BoxFit.cover,
+                                        errorWidget: (context, url, error) =>
+                                            Icon(
+                                                Icons.person, size: 140 * 0.75,
+                                                color: white),
+                                      ),
+                                    ),
+                                  );
+                                }
+
+                                // ── Case 3: No image at all ──
                                 return CircleAvatar(
                                   radius: 60,
                                   backgroundColor: Colors.grey,
-                                  child: ClipOval(
-                                    child: Image.file(
-                                      pickedFile,
-                                      width: 120,
-                                      height: 120,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
+                                  child: Icon(Icons.person, size: 140 * 0.75,
+                                      color: white),
                                 );
-                              }
-
-                              // ── Case 2: CDN URL — no CircleAvatar, direct Container ──
-                              if (cdnUrl != null && cdnUrl.isNotEmpty) {
-                                final imageUrl = cdnUrl.startsWith('http')
-                                    ? cdnUrl
-                                    : 'https://$cdnUrl';
-                                return ClipOval(
-                                  child: CachedNetworkImage(
-                                    imageUrl: imageUrl,
-                                    width: 120,
-                                    height: 120,
-                                    fit: BoxFit.cover,
-                                    errorWidget: (context, url, error) =>
-                                        CircleAvatar(
-                                          radius: 60,
-                                          backgroundColor: Colors.grey,
-                                          child: Icon(
-                                              Icons.person, size: 140 * 0.75,
-                                              color: white),
-                                        ),
-                                  ),
-                                );
-                              }
-
-                              // ── Case 3: No image at all ──
-                              return CircleAvatar(
-                                radius: 60,
-                                backgroundColor: Colors.grey,
-                                child: Icon(Icons.person, size: 140 * 0.75,
-                                    color: white),
-                              );
-                            }),
+                              }),
+                            ),
                           ),
                           Positioned(
                             bottom: 4,
@@ -495,15 +498,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             children: [
                               Obx(
                                 () => Text(
-                                  localStorageManager.userMap['PhoneNumber']
-                                          ?.toString() ??
-                                      'Enter your phone number',
+                                  (localStorageManager.userMap['PhoneNumber']
+                                      ?.toString()
+                                      .trim()
+                                      .isNotEmpty ?? false)
+                                      ? localStorageManager
+                                      .userMap['PhoneNumber'].toString()
+                                      : 'Enter your phone number',
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color:
-                                        isDarkMode
-                                            ? Colors.white60
-                                            : Colors.black54,
+                                    color: isDarkMode ? Colors.white60 : Colors
+                                        .black54,
                                   ),
                                 ),
                               ),
