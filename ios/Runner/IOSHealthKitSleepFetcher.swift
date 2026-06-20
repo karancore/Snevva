@@ -98,6 +98,70 @@ final class IOSHealthKitSleepFetcher {
         }
     }
 
+    // MARK: - Apple Watch source query
+
+    /// Returns merged sleep segments that originated from an Apple Watch device.
+    /// Returns an empty array when HealthKit is unavailable, authorization is missing,
+    /// or no Watch-sourced samples exist in the window — callers fall back to lock/unlock total.
+    func fetchAppleWatchSleepSegments(
+        from startDate: Date,
+        to endDate: Date,
+        completion: @escaping ([SleepSegment]) -> Void
+    ) {
+        guard Self.isAvailable, let type = sleepType else {
+            completion([]); return
+        }
+
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startDate,
+            end: endDate,
+            options: .strictStartDate
+        )
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+
+        let query = HKSampleQuery(
+            sampleType: type,
+            predicate: predicate,
+            limit: HKObjectQueryNoLimit,
+            sortDescriptors: [sort]
+        ) { [weak self] _, samples, error in
+            guard let self = self else {
+                completion([]); return
+            }
+
+            if let error = error {
+                print("⚠️ IOSHealthKitSleepFetcher (Watch): \(error.localizedDescription)")
+                completion([]); return
+            }
+
+            guard let samples = samples as? [HKCategorySample] else {
+                completion([]); return
+            }
+
+            let watchSamples = samples.filter {
+                self.isActualSleep($0) && self.isAppleWatchSource($0)
+            }
+            guard !watchSamples.isEmpty else {
+                completion([]); return
+            }
+
+            let segments = watchSamples.map {
+                SleepSegment(start: $0.startDate, end: $0.endDate)
+            }
+            completion(self.mergeOverlapping(segments))
+        }
+
+        store.execute(query)
+    }
+
+    /// Returns true when the sample device model or source name indicates Apple Watch.
+    private func isAppleWatchSource(_ sample: HKCategorySample) -> Bool {
+        if let model = sample.device?.model {
+            return model.lowercased().contains("watch")
+        }
+        return sample.sourceRevision.source.name.lowercased().contains("watch")
+    }
+
     private func mergeOverlapping(_ segments: [SleepSegment]) -> [SleepSegment] {
         guard !segments.isEmpty else { return [] }
         let sorted = segments.sorted { $0.start < $1.start }

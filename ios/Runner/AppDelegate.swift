@@ -44,6 +44,12 @@ import FirebaseMessaging
         // Start step tracking — MethodChannel is wired in didInitializeImplicitFlutterEngine.
         IOSStepService.shared.start()
 
+        // Register for lock/unlock notifications (iOS equivalent of Android SCREEN_OFF/ON).
+        // initializeForSleepWindow seeds the anchor so a BGTask flush at wake time works even
+        // if the app was killed before any lock notification was received.
+        IOSLockUnlockSleepDetector.shared.start()
+        IOSLockUnlockSleepDetector.shared.initializeForSleepWindow()
+
         return didFinish
     }
 
@@ -98,6 +104,8 @@ import FirebaseMessaging
         super.applicationDidBecomeActive(application)
         _ = requestHighRefreshRateIfAvailable()
         IOSStepService.shared.start()
+        // Re-seed lock anchor in case the app was relaunched mid-sleep-window.
+        IOSLockUnlockSleepDetector.shared.initializeForSleepWindow()
         // Pull HealthKit sleep data for last night so SleepController sees it on next read.
         IOSSleepService.shared.fetchAndStoreLastNightSleep(completion: nil)
     }

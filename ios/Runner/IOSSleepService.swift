@@ -135,17 +135,86 @@ final class IOSSleepService {
     // MARK: - Background task entry point
 
     /// Called by AppDelegate when `com.coretegra.snevva.sleep_calc` BGProcessingTask fires.
+    ///
+    /// Flow (mirrors Android SleepCalcWorker step-for-step):
+    ///  1. Flush any open lock anchor → covers the "screen never turned on" edge case.
+    ///  2. Flush sleep_buf.tmp → commits all lock/unlock intervals to the daily JSON.
+    ///  3. Read the lock/unlock-derived total from the daily JSON (primary source).
+    ///  4. If Apple Watch HealthKit data exists and exceeds that total, use it instead.
+    ///  5. Write flutter.sleep_final_* keys to UserDefaults so Dart/notification reads them.
+    ///  6. Queue the dateKey for API sync, then sync + reschedule.
     func performSleepCalcBackgroundTask(completion: @escaping () -> Void) {
-        // Flush manual-session buffer first (Dart fallback may have written it)
-        IOSStepBufferManager.shared.flushSleepToDaily()
-
-        fetchAndStoreLastNightSleep { [weak self] minutes in
-            guard let self = self else { completion(); return }
-            print("💤 IOSSleepService BGTask: \(minutes)m stored")
-            IOSApiSyncService.shared.sync { _ in
-                self.scheduleSleepCalcTask()
+        guard let window = IOSLockUnlockSleepDetector.shared.currentSleepWindow() else {
+            IOSApiSyncService.shared.sync { [weak self] _ in
+                self?.scheduleSleepCalcTask()
                 completion()
             }
+            return
+        }
+
+        // Step 1 — flush any open anchor (mirrors Android lastOffKey detection)
+        IOSLockUnlockSleepDetector.shared.flushOpenLockInterval(for: window)
+
+        // Step 2 — commit buffer → daily JSON
+        IOSStepBufferManager.shared.flushSleepToDaily()
+
+        // Step 3 — primary total from lock/unlock tracking
+        let lockUnlockMinutes = IOSStepBufferManager.shared.readDailySleepMinutes(dateKey: window.dateKey)
+        print("💤 IOSSleepService BGTask: lock/unlock=\(lockUnlockMinutes)m [\(window.dateKey)]")
+
+        // Step 4 — check Apple Watch for a better reading
+        let (queryStart, queryEnd) = sleepQueryWindow(for: window.dateKey)
+        fetcher.fetchAppleWatchSleepSegments(from: queryStart, to: queryEnd) { [weak self] watchSegments in
+            guard let self = self else { completion(); return }
+
+            if !watchSegments.isEmpty {
+                let watchMinutes = watchSegments.reduce(0) {
+                    $0 + Int($1.end.timeIntervalSince($1.start) / 60)
+                }
+                print("💤 IOSSleepService BGTask: Apple Watch=\(watchMinutes)m [\(window.dateKey)]")
+
+                if watchMinutes > lockUnlockMinutes {
+                    let segDicts = watchSegments.map { seg -> [String: String] in
+                        ["start": self.isoFmt.string(from: seg.start),
+                         "end": self.isoFmt.string(from: seg.end)]
+                    }
+                    IOSStepBufferManager.shared.mergeSleepIntoDailyFile(
+                        dateKey: window.dateKey,
+                        totalMinutes: watchMinutes,
+                        segments: segDicts
+                    )
+                    self.finalizeSleep(window: window, finalMinutes: watchMinutes, completion: completion)
+                    return
+                }
+            }
+
+            self.finalizeSleep(window: window, finalMinutes: lockUnlockMinutes, completion: completion)
+        }
+    }
+
+    /// Writes the finalized sleep total to UserDefaults and triggers sync.
+    /// Mirrors Android SleepCalcWorker's SharedPreferences writes exactly:
+    ///   flutter.sleep_final_minutes, flutter.sleep_final_date,
+    ///   flutter.sleep_elapsed_minutes, flutter.is_sleeping = false.
+    private func finalizeSleep(window: IOSSleepWindow, finalMinutes: Int, completion: @escaping () -> Void) {
+        let wakeDateKey = IOSStepBufferManager.shared.dateKeyFromDate(window.end)
+
+        let ud = UserDefaults.standard
+        ud.set(finalMinutes, forKey: "flutter.sleep_final_minutes")
+        ud.set(wakeDateKey, forKey: "flutter.sleep_final_date")
+        ud.set(0, forKey: "flutter.sleep_elapsed_minutes")
+        ud.set(false, forKey: "flutter.is_sleeping")
+        ud.removeObject(forKey: "flutter.sleep_start_time")
+        ud.removeObject(forKey: "flutter.current_sleep_window_start")
+        ud.removeObject(forKey: "flutter.current_sleep_window_end")
+        ud.removeObject(forKey: "flutter.current_sleep_window_key")
+
+        IOSStepBufferManager.shared.addToSyncQueue(dateKey: window.dateKey, type: "sleep")
+        print("💤 IOSSleepService: finalized \(finalMinutes)m [\(window.dateKey)], wake=\(wakeDateKey)")
+
+        IOSApiSyncService.shared.sync { [weak self] _ in
+            self?.scheduleSleepCalcTask()
+            completion()
         }
     }
 
