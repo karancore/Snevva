@@ -386,16 +386,10 @@ class ReminderController extends GetxController {
         }
       }
 
-      final payload = alarmSettings.payload;
-      if (payload == null) return;
-      late final Map<String, dynamic> decoded;
-      try {
-        decoded = jsonDecode(payload);
-      } catch (_) {
-        return;
-      }
-      if (decoded['category'] != 'water') return;
-      await waterController.onWaterAlarmRang(alarmSettings.id);
+      // Phase B handles rescheduling for all categories (including water)
+      // via scheduleReminderLocally above. onWaterAlarmRang is intentionally
+      // NOT called here — doing so created a second independent native alarm
+      // on every ring that survived deleteWaterReminder (ghost alarm bug).
     });
   }
 
