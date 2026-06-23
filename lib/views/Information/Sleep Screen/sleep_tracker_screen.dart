@@ -68,6 +68,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     _checkIfAlreadySleeping();
     _setupSleepListeners();
 
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       commonTipsController.getCommonTips(context: context, tag: 'Sleep');
       await sleepController.loadDeepSleepData();

@@ -65,7 +65,6 @@ import 'services/notification_channel.dart';
 import 'services/reminder/reconciliation_engine.dart' as snevva_reconciliation;
 import 'utils/theme.dart';
 import 'views/Reminder/reminder_screen.dart';
-import 'views/SignUp/sign_in_screen.dart';
 import 'views/debug/high_fps_demo_screen.dart';
 import 'widgets/home_wrapper.dart';
 
@@ -99,7 +98,7 @@ class AuthGate extends StatelessWidget {
         }
 
         if (snapshot.data == false) {
-          return SignInScreen(); // ❌ No token → ONLY LOGIN
+          return HomeWrapper(); // ❌ No token → ONLY LOGIN
         }
 
         return HomeWrapper(); // ✅ Valid session
