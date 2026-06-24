@@ -58,6 +58,7 @@ const womenIcon = "assets/Icons/Info/shield-cross-fill-5.svg";
 const waterTrackingIcon = "assets/Icons/Info/shield-cross-fill-6.svg";
 const stepsTrackingIcon = "assets/Icons/Info/shield-cross-fill-7.svg";
 const bloodGlucoseIcon = "assets/Dashboard/glucose-menu-icon.svg";
+const bloodGlucoseDark = "assets/Dashboard/glucose-dark.svg";
 
 //Sign up screen
 const apple = 'assets/Icons/Apple.webp';

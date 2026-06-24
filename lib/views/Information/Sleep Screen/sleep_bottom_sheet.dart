@@ -703,10 +703,10 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
     final bedtimeMinutes = bedHour * 60 + bedMinute;
     final waketimeMinutes = wakeHour * 60 + wakeMinute;
 
-    // ✅ FIX: Write ONLY to SharedPreferences — no GetStorage.
-    // This ensures the BG service and SleepNoticingService read the same value.
+    // Write to SharedPreferences — single source of truth for BG service and SleepNoticingService.
     await prefs.setInt('user_bedtime_ms', bedtimeMinutes);
     await prefs.setInt('user_waketime_ms', waketimeMinutes);
+    await prefs.setBool('user_set_sleep_times', true);
 
     // Update controller observables and persist via SharedPreferences only
     final bedTime = TimeOfDay(hour: bedHour, minute: bedMinute);
@@ -745,8 +745,6 @@ class _SleepBottomSheetState extends State<SleepBottomSheet> {
     if (widget.isNavigating) {
       Get.back();
       Get.to(() => SleepTrackerScreen());
-    } else {
-      Get.back();
     }
   }
 

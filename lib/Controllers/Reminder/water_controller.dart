@@ -387,18 +387,12 @@ class WaterController extends GetxController {
   }
 
   Future<void> onWaterAlarmRang(int rangAlarmId) async {
-    final alarms = await Alarm.getAlarms();
-    final stillExists = alarms.any((alarm) {
-      if (alarm.payload == null) return false;
-      try {
-        final decoded = jsonDecode(alarm.payload!);
-        return decoded['category'] == ReminderCategory.water.toString();
-      } catch (_) {
-        return false;
-      }
-    });
+    // Check Hive (not Alarm.getAlarms()) because alarms are armed natively and
+    // won't appear in the Flutter alarm package's list.
+    final currentList = await loadWaterReminderList("water_list");
+    final stillExists = currentList.isNotEmpty;
     if (!stillExists) {
-      debugPrint("Water reminder deleted , skip reschedule");
+      debugPrint("Water reminder deleted, skip reschedule");
       return;
     }
 
@@ -445,9 +439,6 @@ class WaterController extends GetxController {
             notificationSettings: alarm.notificationSettings,
           );
 
-          /// Schedule again
-          // Native AlarmManager is the sole scheduler — skip Alarm.set().
-
           /// Replace inside map
           list[i][title] = newAlarm;
 
@@ -461,9 +452,20 @@ class WaterController extends GetxController {
               }).toList();
 
           /// Save back to Hive
-          // final box = Hive.box('reminders_box');
           final box = await HiveService().remindersBox();
           await box.put("water_list", encoded);
+
+          // ✅ Bug fix: arm the next-day alarm via native AlarmManager.
+          // Previously the Hive update was written but NativeAlarmBridge was
+          // never called, so the alarm was not actually scheduled natively.
+          await NativeAlarmBridge.armAlarm(
+            alarmId: rangAlarmId,
+            epochMs: nextTime.millisecondsSinceEpoch,
+            groupId: rangAlarmId.toString(),
+            category: 'water',
+            title: newAlarm.notificationSettings.title,
+            body: newAlarm.notificationSettings.body,
+          );
 
           debugPrint("🔁 Water alarm rescheduled for $nextTime");
 
@@ -822,6 +824,25 @@ class WaterController extends GetxController {
 
       waterList.removeAt(index);
       debugPrint("✅ Water reminder removed from list");
+    }
+
+    // ✅ Bug fix: also collect IDs from the legacy Map<String, AlarmSettings>
+    // format (written by the old onWaterAlarmRang reschedule path).
+    // Those IDs were never stored in scheduleMetadata so they would escape
+    // the loops above, leaving ghost alarms alive after deletion.
+    try {
+      final legacyList = await reminderController.loadReminderList(
+          "water_list");
+      for (final map in legacyList) {
+        for (final alarm in map.values) {
+          if (nativeIdsToCancel.add(alarm.id)) {
+            debugPrint(
+                "⏹️ Collecting legacy alarm id=${alarm.id} for cancellation");
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("⚠️ Could not load legacy water_list for cleanup: $e");
     }
 
     // ✅ KEY FIX: cancel native AlarmManager entries AND remove from SharedPrefs

@@ -4,8 +4,11 @@ import 'package:file_picker/file_picker.dart';
 import 'package:mime/mime.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:snevva/Controllers/ReportScan/scan_report_controller.dart';
+import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/scan_report/report_details_screen.dart';
+
+import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 
 class ScanReportScreen extends StatefulWidget {
   const ScanReportScreen({super.key});
@@ -43,7 +46,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
         'PDF size should be less than 5 MB',
         snackPosition: SnackPosition.TOP,
         backgroundColor: AppColors.primaryColor,
-        colorText: isDarkMode ? Colors.white : Colors.black,
+        colorText: isDarkMode ? white : black,
 
         duration: const Duration(seconds: 3),
       );
@@ -71,6 +74,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
           isOwnPdf: _isOwnPdf,
           selectedGender: _selectedGender,
           ageController: _ageController,
+      nameController: _nameController,
         );
 
     debugPrint("Upload Result: $isUploaded");
@@ -84,7 +88,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
         'Could not upload report',
         snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.red,
-        colorText: Colors.white,
+        colorText: white,
       );
 
       return;
@@ -114,6 +118,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
               file: file,
               fileName: fileName,
               mimeType: mimeType,
+
             ),
       ),
     );
@@ -121,6 +126,8 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
 
   String? _selectedGender;
   final TextEditingController _ageController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+
 
   bool _isOwnPdf = true;
 
@@ -142,7 +149,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
               ),
 
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? darkGray : white,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(28),
                 ),
@@ -172,7 +179,6 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
-                      color: black,
                     ),
                   ),
 
@@ -186,6 +192,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                             setModalState(() {
                               _isOwnPdf = true;
                               _selectedGender = null;
+                              _nameController.clear();
                               _ageController.clear();
                             });
                           },
@@ -197,7 +204,8 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                               gradient:
                                   _isOwnPdf ? AppColors.primaryGradient : null,
 
-                              color: _isOwnPdf ? null : Colors.grey.shade100,
+                              color: _isOwnPdf ? null : (isDark ? Colors.grey
+                                  .shade800 : Colors.grey.shade100),
 
                               borderRadius: BorderRadius.circular(18),
                             ),
@@ -207,8 +215,9 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                                 'Yes',
 
                                 style: TextStyle(
-                                  color:
-                                      _isOwnPdf ? Colors.white : Colors.black,
+                                  color: _isOwnPdf
+                                      ? white
+                                      : (isDark ? white : black),
 
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -235,7 +244,8 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                               gradient:
                                   !_isOwnPdf ? AppColors.primaryGradient : null,
 
-                              color: !_isOwnPdf ? null : Colors.grey.shade100,
+                              color: !_isOwnPdf ? null : (isDark ? Colors.grey
+                                  .shade800 : Colors.grey.shade100),
 
                               borderRadius: BorderRadius.circular(18),
                             ),
@@ -245,8 +255,9 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                                 'No',
 
                                 style: TextStyle(
-                                  color:
-                                      !_isOwnPdf ? Colors.white : Colors.black,
+                                  color: !_isOwnPdf
+                                      ? white
+                                      : (isDark ? white : black),
 
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -258,8 +269,40 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                     ],
                   ),
 
+                  const SizedBox(height: 12),
+
+
+
                   if (!_isOwnPdf) ...[
-                    const SizedBox(height: 28),
+                    Text(
+                      'Name',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    TextField(
+                      controller: _nameController,
+                      keyboardType: TextInputType.number,
+                      style: TextStyle(
+                        color: isDark ? white : black,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Enter name',
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white70 : Colors.grey,
+                        ),
+                        filled: true,
+                        fillColor: isDark ? darkGray : Colors.grey.shade100,
+
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(18),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
 
                     const Text(
                       'Gender',
@@ -273,6 +316,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                         _genderChip(
                           label: 'Male',
                           setModalState: setModalState,
+                          isDark: isDark
                         ),
 
                         const SizedBox(width: 10),
@@ -280,6 +324,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                         _genderChip(
                           label: 'Female',
                           setModalState: setModalState,
+                            isDark: isDark
                         ),
 
                         const SizedBox(width: 10),
@@ -287,15 +332,16 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                         _genderChip(
                           label: 'Other',
                           setModalState: setModalState,
+                            isDark: isDark
                         ),
                       ],
                     ),
 
                     const SizedBox(height: 24),
 
-                    const Text(
+                    Text(
                       'Age',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+                      style: TextStyle(fontWeight: FontWeight.w600 ),
                     ),
 
                     const SizedBox(height: 12),
@@ -303,12 +349,16 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                     TextField(
                       controller: _ageController,
                       keyboardType: TextInputType.number,
-
+                      style: TextStyle(
+                        color: isDark ? white : black,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Enter age',
-
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white70 : Colors.grey,
+                        ),
                         filled: true,
-                        fillColor: Colors.grey.shade100,
+                        fillColor: isDark ? darkGray : Colors.grey.shade100,
 
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(18),
@@ -336,10 +386,16 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                       onPressed: () {
                         if (!_isOwnPdf) {
                           if (_selectedGender == null ||
-                              _ageController.text.trim().isEmpty) {
+                              _ageController.text
+                                  .trim()
+                                  .isEmpty ||
+                              _nameController.text
+                                  .trim()
+                                  .isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Please enter gender and age'),
+                                content: Text(
+                                    'Please enter name , gender and age'),
                               ),
                             );
 
@@ -355,7 +411,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                       child: const Text(
                         'Continue',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: white,
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
                         ),
@@ -374,6 +430,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
   Widget _genderChip({
     required String label,
     required StateSetter setModalState,
+    required bool isDark,
   }) {
     final bool isSelected = _selectedGender == label;
 
@@ -391,7 +448,8 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
           decoration: BoxDecoration(
             gradient: isSelected ? AppColors.primaryGradient : null,
 
-            color: isSelected ? null : Colors.grey.shade100,
+            color: isSelected ? null : (isDark ? Colors.grey.shade800 : Colors
+                .grey.shade100),
 
             borderRadius: BorderRadius.circular(16),
           ),
@@ -401,8 +459,9 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
               label,
 
               style: TextStyle(
-                color: isSelected ? Colors.white : Colors.black,
-
+                color: isSelected
+                    ? white
+                    : (isDark ? white : black),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -414,6 +473,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _ageController.dispose();
     super.dispose();
   }
@@ -421,36 +481,21 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-
+    final Color bg = isDark ? scaffoldColorDark : scaffoldColorLight;
+    final mediaQuery = MediaQuery.of(context);
+    final height = mediaQuery.size.height;
+    final width = mediaQuery.size.width;
     return Scaffold(
-      backgroundColor: isDark ? black : const Color(0xFFF5F2FF),
+      backgroundColor: bg,
 
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: isDark ? black : const Color(0xFFF5F2FF),
-        centerTitle: true,
-
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: isDark ? white : black),
-          onPressed: () => Navigator.pop(context),
-        ),
-
-        title: Text(
-          'Upload Report',
-          style: TextStyle(
-            color: isDark ? white : black,
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
-          ),
-        ),
-      ),
-
+      appBar: CustomAppBar(appbarText: 'Upload Report'),
+      drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       bottomNavigationBar:
           _pdfPath != null
               ? SafeArea(
                 child: Container(
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-                  color: isDark ? black : const Color(0xFFF5F2FF),
+                  color: bg,
 
                   child: SizedBox(
                     height: 58,
@@ -547,7 +592,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.w700,
-                              color: isDark ? Colors.white : Colors.black,
+                              color: isDark ? white : black,
                             ),
                           ),
 
@@ -586,7 +631,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                               children: [
                                 Icon(
                                   Icons.upload_file_rounded,
-                                  color: Colors.white,
+                                  color: white,
                                 ),
 
                                 SizedBox(width: 10),
@@ -594,7 +639,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                                 Text(
                                   'Choose PDF',
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: white,
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -619,7 +664,8 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
             ),
 
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+                      color: isDark ? const Color(0xFF1A1A1A) : AppColors
+                          .primaryColor.withOpacity(0.1),
 
                       borderRadius: BorderRadius.circular(18),
                     ),
@@ -643,7 +689,7 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
 
-                              color: isDark ? Colors.white : Colors.black,
+                              color: isDark ? white : black,
                             ),
                           ),
                         ),

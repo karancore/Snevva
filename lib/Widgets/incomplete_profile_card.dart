@@ -4,10 +4,29 @@ import 'package:get/get.dart';
 import '../../Controllers/local_storage_manager.dart';
 import '../../consts/colors.dart';
 
-class IncompleteProfileCard extends StatelessWidget {
+class IncompleteProfileCard extends StatefulWidget {
   final VoidCallback onTapComplete;
+  final bool isExpanded;
 
-  const IncompleteProfileCard({super.key, required this.onTapComplete});
+  const IncompleteProfileCard({
+    super.key,
+    required this.onTapComplete,
+    required this.isExpanded,
+  });
+
+  @override
+  State<IncompleteProfileCard> createState() => _IncompleteProfileCardState();
+}
+
+class _IncompleteProfileCardState extends State<IncompleteProfileCard>
+    with TickerProviderStateMixin {
+  late bool _isExpanded;
+
+  @override
+  void initState() {
+    super.initState();
+    _isExpanded = widget.isExpanded;
+  }
 
   bool isFilled(dynamic value) {
     if (value == null) return false;
@@ -63,24 +82,26 @@ class IncompleteProfileCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         // Light: soft purple tint at 10% | Dark: white at 10%
-        color: isDarkMode
-            ? Colors.white.withOpacity(0.10)
-            : AppColors.primaryColor.withOpacity(0.08),
+        color:
+            isDarkMode
+                ? Colors.white.withOpacity(0.10)
+                : AppColors.primaryColor.withOpacity(0.08),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppColors.primaryColor.withOpacity(0.20),
           width: 1,
         ),
         // Card shadow matching Snevva spec
-        boxShadow: isDarkMode
-            ? []
-            : [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow:
+            isDarkMode
+                ? []
+                : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,8 +140,10 @@ class IncompleteProfileCard extends StatelessWidget {
 
               // "X% left" badge
               Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primaryColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(30),
@@ -135,91 +158,127 @@ class IncompleteProfileCard extends StatelessWidget {
                   ),
                 ),
               ),
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    _isExpanded = !_isExpanded;
+                  });
+                },
+                icon: AnimatedRotation(
+                  turns: _isExpanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutBack,
+                  child: Icon(
+                    Icons.keyboard_arrow_down,
+                    color: AppColors.primaryColor.withValues(alpha: 0.25),
+                  ),
+                ),
+              ),
             ],
           ),
 
-          const SizedBox(height: 14),
+          // Everything below only renders when the card is expanded.
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutBack,
+            child:
+                _isExpanded
+                    ? Column(
+                      children: [
+                        const SizedBox(height: 14),
 
-          // ── Progress Bar ─────────────────────────────────────────
-          Stack(
-            children: [
-              // Track
-              Container(
-                height: 7,
-                decoration: BoxDecoration(
-                  color: isDarkMode
-                      ? Colors.white.withOpacity(0.12)
-                      : Colors.black.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              // Fill — purple gradient
-              FractionallySizedBox(
-                widthFactor: (completedPercent / 100).clamp(0.0, 1.0),
-                child: Container(
-                  height: 7,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFB579FF), Color(0xFFA95BFF)],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
+                        // ── Progress Bar ─────────────────────────────────────────
+                Stack(
+                  children: [
+                    // Track
+                    Container(
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color:
+                        isDarkMode
+                            ? Colors.white.withOpacity(0.12)
+                            : Colors.black.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
                     ),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
+                    // Fill — purple gradient
+                    FractionallySizedBox(
+                      widthFactor: (completedPercent / 100).clamp(
+                        0.0,
+                        1.0,
+                      ),
+                      child: Container(
+                        height: 7,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFFB579FF),
+                              Color(0xFFA95BFF),
+                            ],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
 
-          const SizedBox(height: 8),
+                        const SizedBox(height: 8),
 
-          // ── Completion label ──────────────────────────────────────
-          Text(
-            '$completedPercent% complete',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-              color: isDarkMode
-                  ? Colors.white.withOpacity(0.55)
-                  : mediumGrey,
-            ),
-          ),
-
-          const SizedBox(height: 14),
-
-          // ── CTA Button — primary purple gradient ──────────────────
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFB579FF), Color(0xFFA95BFF)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: ElevatedButton(
-                onPressed: onTapComplete,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  foregroundColor: white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: EdgeInsets.zero,
-                  textStyle: const TextStyle(
+                        // ── Completion label ──────────────────────────────────────
+                Text(
+                  '$completedPercent% complete',
+                  style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    color:
+                    isDarkMode
+                        ? Colors.white.withOpacity(0.55)
+                        : mediumGrey,
                   ),
                 ),
-                child: Text(getNextMissingField(userInfo)),
-              ),
-            ),
+
+                        const SizedBox(height: 14),
+
+                        // ── CTA Button — primary purple gradient ──────────────────
+                SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFB579FF), Color(0xFFA95BFF)],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ElevatedButton(
+                      onPressed: widget.onTapComplete,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        foregroundColor: white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: EdgeInsets.zero,
+                        textStyle: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      child: Text(getNextMissingField(userInfo)),
+                    ),
+                  ),
+                ),
+              ],
+            )
+                : const SizedBox.shrink(),
           ),
         ],
       ),

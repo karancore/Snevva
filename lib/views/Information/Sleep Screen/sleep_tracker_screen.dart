@@ -68,12 +68,14 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     _checkIfAlreadySleeping();
     _setupSleepListeners();
 
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       commonTipsController.getCommonTips(context: context, tag: 'Sleep');
       await sleepController.loadDeepSleepData();
       sleepController.loadUserSleepTimes();
       _checkBatteryOptimizations();
       _rebuildGraph();
+      _promptSleepTimesIfUnset();
     });
   }
 
@@ -263,25 +265,44 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
     if (!Platform.isAndroid) return;
     final status = await Permission.ignoreBatteryOptimizations.status;
     if (!status.isGranted && mounted) {
+      final isDarkMode = Theme.of(context).brightness == Brightness.dark;
       showDialog(
         context: context,
         builder:
             (context) => AlertDialog(
-              title: const Text('Keep Tracking Alive'),
+              backgroundColor: isDarkMode ? darkGray : Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                'Keep Tracking Alive',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               content: const Text(
                 'To ensure sleep is tracked automatically overnight, please disable battery optimizations for Snevva.',
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Later'),
+                  child: Text(
+                    'Later',
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white54 : Colors.grey,
+                    ),
+                  ),
                 ),
                 TextButton(
                   onPressed: () async {
                     Navigator.pop(context);
                     await Permission.ignoreBatteryOptimizations.request();
                   },
-                  child: const Text('Allow'),
+                  child: const Text(
+                    'Allow',
+                    style: TextStyle(
+                      color: AppColors.primaryColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -374,6 +395,61 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
   Future<void> toggleSleepCard() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('sleepGoalbool', true);
+  }
+
+  void _promptSleepTimesIfUnset() {
+    if (!mounted) return;
+    final bed = sleepController.bedtime.value;
+    final wake = sleepController.waketime.value;
+    if (bed != null && wake != null) return;
+
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final height = MediaQuery.of(context).size.height;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDarkMode ? darkGray : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Set Your Sleep Schedule',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'To enable automatic sleep tracking, please set your bedtime and wake-up time.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              'Later',
+              style: TextStyle(
+                color: isDarkMode ? Colors.white54 : Colors.grey,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await showSleepBottomSheetModal(
+                context: context,
+                isDarkMode: isDarkMode,
+                height: height,
+                isNavigating: false,
+              );
+            },
+            child: const Text(
+              'Set Now',
+              style: TextStyle(
+                color: AppColors.primaryColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   String _fmt(TimeOfDay? dt) {

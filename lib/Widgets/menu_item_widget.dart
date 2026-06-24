@@ -7,7 +7,7 @@ class MenuItem {
   final String subtitle;
   final String imagePath;
   final Widget? navigateTo;
-
+  final String ? darkImagePath;
   final VoidCallback? onTap;
   final String? routeName;
   final bool? isDisabled;
@@ -16,6 +16,7 @@ class MenuItem {
     required this.title,
     required this.subtitle,
     required this.imagePath,
+    this.darkImagePath,
     this.routeName,
     this.navigateTo,
     this.isDisabled = false,
@@ -30,6 +31,7 @@ class MenuItemWidget extends StatelessWidget {
   final Widget? navigateTo;
   final String? routeName;
   final bool isDarkMode;
+  final String ? darkImagePath;
   final VoidCallback? onTap;
   final bool isDisabled; // 👈 add this
 
@@ -37,6 +39,7 @@ class MenuItemWidget extends StatelessWidget {
     super.key,
     required this.title,
     this.routeName,
+    this.darkImagePath,
     required this.subtitle,
     required this.imagePath,
     this.navigateTo,
@@ -47,11 +50,13 @@ class MenuItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Now a single GestureDetector, color driven by isDisabled
+ 
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: isDisabled ? null : (onTap ?? () {
         if (navigateTo != null) Get.to(() => navigateTo!);
       }),
+
       child: Container(
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
         child: Column(
@@ -64,7 +69,9 @@ class MenuItemWidget extends StatelessWidget {
                     width: 44,
                     height: 44,
                     child: SvgPicture.asset(
-                      imagePath,
+                      isDarkMode && darkImagePath != null
+                          ? darkImagePath!
+                          : imagePath,
                       fit: BoxFit.cover,
                       width: 28,
                       height: 28,

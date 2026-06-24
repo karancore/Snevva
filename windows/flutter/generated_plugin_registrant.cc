@@ -28,8 +28,8 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("FirebaseCorePluginCApi"));
   FlutterSecureStorageWindowsPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FlutterSecureStorageWindowsPlugin"));
-    PdfxPluginRegisterWithRegistrar(
-            registry->GetRegistrarForPlugin("PdfxPlugin"));
+  PdfxPluginRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("PdfxPlugin"));
   PermissionHandlerWindowsPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("PermissionHandlerWindowsPlugin"));
   ScreenBrightnessWindowsPluginRegisterWithRegistrar(

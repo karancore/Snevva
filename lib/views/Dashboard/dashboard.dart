@@ -8,6 +8,7 @@ import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Alerts/alerts_screen.dart';
+import 'package:snevva/widgets/dashboard/health_score_card.dart';
 
 import '../../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import '../../services/notification_service.dart';
@@ -121,8 +122,7 @@ class _DashboardState extends State<Dashboard>
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Obx(
-                        () =>
-                        Column(
+                    () => Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
@@ -139,10 +139,7 @@ class _DashboardState extends State<Dashboard>
                                 ),
                               ),
                             ),
-                            const Text(
-                              'Hello',
-                              style: TextStyle(fontSize: 16),
-                            ),
+                            const Text('Hello', style: TextStyle(fontSize: 16)),
                           ],
                         ),
                         Text(
@@ -171,7 +168,7 @@ class _DashboardState extends State<Dashboard>
                           onPressed: () {
                             Get.to(() => AlertsScreen());
                             notificationController.hasNewNotification.value =
-                            false;
+                                false;
                           },
                         ),
                         if (unreadCount > 0)
@@ -251,29 +248,33 @@ class _DashboardState extends State<Dashboard>
                         Obx(() {
                           final bool showCard =
                               _isPhoneMissing ||
-                                  !isProfileDisplayComplete(
-                                    localStorageManager.userMap,
-                                  );
+                              !isProfileDisplayComplete(
+                                localStorageManager.userMap,
+                              );
 
                           return showCard
                               ? Column(
-                            children: [
-                              const SizedBox(height: 16),
-                              IncompleteProfileCard(
-                                onTapComplete: () {
-                                  final ctrl = Get.find<
-                                      EditprofileController>();
-                                  ctrl.openNextMissingFieldDialog(context);
-                                },
-                              ),
-                              const SizedBox(height: 16),
-                            ],
-                          )
+                                children: [
+                                  const SizedBox(height: 16),
+                                  IncompleteProfileCard(
+                                    onTapComplete: () {
+                                      final ctrl =
+                                          Get.find<EditprofileController>();
+                                      ctrl.openNextMissingFieldDialog(context);
+                                    },
+                                    isExpanded: true,
+                                  ),
+                                  const SizedBox(height: 16),
+                                ],
+                              )
                               : const SizedBox(height: 32);
                         }),
 
                       DashboardHeaderWidget(),
                       const SizedBox(height: 24),
+                      HealthScoreCard(isDarkMode: isDarkMode,),
+                      const SizedBox(height: 24),
+
                       DashboardServiceOverviewDynamicWidgets(
                         width: width,
                         height: height,
