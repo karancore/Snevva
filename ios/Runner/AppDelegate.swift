@@ -9,7 +9,7 @@ import FirebaseMessaging
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
-  private let displayConfigChannelName = "com.coretegra.snevva/display_config"
+    private let displayConfigChannelName = "com.coretegra.snevvaa/display_config"
   private let timezoneChannelName = "com.coretegra.snevvaa/timezone"
   private let stepServiceChannelName = "com.coretegra.snevvaa/step_service"
   private let pedometer = CMPedometer()
@@ -193,15 +193,15 @@ import FirebaseMessaging
     }
 
     BGTaskScheduler.shared.register(
-        forTaskWithIdentifier: "com.coretegra.snevva.sleep_calc",
+        forTaskWithIdentifier: "com.coretegra.snevvaa.sleep_calc",
         using: nil, launchHandler: noopHandler)
 
     BGTaskScheduler.shared.register(
-        forTaskWithIdentifier: "com.coretegra.snevva.api_sync",
+        forTaskWithIdentifier: "com.coretegra.snevvaa.api_sync",
         using: nil, launchHandler: noopHandler)
 
     BGTaskScheduler.shared.register(
-        forTaskWithIdentifier: "com.coretegra.snevva.period_sync",
+        forTaskWithIdentifier: "com.coretegra.snevvaa.period_sync",
         using: nil, launchHandler: noopHandler)
 
     BGTaskScheduler.shared.register(

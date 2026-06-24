@@ -53,9 +53,9 @@
 	<string>Snevva writes your activity data to Apple Health.</string>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
-		<string>com.coretegra.snevva.sleep_calc</string>
-		<string>com.coretegra.snevva.api_sync</string>
-		<string>com.coretegra.snevva.period_sync</string>
+        <string>com.coretegra.snevvaa.sleep_calc</string>
+        <string>com.coretegra.snevvaa.api_sync</string>
+        <string>com.coretegra.snevvaa.period_sync</string>
 		<string>com.coretegra.snevvaa.reminderReconcile</string>
 		<string>com.coretegra.snevvaa.reminderOneShot</string>
 	</array>

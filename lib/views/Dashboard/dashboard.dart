@@ -8,6 +8,7 @@ import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/Alerts/alerts_screen.dart';
+import 'package:snevva/widgets/dashboard/health_score_card.dart';
 
 import '../../Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
 import '../../services/notification_service.dart';
@@ -16,7 +17,6 @@ import '../../widgets/dashboard/dashboard_ads_carousel_slider.dart';
 import '../../widgets/dashboard/dashboard_header_widget.dart';
 import '../../widgets/dashboard/dashboard_service_overview_dynamic_widgets.dart';
 import '../../widgets/dashboard/dashboard_services_widget.dart';
-import '../../widgets/dashboard/health_score_card.dart';
 import '../../widgets/incomplete_profile_card.dart';
 
 class Dashboard extends StatefulWidget {
@@ -271,9 +271,10 @@ class _DashboardState extends State<Dashboard>
                         }),
 
                       DashboardHeaderWidget(),
-                      const SizedBox(height: 16),
-                      HealthScoreCard(isDarkMode: isDarkMode),
                       const SizedBox(height: 24),
+                      HealthScoreCard(isDarkMode: isDarkMode,),
+                      const SizedBox(height: 24),
+
                       DashboardServiceOverviewDynamicWidgets(
                         width: width,
                         height: height,

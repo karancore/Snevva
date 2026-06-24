@@ -8,6 +8,8 @@ import 'package:snevva/Widgets/CommonWidgets/custom_appbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/views/scan_report/report_details_screen.dart';
 
+import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
+
 class ScanReportScreen extends StatefulWidget {
   const ScanReportScreen({super.key});
 
@@ -480,12 +482,14 @@ class _ScanReportScreenState extends State<ScanReportScreen> {
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color bg = isDark ? scaffoldColorDark : scaffoldColorLight;
-
+    final mediaQuery = MediaQuery.of(context);
+    final height = mediaQuery.size.height;
+    final width = mediaQuery.size.width;
     return Scaffold(
       backgroundColor: bg,
 
       appBar: CustomAppBar(appbarText: 'Upload Report'),
-
+      drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       bottomNavigationBar:
           _pdfPath != null
               ? SafeArea(

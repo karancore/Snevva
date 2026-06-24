@@ -32,21 +32,12 @@ class BpmInputWidget extends StatefulWidget {
 class _BpmInputWidgetState extends State<BpmInputWidget> {
   // ✅ FocusNode lives HERE — in its own stable state, never recreated
   final FocusNode _bpmFocusNode = FocusNode();
-
+  late final bool _autofocus;
   @override
   void initState() {
     super.initState();
-    widget.bpmController.addListener(_syncFocusAvailability);
     // handle the case where a value is already present when this widget mounts
-    _syncFocusAvailability();
-  }
-
-  void _syncFocusAvailability() {
-    final hasValue = widget.bpmController.text.trim().isNotEmpty;
-    _bpmFocusNode.canRequestFocus = !hasValue;
-    if (hasValue && _bpmFocusNode.hasFocus) {
-      _bpmFocusNode.unfocus();
-    }
+    _autofocus = widget.bpmController.text.trim().isEmpty;
   }
 
   @override
@@ -90,7 +81,7 @@ class _BpmInputWidgetState extends State<BpmInputWidget> {
                     height: 57 * scale,
                     child: TextFormField(
                       focusNode: _bpmFocusNode,
-                      autofocus: true,
+                      autofocus: _autofocus,
 
                       controller: widget.bpmController,
                       keyboardType: TextInputType.number,
