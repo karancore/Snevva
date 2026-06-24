@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -689,6 +690,18 @@ Future<void> _stopSleepAndSave(
 
   print("✅ Dart sleep state cleared (SleepCalcWorker owns finalization).");
 
+  // On iOS there is no Kotlin SleepCalcWorker, so we write the manual-session
+  // interval directly to FileStorageService here as a fallback.
+  // HealthKit data (written by IOSSleepService on app-foreground) takes priority
+  // because IOSStepBufferManager.mergeSleepIntoDailyFile keeps the higher total.
+  if (Platform.isIOS) {
+    await _writeIOSManualSleepInterval(
+      windowKey: windowKey,
+      startString: startString,
+      endString: endString,
+    );
+  }
+
   // Notify UI so Sleep screen can display a result immediately
   service.invoke("sleep_saved", {
     "duration":     lastElapsed,
@@ -696,6 +709,32 @@ Future<void> _stopSleepAndSave(
     "start_time":   startString ?? DateTime.now().toIso8601String(),
     "end_time":     endString   ?? DateTime.now().toIso8601String(),
   });
+}
+
+/// iOS-only: writes the just-ended manual sleep session to FileStorageService.
+/// Called from _stopSleepAndSave when Platform.isIOS.
+Future<void> _writeIOSManualSleepInterval({
+  required String? windowKey,
+  required String? startString,
+  required String? endString,
+}) async {
+  if (windowKey == null || startString == null) return;
+  final start = DateTime.tryParse(startString);
+  if (start == null) return;
+
+  // Cap at window end; if the window end is still in the future, cap at now.
+  final windowEnd = endString != null ? DateTime.tryParse(endString) : null;
+  final now = DateTime.now();
+  final end = (windowEnd != null && windowEnd.isBefore(now)) ? windowEnd : now;
+
+  if (!end.isAfter(start) || end.difference(start).inMinutes < 10) return;
+
+  final fs = FileStorageService();
+  await fs.appendSleepInterval(windowKey, start, end);
+  await fs.flushSleepToDaily();
+  await fs.addToSyncQueue(windowKey);
+
+  print('💤 iOS: manual sleep interval saved — $windowKey (${end.difference(start).inMinutes}m)');
 }
 
 // ───────────────────────────────────────────────────────────────────
