@@ -101,7 +101,6 @@ class AuthGate extends StatelessWidget {
         if (snapshot.data == false) {
           return SignInScreen(); // ❌ No token → ONLY LOGIN
         }
-
         return HomeWrapper(); // ✅ Valid session
       },
     );

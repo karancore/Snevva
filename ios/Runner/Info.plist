@@ -59,10 +59,14 @@
 	<string>Snevva reads your health data to track steps and activity.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Snevva writes your activity data to Apple Health.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Snevva uses the camera to let you upload a profile photo.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app requires microphone access for video recording.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>We need motion data to count your steps.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Snevva accesses your photo library to let you choose a profile photo.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
