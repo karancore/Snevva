@@ -156,13 +156,13 @@ class DeviceTokenService {
       int retries = 0;
       while (apnsToken == null && retries < 5) {
         apnsToken = await FirebaseMessaging.instance.getAPNSToken();
-        debugPrint('🍎 APNS Token (attempt ${retries + 1}): $apnsToken');
+        print('🍎 APNS Token (attempt ${retries + 1}): $apnsToken');
         if (apnsToken == null) {
           await Future.delayed(const Duration(seconds: 2));
           retries++;
         }
       }
-      debugPrint('🍎 Final APNS Token: $apnsToken');
+      print('🍎 Final APNS Token: $apnsToken');
     }
 
     final fcmToken = await FirebaseMessaging.instance.getToken();

@@ -20,6 +20,46 @@ class HealthScoreController extends GetxController {
   void onInit() {
     super.onInit();
     calculateHealthScore();
+    _setupReactiveWorkers();
+  }
+
+  void _setupReactiveWorkers() {
+    try {
+      final stepCtrl = Get.find<StepCounterController>();
+      debounce(
+        stepCtrl.stepsHistoryByDate,
+        (_) => calculateHealthScore(),
+        time: const Duration(milliseconds: 400),
+      );
+    } catch (_) {}
+
+    try {
+      final sleepCtrl = Get.find<SleepController>();
+      debounce(
+        sleepCtrl.weeklySleepHistory,
+        (_) => calculateHealthScore(),
+        time: const Duration(milliseconds: 400),
+      );
+    } catch (_) {}
+
+    try {
+      final hydroCtrl = Get.find<HydrationStatController>();
+      debounce(
+        hydroCtrl.waterHistoryByDate,
+        (_) => calculateHealthScore(),
+        time: const Duration(milliseconds: 400),
+      );
+    } catch (_) {}
+
+    try {
+      final moodCtrl = Get.find<MoodController>();
+      ever(moodCtrl.selectedMood, (_) => calculateHealthScore());
+    } catch (_) {}
+
+    try {
+      final bmiCtrl = Get.find<BmiController>();
+      ever(bmiCtrl.bmi_text, (_) => calculateHealthScore());
+    } catch (_) {}
   }
 
   void calculateHealthScore() {
@@ -28,17 +68,14 @@ class HealthScoreController extends GetxController {
     // Yesterday's Date
     DateTime yesterday = DateTime.now().subtract(const Duration(days: 1));
     String yesterdayKey = DateFormat('yyyy-MM-dd').format(yesterday);
-    String yesterdayKeyAlternate =
-        "${yesterday.year}-${yesterday.month}-${yesterday.day}";
+    // yesterdayKey is zero-padded "yyyy-MM-dd" and used for all lookups
 
     // 1. Physical Activity = 20%
     double physicalScore = 0.0;
     try {
       if (Get.isRegistered<StepCounterController>()) {
         final stepCtrl = Get.find<StepCounterController>();
-        String stepKey =
-            "${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}";
-        int yesterdaySteps = stepCtrl.stepsHistoryByDate[stepKey] ?? 0;
+        int yesterdaySteps = stepCtrl.stepsHistoryByDate[yesterdayKey] ?? 0;
         int stepGoal =
             stepCtrl.stepGoal.value > 0 ? stepCtrl.stepGoal.value : 8000;
         double progress = yesterdaySteps / stepGoal;
@@ -54,9 +91,7 @@ class HealthScoreController extends GetxController {
     try {
       if (Get.isRegistered<SleepController>()) {
         final sleepCtrl = Get.find<SleepController>();
-        String sleepKey =
-            "${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}";
-        Duration? yesterdaySleep = sleepCtrl.weeklySleepHistory[sleepKey];
+        Duration? yesterdaySleep = sleepCtrl.weeklySleepHistory[yesterdayKey];
         if (yesterdaySleep != null) {
           int sleepMins = yesterdaySleep.inMinutes;
           int goalMins =
@@ -77,8 +112,10 @@ class HealthScoreController extends GetxController {
     try {
       if (Get.isRegistered<HydrationStatController>()) {
         final hydroCtrl = Get.find<HydrationStatController>();
-        int yesterdayWater =
-            hydroCtrl.waterHistoryByDate[yesterdayKeyAlternate] ?? 0;
+        // waterHistoryByDate uses non-padded keys: "yyyy-M-d"
+        String hydrationKey =
+            "${yesterday.year}-${yesterday.month}-${yesterday.day}";
+        int yesterdayWater = hydroCtrl.waterHistoryByDate[hydrationKey] ?? 0;
         int waterGoal =
             hydroCtrl.waterGoal.value > 0 ? hydroCtrl.waterGoal.value : 2000;
         double progress = yesterdayWater / waterGoal;

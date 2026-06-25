@@ -121,9 +121,11 @@ class _SignInScreenState extends State<SignInScreen> {
           context,
         );
       } else {
-        debugPrint("Invalid input format");
-        // 🔹 Invalid input
-        // _handleSignInError();
+        CustomSnackbar.showError(
+          context: context,
+          title: "Invalid Format",
+          message: "Please enter a valid email or 10-digit phone number",
+        );
         return;
       }
 

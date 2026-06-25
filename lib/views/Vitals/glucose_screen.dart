@@ -52,12 +52,7 @@ class _GlucoseScreenState extends State<GlucoseScreen> {
                       () => showDialog(
                         context: context,
                         builder: (context) {
-                          return MediaQuery(
-                            // ✅ Keyboard ke viewInsets override kar do
-                            data: MediaQuery.of(context).copyWith(
-                                viewInsets: EdgeInsets.zero),
-                            child: const AddGlucoseCard(),
-                          );
+                          return const AddGlucoseCard();
                         },
                       ),
                   child: Container(

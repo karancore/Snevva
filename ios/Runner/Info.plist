@@ -55,22 +55,14 @@
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
-	<key>NSCameraUsageDescription</key>
-	<string>Camera access needed to take photos and scan reports.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Snevva reads your health data to track steps and activity.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Snevva writes your activity data to Apple Health.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We need your location to track walking activity.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app requires microphone access for video recording.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>We need motion data to count your steps.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Permission to save photos and videos to your library.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Photo library access needed to pick a profile or report image.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -99,7 +91,6 @@
 		<string>fetch</string>
 		<string>processing</string>
 		<string>remote-notification</string>
-		<string>external-accessory</string>
 	</array>
 	<key>UIFileSharingEnabled</key>
 	<true/>

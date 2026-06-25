@@ -327,12 +327,20 @@ class _VitalScreenState extends State<VitalScreen> {
     final width = mediaQuery.size.width;
     double screenWidth = mediaQuery.size.width;
     double scale = screenWidth / 360;
+    final keyboardInset = mediaQuery.viewInsets.bottom;
 
     return Scaffold(
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
+      resizeToAvoidBottomInset: true,
       bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
+        child: AnimatedPadding(
+          duration: const Duration(milliseconds: 150),
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 8,
+            bottom: (keyboardInset > 0 ? keyboardInset : 0) + 16,
+          ),
           child: CustomOutlinedButton(
             width: double.infinity,
             isDarkMode: isDarkMode,

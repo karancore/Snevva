@@ -175,13 +175,19 @@ class HealthSummaryDialog extends StatelessWidget {
     Color textSubColor = isDarkMode ? Colors.white70 : const Color(0xFF8E8E93);
     Color primaryPurple = const Color(0xFFA95BFF);
 
+    final hour = DateTime
+        .now()
+        .hour;
+    final greeting = hour < 12
+        ? "Good Morning"
+        : hour < 17
+        ? "Good Afternoon"
+        : "Good Evening";
+
     return Center(
       child: Material(
         color: Colors.transparent,
-
-        child: GestureDetector(
-          onTap: () => Get.back(),
-          child: Container(
+        child: Container(
             width: w * 0.92,
             constraints: BoxConstraints(maxHeight: size.height * 0.85),
             decoration: BoxDecoration(
@@ -207,7 +213,7 @@ class HealthSummaryDialog extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Good Morning",
+                        greeting,
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 22 * scale,
@@ -217,7 +223,7 @@ class HealthSummaryDialog extends StatelessWidget {
                       ),
                       SizedBox(width: 8 * scale),
                       Text(
-                        "☀️",
+                        hour < 12 ? "☀️" : hour < 17 ? "🌤️" : "🌙",
                         style: TextStyle(fontSize: 22 * scale),
                       ),
                     ],
@@ -304,7 +310,6 @@ class HealthSummaryDialog extends StatelessWidget {
             ),
           ),
         ),
-      ),
     );
   }
 

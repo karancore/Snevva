@@ -345,7 +345,8 @@ class HydrationStatController extends GetxService {
   }
 
   void syncTodayIntakeFromMap() {
-    final key = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final d = DateTime.now();
+    final key = "${d.year}-${d.month}-${d.day}";
     waterIntake.value = (waterHistoryByDate[key] ?? 0).toDouble();
   }
 

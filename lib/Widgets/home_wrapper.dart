@@ -6,11 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/BMI/bmi_updatecontroller.dart';
 import 'package:snevva/Controllers/StepCounter/step_counter_controller.dart';
 import 'package:snevva/Controllers/local_storage_manager.dart';
-import 'package:snevva/common/global_variables.dart';
 import 'package:snevva/services/connectivity_service.dart';
 import 'package:snevva/views/Dashboard/dashboard.dart';
 import 'package:snevva/views/Information/menu_screen.dart';
-import 'package:snevva/views/ProfileAndQuestionnaire/profile_setup_initial.dart';
 import 'package:snevva/views/Reminder/reminder_wrapper.dart';
 import 'package:snevva/widgets/navbar.dart';
 
@@ -143,15 +141,6 @@ class _HomeWrapperState extends State<HomeWrapper> {
     }
   }
 
-  bool _redirectToProfileSetupIfNeeded() {
-    if (_hasRedirectedToProfileSetup) return true;
-    if (isProfileSetupInitialComplete(localStorageManager.userMap))
-      return false;
-
-    _hasRedirectedToProfileSetup = true;
-    Get.offAll(() => const ProfileSetupInitial());
-    return true;
-  }
 
   void _setStepRealtimeTracking(bool isDashboardVisible) {
     if (!Get.isRegistered<StepCounterController>()) return;

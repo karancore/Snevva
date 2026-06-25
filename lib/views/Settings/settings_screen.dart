@@ -1,11 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:snevva/utils/push_notifications_controller.dart';
 import 'package:snevva/utils/theme_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../Widgets/CommonWidgets/custom_appbar.dart';
 import '../../Widgets/Drawer/drawer_menu_wigdet.dart';
 import '../../consts/consts.dart';
 import '../debug_log_page.dart';
@@ -24,7 +24,12 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final ThemeController themeController = Get.find<ThemeController>();
   final PushNotificationsController pushNotificationsController =
-      Get.find<PushNotificationsController>();
+  Get.find<PushNotificationsController>();
+
+  // 🔑 Key that gives us direct access to this Scaffold's state,
+  // so we can open the drawer from the AppBar's leading button
+  // (which sits in a different part of the widget tree above the Scaffold).
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   bool _notificationsToggle = false;
   double _volume = 0.5;
@@ -69,7 +74,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final width = mediaQuery.size.width;
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      appBar: CustomAppBar(appbarText: 'Settings', showDrawerIcon: true),
+      key: _scaffoldKey, // 🔑 attach the key here
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(kToolbarHeight),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          child: AppBar(
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            backgroundColor:
+            Colors.transparent,
+            leading: IconButton(
+              icon: SvgPicture.asset(
+                drawerIcon,
+              ),
+              onPressed: () {
+                // ✅ Use the GlobalKey instead of Scaffold.maybeOf(context),
+                // since this context is above the Scaffold, not below it.
+                _scaffoldKey.currentState?.openDrawer();
+              },
+            ),
+            iconTheme: IconThemeData(color: isDarkMode ? white : black),
+            title: Text(
+              "Settings",
+              style: TextStyle(
+                color: isDarkMode ? white : black,
+                fontWeight: FontWeight.w500,
+                fontSize: 20,
+              ),
+            ),
+            centerTitle: true,
+          ),
+        ),
+      ),
       drawer: Drawer(child: DrawerMenuWidget(height: height, width: width)),
       body: SingleChildScrollView(
         child: Padding(
@@ -94,7 +131,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
                   ),
                   Obx(
-                    () => CupertinoSwitch(
+                        () =>
+                        CupertinoSwitch(
                       value: themeController.isDarkMode.value,
                       activeColor: AppColors.activeSwitch,
                       onChanged: (_) => themeController.toggleTheme(),
@@ -113,23 +151,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
                   ),
                   Obx(
-                    () => CupertinoSwitch(
+                        () =>
+                        CupertinoSwitch(
                       value:
-                          pushNotificationsController
-                              .isNotificationEnabled
-                              .value,
+                      pushNotificationsController
+                          .isNotificationEnabled
+                          .value,
 
                       activeColor: AppColors.activeSwitch,
 
                       onChanged:
-                          pushNotificationsController
-                                  .isUpdatingNotification
-                                  .value
-                              ? null
-                              : (value) {
-                                pushNotificationsController
-                                    .disableNotifications(value);
-                              },
+                      pushNotificationsController
+                          .isUpdatingNotification
+                          .value
+                          ? null
+                          : (value) {
+                        pushNotificationsController
+                            .disableNotifications(value);
+                      },
                     ),
                   ),
                 ],

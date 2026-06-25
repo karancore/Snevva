@@ -131,379 +131,385 @@ class _AddGlucoseCardState extends State<AddGlucoseCard> {
         ),
 
         Center(
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              width: 360 * scale,
-              margin: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(28),
-                color: isDarkMode ? darkGray : white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.25),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: 360 * scale,
+                margin: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(28),
+                  color: isDarkMode ? darkGray : white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.25),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
 
-              child: Stack(
-                children: [
-                  /// Purple BG — covers title + image + input zone
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: ClipPath(
-                      clipper: BottomEllipseClipper(),
-                      child: Container(
-                        height: 290 * scale,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(28),
-                          color: const Color(0xffB475FF),
+                child: Stack(
+                  children: [
+                    /// Purple BG — covers title + image + input zone
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: ClipPath(
+                        clipper: BottomEllipseClipper(),
+                        child: Container(
+                          height: 290 * scale,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(28),
+                            color: const Color(0xffB475FF),
+                          ),
                         ),
                       ),
                     ),
-                  ),
 
-                  /// Main Column
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // ── PURPLE ZONE ──────────────────────────────
+                    /// Main Column
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // ── PURPLE ZONE ──────────────────────────────
 
-                      /// Close + Title + Subtitle row at very top
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 16, 16, 0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            /// Title + Subtitle
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  const Text(
-                                    'Blood Glucose',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w700,
-                                      height: 1.2,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Track your blood glucose level and stay in control of your health.',
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.8),
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w400,
-                                      height: 1.4,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            const SizedBox(width: 12),
-
-                            /// Close Button
-                            GestureDetector(
-                              onTap: () => Navigator.pop(context),
-                              child: Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.close,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      SizedBox(height: 5 * scale),
-
-                      /// Glucose Drop Image (centered)
-                      Container(
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.35),
-                        ),
-                        child: Image.asset(
-                          glucoseDrop,
-                          width: 80 * scale,
-                          height: 80 * scale,
-                        ),
-                      ),
-
-                      SizedBox(height: 10 * scale),
-
-                      /// Input Chip — now where title used to be
-                      Container(
-                        width: 130 * scale,
-                        height: 40 * scale,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.5),
-                            width: 1,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(
+                        /// Close + Title + Subtitle row at very top
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 16, 0),
                           child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SizedBox(
-                                width: 70 * scale,
-                                child: TextFormField(
-                                  controller:
-                                      vitalsController.glucoseController,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
+                              /// Title + Subtitle
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    const Text(
+                                      'Blood Glucose',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w700,
+                                        height: 1.2,
                                       ),
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 22,
-                                    height: 1,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                  autofocus: true,
-                                  decoration: InputDecoration(
-                                    border: InputBorder.none,
-                                    enabledBorder: InputBorder.none,
-                                    focusedBorder: InputBorder.none,
-                                    disabledBorder: InputBorder.none,
-                                    errorBorder: InputBorder.none,
-                                    focusedErrorBorder: InputBorder.none,
-                                    isDense: true,
-                                    contentPadding: EdgeInsets.zero,
-                                    hintText: '120',
-                                    hintStyle: TextStyle(
-                                      color: Colors.white.withOpacity(0.4),
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w700,
                                     ),
-                                  ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Track your blood glucose level and stay in control of your health.',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.8),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w400,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              SizedBox(width: 6 * scale),
-                              Text(
-                                "mg/dL",
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.85),
-                                  fontSize: 10,
-                                  height: 1,
-                                  fontWeight: FontWeight.w600,
+
+                              const SizedBox(width: 12),
+
+                              /// Close Button
+                              GestureDetector(
+                                onTap: () => Navigator.pop(context),
+                                child: Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.close,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ),
 
-                      // ── WHITE ZONE ───────────────────────────────
-                      SizedBox(height: 1 * scale),
+                        SizedBox(height: 5 * scale),
 
-                      /// "Your reading is" status — right below input
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: ValueListenableBuilder(
-                          key: ValueKey(_selectedType),
-                          valueListenable: vitalsController.glucoseController,
-                          builder: (context, value, child) {
-                            final text =
-                                vitalsController.glucoseController.text.trim();
-                            final isEmpty = text.isEmpty;
-                            final status = getGlucoseStatusForType(
-                              double.tryParse(text) ?? 0.0,
-                              _selectedType,
-                            );
+                        /// Glucose Drop Image (centered)
+                        Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.35),
+                          ),
+                          child: Image.asset(
+                            glucoseDrop,
+                            width: 80 * scale,
+                            height: 80 * scale,
+                          ),
+                        ),
 
-                            if (isEmpty) return const SizedBox.shrink();
+                        SizedBox(height: 10 * scale),
 
-                            return Container(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 12,
-                                horizontal: 14,
-                              ),
-                              decoration: BoxDecoration(
-                                color: status.containerBg,
-                                border: Border.all(
-                                  color: status.containerBorder,
+                        /// Input Chip — now where title used to be
+                        Container(
+                          width: 130 * scale,
+                          height: 40 * scale,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.5),
+                              width: 1,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 70 * scale,
+                                  child: TextFormField(
+                                    controller:
+                                        vitalsController.glucoseController,
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                          decimal: true,
+                                        ),
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 22,
+                                      height: 1,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                    autofocus: true,
+                                    decoration: InputDecoration(
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      disabledBorder: InputBorder.none,
+                                      errorBorder: InputBorder.none,
+                                      focusedErrorBorder: InputBorder.none,
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.zero,
+                                      hintText: '120',
+                                      hintStyle: TextStyle(
+                                        color: Colors.white.withOpacity(0.4),
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    height: 40,
-                                    width: 40,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: status.statusColor.withOpacity(
-                                        0.2,
+                                SizedBox(width: 6 * scale),
+                                Text(
+                                  "mg/dL",
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.85),
+                                    fontSize: 10,
+                                    height: 1,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // ── WHITE ZONE ───────────────────────────────
+                        SizedBox(height: 1 * scale),
+
+                        /// "Your reading is" status — right below input
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: ValueListenableBuilder(
+                            key: ValueKey(_selectedType),
+                            valueListenable: vitalsController.glucoseController,
+                            builder: (context, value, child) {
+                              final text =
+                                  vitalsController.glucoseController.text
+                                      .trim();
+                              final isEmpty = text.isEmpty;
+                              final status = getGlucoseStatusForType(
+                                double.tryParse(text) ?? 0.0,
+                                _selectedType,
+                              );
+
+                              if (isEmpty) return const SizedBox.shrink();
+
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 14,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: status.containerBg,
+                                  border: Border.all(
+                                    color: status.containerBorder,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      height: 40,
+                                      width: 40,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: status.statusColor.withOpacity(
+                                          0.2,
+                                        ),
+                                      ),
+                                      child: Center(
+                                        child: Icon(
+                                          status.statusIcon,
+                                          color: status.statusColor,
+                                          size: 22,
+                                        ),
                                       ),
                                     ),
-                                    child: Center(
-                                      child: Icon(
-                                        status.statusIcon,
-                                        color: status.statusColor,
-                                        size: 22,
+                                    SizedBox(width: 10 * scale),
+                                    Expanded(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            "Your reading is",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w500,
+                                              fontSize: 10,
+                                              color: isDarkMode ? white : black,
+                                            ),
+                                          ),
+                                          SizedBox(height: 2 * scale),
+                                          Text(
+                                            status.statusLabel,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 13,
+                                              color: status.statusColor,
+                                            ),
+                                          ),
+                                          SizedBox(height: 2 * scale),
+                                          Text(
+                                            status.description,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w400,
+                                              fontSize: 10,
+                                              color: isDarkMode ? white : black,
+                                              height: 1.4,
+                                            ),
+                                            softWrap: true,
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  ),
-                                  SizedBox(width: 10 * scale),
-                                  Expanded(
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "Your reading is",
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 10,
-                                            color: isDarkMode ? white : black,
-                                          ),
-                                        ),
-                                        SizedBox(height: 2 * scale),
-                                        Text(
-                                          status.statusLabel,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 13,
-                                            color: status.statusColor,
-                                          ),
-                                        ),
-                                        SizedBox(height: 2 * scale),
-                                        Text(
-                                          status.description,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w400,
-                                            fontSize: 10,
-                                            color: isDarkMode ? white : black,
-                                            height: 1.4,
-                                          ),
-                                          softWrap: true,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+
+                        SizedBox(height: 14 * scale),
+
+                        /// Fasting / Post Meal / Random
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Row(
+                            children: [
+                              _glucoseType(
+                                icon: FontAwesomeIcons.utensils,
+                                label: "Fasting",
+                                scale: scale,
+                                isDarkMode: isDarkMode,
                               ),
-                            );
-                          },
+                              _glucoseType(
+                                icon: FontAwesomeIcons.bowlFood,
+                                label: "Post Meal",
+                                scale: scale,
+                                isDarkMode: isDarkMode,
+                              ),
+                              _glucoseType(
+                                icon: FontAwesomeIcons.droplet,
+                                label: "Random",
+                                scale: scale,
+                                isDarkMode: isDarkMode,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
 
-                      SizedBox(height: 14 * scale),
+                        SizedBox(height: 12 * scale),
 
-                      /// Fasting / Post Meal / Random
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Row(
-                          children: [
-                            _glucoseType(
-                              icon: FontAwesomeIcons.utensils,
-                              label: "Fasting",
-                              scale: scale,
-                              isDarkMode: isDarkMode,
-                            ),
-                            _glucoseType(
-                              icon: FontAwesomeIcons.bowlFood,
-                              label: "Post Meal",
-                              scale: scale,
-                              isDarkMode: isDarkMode,
-                            ),
-                            _glucoseType(
-                              icon: FontAwesomeIcons.droplet,
-                              label: "Random",
-                              scale: scale,
-                              isDarkMode: isDarkMode,
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      SizedBox(height: 12 * scale),
-
-                      /// Conversion note
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Row(
-                          children: [
-                            Icon(
-                              FontAwesomeIcons.circleInfo,
-                              size: 10,
-                              color:
-                                  isDarkMode
-                                      ? white.withOpacity(0.4)
-                                      : Colors.grey.shade400,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              "To convert to mmol/L, divide the value by 18",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w400,
-                                fontSize: 10,
+                        /// Conversion note
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Row(
+                            children: [
+                              Icon(
+                                FontAwesomeIcons.circleInfo,
+                                size: 10,
                                 color:
                                     isDarkMode
                                         ? white.withOpacity(0.4)
-                                        : Colors.grey.shade500,
+                                        : Colors.grey.shade400,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 6),
+                              Text(
+                                "To convert to mmol/L, divide the value by 18",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w400,
+                                  fontSize: 10,
+                                  color:
+                                      isDarkMode
+                                          ? white.withOpacity(0.4)
+                                          : Colors.grey.shade500,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
 
-                      SizedBox(height: 14 * scale),
+                        SizedBox(height: 14 * scale),
 
-                      /// Action Buttons
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Row(
-                          children: [
-                            _cancelOrSave(
-                              label: "Cancel",
-                              color: cancelButtonColor,
-                              borderColor: cancelButtonColor,
-                              textColor: isDarkMode ? black : black,
-                              scale: scale,
-                              isDarkMode: isDarkMode,
-                            ),
-                            const SizedBox(width: 10),
-                            _cancelOrSave(
-                              label: "Save",
-                              color: AppColors.primaryColor,
-                              borderColor: AppColors.primaryColor,
-                              textColor: isDarkMode ? white : white,
-                              scale: scale,
-                              isDarkMode: isDarkMode,
-                            ),
-                          ],
+                        /// Action Buttons
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Row(
+                            children: [
+                              _cancelOrSave(
+                                label: "Cancel",
+                                color: cancelButtonColor,
+                                borderColor: cancelButtonColor,
+                                textColor: isDarkMode ? black : black,
+                                scale: scale,
+                                isDarkMode: isDarkMode,
+                              ),
+                              const SizedBox(width: 10),
+                              _cancelOrSave(
+                                label: "Save",
+                                color: AppColors.primaryColor,
+                                borderColor: AppColors.primaryColor,
+                                textColor: isDarkMode ? white : white,
+                                scale: scale,
+                                isDarkMode: isDarkMode,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
 
-                      SizedBox(height: 16 * scale),
-                    ],
-                  ),
-                ],
+                        SizedBox(height: 16 * scale),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

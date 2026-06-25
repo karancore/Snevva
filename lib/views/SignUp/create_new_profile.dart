@@ -54,7 +54,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Future<void> onButtonClick(String input) async {
     final emailRegex = RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[a-zA-Z]{2,4}$');
-    final phoneRegex = RegExp(r'^[6-9]\d{9}$');
+    final phoneRegex = RegExp(r'^\d{10,}$');
 
     try {
       if (emailRegex.hasMatch(input)) {
