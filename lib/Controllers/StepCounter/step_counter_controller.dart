@@ -65,6 +65,8 @@ class StepCounterController extends GetxController {
   static const _stepChannel =
       MethodChannel('com.coretegra.snevvaa/step_detector');
 
+  bool _isSyncingSteps = false;
+
 
   // =======================
   // INIT
@@ -590,24 +592,28 @@ class StepCounterController extends GetxController {
 
   Future<void> _maybeSyncSteps() async {
     if (todaySteps.value <= 0) return;
+    if (_isSyncingSteps) return; // 🔒 in-flight guard — blocks concurrent calls
 
     final todayKey = _dayKey(now);
-
     final lastSyncMillis = _prefs.getInt(_lastSyncKey);
-    final lastSyncTime =
-        lastSyncMillis != null
-            ? DateTime.fromMillisecondsSinceEpoch(lastSyncMillis)
-            : null;
-
+    final lastSyncTime = lastSyncMillis != null
+        ? DateTime.fromMillisecondsSinceEpoch(lastSyncMillis)
+        : null;
     final lastSyncedDate = _prefs.getString(_lastSyncedDateKey);
 
-    if (lastSyncedDate != todayKey ||
+    final shouldSync = lastSyncedDate != todayKey ||
         lastSyncTime == null ||
-        now.difference(lastSyncTime) >= _syncInterval) {
-      await saveStepRecordToServer();
+        now.difference(lastSyncTime) >= _syncInterval;
 
+    if (!shouldSync) return;
+
+    _isSyncingSteps = true;
+    try {
+      await saveStepRecordToServer();
       await _prefs.setInt(_lastSyncKey, now.millisecondsSinceEpoch);
       await _prefs.setString(_lastSyncedDateKey, todayKey);
+    } finally {
+      _isSyncingSteps = false; // always release, even on failure
     }
   }
 

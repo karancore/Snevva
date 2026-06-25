@@ -76,6 +76,8 @@ class SleepController extends GetxService {
 
   var _storage = GetStorage();
 
+  bool _isUploadingSleep = false;
+
   // ─────────────────────────────────────────────
 
   @override
@@ -765,10 +767,12 @@ class SleepController extends GetxService {
       final bedKey = dateKey(bedDateTime);
       final lastUploaded = prefs.getString(_lastUploadedSleepDateKey);
 
-      // if (lastUploaded == bedKey) {
-      //   debugPrint("⏭️ Sleep already uploaded for $bedKey");
-      //   return;
-      // }
+      if (lastUploaded == bedKey) {
+        debugPrint("⏭️ Sleep already uploaded for $bedKey");
+        return;
+      }
+
+      _isUploadingSleep = true; // 🔒 lock
 
       final payload = {
         "Day": bedDateTime.day,
@@ -802,6 +806,8 @@ class SleepController extends GetxService {
       debugPrint("✅ Sleep uploaded for bed date $bedKey");
     } catch (e) {
       debugPrint("🔥 Sleep upload error: $e");
+    } finally {
+      _isUploadingSleep = false;
     }
   }
 
