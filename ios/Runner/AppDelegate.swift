@@ -5,6 +5,7 @@ import flutter_local_notifications
 import QuartzCore
 import FirebaseCore
 import FirebaseMessaging
+import AVFoundation
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -13,6 +14,11 @@ import FirebaseMessaging
     private let timezoneChannelName = "com.coretegra.snevvaa/timezone"
     private let stepServiceChannelName = "com.coretegra.snevvaa/step_service"
     private let sleepServiceChannelName = "com.coretegra.snevvaa/sleep_service"
+    // Channel used to ask Flutter to call Alarm.stop() when the iOS "Clear"
+    // button dismisses an alarm notification without the custom "Stop" action.
+    private let alarmControlChannelName = "com.coretegra.snevvaa/alarm_control"
+
+    private var alarmControlChannel: FlutterMethodChannel?
 
     // MARK: - App lifecycle
 
@@ -85,6 +91,76 @@ import FirebaseMessaging
         configureDisplayConfigChannel(with: messenger)
         configureTimezoneChannel(with: messenger)
         configureStepServiceChannel(with: messenger)
+
+        // Wire the alarm control channel so the "Clear" dismiss handler can
+        // ask Flutter to call Alarm.stop(alarmId) for clean alarm teardown.
+        alarmControlChannel = FlutterMethodChannel(
+            name: alarmControlChannelName,
+            binaryMessenger: messenger
+        )
+
+        // The alarm package registers notification categories without
+        // .customDismissAction, so iOS never fires didReceive for "Clear".
+        // Wait briefly for the alarm plugin's async init to finish, then
+        // re-register those categories with .customDismissAction added.
+        Task {
+            try? await Task.sleep(nanoseconds: 300_000_000) // 300 ms
+            await self.addDismissActionToAlarmCategories()
+        }
+    }
+
+    // MARK: - Alarm notification dismiss ("Clear" button)
+
+    // iOS only calls userNotificationCenter(_:didReceive:) for the "Clear"
+    // (dismiss) button when the notification category has .customDismissAction.
+    // The alarm package omits this option, so we patch it in after init.
+    private func addDismissActionToAlarmCategories() async {
+        let center = UNUserNotificationCenter.current()
+        var categories = await center.notificationCategories()
+        var changed = false
+
+        let alarmCategories = categories.filter {
+            $0.identifier == "ALARM_CATEGORY_NO_ACTION" ||
+            $0.identifier.hasPrefix("ALARM_CATEGORY_WITH_ACTION_")
+        }
+
+        for category in alarmCategories {
+            guard !category.options.contains(.customDismissAction) else { continue }
+            categories.remove(category)
+            categories.insert(UNNotificationCategory(
+                identifier: category.identifier,
+                actions: category.actions,
+                intentIdentifiers: category.intentIdentifiers,
+                options: category.options.union(.customDismissAction)
+            ))
+            changed = true
+        }
+
+        if changed {
+            center.setNotificationCategories(categories)
+            print("[Snevva] ✅ Alarm categories updated with .customDismissAction")
+        }
+    }
+
+    // Intercept "Clear" (UNNotificationDismissActionIdentifier) for alarm
+    // notifications and route a stop request through Flutter so the alarm
+    // package can clean up its audio player, timers, and volume state.
+    override func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        if response.actionIdentifier == UNNotificationDismissActionIdentifier,
+           let alarmId = response.notification.request.content.userInfo["ALARM_ID"] as? Int {
+            // Immediately stop audio in case the Flutter call is delayed.
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            // Ask Flutter to call Alarm.stop(alarmId) for full teardown.
+            alarmControlChannel?.invokeMethod("stopAlarm", arguments: alarmId)
+        }
+
+        // Forward to FlutterAppDelegate so other plugins (alarm "Stop" action,
+        // FCM, flutter_local_notifications) receive the response normally.
+        super.userNotificationCenter(center, didReceive: response, withCompletionHandler: completionHandler)
     }
 
     // MARK: - UIScene lifecycle

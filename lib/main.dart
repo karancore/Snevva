@@ -285,6 +285,19 @@ void main() {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 
+      // iOS: handle stopAlarm requests triggered by the "Clear" dismiss button
+      // on alarm notifications. AppDelegate fires this when iOS delivers
+      // UNNotificationDismissActionIdentifier for an alarm notification.
+      if (!kIsWeb && Platform.isIOS) {
+        const alarmControlChannel = MethodChannel('com.coretegra.snevvaa/alarm_control');
+        alarmControlChannel.setMethodCallHandler((call) async {
+          if (call.method == 'stopAlarm') {
+            final alarmId = call.arguments as int;
+            await Alarm.stop(alarmId);
+          }
+        });
+      }
+
       // Register the step MethodChannel so the native StepCounterService can
       // deliver step counts to this Flutter engine via onStepDetected.
       // Android only — on iOS, CMPedometer in AppDelegate writes directly to
