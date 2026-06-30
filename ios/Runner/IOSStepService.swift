@@ -174,6 +174,11 @@ final class IOSStepService: NSObject {
     /// Queries CMPedometer for today's total, flushes, and triggers API sync.
     /// The caller must call setTaskCompleted after the returned completion fires.
     func performBackgroundRefresh(completion: @escaping () -> Void) {
+        // Re-seed the lock anchor on every BGRefresh so overnight firings (every
+        // ~15 min) act as catch-up seeds in case the app was suspended before
+        // applicationDidEnterBackground's initializeForSleepWindow call ran.
+        IOSLockUnlockSleepDetector.shared.initializeForSleepWindow()
+
         guard CMPedometer.isStepCountingAvailable() else {
             completion()
             return

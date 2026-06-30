@@ -66,9 +66,9 @@ final class IOSLockUnlockSleepDetector {
             return
         }
         let now = Date()
-        guard isWithinWindow(now, window) else {
-            return
-        }
+        // Record the lock time even if it's slightly before window.start.
+        // deviceUnlocked() clamps: start = max(lockTime, window.start), so no
+        // sleep is overcounted, but a pre-bedtime lock won't be silently lost.
         let key = lockAnchorKey(for: window.dateKey)
         UserDefaults.standard.set(isoFmt.string(from: now), forKey: key)
         print("🔒 IOSLockUnlockSleepDetector: locked at \(now), window=\(window.dateKey)")

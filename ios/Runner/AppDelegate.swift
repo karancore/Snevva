@@ -191,6 +191,12 @@ import AVFoundation
         // Flush both step and sleep buffers before potential suspension
         IOSStepBufferManager.shared.flushStepsToDaily()
         IOSStepBufferManager.shared.flushSleepToDaily()
+        // Seed the lock anchor here — this is the last guaranteed execution point
+        // before iOS suspends the app. If the app entered background because the
+        // user locked their phone at or after bedtime, this ensures the morning
+        // BGTask (sleep_calc) can reconstruct the full sleep interval even if the
+        // protectedDataWillBecomeUnavailableNotification was never delivered.
+        IOSLockUnlockSleepDetector.shared.initializeForSleepWindow()
         // Schedule BGTasks while we still have time in the background transition window
         if #available(iOS 13.0, *) {
             scheduleStepRefreshTask()
