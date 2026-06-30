@@ -6,6 +6,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:health/health.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/common/custom_snackbar.dart';
@@ -96,23 +97,10 @@ class StepCounterController extends GetxController {
 
 
    if (Platform.isIOS) {
-     _stepChannel.setMethodCallHandler((call) async {
-       if (call.method == 'onStepDetected') {
-         final int newSteps = (call.arguments as int?) ?? 0;
-         _lastServiceEventAt = DateTime.now();
-
-         if (newSteps > todaySteps.value) {
-           lastSteps = todaySteps.value;
-           lastStepsRx.value = lastSteps;
-           lastPercent = _currentPercent;
-           todaySteps.value = newSteps;
-           todaySteps.refresh();
-           await _saveToFile(newSteps);
-           await _maybeSyncSteps();
-         }
-       }
-     });
-     _startFilePoller(); // ← new
+     // iOS primary: HealthKit (initialised below after common setup).
+     // CMPedometer (IOSStepService.swift) remains active as backup — its
+     // MethodChannel events are handled by the unconditional handler below,
+     // but are ignored while HealthKit is the active source.
    } else {
      // Android: MethodChannel + file poller (unchanged)
      _stepChannel.setMethodCallHandler((call) async {
@@ -152,70 +140,156 @@ class StepCounterController extends GetxController {
     });
 
     _startFilePoller();
+
+   if (Platform.isIOS) {
+     await _initIOSHealthKit();
+   }
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
 // iOS / Apple HealthKit
 // ─────────────────────────────────────────────────────────────────────────────
 
-  // Future<void> _initIOSHealth() async {
-  //   _iOSHealth = Health();
-  //   await _iOSHealth!.configure();
-  //
-  //   final granted = await _iOSHealth!.requestAuthorization(
-  //     [HealthDataType.STEPS],
-  //     permissions: [HealthDataAccess.READ],
-  //   );
-  //   _iosHealthPermissionGranted = granted;
-  //
-  //   if (granted) {
-  //     await _fetchIOSStepsToday();
-  //     _startIOSHealthPoller();         // poll every 30s like Android
-  //   } else {
-  //     debugPrint('⚠️ iOS HealthKit permission denied');
-  //   }
-  // }
-
-  // Future<void> _fetchIOSStepsToday() async {
-  //   if (_iOSHealth == null || !_iosHealthPermissionGranted) return;
-  //
-  //   try {
-  //     final now = DateTime.now();
-  //     final midnight = DateTime(now.year, now.month, now.day);
-  //
-  //     final steps = await _iOSHealth!.getTotalStepsInInterval(midnight, now) ?? 0;
-  //
-  //     _debugLog('🍎 iOS HealthKit steps today: $steps');
-  //
-  //     if (steps > todaySteps.value) {
-  //       lastSteps = todaySteps.value;
-  //       lastStepsRx.value = lastSteps;
-  //       lastPercent = _currentPercent;
-  //
-  //       todaySteps.value = steps;
-  //       todaySteps.refresh();
-  //
-  //       await _prefs.setInt('today_steps', steps);
-  //       _invalidateMonthlySpotsCache(month: now);
-  //       await updateStepSpots();
-  //       stepSpots.refresh();
-  //
-  //       await _maybeSyncSteps();
-  //     }
-  //   } catch (e) {
-  //     debugPrint('❌ iOS HealthKit fetch error: $e');
-  //   }
-  // }
-
+  // HealthKit fields — iOS only, null on Android
+  Health? _iosHealth;
+  bool _iosHealthGranted = false;
   Timer? _iosHealthPoller;
 
-  // void _startIOSHealthPoller() {
-  //   _iosHealthPoller?.cancel();
-  //   _iosHealthPoller = Timer.periodic(
-  //     _filePollInterval,             // reuse same 30s constant
-  //         (_) => _fetchIOSStepsToday(),
-  //   );
-  // }
+  Future<void> _initIOSHealthKit() async {
+    _iosHealth = Health();
+    await _iosHealth!.configure();
+    try {
+      _iosHealthGranted = await _iosHealth!.requestAuthorization(
+        [HealthDataType.STEPS],
+        permissions: [HealthDataAccess.READ],
+      );
+    } catch (e) {
+      debugPrint('⚠️ HealthKit auth error: $e');
+      _iosHealthGranted = false;
+    }
+
+    if (_iosHealthGranted) {
+      debugPrint('✅ HealthKit granted — primary step source active');
+      await _fetchIOSStepsToday();
+      await _fetchIOSStepsHistorical(days: 30);
+      _startIOSHealthPoller();
+    } else {
+      debugPrint('⚠️ HealthKit not granted — CMPedometer backup active');
+    }
+  }
+
+  Future<void> _fetchIOSStepsToday() async {
+    if (_iosHealth == null || !_iosHealthGranted) return;
+    try {
+      final now = DateTime.now();
+      final midnight = DateTime(now.year, now.month, now.day);
+      final steps = await _iosHealth!.getTotalStepsInInterval(midnight, now) ??
+          0;
+      if (steps <= 0) return;
+
+      _debugLog('🍎 HealthKit today: $steps steps');
+      final todayKey = _dayKey(now);
+
+      // Update live counter
+      if (steps > todaySteps.value) {
+        lastSteps = todaySteps.value;
+        lastStepsRx.value = lastSteps;
+        lastPercent = _currentPercent;
+        todaySteps.value = steps;
+        todaySteps.refresh();
+        await _prefs.setInt('today_steps', steps);
+        await _maybeSyncSteps();
+      }
+
+      // Write to daily file so the graph reads it without waiting for native flush
+      await FileStorageService().writeStepTotal(todayKey, steps);
+
+      // Update history map immediately so the weekly graph shows today
+      if ((stepsHistoryByDate[todayKey] ?? 0) < steps) {
+        stepsHistoryByDate[todayKey] = steps;
+        stepsHistoryByDate.refresh();
+        _invalidateMonthlySpotsCache(month: now);
+        await updateStepSpots();
+        stepSpots.refresh();
+      }
+    } catch (e) {
+      debugPrint('❌ HealthKit fetch today error: $e');
+    }
+  }
+
+  Future<void> _fetchIOSStepsHistorical({int days = 30}) async {
+    if (_iosHealth == null || !_iosHealthGranted) return;
+    try {
+      final now = DateTime.now();
+      bool changed = false;
+      for (int i = 1; i < days; i++) {
+        // i=0 is today — handled by _fetchIOSStepsToday
+        final date = now.subtract(Duration(days: i));
+        final start = DateTime(date.year, date.month, date.day);
+        final end = start.add(const Duration(days: 1));
+        final steps = await _iosHealth!.getTotalStepsInInterval(start, end) ??
+            0;
+        if (steps <= 0) continue;
+        final key = _dayKey(date);
+        if ((stepsHistoryByDate[key] ?? 0) < steps) {
+          stepsHistoryByDate[key] = steps;
+          await FileStorageService().writeStepTotal(key, steps);
+          changed = true;
+        }
+      }
+      if (changed) {
+        stepsHistoryByDate.refresh();
+        _invalidateMonthlySpotsCache();
+        await updateStepSpots();
+        stepSpots.refresh();
+      }
+    } catch (e) {
+      debugPrint('❌ HealthKit fetch historical error: $e');
+    }
+  }
+
+  /// Fetches HealthKit data for every day in [month] and merges it into
+  /// [stepsHistoryByDate] so the monthly chart reflects Apple Health data.
+  Future<void> fetchIOSHealthKitForMonth(DateTime month) async {
+    if (_iosHealth == null || !_iosHealthGranted) return;
+    try {
+      final now = DateTime.now();
+      final isCurrentMonth = month.year == now.year && month.month == now.month;
+      final daysInMonth = isCurrentMonth
+          ? now.day
+          : DateTime(month.year, month.month + 1, 0).day;
+
+      bool changed = false;
+      for (int day = 1; day <= daysInMonth; day++) {
+        final date = DateTime(month.year, month.month, day);
+        if (date.isAfter(now)) break;
+        final end = (isCurrentMonth && day == now.day)
+            ? now
+            : date.add(const Duration(days: 1));
+        final steps = await _iosHealth!.getTotalStepsInInterval(date, end) ?? 0;
+        if (steps <= 0) continue;
+        final key = _dayKey(date);
+        if ((stepsHistoryByDate[key] ?? 0) < steps) {
+          stepsHistoryByDate[key] = steps;
+          await FileStorageService().writeStepTotal(key, steps);
+          changed = true;
+        }
+      }
+      if (changed) {
+        stepsHistoryByDate.refresh();
+        _invalidateMonthlySpotsCache(month: month);
+      }
+    } catch (e) {
+      debugPrint('❌ HealthKit fetch month error: $e');
+    }
+  }
+
+  void _startIOSHealthPoller() {
+    _iosHealthPoller?.cancel();
+    _iosHealthPoller = Timer.periodic(_filePollInterval, (_) {
+      _fetchIOSStepsToday();
+    });
+  }
 
   // =======================
   // FILE POLLER (replaces Hive poller)
@@ -360,8 +434,14 @@ class StepCounterController extends GetxController {
 
   Future<void> _saveToFile(int steps) async {
     if (Platform.isIOS) {
-      // HealthKit is the source of truth; no local file buffer on iOS
       await _prefs.setInt('today_steps', steps);
+      // Keep history map in sync so the weekly graph shows today without
+      // waiting for the native 5-min buffer flush to the daily JSON file.
+      final todayKey = _dayKey(DateTime.now());
+      if ((stepsHistoryByDate[todayKey] ?? 0) < steps) {
+        stepsHistoryByDate[todayKey] = steps;
+        stepsHistoryByDate.refresh();
+      }
       _invalidateMonthlySpotsCache(month: DateTime.now());
       await updateStepSpots();
       stepSpots.refresh();
@@ -491,6 +571,11 @@ class StepCounterController extends GetxController {
 
       await buildStepsHistoryMap();
 
+      // iOS: supplement API data with HealthKit readings for this month
+      if (Platform.isIOS) {
+        await fetchIOSHealthKitForMonth(DateTime(year, month));
+      }
+
       _invalidateMonthlySpotsCache(month: DateTime(year, month));
       _debugLog("✅ Loaded steps from API: ${stepsHistoryList.length}");
     } catch (e) {
@@ -529,6 +614,19 @@ class StepCounterController extends GetxController {
             : DateTime(normalizedMonth.year, normalizedMonth.month + 1, 0).day;
 
     final Map<int, int> dayToSteps = {};
+
+    // iOS: seed from stepsHistoryByDate which carries HealthKit readings
+    // (covers last ~30 days without needing an API response).
+    if (Platform.isIOS) {
+      for (int day = 1; day <= totalDays; day++) {
+        final key = _dayKey(
+            DateTime(normalizedMonth.year, normalizedMonth.month, day));
+        final steps = stepsHistoryByDate[key] ?? 0;
+        if (steps > 0) dayToSteps[day] = steps;
+      }
+    }
+
+    // Merge API data — prefer whichever value is larger
     for (final entry in stepsHistoryList) {
       if (entry.date.year == normalizedMonth.year &&
           entry.date.month == normalizedMonth.month) {
@@ -656,6 +754,17 @@ class StepCounterController extends GetxController {
       final existing = stepsHistoryByDate[key] ?? 0;
       if (item.steps > existing) {
         stepsHistoryByDate[key] = item.steps;
+      }
+    }
+
+    // iOS: merge today's SharedPreferences fast-path so the weekly graph shows
+    // today's count even between native buffer flushes (which happen every 5 min).
+    if (Platform.isIOS) {
+      final prefs = await SharedPreferences.getInstance();
+      final todayKey = _dayKey(DateTime.now());
+      final prefSteps = prefs.getInt('today_steps') ?? 0;
+      if (prefSteps > (stepsHistoryByDate[todayKey] ?? 0)) {
+        stepsHistoryByDate[todayKey] = prefSteps;
       }
     }
 

@@ -137,12 +137,24 @@ class _StepReportScreenState extends State<StepReportScreen> {
 
   // ───────── lifecycle ─────────
 
+  Worker? _mapWorker;
+
   @override
   void initState() {
     super.initState();
+    // Rebuild graph when HealthKit data arrives asynchronously (iOS).
+    _mapWorker = ever(stepController.stepsHistoryByDate, (_) {
+      if (mounted) setState(() {});
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setAverage();
     });
+  }
+
+  @override
+  void dispose() {
+    _mapWorker?.dispose();
+    super.dispose();
   }
 
   // ───────── graph data (pure, no reactive reads) ─────────
