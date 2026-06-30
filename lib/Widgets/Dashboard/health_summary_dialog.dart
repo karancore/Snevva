@@ -48,7 +48,7 @@ class HealthSummaryDialog extends StatelessWidget {
     int waterCurrent = 0, waterGoal = 2000;
     int stepCurrent = 0, stepGoal = 8000;
     int sleepMins = 0, sleepGoalMins = 480;
-    String moodCurrent = 'Good';
+    String moodCurrent = '';
 
     if (Get.isRegistered<HydrationStatController>()) {
       final h = Get.find<HydrationStatController>();
@@ -78,7 +78,7 @@ class HealthSummaryDialog extends StatelessWidget {
     if (Get.isRegistered<MoodController>()) {
       final m = Get.find<MoodController>();
       moodCurrent =
-          m.selectedMood.value.isNotEmpty ? m.selectedMood.value : 'Good';
+      m.selectedMood.value.isNotEmpty ? m.selectedMood.value : '';
     }
 
     double waterPct = (waterCurrent / waterGoal).clamp(0.0, 1.0);
