@@ -21,7 +21,7 @@ struct IOSSleepWindow {
 /// as a sleep interval to `sleep_buf.tmp` via IOSStepBufferManager, exactly
 /// mirroring Android's BufferManager.appendSleepInterval flow.
 ///
-/// At wake time the BGProcessingTask (`sleep_calc`) calls `flushOpenLockInterval`
+/// At wake time the BGProcessingTask (`sleep_calc`) calls `flushOpenUnlockInterval`
 /// to handle the edge case where the device was never unlocked overnight (the
 /// Android "screen-never-turned-on" case in SleepCalcWorker).
 final class IOSLockUnlockSleepDetector {
@@ -59,114 +59,106 @@ final class IOSLockUnlockSleepDetector {
         print("🔐 IOSLockUnlockSleepDetector: started")
     }
 
-    // MARK: - Device Lock → possible sleep start
+    // MARK: - Device Lock → closes an open interrupt
+
+    // Interrupt model: sleep = (waketime − bedtime) − Σ(interrupt_durations)
+    //
+    // An "interrupt" is the period the user had the phone unlocked (awake).
+    //   deviceUnlocked → interrupt starts  → store unlock timestamp
+    //   deviceLocked   → interrupt ends    → compute duration, write to interrupt_buf.tmp
+    //
+    // Sleep start is window.start (bedtime) by default — no first-lock anchor needed.
+    // At wake-time BGTask: close any still-open interrupt, then:
+    //   sleep = window_minutes − total_interrupt_minutes
 
     @objc private func deviceLocked() {
         guard let window = currentSleepWindow() else {
             return
         }
         let now = Date()
-        // Record the lock time even if it's slightly before window.start.
-        // deviceUnlocked() clamps: start = max(lockTime, window.start), so no
-        // sleep is overcounted, but a pre-bedtime lock won't be silently lost.
-        let key = lockAnchorKey(for: window.dateKey)
-        UserDefaults.standard.set(isoFmt.string(from: now), forKey: key)
-        print("🔒 IOSLockUnlockSleepDetector: locked at \(now), window=\(window.dateKey)")
+        // Close any open interrupt (phone was in use, now re-locked).
+        let key = unlockAnchorKey(for: window.dateKey)
+        guard let unlockIso = UserDefaults.standard.string(forKey: key),
+              let unlockTime = isoFmt.date(from: unlockIso)
+        else {
+            print("🔒 IOSLockUnlockSleepDetector: locked at \(now) (no open interrupt)")
+            return
+        }
+        UserDefaults.standard.removeObject(forKey: key)
+
+        let start = unlockTime < window.start ? window.start : unlockTime
+        let end = now > window.end ? window.end : now
+        guard end > start else {
+            return
+        }
+
+        let diffMin = Int(end.timeIntervalSince(start) / 60)
+        IOSStepBufferManager.shared.appendInterruptInterval(
+            dateKey: window.dateKey,
+            unlockIso: isoFmt.string(from: start),
+            lockIso: isoFmt.string(from: end)
+        )
+        print("🔒📱 IOSLockUnlockSleepDetector: interrupt closed \(diffMin)m [\(window.dateKey)]")
     }
 
-    // MARK: - Device Unlock → close interval, write to buffer
+    // MARK: - Device Unlock → interrupt starts
 
     @objc private func deviceUnlocked() {
         guard let window = currentSleepWindow() else {
             return
         }
-        let key = lockAnchorKey(for: window.dateKey)
-        guard let lockIso = UserDefaults.standard.string(forKey: key),
-              let lockTime = isoFmt.date(from: lockIso)
-        else {
-            return
-        }
-        UserDefaults.standard.removeObject(forKey: key)
-
         let now = Date()
-        let start = lockTime < window.start ? window.start : lockTime
-        let end = now > window.end ? window.end : now
-
-        guard end > start else {
+        guard isWithinWindow(now, window) else {
             return
         }
-        let diffMin = Int(end.timeIntervalSince(start) / 60)
-        guard diffMin >= minSleepGapMinutes else {
-            print("🔓 IOSLockUnlockSleepDetector: interval \(diffMin)m < minGap, skipping")
-            return
-        }
-
-        IOSStepBufferManager.shared.appendSleepInterval(
-            dateKey: window.dateKey,
-            startIso: isoFmt.string(from: start),
-            endIso: isoFmt.string(from: end)
-        )
-        print("💤 IOSLockUnlockSleepDetector: wrote \(diffMin)m [\(window.dateKey)]")
+        // Record unlock time — deviceLocked will close it as an interrupt segment.
+        let key = unlockAnchorKey(for: window.dateKey)
+        UserDefaults.standard.set(isoFmt.string(from: now), forKey: key)
+        print("🔓 IOSLockUnlockSleepDetector: unlocked at \(now) — interrupt started [\(window.dateKey)]")
     }
 
-    // MARK: - BGTask flush (device-never-unlocked edge case)
+    // MARK: - BGTask flush (phone still unlocked at wake time)
 
-    /// Closes and flushes any open lock anchor at wake time.
-    /// Mirrors Android SleepCalcWorker's open `lastOffKey` detection.
-    /// Returns the number of minutes flushed (0 if nothing to flush).
+    /// Closes any open interrupt whose unlock side was never followed by a re-lock.
+    /// Treats the period from unlock to window.end as a final awake interval.
+    /// Returns the number of interrupt minutes flushed (0 if none pending).
     @discardableResult
-    func flushOpenLockInterval(for window: IOSSleepWindow) -> Int {
-        let key = lockAnchorKey(for: window.dateKey)
-        guard let lockIso = UserDefaults.standard.string(forKey: key),
-              let lockTime = isoFmt.date(from: lockIso)
+    func flushOpenUnlockInterval(for window: IOSSleepWindow) -> Int {
+        let key = unlockAnchorKey(for: window.dateKey)
+        guard let unlockIso = UserDefaults.standard.string(forKey: key),
+              let unlockTime = isoFmt.date(from: unlockIso)
         else {
             return 0
         }
         UserDefaults.standard.removeObject(forKey: key)
 
-        let start = lockTime < window.start ? window.start : lockTime
-        let end = window.end  // worker fires at/after wake time
-
+        let start = unlockTime < window.start ? window.start : unlockTime
+        let end = window.end
         guard end > start else {
             return 0
         }
+
         let diffMin = Int(end.timeIntervalSince(start) / 60)
-        guard diffMin >= minSleepGapMinutes else {
+        guard diffMin > 0 else {
             return 0
         }
 
-        IOSStepBufferManager.shared.appendSleepInterval(
+        IOSStepBufferManager.shared.appendInterruptInterval(
             dateKey: window.dateKey,
-            startIso: isoFmt.string(from: start),
-            endIso: isoFmt.string(from: end)
+            unlockIso: isoFmt.string(from: start),
+            lockIso: isoFmt.string(from: end)
         )
-        print("💤 IOSLockUnlockSleepDetector: flushed open interval \(diffMin)m [\(window.dateKey)]")
+        print("📱 IOSLockUnlockSleepDetector: flushed open interrupt \(diffMin)m [\(window.dateKey)]")
         return diffMin
     }
 
-    // MARK: - Seed open-lock anchor on app launch
+    // MARK: - No-op seed (interrupt model needs no initial anchor)
 
-    /// Seeds the lock anchor to window.start if none exists yet and we are
-    /// currently inside the sleep window. Mirrors Dart's
-    /// SleepNoticingService.initializeForSleepWindow().
-    ///
-    /// This ensures that even if the app was suspended/killed during the night
-    /// (so no lock notifications were received), the BGTask at wake time can
-    /// still produce a full-window sleep duration via flushOpenLockInterval.
+    /// No-op — kept for call-site compatibility (AppDelegate, IOSStepService).
+    /// The interrupt model uses window.start as the implicit sleep start,
+    /// so no UserDefaults anchor needs to be seeded.
     func initializeForSleepWindow() {
-        guard let window = currentSleepWindow() else {
-            return
-        }
-        let now = Date()
-        guard now >= window.start, now <= window.end else {
-            return
-        }
-
-        let key = lockAnchorKey(for: window.dateKey)
-        if UserDefaults.standard.string(forKey: key) == nil {
-            UserDefaults.standard.set(isoFmt.string(from: window.start), forKey: key)
-            print("🔒 IOSLockUnlockSleepDetector: seeded anchor from window.start (\(window.start))")
-        }
+        // No anchor required — sleep = window_duration − Σ(interrupt_durations).
     }
 
     // MARK: - Current sleep window
@@ -214,8 +206,8 @@ final class IOSLockUnlockSleepDetector {
 
     // MARK: - Helpers
 
-    private func lockAnchorKey(for dateKey: String) -> String {
-        return "last_screen_off_\(dateKey)"
+    private func unlockAnchorKey(for dateKey: String) -> String {
+        return "last_screen_on_\(dateKey)"
     }
 
     private func isWithinWindow(_ date: Date, _ window: IOSSleepWindow) -> Bool {

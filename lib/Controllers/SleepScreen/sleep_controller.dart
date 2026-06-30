@@ -282,6 +282,7 @@ class SleepController extends GetxService {
       _updateNativeSleepAlarms();
     });
 
+    if (Platform.isIOS) _recomputeSleepGoal();
     debugPrint('🛏️ Bedtime set → $time');
   }
 
@@ -296,7 +297,29 @@ class SleepController extends GetxService {
       _updateNativeSleepAlarms();
     });
 
+    if (Platform.isIOS) _recomputeSleepGoal();
     debugPrint('⏰ Waketime set → $time');
+  }
+
+  /// iOS only — derives sleep goal from the bedtime→waketime window so the UI
+  /// and BGTask scheduling both reflect the user's actual intended sleep duration.
+  void _recomputeSleepGoal() {
+    final bed = bedtime.value;
+    final wake = waketime.value;
+    if (bed == null || wake == null) return;
+
+    final bedMin = _timeOfDayToMinutes(bed);
+    final wakeMin = _timeOfDayToMinutes(wake);
+    // Handle overnight crossover (e.g. 22:00 → 07:00 = 9 h, not −15 h).
+    final goalMinutes = wakeMin > bedMin
+        ? wakeMin - bedMin
+        : (24 * 60 - bedMin) + wakeMin;
+
+    sleepGoal.value = Duration(minutes: goalMinutes);
+    SharedPreferences.getInstance().then(
+          (prefs) => prefs.setInt('sleep_goal_minutes', goalMinutes),
+    );
+    debugPrint('🎯 iOS sleep goal → ${goalMinutes}m');
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -590,6 +613,8 @@ class SleepController extends GetxService {
 
       if (bedMin is int) bedtime.value = minutesToTimeOfDay(bedMin);
       if (wakeMin is int) waketime.value = minutesToTimeOfDay(wakeMin);
+
+      if (Platform.isIOS) _recomputeSleepGoal();
     });
   }
 

@@ -55,12 +55,12 @@
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+    <key>NSCameraUsageDescription</key>
+    <string>Snevva uses the camera to let you upload a profile photo.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Snevva reads your health data to track steps and activity.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Snevva writes your activity data to Apple Health.</string>
-    <key>NSCameraUsageDescription</key>
-    <string>Snevva uses the camera to let you upload a profile photo.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app requires microphone access for video recording.</string>
 	<key>NSMotionUsageDescription</key>
@@ -105,15 +105,13 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 </dict>
 </plist>

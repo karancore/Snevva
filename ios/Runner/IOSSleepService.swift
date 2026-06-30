@@ -136,13 +136,19 @@ final class IOSSleepService {
 
     /// Called by AppDelegate when `com.coretegra.snevva.sleep_calc` BGProcessingTask fires.
     ///
-    /// Flow (mirrors Android SleepCalcWorker step-for-step):
-    ///  1. Flush any open lock anchor → covers the "screen never turned on" edge case.
-    ///  2. Flush sleep_buf.tmp → commits all lock/unlock intervals to the daily JSON.
-    ///  3. Read the lock/unlock-derived total from the daily JSON (primary source).
-    ///  4. If Apple Watch HealthKit data exists and exceeds that total, use it instead.
-    ///  5. Write flutter.sleep_final_* keys to UserDefaults so Dart/notification reads them.
-    ///  6. Queue the dateKey for API sync, then sync + reschedule.
+    /// Interrupt model:
+    ///   sleep = (waketime − bedtime) − Σ(interrupt_durations)
+    ///
+    /// Each interrupt = period the screen was unlocked (user was awake) within the window.
+    /// Stored in interrupt_buf.tmp as: dateKey | user-phone-screen-unlocked | user-phone-screen-locked
+    /// interrupt-duration = lock_ts − unlock_ts
+    ///
+    /// Flow:
+    ///  1. Close any open interrupt (phone still unlocked when BGTask fires → final awake period).
+    ///  2. Sum all interrupt durations from interrupt_buf.tmp.
+    ///  3. sleep = window_minutes − interrupt_minutes.
+    ///  4. If Apple Watch HealthKit has a better reading, use it instead.
+    ///  5. Write to daily JSON + UserDefaults, queue for sync, reschedule.
     func performSleepCalcBackgroundTask(completion: @escaping () -> Void) {
         guard let window = IOSLockUnlockSleepDetector.shared.currentSleepWindow() else {
             IOSApiSyncService.shared.sync { [weak self] _ in
@@ -152,17 +158,18 @@ final class IOSSleepService {
             return
         }
 
-        // Step 1 — flush any open anchor (mirrors Android lastOffKey detection)
-        IOSLockUnlockSleepDetector.shared.flushOpenLockInterval(for: window)
+        // Step 1 — close any interrupt that was still open at wake time
+        IOSLockUnlockSleepDetector.shared.flushOpenUnlockInterval(for: window)
 
-        // Step 2 — commit buffer → daily JSON
-        IOSStepBufferManager.shared.flushSleepToDaily()
+        // Step 2 — compute sleep = window − interrupts
+        let windowMinutes = Int(window.end.timeIntervalSince(window.start) / 60)
+        let interruptMinutes = IOSStepBufferManager.shared.readTotalInterruptMinutes(dateKey: window.dateKey)
+        let lockUnlockMinutes = max(0, windowMinutes - interruptMinutes)
+        IOSStepBufferManager.shared.clearInterruptBuffer()
 
-        // Step 3 — primary total from lock/unlock tracking
-        let lockUnlockMinutes = IOSStepBufferManager.shared.readDailySleepMinutes(dateKey: window.dateKey)
-        print("💤 IOSSleepService BGTask: lock/unlock=\(lockUnlockMinutes)m [\(window.dateKey)]")
+        print("💤 IOSSleepService BGTask: window=\(windowMinutes)m interrupts=\(interruptMinutes)m sleep=\(lockUnlockMinutes)m [\(window.dateKey)]")
 
-        // Step 4 — check Apple Watch for a better reading
+        // Step 3 — check Apple Watch for a better reading
         let (queryStart, queryEnd) = sleepQueryWindow(for: window.dateKey)
         fetcher.fetchAppleWatchSleepSegments(from: queryStart, to: queryEnd) { [weak self] watchSegments in
             guard let self = self else { completion(); return }
@@ -188,6 +195,12 @@ final class IOSSleepService {
                 }
             }
 
+            // Write interrupt-model sleep total to daily JSON
+            IOSStepBufferManager.shared.mergeSleepIntoDailyFile(
+                dateKey: window.dateKey,
+                totalMinutes: lockUnlockMinutes,
+                segments: []
+            )
             self.finalizeSleep(window: window, finalMinutes: lockUnlockMinutes, completion: completion)
         }
     }
@@ -224,8 +237,11 @@ final class IOSSleepService {
     func scheduleSleepCalcTask() {
         guard #available(iOS 13.0, *) else { return }
 
-        let wakeMinutes = UserDefaults.standard.integer(forKey: "wake_time_minutes").zeroToNil
-            ?? UserDefaults.standard.integer(forKey: "flutter.wake_time_minutes").zeroToNil
+        // Dart writes wake time under WAKETIME_KEY = "user_waketime_ms" (minutes since midnight).
+        // shared_preferences_foundation v2 stores keys with the "flutter." prefix in UserDefaults.
+        let ud = UserDefaults.standard
+        let wakeMinutes = ud.integer(forKey: "user_waketime_ms").zeroToNil
+            ?? ud.integer(forKey: "flutter.user_waketime_ms").zeroToNil
             ?? (7 * 60)
 
         let cal = Calendar.current

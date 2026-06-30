@@ -76,6 +76,10 @@ final class IOSStepBufferManager {
         return bufferDir()?.appendingPathComponent("sleep_buf.tmp")
     }
 
+    private func interruptBufFile() -> URL? {
+        return bufferDir()?.appendingPathComponent("interrupt_buf.tmp")
+    }
+
     private func dailyFileURL(dateKey: String) -> URL? {
         return dailyDir()?.appendingPathComponent("\(dateKey).json")
     }
@@ -241,6 +245,81 @@ final class IOSStepBufferManager {
         let array = queue.map { ["date": $0.date, "type": $0.type] }
         guard let data = try? JSONSerialization.data(withJSONObject: array) else { return }
         try? data.write(to: file, options: .atomic)
+    }
+
+    // MARK: - Interrupt buffer (unlock→lock segments — the inverse of sleep)
+
+    /// Appends one interrupt interval (phone-in-use period) to `interrupt_buf.tmp`.
+    /// Format: `"$dateKey|$unlockIso|$lockIso\n"`
+    /// Flags: user-phone-screen-unlocked = unlockIso, user-phone-screen-locked = lockIso,
+    ///        interrupt-duration = lockIso − unlockIso.
+    func appendInterruptInterval(dateKey: String, unlockIso: String, lockIso: String) {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+        guard let bufFile = interruptBufFile() else {
+            return
+        }
+        let line = "\(dateKey)|\(unlockIso)|\(lockIso)\n"
+        do {
+            if FileManager.default.fileExists(atPath: bufFile.path) {
+                let handle = try FileHandle(forWritingTo: bufFile)
+                defer {
+                    handle.closeFile()
+                }
+                handle.seekToEndOfFile()
+                if let data = line.data(using: .utf8) {
+                    handle.write(data)
+                }
+            } else {
+                try line.write(to: bufFile, atomically: false, encoding: .utf8)
+            }
+        } catch {
+            print("❌ IOSStepBufferManager.appendInterruptInterval: \(error)")
+        }
+    }
+
+    /// Reads and sums all interrupt minutes for `dateKey` from `interrupt_buf.tmp`.
+    /// Does NOT delete the buffer — call `clearInterruptBuffer()` after consuming.
+    func readTotalInterruptMinutes(dateKey: String) -> Int {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+        guard let bufFile = interruptBufFile(),
+              FileManager.default.fileExists(atPath: bufFile.path),
+              let content = try? String(contentsOf: bufFile, encoding: .utf8)
+        else {
+            return 0
+        }
+        return content
+        .components(separatedBy: "\n")
+        .filter {
+            !$0.isEmpty
+        }
+        .reduce(0) { sum, line in
+            guard let (dk, unlockIso, lockIso) = parseSleepLine(line),
+                  dk == dateKey,
+                  let unlockTime = parseIso(unlockIso),
+                  let lockTime = parseIso(lockIso)
+            else {
+                return sum
+            }
+            return sum + max(0, Int(lockTime.timeIntervalSince(unlockTime) / 60))
+        }
+    }
+
+    /// Deletes `interrupt_buf.tmp` after the BGTask has consumed it.
+    func clearInterruptBuffer() {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+        guard let bufFile = interruptBufFile() else {
+            return
+        }
+        try? FileManager.default.removeItem(at: bufFile)
     }
 
     // MARK: - Sleep buffer (append-only, mirrors Dart FileStorageService.appendSleepInterval)
