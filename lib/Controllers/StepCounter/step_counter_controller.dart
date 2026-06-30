@@ -155,13 +155,28 @@ class StepCounterController extends GetxController {
   bool _iosHealthGranted = false;
   Timer? _iosHealthPoller;
 
+  // HealthKit activity metrics — iOS only, updated alongside steps
+  final RxDouble todayDistanceKm = 0.0.obs;
+  final RxDouble todayActiveEnergyKcal = 0.0.obs;
+  final RxInt todayFloorsClimbed = 0.obs;
+
   Future<void> _initIOSHealthKit() async {
     _iosHealth = Health();
     await _iosHealth!.configure();
     try {
       _iosHealthGranted = await _iosHealth!.requestAuthorization(
-        [HealthDataType.STEPS],
-        permissions: [HealthDataAccess.READ],
+        [
+          HealthDataType.STEPS,
+          HealthDataType.DISTANCE_WALKING_RUNNING,
+          HealthDataType.ACTIVE_ENERGY_BURNED,
+          HealthDataType.FLIGHTS_CLIMBED,
+        ],
+        permissions: [
+          HealthDataAccess.READ,
+          HealthDataAccess.READ,
+          HealthDataAccess.READ,
+          HealthDataAccess.READ,
+        ],
       );
     } catch (e) {
       debugPrint('⚠️ HealthKit auth error: $e');
@@ -171,6 +186,7 @@ class StepCounterController extends GetxController {
     if (_iosHealthGranted) {
       debugPrint('✅ HealthKit granted — primary step source active');
       await _fetchIOSStepsToday();
+      await _fetchIOSActivityToday();
       await _fetchIOSStepsHistorical(days: 30);
       _startIOSHealthPoller();
     } else {
@@ -214,6 +230,57 @@ class StepCounterController extends GetxController {
       }
     } catch (e) {
       debugPrint('❌ HealthKit fetch today error: $e');
+    }
+  }
+
+  Future<void> _fetchIOSActivityToday() async {
+    if (_iosHealth == null || !_iosHealthGranted) return;
+    try {
+      final now = DateTime.now();
+      final midnight = DateTime(now.year, now.month, now.day);
+      final points = await _iosHealth!.getHealthDataFromTypes(
+        startTime: midnight,
+        endTime: now,
+        types: [
+          HealthDataType.DISTANCE_WALKING_RUNNING,
+          HealthDataType.ACTIVE_ENERGY_BURNED,
+          HealthDataType.FLIGHTS_CLIMBED,
+        ],
+      );
+      final deduped = _iosHealth!.removeDuplicates(points);
+
+      double distanceM = 0;
+      double energyKcal = 0;
+      int floors = 0;
+
+      for (final p in deduped) {
+        final val =
+        (p.value as NumericHealthValue).numericValue.toDouble();
+        switch (p.type) {
+          case HealthDataType.DISTANCE_WALKING_RUNNING:
+            distanceM += val;
+            break;
+          case HealthDataType.ACTIVE_ENERGY_BURNED:
+            energyKcal += val;
+            break;
+          case HealthDataType.FLIGHTS_CLIMBED:
+            floors += val.round();
+            break;
+          default:
+            break;
+        }
+      }
+
+      todayDistanceKm.value = distanceM / 1000;
+      todayActiveEnergyKcal.value = energyKcal;
+      todayFloorsClimbed.value = floors;
+      debugPrint(
+        '🍎 HealthKit activity: ${todayDistanceKm.value.toStringAsFixed(2)}km '
+            '${todayActiveEnergyKcal.value.toStringAsFixed(0)}kcal '
+            '${todayFloorsClimbed.value}floors',
+      );
+    } catch (e) {
+      debugPrint('❌ HealthKit activity fetch error: $e');
     }
   }
 
@@ -288,6 +355,7 @@ class StepCounterController extends GetxController {
     _iosHealthPoller?.cancel();
     _iosHealthPoller = Timer.periodic(_filePollInterval, (_) {
       _fetchIOSStepsToday();
+      _fetchIOSActivityToday();
     });
   }
 

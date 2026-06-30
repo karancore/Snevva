@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:fl_chart/fl_chart.dart';
@@ -341,6 +342,25 @@ class _StepCounterState extends State<StepCounter> with WidgetsBindingObserver {
 
               // ── Stats row ──
               Obx(() {
+                if (Platform.isIOS) {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _infoItem(
+                        dis,
+                        '${stepController.todayDistanceKm.value.toStringAsFixed(2)} km',
+                      ),
+                      _infoItem(
+                        cal,
+                        '${stepController.todayActiveEnergyKcal.value.toStringAsFixed(0)} cal',
+                      ),
+                      _infoItem(
+                        time,
+                        '${stepController.todayFloorsClimbed.value} floors',
+                      ),
+                    ],
+                  );
+                }
                 final steps = stepController.todaySteps.value;
                 return Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
