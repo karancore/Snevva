@@ -102,7 +102,7 @@ class ApiService {
         // forceLogout() stops background services, clears SharedPreferences,
         // and calls Get.offAll — all on the UI thread, far exceeding the
         // 16.67 ms frame budget and causing the observed freeze.
-        unawaited(AuthService.forceLogout());
+        unawaited(AuthService.forceLogout(isSessionExpired: true));
         throw ApiException(
           statusCode: response.statusCode,
           endpoint: endpoint,
@@ -171,7 +171,7 @@ class ApiService {
           .timeout(_kRequestTimeout);
       if (response.statusCode == 401 || response.statusCode == 403) {
         // ✅ FIX: Fire-and-forget — same reasoning as the encrypted path above.
-        unawaited(AuthService.forceLogout());
+        unawaited(AuthService.forceLogout(isSessionExpired: true));
         throw ApiException(
           statusCode: response.statusCode,
           endpoint: endpoint,
