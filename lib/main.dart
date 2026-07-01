@@ -40,6 +40,7 @@ import 'package:snevva/utils/push_notifications_controller.dart';
 import 'package:snevva/utils/theme_controller.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
+import 'package:snevva/views/SignUp/sign_in_screen.dart';
 
 import 'Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
@@ -98,7 +99,7 @@ class AuthGate extends StatelessWidget {
         }
 
         if (snapshot.data == false) {
-          return HomeWrapper(); // ❌ No token → ONLY LOGIN
+          return SignInScreen(); // ❌ No token → ONLY LOGIN
         }
 
         return HomeWrapper(); // ✅ Valid session

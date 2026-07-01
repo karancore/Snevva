@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:snevva/Controllers/local_storage_manager.dart';
 import 'package:snevva/utils/push_notifications_controller.dart';
 import 'package:snevva/utils/theme_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -35,7 +36,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final Uri emailUri = Uri(
       scheme: 'mailto',
       path: 'snevvaofficial@gmail.com',
-      queryParameters: {'subject': 'Subject', 'body': 'Body'},
+      queryParameters: {'subject': 'Query related to Snevva', 'body': ''},
     );
 
     if (!await canLaunchUrl(emailUri)) {
