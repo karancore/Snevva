@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
+import 'package:snevva/Widgets/session_expired_alert.dart';
 import 'package:snevva/common/custom_snackbar.dart';
 import 'package:snevva/consts/consts.dart';
 import 'package:snevva/services/auth_service.dart';
@@ -52,6 +53,27 @@ class _SignInScreenState extends State<SignInScreen> {
         precacheImage(CachedNetworkImageProvider(url), context);
       }
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkSessionExpired();
+    });
+  }
+
+  Future<void> _checkSessionExpired() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool isExpired = prefs.getBool('session_expired_alert') ?? false;
+
+    if (isExpired && mounted) {
+      await prefs.remove('session_expired_alert');
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) =>
+            SessionExpiredAlert(
+              onDismiss: () => Navigator.pop(context),
+            ),
+      );
+    }
   }
 
   @override

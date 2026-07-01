@@ -463,7 +463,7 @@ class AuthService {
     imageCache.clearLiveImages();
   }
 
-  static Future<void> forceLogout() async {
+  static Future<void> forceLogout({bool isSessionExpired = false}) async {
     if (_isLoggingOut) return;
     _isLoggingOut = true;
 
@@ -523,6 +523,10 @@ class AuthService {
       // ✅ FIX: Restore the reminders_disabled tombstone flag because prefs.clear() wiped it!
       // This is critical so native BootReceiver/armFromSharedPrefs doesn't resurrect alarms
       await prefs.setBool('reminders_disabled', true);
+
+      if (isSessionExpired) {
+        await prefs.setBool('session_expired_alert', true);
+      }
 
       try {
         if (!Hive.isBoxOpen('step_history')) {
