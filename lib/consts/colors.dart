@@ -6,7 +6,7 @@ const Color mediumGrey = Color(0xFF878787);
 const Color darkGray = Color(0xFF2B2B2B);
 const Color white = Colors.white;
 const Color transparent = Colors.transparent;
-
+const Color lightBlack = Color(0xFF111111);
 const Color black = Colors.black;
 const Color green = Color(0xFF8CDC52);
 const Color yellow = Color(0xFFFFD900);
@@ -85,6 +85,12 @@ class AppColors {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
+  static const Gradient blackGradient = LinearGradient(
+    colors: [darkGray, darkGray],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
 }
 
 const Gradient hydrationGraphShadowColor = LinearGradient(

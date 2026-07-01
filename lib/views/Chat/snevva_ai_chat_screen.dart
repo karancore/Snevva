@@ -391,7 +391,9 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
                                 gradient:
                                     msg.isUser
                                         ? AppColors.primaryGradient
-                                        : AppColors.whiteGradient,
+                                        : (isDarkMode
+                                        ? AppColors.blackGradient
+                                        : AppColors.whiteGradient),
                                 // White for bot
                                 borderRadius: BorderRadius.only(
                                   topLeft: const Radius.circular(20),
@@ -419,7 +421,7 @@ class _SnevvaAIChatScreenState extends State<SnevvaAIChatScreen> {
                                   color:
                                       msg.isUser
                                           ? Colors.white
-                                          : Colors.black87,
+                                          : (isDarkMode ? white : black),
                                   fontSize: 16,
                                 ),
                               ),
