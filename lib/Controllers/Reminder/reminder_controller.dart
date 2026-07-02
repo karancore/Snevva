@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:alarm/alarm.dart';
 import 'package:flutter/foundation.dart';
@@ -33,6 +34,7 @@ import '../../models/reminders/medicine_reminder_model.dart'
     as medicine_payload;
 import '../../models/reminders/water_reminder_model.dart';
 import '../../services/hive_service.dart';
+import '../../views/Reminder/reminder_notifications_screen.dart';
 
 List<Map<String, dynamic>> _decodeReminderEntries(List<String> encodedItems) {
   final decoded = <Map<String, dynamic>>[];
@@ -357,6 +359,16 @@ class ReminderController extends GetxController {
     subscription = Alarm.ringStream.stream.listen((
       AlarmSettings alarmSettings,
     ) async {
+      // iOS doesn't reliably present a full-screen alarm-style notification
+      // while the app is foregrounded, so show an in-app ringing screen
+      // instead of relying on the system notification.
+      if (!kIsWeb && Platform.isIOS) {
+        Get.to(
+              () => ReminderNotificationsScreen(alarmSettings: alarmSettings),
+          fullscreenDialog: true,
+        );
+      }
+
       // PHASE A: Hook into Alarm Trigger
       final reminder = findReminderByAlarmId(alarmSettings.id);
 
