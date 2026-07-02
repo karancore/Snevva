@@ -42,6 +42,7 @@ import 'package:snevva/utils/theme_controller.dart';
 import 'package:snevva/views/Information/Sleep%20Screen/sleep_tracker_screen.dart';
 import 'package:snevva/views/MoodTracker/mood_tracker_screen.dart';
 import 'package:snevva/views/SignUp/sign_in_screen.dart';
+import 'package:snevva/widgets/dashboard/health_summary_dialog.dart';
 
 import 'Controllers/MentalWellness/mental_wellness_controller.dart';
 import 'Controllers/ProfileSetupAndQuestionnare/editprofile_controller.dart';
@@ -68,7 +69,6 @@ import 'services/reminder/reconciliation_engine.dart' as snevva_reconciliation;
 import 'utils/theme.dart';
 import 'views/Reminder/reminder_screen.dart';
 import 'views/debug/high_fps_demo_screen.dart';
-import 'widgets/home_wrapper.dart';
 
 //Test User - 7814254444
 //Admin@1234
@@ -103,7 +103,7 @@ class AuthGate extends StatelessWidget {
           return SignInScreen(); // ❌ No token → ONLY LOGIN
         }
 
-        return HomeWrapper(); // ✅ Valid session
+        return HealthSummaryDialog(isDarkMode: false,); // ✅ Valid session
       },
     );
   }

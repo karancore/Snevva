@@ -1,14 +1,17 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:intl/intl.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_instance/src/extension_instance.dart';
+import 'package:get/get_navigation/src/extension_navigation.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 
 import '../../Controllers/Hydration/hydration_stat_controller.dart';
 import '../../Controllers/MoodTracker/mood_controller.dart';
 import '../../Controllers/SleepScreen/sleep_controller.dart';
 import '../../Controllers/StepCounter/step_counter_controller.dart';
 import '../../Controllers/dashboard/health_score_controller.dart';
+import '../../consts/colors.dart';
+import '../../consts/images.dart';
 
 class HealthSummaryDialogHelper {
   static void show(BuildContext context, bool isDarkMode) {
@@ -28,11 +31,21 @@ class HealthSummaryDialogHelper {
   }
 }
 
-class HealthSummaryDialog extends StatelessWidget {
+class HealthSummaryDialog extends StatefulWidget {
   final bool isDarkMode;
 
-  const HealthSummaryDialog({Key? key, required this.isDarkMode})
-    : super(key: key);
+  const HealthSummaryDialog({super.key, required this.isDarkMode});
+
+  @override
+  State<HealthSummaryDialog> createState() => _HealthSummaryDialogState();
+}
+
+class _HealthSummaryDialogState extends State<HealthSummaryDialog> {
+  @override
+  void initState() {
+    super.initState();
+    Get.put(HealthScoreController());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +53,10 @@ class HealthSummaryDialog extends StatelessWidget {
     final size = MediaQuery.of(context).size;
     final w = size.width;
     final scale = w / 400.0; // scale factor for responsiveness
+    final mediaQuery = MediaQuery.of(context);
+    final height = mediaQuery.size.height;
+    final width = mediaQuery.size.width;
+    final double cardScale = width / 360;
 
     DateTime yesterday = DateTime.now().subtract(const Duration(days: 1));
     String formattedDate = DateFormat('MMMM d, yyyy').format(yesterday);
@@ -77,8 +94,7 @@ class HealthSummaryDialog extends StatelessWidget {
 
     if (Get.isRegistered<MoodController>()) {
       final m = Get.find<MoodController>();
-      moodCurrent =
-      m.selectedMood.value.isNotEmpty ? m.selectedMood.value : '';
+      moodCurrent = m.selectedMood.value.isNotEmpty ? m.selectedMood.value : '';
     }
 
     double waterPct = (waterCurrent / waterGoal).clamp(0.0, 1.0);
@@ -131,10 +147,9 @@ class HealthSummaryDialog extends StatelessWidget {
         'steps': stepPct,
         'sleep': sleepPct,
       };
-      var lowestMetric = metrics.entries.reduce((a, b) =>
-      a.value < b.value
-          ? a
-          : b);
+      var lowestMetric = metrics.entries.reduce(
+            (a, b) => a.value < b.value ? a : b,
+      );
 
       if (lowestMetric.value >= 0.8) {
         dynamicInsight =
@@ -170,9 +185,11 @@ class HealthSummaryDialog extends StatelessWidget {
       }
     }
 
-    Color bgColor = isDarkMode ? const Color(0xFF2C2C2E) : Colors.white;
-    Color textColor = isDarkMode ? Colors.white : const Color(0xFF1C1C1E);
-    Color textSubColor = isDarkMode ? Colors.white70 : const Color(0xFF8E8E93);
+    Color bgColor = widget.isDarkMode ? const Color(0xFF2C2C2E) : Colors.white;
+    Color textColor =
+    widget.isDarkMode ? Colors.white : const Color(0xFF1C1C1E);
+    Color textSubColor =
+    widget.isDarkMode ? Colors.white70 : const Color(0xFF8E8E93);
     Color primaryPurple = const Color(0xFFA95BFF);
 
     return Center(
@@ -195,112 +212,186 @@ class HealthSummaryDialog extends StatelessWidget {
                 ),
               ],
             ),
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.all(24 * scale),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Good Morning",
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 22 * scale,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                        ),
-                      ),
-                      SizedBox(width: 8 * scale),
-                      Text(
-                        "☀️",
-                        style: TextStyle(fontSize: 22 * scale),
-                      ),
-                    ],
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
                   ),
-                  SizedBox(height: 6 * scale),
-                  Text(
-                    "Here's how yesterday went",
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 14 * scale,
-                      color: textSubColor,
+                  child: Image.asset(yellowTop),
+                ),
+                Padding(
+                  padding: EdgeInsets.all(
+                    24 * scale,
+
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Header
+                        Row(
+                          children: [
+                            Align(
+                              alignment: Alignment.topLeft,
+                              child: Text(
+                                "Good Morning",
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 22 * scale,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 78 * scale),
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Card(
+                              elevation: 4,
+                              color: Colors.white,
+                              margin: EdgeInsets.zero,
+                              shape: WaveTopCardShape(
+                                borderRadius: 20,
+                                dipStart: 0.47 * cardScale,
+                                dipEnd: 0.85 * cardScale,
+                                dipDepth: 24,
+                              ),
+                              child: SizedBox(
+                                height: 170 * scale,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment
+                                        .start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primaryColor,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Center(
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(
+                                                    6.0),
+                                                child: FaIcon(
+                                                  FontAwesomeIcons.heartbeat,
+                                                  size: 16,
+                                                  color: white,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            "Overall Health",
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: -110 * scale,
+                              // 👈 card ke top edge se upar nikalta hai
+                              right: 24 * scale,
+                              // 👈 right side, dip ke area mein
+                              child: Image.asset(
+                                helloElly,
+                                height: 140 * scale,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        SizedBox(height: 12 * scale),
+
+                        // Metrics Section (Compact Pills)
+                        Wrap(
+                          spacing: 12 * scale,
+                          runSpacing: 12 * scale,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            _buildMetricPill(
+                              scale,
+                              Icons.water_drop_rounded,
+                              Colors.blue,
+                              "Water",
+                              "${(waterCurrent / 1000).toStringAsFixed(1)}L",
+                              waterPct,
+                              widget.isDarkMode,
+                            ),
+                            _buildMetricPill(
+                              scale,
+                              Icons.directions_run_rounded,
+                              Colors.green,
+                              "Steps",
+                              NumberFormat('#,###').format(stepCurrent),
+                              stepPct,
+                              widget.isDarkMode,
+                            ),
+                            _buildMetricPill(
+                              scale,
+                              Icons.nights_stay_rounded,
+                              Colors.deepPurple,
+                              "Sleep",
+                              "${sleepMins ~/ 60}h ${sleepMins % 60}m",
+                              sleepPct,
+                              widget.isDarkMode,
+                            ),
+                            _buildMetricPill(
+                              scale,
+                              Icons.sentiment_satisfied_rounded,
+                              Colors.orange,
+                              "Mood",
+                              moodCurrent,
+                              moodPct,
+                              widget.isDarkMode,
+                            ),
+                          ],
+                        ),
+
+                        SizedBox(height: 24 * scale),
+
+                        // AI Insight Section
+                        _buildInsightCard(
+                          scale,
+                          widget.isDarkMode,
+                          primaryPurple,
+                          textColor,
+                          dynamicInsight,
+                        ),
+
+                        SizedBox(height: 16 * scale),
+
+                        // Achievement Section (Focus / Went Well)
+                        _buildAchievementCard(
+                          scale,
+                          widget.isDarkMode,
+                          dynamicFocusTitle,
+                          dynamicFocusContent,
+                          dynamicFocusIcon,
+                          dynamicFocusColor,
+                          textColor,
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: 36 * scale),
-
-                  // Hero Health Score (Semi-Circular Arc)
-                  _buildHeroScore(scale, controller.overallHealthScore.value,
-                      controller.healthCategory.value, isDarkMode, textColor,
-                      textSubColor),
-
-                  SizedBox(height: 36 * scale),
-
-                  // Metrics Section (Compact Pills)
-                  Wrap(
-                    spacing: 12 * scale,
-                    runSpacing: 12 * scale,
-                    alignment: WrapAlignment.center,
-                    children: [
-                      _buildMetricPill(
-                          scale,
-                          Icons.water_drop_rounded,
-                          Colors.blue,
-                          "Water",
-                          "${(waterCurrent / 1000).toStringAsFixed(1)}L",
-                          waterPct,
-                          isDarkMode),
-                      _buildMetricPill(
-                          scale,
-                          Icons.directions_run_rounded,
-                          Colors.green,
-                          "Steps",
-                          NumberFormat('#,###').format(stepCurrent),
-                          stepPct,
-                          isDarkMode),
-                      _buildMetricPill(
-                          scale,
-                          Icons.nights_stay_rounded,
-                          Colors.deepPurple,
-                          "Sleep",
-                          "${sleepMins ~/ 60}h ${sleepMins % 60}m",
-                          sleepPct,
-                          isDarkMode),
-                      _buildMetricPill(
-                          scale,
-                          Icons.sentiment_satisfied_rounded,
-                          Colors.orange,
-                          "Mood",
-                          moodCurrent,
-                          moodPct,
-                          isDarkMode),
-                    ],
-                  ),
-
-                  SizedBox(height: 24 * scale),
-
-                  // AI Insight Section
-                  _buildInsightCard(scale, isDarkMode, primaryPurple, textColor,
-                      dynamicInsight),
-
-                  SizedBox(height: 16 * scale),
-
-                  // Achievement Section (Focus / Went Well)
-                  _buildAchievementCard(
-                      scale,
-                      isDarkMode,
-                      dynamicFocusTitle,
-                      dynamicFocusContent,
-                      dynamicFocusIcon,
-                      dynamicFocusColor,
-                      textColor),
-
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -308,8 +399,12 @@ class HealthSummaryDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildHeroScore(double scale, double score, String category,
-      bool isDarkMode, Color textColor, Color subColor) {
+  Widget _buildHeroScore(double scale,
+      double score,
+      String category,
+      bool isDarkMode,
+      Color textColor,
+      Color subColor,) {
     Color scoreColor;
     if (score >= 80)
       scoreColor = Colors.green;
@@ -323,45 +418,39 @@ class HealthSummaryDialog extends StatelessWidget {
         SizedBox(
           width: 180 * scale,
           height: 90 * scale, // Half height for semi-circle roughly
-          child: CustomPaint(
-            painter: HealthScoreArcPainter(
-              progress: score / 100.0,
-              backgroundColor: isDarkMode ? Colors.white10 : Colors.grey
-                  .withOpacity(0.15),
-              progressColor: scoreColor,
-            ),
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    "${score.toInt()}",
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 48 * scale,
-                      fontWeight: FontWeight.w800,
-                      color: scoreColor,
-                      height: 1.0,
-                    ),
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "${score.toInt()}",
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 48 * scale,
+                    fontWeight: FontWeight.w800,
+                    color: scoreColor,
+                    height: 1.0,
                   ),
-                  Text(
-                    "out of 100",
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 12 * scale,
-                      color: subColor,
-                    ),
+                ),
+                Text(
+                  "out of 100",
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12 * scale,
+                    color: subColor,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
         SizedBox(height: 16 * scale),
         Container(
           padding: EdgeInsets.symmetric(
-              horizontal: 16 * scale, vertical: 6 * scale),
+            horizontal: 16 * scale,
+            vertical: 6 * scale,
+          ),
           decoration: BoxDecoration(
             color: scoreColor.withOpacity(0.15),
             borderRadius: BorderRadius.circular(20),
@@ -380,8 +469,13 @@ class HealthSummaryDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildMetricPill(double scale, IconData icon, Color color,
-      String title, String value, double progress, bool isDarkMode) {
+  Widget _buildMetricPill(double scale,
+      IconData icon,
+      Color color,
+      String title,
+      String value,
+      double progress,
+      bool isDarkMode,) {
     // Roughly half width minus spacing
     double w = 140 * scale;
 
@@ -445,13 +539,18 @@ class HealthSummaryDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildInsightCard(double scale, bool isDarkMode, Color primaryColor,
-      Color textColor, String insightText) {
+  Widget _buildInsightCard(double scale,
+      bool isDarkMode,
+      Color primaryColor,
+      Color textColor,
+      String insightText,) {
     return Container(
       padding: EdgeInsets.all(16 * scale),
       decoration: BoxDecoration(
-        color: isDarkMode ? primaryColor.withOpacity(0.15) : primaryColor
-            .withOpacity(0.08),
+        color:
+        isDarkMode
+            ? primaryColor.withOpacity(0.15)
+            : primaryColor.withOpacity(0.08),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: primaryColor.withOpacity(0.3)),
       ),
@@ -464,8 +563,11 @@ class HealthSummaryDialog extends StatelessWidget {
               color: primaryColor.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.auto_awesome_rounded, color: primaryColor,
-                size: 20 * scale),
+            child: Icon(
+              Icons.auto_awesome_rounded,
+              color: primaryColor,
+              size: 20 * scale,
+            ),
           ),
           SizedBox(width: 12 * scale),
           Expanded(
@@ -499,10 +601,15 @@ class HealthSummaryDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildAchievementCard(double scale, bool isDarkMode, String title,
-      String content, IconData icon, Color iconColor, Color textColor) {
-    Color cardColor = isDarkMode ? iconColor.withOpacity(0.15) : iconColor
-        .withOpacity(0.05);
+  Widget _buildAchievementCard(double scale,
+      bool isDarkMode,
+      String title,
+      String content,
+      IconData icon,
+      Color iconColor,
+      Color textColor,) {
+    Color cardColor =
+    isDarkMode ? iconColor.withOpacity(0.15) : iconColor.withOpacity(0.05);
 
     return Container(
       width: double.infinity,
@@ -545,57 +652,148 @@ class HealthSummaryDialog extends StatelessWidget {
   }
 }
 
-class HealthScoreArcPainter extends CustomPainter {
-  final double progress;
-  final Color backgroundColor;
-  final Color progressColor;
+class WaveTopCardShape extends ShapeBorder {
+  final double borderRadius;
+  final double dipStart; // fraction of width jaha se dip start hoti hai (0-1)
+  final double dipEnd; // fraction of width jaha dip khatam hoti hai (0-1)
+  final double dipDepth; // kitna neeche jaana hai
 
-  HealthScoreArcPainter({
-    required this.progress,
-    required this.backgroundColor,
-    required this.progressColor,
+  const WaveTopCardShape({
+    this.borderRadius = 20,
+    this.dipStart = 0.55,
+    this.dipEnd = 0.88,
+    this.dipDepth = 28,
   });
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height);
-    final radius = size.width / 2;
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
+    final path = Path();
+    final r = borderRadius;
+    final w = rect.width;
 
-    final bgPaint = Paint()
-      ..color = backgroundColor
-      ..strokeWidth = 16
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+    final dipStartX = rect.left + w * dipStart;
+    final dipEndX = rect.left + w * dipEnd;
+    final top = rect.top;
+    final dipWidth = dipEndX - dipStartX;
 
-    final progressPaint = Paint()
-      ..color = progressColor
-      ..strokeWidth = 16
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+    // top-left corner
+    path.moveTo(rect.left, rect.top + r);
+    path.quadraticBezierTo(rect.left, top, rect.left + r, top);
 
-    // Draw background arc
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      pi, // Start angle (180 degrees)
-      pi, // Sweep angle (180 degrees)
-      false,
-      bgPaint,
+    // straight top edge till dip start
+    path.lineTo(dipStartX, top);
+
+    // Curvy S — control points khud curvature dete hain, koi rise/transition nahi
+    path.cubicTo(
+      dipStartX + dipWidth * 0.25, top, // seedhi line se tangent match
+      dipStartX + dipWidth * 0.25, top + dipDepth,
+      // yahin se neeche khinchna shuru
+      dipStartX + dipWidth * 0.5,
+      top + dipDepth, // dip ka sabse neeche wala point
+    );
+    path.cubicTo(
+      dipStartX + dipWidth * 0.75, top + dipDepth, // dip ke bottom se
+      dipEndX - dipWidth * 0.25, top, // wapas seedhi line ke tangent tak
+      dipEndX, top,
     );
 
-    // Draw progress arc
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      pi, // Start angle (180 degrees)
-      pi * progress, // Sweep angle
-      false,
-      progressPaint,
-    );
+    // remaining straight top edge to top-right corner
+    path.lineTo(rect.right - r, top);
+    path.quadraticBezierTo(rect.right, top, rect.right, top + r);
+
+    // right edge
+    path.lineTo(rect.right, rect.bottom - r);
+    path.quadraticBezierTo(
+        rect.right, rect.bottom, rect.right - r, rect.bottom);
+
+    // bottom edge
+    path.lineTo(rect.left + r, rect.bottom);
+    path.quadraticBezierTo(rect.left, rect.bottom, rect.left, rect.bottom - r);
+
+    path.close();
+    return path;
   }
 
   @override
-  bool shouldRepaint(covariant HealthScoreArcPainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-        oldDelegate.backgroundColor != backgroundColor ||
-        oldDelegate.progressColor != progressColor;
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) =>
+      getOuterPath(rect);
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {}
+
+  @override
+  EdgeInsetsGeometry get dimensions => const EdgeInsets.all(0);
+
+  @override
+  ShapeBorder scale(double t) => this;
+}
+
+class InwardTopCardClipper extends CustomClipper<Path> {
+  final double curveDepth; // kitna andar dhasega
+
+  InwardTopCardClipper({this.curveDepth = 30});
+
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, 0); // top-left
+    // top edge: seedha jaake beech me andar dip karke wapas
+    path.quadraticBezierTo(
+      size.width / 2,
+      curveDepth, // control point (neeche = andar bend)
+      size.width,
+      0, // end point top-right
+    );
+    path.lineTo(size.width, size.height); // right edge
+    path.lineTo(0, size.height); // bottom edge
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+class ElephantCard extends StatelessWidget {
+  const ElephantCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 220,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.topCenter,
+        children: [
+          Positioned(
+            top: 40, // card ko thoda neeche push karo taaki elephant upar dikhe
+            left: 0,
+            right: 0,
+            child: ClipPath(
+              clipper: InwardTopCardClipper(curveDepth: 35),
+              child: Container(
+                height: 180,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.only(top: 50, left: 16, right: 16),
+                child: const Text('Card content here'),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 0,
+            child: Image.asset(helloElly, height: 100, width: 100),
+          ),
+        ],
+      ),
+    );
   }
 }

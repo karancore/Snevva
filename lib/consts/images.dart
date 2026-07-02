@@ -74,6 +74,8 @@ const sleepEleBottom = "assets/Dashboard/Rectangle 12.webp";
 const hydrationDashboardEle = "assets/Dashboard/elle-drink-water 1.webp";
 const waterBottomSheet = "assets/Images/hydrationEle.svg";
 const hydrationEleBottom = "assets/Dashboard/Rectangle 31.webp";
+const yellowTop = "assets/Images/HealthCard/yellow-header.png";
+const helloElly = "assets/Images/HealthCard/hello-elly.png";
 
 //Icons
 // Dashboard_containers

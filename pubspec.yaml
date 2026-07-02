@@ -182,6 +182,7 @@ flutter:
     - assets/chat/
     - assets/animations/Birthday_Confetti_Ballon.json
     - assets/lottie/app_loader.json
+    - assets/Images/HealthCard/
 
     - .env
     - secrets/key.json
