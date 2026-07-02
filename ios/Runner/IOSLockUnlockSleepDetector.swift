@@ -76,6 +76,12 @@ final class IOSLockUnlockSleepDetector {
             return
         }
         let now = Date()
+        if isWithinWindow(now, window) {
+            // Keep the process resident for the rest of the night so this notification
+            // (and protectedDataDidBecomeAvailable) keep firing after iOS would otherwise
+            // suspend us — see IOSBackgroundAudioKeepAlive. No-ops if already running.
+            IOSBackgroundAudioKeepAlive.shared.start()
+        }
         // Close any open interrupt (phone was in use, now re-locked).
         let key = unlockAnchorKey(for: window.dateKey)
         guard let unlockIso = UserDefaults.standard.string(forKey: key),

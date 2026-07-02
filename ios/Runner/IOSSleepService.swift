@@ -132,6 +132,32 @@ final class IOSSleepService {
         }
     }
 
+    // MARK: - Foreground catch-up
+
+    /// Called on every `applicationDidBecomeActive`. BGProcessingTask scheduling is
+    /// opportunistic — iOS may delay `sleep_calc` by hours or skip it entirely — so if
+    /// the user opens the app after their sleep window has already ended and it hasn't
+    /// been finalized yet, run the same interrupt-model calculation immediately instead
+    /// of waiting on the BGTask.
+    func catchUpSleepCalcIfWindowEnded() {
+        guard let window = IOSLockUnlockSleepDetector.shared.currentSleepWindow() else {
+            return
+        }
+        guard Date() >= window.end else {
+            return
+        }
+
+        let wakeDateKey = IOSStepBufferManager.shared.dateKeyFromDate(window.end)
+        if UserDefaults.standard.string(forKey: "flutter.sleep_final_date") == wakeDateKey {
+            // Already finalized (by the BGTask or a previous catch-up) — nothing to do.
+            return
+        }
+
+        print("💤 IOSSleepService: catching up sleep_calc for ended window [\(window.dateKey)]")
+        performSleepCalcBackgroundTask {
+        }
+    }
+
     // MARK: - Background task entry point
 
     /// Called by AppDelegate when `com.coretegra.snevva.sleep_calc` BGProcessingTask fires.
@@ -151,6 +177,19 @@ final class IOSSleepService {
     ///  5. Write to daily JSON + UserDefaults, queue for sync, reschedule.
     func performSleepCalcBackgroundTask(completion: @escaping () -> Void) {
         guard let window = IOSLockUnlockSleepDetector.shared.currentSleepWindow() else {
+            IOSApiSyncService.shared.sync { [weak self] _ in
+                self?.scheduleSleepCalcTask()
+                completion()
+            }
+            return
+        }
+
+        // A BGTask can still be queued for a window that catchUpSleepCalcIfWindowEnded()
+        // already finalized on foreground (BGTaskScheduler doesn't let us cancel a specific
+        // pending request). Since clearInterruptBuffer() already ran, recomputing here would
+        // read 0 interrupts and overwrite the correct total with the full window duration.
+        let wakeDateKey = IOSStepBufferManager.shared.dateKeyFromDate(window.end)
+        if UserDefaults.standard.string(forKey: "flutter.sleep_final_date") == wakeDateKey {
             IOSApiSyncService.shared.sync { [weak self] _ in
                 self?.scheduleSleepCalcTask()
                 completion()
@@ -224,6 +263,10 @@ final class IOSSleepService {
 
         IOSStepBufferManager.shared.addToSyncQueue(dateKey: window.dateKey, type: "sleep")
         print("💤 IOSSleepService: finalized \(finalMinutes)m [\(window.dateKey)], wake=\(wakeDateKey)")
+
+        // The night's window is done — release the audio keep-alive that was holding
+        // the process resident so it could keep receiving lock/unlock notifications.
+        IOSBackgroundAudioKeepAlive.shared.stop()
 
         IOSApiSyncService.shared.sync { [weak self] _ in
             self?.scheduleSleepCalcTask()
