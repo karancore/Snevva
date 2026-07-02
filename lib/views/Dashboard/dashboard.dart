@@ -244,32 +244,33 @@ class _DashboardState extends State<Dashboard>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const SizedBox(height: 16),
                       // ── Single card declaration handling both cases ──
-                      if (isVisible)
-                        Obx(() {
-                          final bool showCard =
-                              _isPhoneMissing ||
-                              !isProfileDisplayComplete(
-                                localStorageManager.userMap,
-                              );
-
-                          return showCard
-                              ? Column(
-                                children: [
-                                  const SizedBox(height: 16),
-                                  IncompleteProfileCard(
-                                    onTapComplete: () {
-                                      final ctrl =
-                                          Get.find<EditprofileController>();
-                                      ctrl.openNextMissingFieldDialog(context);
-                                    },
-                                    isExpanded: true,
-                                  ),
-                                  const SizedBox(height: 16),
-                                ],
-                              )
-                              : const SizedBox(height: 32);
-                        }),
+                      // if (isVisible)
+                      //   Obx(() {
+                      //     final bool showCard =
+                      //         _isPhoneMissing ||
+                      //         !isProfileDisplayComplete(
+                      //           localStorageManager.userMap,
+                      //         );
+                      //
+                      //     return showCard
+                      //         ? Column(
+                      //           children: [
+                      //
+                      //             IncompleteProfileCard(
+                      //               onTapComplete: () {
+                      //                 final ctrl =
+                      //                     Get.find<EditprofileController>();
+                      //                 ctrl.openNextMissingFieldDialog(context);
+                      //               },
+                      //               isExpanded: true,
+                      //             ),
+                      //             const SizedBox(height: 16),
+                      //           ],
+                      //         )
+                      //         : const SizedBox(height: 32);
+                      //   }),
 
                       DashboardHeaderWidget(),
                       const SizedBox(height: 16),
