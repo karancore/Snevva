@@ -25,6 +25,7 @@ final class IOSStepService: NSObject {
     private override init() {}
 
     private let pedometer = CMPedometer()
+    private let healthFetcher = IOSHealthKitStepsFetcher()
     private var methodChannel: FlutterMethodChannel?
     private var isRunning = false
     private var flushTimer: Timer?
@@ -59,6 +60,14 @@ final class IOSStepService: NSObject {
         }
 
         startPeriodicFlushTimer()
+
+        // Request HealthKit authorization so the Watch-inclusive total (see
+        // IOSHealthKitStepsFetcher) is available — without this call the read
+        // silently returns 0, same failure mode fixed for sleep.
+        healthFetcher.requestAuthorization { [weak self] _, _ in
+            self?.fetchAndMergeHealthKitStepsToday()
+        }
+
         print("✅ IOSStepService: started (date=\(lastKnownDateKey))")
     }
 
@@ -85,6 +94,35 @@ final class IOSStepService: NSObject {
         UserDefaults.standard.set(apiSteps, forKey: "flutter.today_steps")
         IOSStepBufferManager.shared.appendStepEvent(apiSteps)
         print("🌱 IOSStepService.seedTodaySteps: \(apiSteps) (was \(current))")
+    }
+
+    // MARK: - HealthKit merge (Apple Watch-inclusive total)
+
+    /// Fetches today's HealthKit step total (merged across iPhone + Apple Watch)
+    /// and merges it in if it exceeds what CMPedometer alone has recorded —
+    /// same max-wins pattern as IOSStepBufferManager.mergeStepsIntoDailyFile.
+    func fetchAndMergeHealthKitStepsToday(completion: (() -> Void)? = nil) {
+        let now = Date()
+        let startOfDay = Calendar.current.startOfDay(for: now)
+        let dateKey = todayKey()
+
+        healthFetcher.fetchTotalSteps(from: startOfDay, to: now) { [weak self] healthSteps in
+            guard let self = self, healthSteps > 0 else {
+                completion?(); return
+            }
+
+            let current = UserDefaults.standard.integer(forKey: "flutter.today_steps")
+            if healthSteps > current {
+                UserDefaults.standard.set(healthSteps, forKey: "flutter.today_steps")
+                IOSStepBufferManager.shared.appendStepEvent(healthSteps)
+                print("🍎 IOSStepService: HealthKit steps=\(healthSteps) (was \(current)) for \(dateKey)")
+
+                DispatchQueue.main.async {
+                    self.methodChannel?.invokeMethod("onStepDetected", arguments: healthSteps)
+                }
+            }
+            completion?()
+        }
     }
 
     // MARK: - Pedometer update handler
@@ -137,23 +175,37 @@ final class IOSStepService: NSObject {
             return
         }
 
+        let finalizeTs = Int(dayEnd.timeIntervalSince1970) - 1
+
         pedometer.queryPedometerData(from: dayStart, to: dayEnd) { [weak self] data, error in
+            guard let self = self else {
+                onDone?(); return
+            }
+
             if let data = data, error == nil {
                 let finalSteps = data.numberOfSteps.intValue
                 if finalSteps > 0 {
-                    IOSStepBufferManager.shared.appendStepEvent(
-                        finalSteps,
-                        ts: Int(dayEnd.timeIntervalSince1970) - 1
-                    )
-                    print("📊 IOSStepService: final \(previousDateKey) = \(finalSteps) steps")
+                    IOSStepBufferManager.shared.appendStepEvent(finalSteps, ts: finalizeTs)
+                    print("📊 IOSStepService: final \(previousDateKey) = \(finalSteps) steps (CMPedometer)")
                 }
             } else if let error = error {
                 print("⚠️ IOSStepService.queryPedometerData error: \(error)")
             }
-            IOSStepBufferManager.shared.flushStepsToDaily()
-            IOSStepBufferManager.shared.addToSyncQueue(dateKey: previousDateKey, type: "steps")
-            self?.triggerSync()
-            onDone?()
+
+            // Also append the Watch-inclusive HealthKit total for the same day —
+            // flushStepsToDaily() takes the max of all buffered entries per day,
+            // so whichever source recorded more steps wins (mirrors sleep's
+            // Apple Watch-priority finalization).
+            self.healthFetcher.fetchTotalSteps(from: dayStart, to: dayEnd) { healthSteps in
+                if healthSteps > 0 {
+                    IOSStepBufferManager.shared.appendStepEvent(healthSteps, ts: finalizeTs)
+                    print("🍎 IOSStepService: final \(previousDateKey) = \(healthSteps) steps (HealthKit)")
+                }
+                IOSStepBufferManager.shared.flushStepsToDaily()
+                IOSStepBufferManager.shared.addToSyncQueue(dateKey: previousDateKey, type: "steps")
+                self.triggerSync()
+                onDone?()
+            }
         }
     }
 
@@ -188,7 +240,10 @@ final class IOSStepService: NSObject {
         let startOfDay = Calendar.current.startOfDay(for: now)
         let dateKey    = todayKey()
 
-        pedometer.queryPedometerData(from: startOfDay, to: now) { data, error in
+        pedometer.queryPedometerData(from: startOfDay, to: now) { [weak self] data, error in
+            guard let self = self else {
+                completion(); return
+            }
             if let data = data, error == nil {
                 let steps = data.numberOfSteps.intValue
                 if steps > 0 {
@@ -197,8 +252,13 @@ final class IOSStepService: NSObject {
                     print("📲 IOSStepService BGRefresh: \(steps) steps for \(dateKey)")
                 }
             }
-            IOSStepBufferManager.shared.flushStepsToDaily()
-            IOSApiSyncService.shared.sync { _ in completion() }
+            // Top up with the Watch-inclusive HealthKit total, if higher.
+            self.fetchAndMergeHealthKitStepsToday {
+                IOSStepBufferManager.shared.flushStepsToDaily()
+                IOSApiSyncService.shared.sync { _ in
+                    completion()
+                }
+            }
         }
     }
 

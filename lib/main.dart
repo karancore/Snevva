@@ -31,6 +31,7 @@ import 'package:snevva/Controllers/signupAndSignIn/otp_verification_controller.d
 import 'package:snevva/Controllers/signupAndSignIn/sign_in_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/sign_up_controller.dart';
 import 'package:snevva/Controllers/signupAndSignIn/update_old_password_controller.dart';
+import 'package:snevva/services/apple_auth.dart';
 import 'package:snevva/services/connectivity_service.dart';
 import 'package:snevva/services/firebase_init.dart';
 import 'package:snevva/services/google_auth.dart';
@@ -344,12 +345,22 @@ void main() {
         _firebaseMessagingBackgroundHandler,
       );
 
-      Get.put(GoogleBackendAuthService());
+      Get.put(BackendAuthService());
       final googleAuth = Get.put(GoogleAuthService());
       await googleAuth.init().timeout(
         const Duration(seconds: 5),
         onTimeout: () => debugPrint('⚠️ googleAuth.init timed out'),
       );
+
+      if (Platform.isIOS) {
+        Get.put(BackendAuthService());
+        final appleAuth = Get.put(AppleAuthService());
+        await appleAuth.init().timeout(
+          const Duration(seconds: 5),
+          onTimeout: () => debugPrint('⚠️ appleAuth.init timed out'),
+        );
+      }
+
       runApp(
         MyApp(
           isRemembered: isRemembered,
@@ -394,6 +405,8 @@ void _registerLazyDependencies() {
   _lazyPut<BmiController>(() => BmiController());
   _lazyPut<BmiUpdateController>(() => BmiUpdateController());
   _lazyPut<GoogleAuthService>(() => GoogleAuthService());
+  _lazyPut<AppleAuthService>(() => AppleAuthService());
+
   _lazyPut<DietPlanController>(() => DietPlanController());
   _lazyPut<HealthTipsController>(() => HealthTipsController());
   _lazyPut<MentalWellnessController>(() => MentalWellnessController());

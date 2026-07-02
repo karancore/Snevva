@@ -1,4 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/gestures.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:snevva/services/apple_auth.dart';
 
 import '../../common/custom_snackbar.dart';
 import '../../consts/consts.dart';
@@ -33,8 +37,6 @@ class SignInFooterWidget extends StatefulWidget {
 }
 
 class _SignInFooterWidgetState extends State<SignInFooterWidget> {
-  bool isSigningIn = false; // Track sign-in loading state
-
   @override
   Widget build(BuildContext context) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -85,8 +87,11 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
             // Google icon (always shown)
             Obx(() {
               final googleAuth = Get.find<GoogleAuthService>();
-              final isBusy = isSigningIn || googleAuth.isLoading.value;
+              var isBusy = googleAuth.isLoading.value;
               return Container(
+                height: 50,
+                width: 50,
+
                 decoration: BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
@@ -103,7 +108,7 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
                       isBusy
                           ? null
                           : () async {
-                            setState(() => isSigningIn = true);
+                            setState(() => isBusy = true);
                             try {
                               await googleAuth.signIn();
                             } catch (e, st) {
@@ -119,7 +124,7 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
                             } finally {
                               // Reset local flag — if auth succeeded, googleAuth.isLoading
                               // is already true so isBusy stays true until backend finishes.
-                              if (mounted) setState(() => isSigningIn = false);
+                              if (mounted) setState(() => isBusy = false);
                             }
                           },
                   icon:
@@ -142,13 +147,68 @@ class _SignInFooterWidgetState extends State<SignInFooterWidget> {
                 },
                 icon: Image.asset(facebook, height: 32, width: 32),
               ),
+            const SizedBox(width: 12),
 
             // Apple icon (conditionally shown)
-            if (widget.appleText != null)
-              IconButton(
-                onPressed: () {},
-                icon: Image.asset(apple, height: 32, width: 32),
-              ),
+            if (Platform.isIOS)
+              Obx(() {
+                final appleAuth = Get.find<AppleAuthService>();
+                var isBusy = appleAuth.isLoading.value;
+
+                return Container(
+                  height: 50,
+                  width: 50,
+
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: IconButton(
+                    onPressed:
+                        isBusy
+                            ? null
+                            : () async {
+                              setState(() => isBusy = true);
+                              try {
+                                await appleAuth.handleAppleSignIn();
+                              } catch (e, st) {
+                                print("❌ Apple sign-in failed: $e");
+                                print("❌ Apple sign-in failed stackTrace: $st");
+
+                                CustomSnackbar.showError(
+                                  context: context,
+                                  title: 'Sign-in Required',
+                                  message:
+                                      'Please sign in with Google to continue.',
+                                );
+                              } finally {
+                                // Reset local flag — if auth succeeded, googleAuth.isLoading
+                                // is already true so isBusy stays true until backend finishes.
+                                if (mounted) setState(() => isBusy = false);
+                              }
+                            },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon:
+                        isBusy
+                            ? CircularProgressIndicator(
+                              backgroundColor: isDarkMode ? white : black,
+                            )
+                            : FaIcon(
+                              FontAwesomeIcons.apple,
+                              size: 28,
+                              color: black,
+                            ),
+                  ),
+                );
+              }),
           ],
         ),
 

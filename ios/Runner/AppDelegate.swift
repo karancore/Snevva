@@ -56,6 +56,12 @@ import AVFoundation
         IOSLockUnlockSleepDetector.shared.start()
         IOSLockUnlockSleepDetector.shared.initializeForSleepWindow()
 
+        // Request HealthKit authorization and pull last night's sleep. Without this call
+        // the HKHealthStore is never authorized, so every sleep query silently returns
+        // zero results (HealthKit does not surface an error for unauthorized reads) —
+        // this is why Apple Health/Watch sleep data never reached the app.
+        IOSSleepService.shared.start()
+
         return didFinish
     }
 
@@ -180,10 +186,16 @@ import AVFoundation
         super.applicationDidBecomeActive(application)
         _ = requestHighRefreshRateIfAvailable()
         IOSStepService.shared.start()
+        // start() no-ops after the first launch (isRunning guard), so refresh the
+        // Watch-inclusive HealthKit step total explicitly on every foreground.
+        IOSStepService.shared.fetchAndMergeHealthKitStepsToday()
         // Re-seed lock anchor in case the app was relaunched mid-sleep-window.
         IOSLockUnlockSleepDetector.shared.initializeForSleepWindow()
         // Pull HealthKit sleep data for last night so SleepController sees it on next read.
         IOSSleepService.shared.fetchAndStoreLastNightSleep(completion: nil)
+        // Finalize the lock/unlock fallback immediately if the window already
+        // ended — don't rely solely on the opportunistically-scheduled BGTask.
+        IOSSleepService.shared.catchUpSleepCalcIfWindowEnded()
     }
 
     override func applicationDidEnterBackground(_ application: UIApplication) {
