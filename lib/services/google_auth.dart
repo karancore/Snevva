@@ -31,8 +31,8 @@ class GoogleAuthService extends GetxService {
           user.value = event.user;
 
           // Precache handled by UI layer — not here
-          await Get.find<GoogleBackendAuthService>()
-              .handleBackendLogin(event.user);
+          await Get.find<BackendAuthService>()
+              .handleGoogleBackendLogin(event.user);
 
           isLoading.value = false;
         } else if (event is GoogleSignInAuthenticationEventSignOut) {

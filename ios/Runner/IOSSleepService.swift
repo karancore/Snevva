@@ -132,6 +132,32 @@ final class IOSSleepService {
         }
     }
 
+    // MARK: - Foreground catch-up
+
+    /// Runs the same finalize flow as the `sleep_calc` BGProcessingTask, but
+    /// triggered from app-foreground instead of waiting on the OS to schedule it.
+    ///
+    /// BGProcessingTask execution is opportunistic — iOS can (and often does)
+    /// delay it well past its earliest begin date, especially for short test
+    /// windows. Lock/unlock notifications also cannot fire while the app is
+    /// suspended (phone stays locked), so nothing else closes the open interval
+    /// until either the BGTask fires or the app is reopened. This covers the
+    /// "reopen the app" case so results aren't stuck waiting on the OS.
+    ///
+    /// No-ops if the sleep window is still in progress (wake time not reached yet).
+    func catchUpSleepCalcIfWindowEnded(completion: (() -> Void)? = nil) {
+        guard let window = IOSLockUnlockSleepDetector.shared.currentSleepWindow(),
+              Date() >= window.end
+        else {
+            completion?()
+            return
+        }
+        print("💤 IOSSleepService: catching up sleep_calc on foreground (window ended \(window.end))")
+        performSleepCalcBackgroundTask {
+            completion?()
+        }
+    }
+
     // MARK: - Background task entry point
 
     /// Called by AppDelegate when `com.coretegra.snevva.sleep_calc` BGProcessingTask fires.
@@ -224,8 +250,12 @@ final class IOSSleepService {
     func scheduleSleepCalcTask() {
         guard #available(iOS 13.0, *) else { return }
 
-        let wakeMinutes = UserDefaults.standard.integer(forKey: "wake_time_minutes").zeroToNil
-            ?? UserDefaults.standard.integer(forKey: "flutter.wake_time_minutes").zeroToNil
+        // Dart only ever writes the wake time as "user_waketime_ms" (see
+        // sleep_controller.dart WAKETIME_KEY) — "wake_time_minutes" was never
+        // written by any Dart code, so this used to always fall through to the
+        // hardcoded 7 AM default regardless of the user's real/test window.
+        let wakeMinutes = UserDefaults.standard.integer(forKey: "user_waketime_ms").zeroToNil
+            ?? UserDefaults.standard.integer(forKey: "flutter.user_waketime_ms").zeroToNil
             ?? (7 * 60)
 
         let cal = Calendar.current

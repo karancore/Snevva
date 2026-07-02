@@ -61,7 +61,7 @@ const bloodGlucoseIcon = "assets/Dashboard/glucose-menu-icon.svg";
 const bloodGlucoseDark = "assets/Dashboard/glucose-dark.svg";
 
 //Sign up screen
-const apple = 'assets/Icons/Apple.webp';
+const apple = 'assets/Icons/Apple.png';
 const mascot2 = "assets/Images/mascot.webp";
 
 //DashboardImages

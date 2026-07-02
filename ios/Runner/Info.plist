@@ -2,14 +2,21 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>com.coretegra.snevva.step_refresh</string>
+        <string>com.coretegra.snevva.api_sync</string>
+        <string>com.coretegra.snevva.sleep_calc</string>
+        <string>com.coretegra.snevva.period_sync</string>
+        <string>com.coretegra.snevvaa.reminderReconcile</string>
+        <string>com.coretegra.snevvaa.reminderOneShot</string>
+    </array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
     <string>Snevva</string>
-	<key>FLTEnableImpeller</key>
-	<true/>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -29,43 +36,46 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>com.googleusercontent.apps.760082000923-oqaot6mujmcgro2bbrb396mul4edcipa
+                </string>
+            </array>
+        </dict>
+    </array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+    <key>FLTEnableImpeller</key>
+    <true />
+    <key>INIntentsSupported</key>
+    <array>
+        <string>Intent</string>
+    </array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+    <key>LSSupportsOpeningDocumentsInPlace</key>
+    <true />
 	<key>NSCameraUsageDescription</key>
 	<string>Camera access needed to take photos and scan reports.</string>
+    <key>NSHealthShareUsageDescription</key>
+    <string>Snevva reads your health data to track steps and activity.</string>
+    <key>NSHealthUpdateUsageDescription</key>
+    <string>Snevva writes your activity data to Apple Health.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>We need your location to track walking activity.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app requires microphone access for video recording.</string>
+    <key>NSMotionUsageDescription</key>
+    <string>We need motion data to count your steps.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Permission to save photos and videos to your library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Photo library access needed to pick a profile or report image.</string>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We need your location to track walking activity.</string>
-	<key>NSMotionUsageDescription</key>
-	<string>We need motion data to count your steps.</string>
-	<key>NSHealthShareUsageDescription</key>
-	<string>Snevva reads your health data to track steps and activity.</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>Snevva writes your activity data to Apple Health.</string>
-	<key>BGTaskSchedulerPermittedIdentifiers</key>
-	<array>
-		<string>com.coretegra.snevva.step_refresh</string>
-		<string>com.coretegra.snevva.api_sync</string>
-		<string>com.coretegra.snevva.sleep_calc</string>
-		<string>com.coretegra.snevva.period_sync</string>
-		<string>com.coretegra.snevvaa.reminderReconcile</string>
-		<string>com.coretegra.snevvaa.reminderOneShot</string>
-	</array>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>fetch</string>
-		<string>processing</string>
-		<string>remote-notification</string>
-	</array>
     <key>UIApplicationSceneManifest</key>
     <dict>
         <key>UIApplicationSupportsMultipleScenes</key>
@@ -87,6 +97,16 @@
             </array>
         </dict>
     </dict>
+    <key>UIApplicationSupportsIndirectInputEvents</key>
+    <true />
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>fetch</string>
+        <string>processing</string>
+        <string>remote-notification</string>
+    </array>
+    <key>UIFileSharingEnabled</key>
+    <true />
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
     <key>UIMainStoryboardFile</key>
@@ -104,23 +124,5 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-
-    <key>CFBundleURLTypes</key>
-    <array>
-        <dict>
-            <key>CFBundleTypeRole</key>
-            <string>Editor</string>
-            <key>CFBundleURLSchemes</key>
-            <array>
-                <string>com.googleusercontent.apps.760082000923-oqaot6mujmcgro2bbrb396mul4edcipa</string>
-            </array>
-        </dict>
-    </array>
-
-
-    <key>UIFileSharingEnabled</key>
-    <true />
-    <key>LSSupportsOpeningDocumentsInPlace</key>
-    <true />
 </dict>
 </plist>

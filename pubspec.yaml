@@ -108,6 +108,7 @@ dependencies:
   in_app_update: ^4.2.5
   pdfx: ^2.9.2
   pdf: ^3.10.7
+  sign_in_with_apple: ^8.1.0
 
 #  flutter_sms_autofill: ^1.0.4
 
